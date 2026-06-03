@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
+import { THEME } from '../utils/permissions'
 
 export default function LoginPage() {
   const { signIn } = useAuth()
@@ -7,6 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
+  const [showPw,   setShowPw]   = useState(false)
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -24,53 +26,51 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1F3864 0%, #2F5496 60%, #1F3864 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: "'Segoe UI', Arial, sans-serif",
-      padding: '16px',
+      background: `linear-gradient(135deg, ${THEME.sidebarDark} 0%, ${THEME.sidebar} 60%, ${THEME.primaryLight} 100%)`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'Segoe UI', Arial, sans-serif", padding: '16px',
+      position: 'relative', overflow: 'hidden',
     }}>
-      {/* Background pattern */}
-      <div style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none',
-        backgroundImage: 'radial-gradient(circle at 20% 80%, rgba(196,90,17,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(68,114,196,0.2) 0%, transparent 50%)',
-      }} />
+      {/* Decorative circles */}
+      <div style={{ position:'absolute', width:'400px', height:'400px', borderRadius:'50%', background:'rgba(255,255,255,.03)', top:'-100px', right:'-80px', pointerEvents:'none' }} />
+      <div style={{ position:'absolute', width:'300px', height:'300px', borderRadius:'50%', background:'rgba(255,255,255,.03)', bottom:'-60px', left:'-60px', pointerEvents:'none' }} />
 
       <div style={{
         background: '#fff',
-        borderRadius: '16px',
+        borderRadius: '18px',
         padding: '40px',
         width: '100%',
         maxWidth: '400px',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+        boxShadow: '0 24px 80px rgba(0,0,0,.35)',
         position: 'relative',
+        borderTop: `5px solid ${THEME.accent}`,
       }}>
-        {/* Logo area */}
+        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
-            width: '64px', height: '64px', borderRadius: '16px',
-            background: '#1F3864',
+            width: '68px', height: '68px', borderRadius: '18px',
+            background: `linear-gradient(135deg, ${THEME.primary} 0%, ${THEME.accent} 100%)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
-            fontSize: '28px',
+            margin: '0 auto 14px', fontSize: '32px',
+            boxShadow: `0 8px 24px ${THEME.primary}55`,
           }}>
             🍽️
           </div>
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1F3864', margin: 0 }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 800, color: THEME.primary, margin: 0, letterSpacing: '-.02em' }}>
             Bravura Zimbabwe
           </h1>
-          <p style={{ fontSize: '14px', color: '#888', margin: '4px 0 0' }}>
-            Meal Management System
+          <p style={{ fontSize: '13px', color: '#aaa', margin: '4px 0 0' }}>
+            Meal Management System · Kamativi
           </p>
         </div>
 
         <form onSubmit={handleLogin}>
+          {/* Email */}
           <div style={{ marginBottom: '14px' }}>
             <label style={{
               display: 'block', fontSize: '11px', fontWeight: 700,
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              color: '#4a5568', marginBottom: '5px',
+              textTransform: 'uppercase', letterSpacing: '.06em',
+              color: THEME.primary, marginBottom: '6px',
             }}>
               Email Address
             </label>
@@ -81,46 +81,60 @@ export default function LoginPage() {
               required
               placeholder="your@email.com"
               style={{
-                width: '100%', padding: '10px 12px', border: '1px solid #dde2ea',
-                borderRadius: '8px', fontSize: '14px', color: '#1a1a2e',
+                width: '100%', padding: '11px 14px',
+                border: `1.5px solid ${THEME.cardBorder}`,
+                borderRadius: '10px', fontSize: '14px', color: '#1a1a2e',
                 fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
                 transition: 'border-color 0.15s',
               }}
-              onFocus={e => e.target.style.borderColor = '#4472C4'}
-              onBlur={e => e.target.style.borderColor = '#dde2ea'}
+              onFocus={e => e.target.style.borderColor = THEME.primary}
+              onBlur={e => e.target.style.borderColor = THEME.cardBorder}
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
+          {/* Password */}
+          <div style={{ marginBottom: '22px' }}>
             <label style={{
               display: 'block', fontSize: '11px', fontWeight: 700,
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              color: '#4a5568', marginBottom: '5px',
+              textTransform: 'uppercase', letterSpacing: '.06em',
+              color: THEME.primary, marginBottom: '6px',
             }}>
               Password
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-              style={{
-                width: '100%', padding: '10px 12px', border: '1px solid #dde2ea',
-                borderRadius: '8px', fontSize: '14px', color: '#1a1a2e',
-                fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-                transition: 'border-color 0.15s',
-              }}
-              onFocus={e => e.target.style.borderColor = '#4472C4'}
-              onBlur={e => e.target.style.borderColor = '#dde2ea'}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPw ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                style={{
+                  width: '100%', padding: '11px 42px 11px 14px',
+                  border: `1.5px solid ${THEME.cardBorder}`,
+                  borderRadius: '10px', fontSize: '14px', color: '#1a1a2e',
+                  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                  transition: 'border-color 0.15s',
+                }}
+                onFocus={e => e.target.style.borderColor = THEME.primary}
+                onBlur={e => e.target.style.borderColor = THEME.cardBorder}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw(p => !p)}
+                style={{
+                  position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#aaa',
+                }}
+              >
+                {showPw ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
 
           {error && (
             <div style={{
               background: '#FFE0E0', color: '#C00000', border: '1px solid #f5b8b8',
-              borderRadius: '8px', padding: '10px 14px', fontSize: '13px',
-              marginBottom: '16px',
+              borderRadius: '10px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px',
             }}>
               {error}
             </div>
@@ -130,18 +144,20 @@ export default function LoginPage() {
             type="submit"
             disabled={loading}
             style={{
-              width: '100%', padding: '12px', background: loading ? '#4a5568' : '#1F3864',
-              color: '#fff', border: 'none', borderRadius: '8px',
+              width: '100%', padding: '13px',
+              background: loading ? '#aaa' : `linear-gradient(135deg, ${THEME.primary} 0%, ${THEME.accent} 100%)`,
+              color: '#fff', border: 'none', borderRadius: '10px',
               fontSize: '14px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit', transition: 'background 0.15s',
+              fontFamily: 'inherit', boxShadow: loading ? 'none' : `0 4px 16px ${THEME.primary}44`,
+              transition: 'all 0.15s',
             }}
           >
-            {loading ? 'Signing in…' : 'Sign In'}
+            {loading ? 'Signing in…' : 'Sign In →'}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', fontSize: '12px', color: '#aaa', marginTop: '24px', marginBottom: 0 }}>
-          Kamativi Mine Site · Secure Access
+        <p style={{ textAlign: 'center', fontSize: '11px', color: '#ccc', marginTop: '24px', marginBottom: 0 }}>
+          Secured · Kamativi Mine Site · Bravura Zimbabwe Ltd
         </p>
       </div>
     </div>

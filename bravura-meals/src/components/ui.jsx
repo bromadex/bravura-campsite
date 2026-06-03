@@ -1,41 +1,51 @@
-// ── Shared UI primitives ────────────────────────────────────────────────────
+import { THEME } from '../utils/permissions'
 
-export function StatCard({ label, value, sub, color = '#1F3864' }) {
+// ── Stat Card ────────────────────────────────────────────────────────────────
+export function StatCard({ label, value, sub, color }) {
+  const c = color || THEME.primary
   return (
     <div style={{
-      background: '#fff', border: '1px solid #dde2ea', borderRadius: '8px',
+      background: '#fff', border: `1px solid ${THEME.cardBorder}`, borderRadius: '10px',
       padding: '14px 16px', textAlign: 'center',
+      borderTop: `3px solid ${c}`,
     }}>
-      <div style={{ fontSize: '11px', color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>
+      <div style={{ fontSize: '10px', color: '#999', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '6px' }}>
         {label}
       </div>
-      <div style={{ fontSize: '28px', fontWeight: 700, color, lineHeight: 1 }}>
+      <div style={{ fontSize: '28px', fontWeight: 700, color: c, lineHeight: 1 }}>
         {value}
       </div>
-      {sub && <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>{sub}</div>}
     </div>
   )
 }
 
+// ── Card ─────────────────────────────────────────────────────────────────────
 export function Card({ children, style = {} }) {
   return (
     <div style={{
-      background: '#fff', border: '1px solid #dde2ea', borderRadius: '12px',
-      padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,.08)', ...style,
+      background: '#fff',
+      border: `1px solid ${THEME.cardBorder}`,
+      borderRadius: '12px',
+      padding: '20px',
+      boxShadow: '0 1px 4px rgba(107,28,28,.06)',
+      ...style,
     }}>
       {children}
     </div>
   )
 }
 
+// ── Button ───────────────────────────────────────────────────────────────────
 export function Button({ children, onClick, variant = 'primary', size = 'md', disabled = false, style = {} }) {
   const variants = {
-    primary: { background: '#2F5496', color: '#fff' },
-    success: { background: '#375623', color: '#fff' },
-    danger:  { background: '#C00000', color: '#fff' },
-    orange:  { background: '#C55A11', color: '#fff' },
-    ghost:   { background: 'transparent', color: '#4a5568', border: '1px solid #dde2ea' },
-    teal:    { background: '#00897B', color: '#fff' },
+    primary: { background: THEME.primary,      color: '#fff' },
+    success: { background: '#375623',           color: '#fff' },
+    danger:  { background: '#C00000',           color: '#fff' },
+    orange:  { background: '#C55A11',           color: '#fff' },
+    ghost:   { background: 'transparent',       color: '#4a5568', border: `1px solid ${THEME.cardBorder}` },
+    maroon:  { background: THEME.primaryLight,  color: '#fff' },
+    teal:    { background: '#00897B',           color: '#fff' },
   }
   const sizes = {
     sm: { padding: '5px 11px', fontSize: '12px' },
@@ -59,68 +69,24 @@ export function Button({ children, onClick, variant = 'primary', size = 'md', di
   )
 }
 
-export function FormGroup({ label, children }) {
-  return (
-    <div style={{ marginBottom: '14px' }}>
-      <label style={{
-        display: 'block', fontSize: '12px', fontWeight: 600, color: '#4a5568',
-        marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '.04em',
-      }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-export function Input({ style = {}, ...props }) {
-  return (
-    <input
-      style={{
-        width: '100%', padding: '8px 12px', border: '1px solid #dde2ea',
-        borderRadius: '8px', fontFamily: 'inherit', fontSize: '13px',
-        color: '#1a1a2e', background: '#fff', boxSizing: 'border-box',
-        outline: 'none', transition: 'border-color .15s', ...style,
-      }}
-      onFocus={e => e.target.style.borderColor = '#4472C4'}
-      onBlur={e => e.target.style.borderColor = '#dde2ea'}
-      {...props}
-    />
-  )
-}
-
-export function Select({ children, style = {}, ...props }) {
-  return (
-    <select
-      style={{
-        width: '100%', padding: '8px 12px', border: '1px solid #dde2ea',
-        borderRadius: '8px', fontFamily: 'inherit', fontSize: '13px',
-        color: '#1a1a2e', background: '#fff', cursor: 'pointer',
-        outline: 'none', boxSizing: 'border-box', ...style,
-      }}
-      {...props}
-    >
-      {children}
-    </select>
-  )
-}
-
+// ── Modal ────────────────────────────────────────────────────────────────────
 export function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)',
+        position: 'fixed', inset: 0, background: 'rgba(60,0,0,.35)',
         zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
       <div style={{
-        background: '#fff', borderRadius: '12px', padding: '24px',
+        background: '#fff', borderRadius: '14px', padding: '24px',
         maxWidth: '520px', width: '100%', margin: '16px',
-        boxShadow: '0 8px 40px rgba(0,0,0,.2)',
+        boxShadow: '0 12px 48px rgba(107,28,28,.2)',
+        borderTop: `4px solid ${THEME.primary}`,
       }}>
-        <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>{title}</div>
+        <div style={{ fontSize: '16px', fontWeight: 700, color: THEME.primary, marginBottom: '18px' }}>{title}</div>
         {children}
         {footer && (
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
@@ -132,41 +98,94 @@ export function Modal({ open, onClose, title, children, footer }) {
   )
 }
 
-export function Badge({ children, color = '#1F3864', bg = '#D6E4F0' }) {
+// ── Confirm Dialog ───────────────────────────────────────────────────────────
+export function ConfirmModal({ open, onClose, onConfirm, title, message, confirmLabel = 'Delete', danger = true }) {
+  if (!open) return null
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(60,0,0,.35)',
+        zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <div style={{
+        background: '#fff', borderRadius: '14px', padding: '28px',
+        maxWidth: '400px', width: '100%', margin: '16px',
+        boxShadow: '0 12px 48px rgba(107,28,28,.2)',
+        borderTop: `4px solid ${danger ? '#C00000' : THEME.primary}`,
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: '36px', marginBottom: '12px' }}>{danger ? '🗑️' : '⚠️'}</div>
+        <div style={{ fontSize: '16px', fontWeight: 700, color: danger ? '#C00000' : THEME.primary, marginBottom: '8px' }}>
+          {title}
+        </div>
+        <div style={{ fontSize: '13px', color: '#666', marginBottom: '24px', lineHeight: 1.6 }}>
+          {message}
+        </div>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <Button onClick={onClose} variant="ghost">Cancel</Button>
+          <Button onClick={onConfirm} variant={danger ? 'danger' : 'primary'}>{confirmLabel}</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Badge ────────────────────────────────────────────────────────────────────
+export function Badge({ children, color, bg }) {
   return (
     <span style={{
       padding: '2px 10px', borderRadius: '20px', fontSize: '11px',
-      fontWeight: 700, background: bg, color,
+      fontWeight: 700,
+      background: bg || '#F5EDEE',
+      color: color || THEME.primary,
     }}>
       {children}
     </span>
   )
 }
 
+// ── Status Badge ─────────────────────────────────────────────────────────────
+export function StatusBadge({ status }) {
+  const map = {
+    draft:     { bg: '#FFF2CC', color: '#7B5800',  label: 'Draft' },
+    submitted: { bg: '#F5EDEE', color: THEME.primary, label: 'Submitted' },
+    approved:  { bg: '#E2EFDA', color: '#375623',  label: 'Approved' },
+    queried:   { bg: '#FFE0E0', color: '#C00000',  label: '⚑ Queried' },
+    open:      { bg: '#FFE0E0', color: '#C00000',  label: 'Open' },
+    resolved:  { bg: '#E2EFDA', color: '#375623',  label: 'Resolved' },
+    dismissed: { bg: '#F5F5F5', color: '#808080',  label: 'Dismissed' },
+    Active:    { bg: '#E2EFDA', color: '#375623',  label: 'Active' },
+    Inactive:  { bg: '#F5F5F5', color: '#808080',  label: 'Inactive' },
+  }
+  const s = map[status] || { bg: '#F5F5F5', color: '#888', label: status }
+  return <Badge color={s.color} bg={s.bg}>{s.label}</Badge>
+}
+
+// ── Empty ────────────────────────────────────────────────────────────────────
 export function Empty({ message = 'No data found' }) {
   return (
-    <div style={{ textAlign: 'center', padding: '48px 24px', color: '#888' }}>
+    <div style={{ textAlign: 'center', padding: '48px 24px', color: '#aaa' }}>
       <div style={{ fontSize: '40px', marginBottom: '12px' }}>📋</div>
       <p style={{ fontSize: '14px' }}>{message}</p>
     </div>
   )
 }
 
-export function StatusBadge({ status }) {
-  const map = {
-    draft:     { bg: '#FFF2CC', color: '#7B5800', label: 'Draft' },
-    submitted: { bg: '#D6E4F0', color: '#1F3864', label: 'Submitted' },
-    approved:  { bg: '#E2EFDA', color: '#375623', label: 'Approved' },
-    queried:   { bg: '#FFE0E0', color: '#C00000', label: '⚑ Queried' },
-    open:      { bg: '#FFE0E0', color: '#C00000', label: 'Open' },
-    resolved:  { bg: '#E2EFDA', color: '#375623', label: 'Resolved' },
-    dismissed: { bg: '#F5F5F5', color: '#808080', label: 'Dismissed' },
-  }
-  const s = map[status] || { bg: '#F5F5F5', color: '#888', label: status }
-  return <Badge color={s.color} bg={s.bg}>{s.label}</Badge>
+// ── Section Label ────────────────────────────────────────────────────────────
+export function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontWeight: 700, fontSize: '11px', textTransform: 'uppercase',
+      letterSpacing: '.07em', color: '#999', marginBottom: '10px',
+    }}>
+      {children}
+    </div>
+  )
 }
 
-// Toast system
+// ── Toast ────────────────────────────────────────────────────────────────────
 let toastContainer = null
 export function showToast(msg, type = '') {
   if (!toastContainer) {
@@ -174,16 +193,16 @@ export function showToast(msg, type = '') {
     toastContainer.style.cssText = 'position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none'
     document.body.appendChild(toastContainer)
   }
-  const colors = { green: '#375623', red: '#C00000', '': '#1F3864' }
+  const colors = { green: '#375623', red: '#C00000', '': THEME.primary }
   const t = document.createElement('div')
   t.textContent = msg
-  t.style.cssText = `background:${colors[type]||colors['']};color:#fff;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;max-width:320px;box-shadow:0 4px 16px rgba(0,0,0,.18);font-family:'Segoe UI',Arial,sans-serif`
+  t.style.cssText = `background:${colors[type]||colors['']};color:#fff;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;max-width:320px;box-shadow:0 4px 16px rgba(0,0,0,.2);font-family:'Segoe UI',Arial,sans-serif`
   toastContainer.appendChild(t)
-  requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)' })
-  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300) }, 3000)
+  requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateY(0)' })
+  setTimeout(() => { t.style.opacity='0'; setTimeout(() => t.remove(), 300) }, 3000)
 }
 
-// Date helpers
+// ── Helpers ──────────────────────────────────────────────────────────────────
 export function today() { return new Date().toISOString().slice(0, 10) }
 export function fmtDate(d) {
   if (!d) return '—'

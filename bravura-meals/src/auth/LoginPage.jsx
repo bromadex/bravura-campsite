@@ -14,152 +14,147 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    try {
-      await signIn(email, password)
-    } catch (err) {
-      setError(err.message || 'Login failed. Check your credentials.')
-    } finally {
-      setLoading(false)
-    }
+    try { await signIn(email, password) }
+    catch (err) { setError(err.message || 'Login failed. Check your credentials.') }
+    finally { setLoading(false) }
   }
 
   return (
     <div style={{
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${THEME.sidebarDark} 0%, ${THEME.sidebar} 60%, ${THEME.primaryLight} 100%)`,
+      background: THEME.sidebar,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: "'Segoe UI', Arial, sans-serif", padding: '16px',
+      fontFamily: "'Google Sans', 'Segoe UI', Arial, sans-serif", padding: '16px',
       position: 'relative', overflow: 'hidden',
     }}>
-      {/* Decorative circles */}
-      <div style={{ position:'absolute', width:'400px', height:'400px', borderRadius:'50%', background:'rgba(255,255,255,.03)', top:'-100px', right:'-80px', pointerEvents:'none' }} />
-      <div style={{ position:'absolute', width:'300px', height:'300px', borderRadius:'50%', background:'rgba(255,255,255,.03)', bottom:'-60px', left:'-60px', pointerEvents:'none' }} />
+      {/* Decorative background shapes */}
+      <div style={{ position:'absolute', width:'500px', height:'500px', borderRadius:'50%', border: '1px solid rgba(255,255,255,.04)', top:'-160px', right:'-120px', pointerEvents:'none' }} />
+      <div style={{ position:'absolute', width:'360px', height:'360px', borderRadius:'50%', border: '1px solid rgba(255,255,255,.04)', bottom:'-100px', left:'-80px', pointerEvents:'none' }} />
 
       <div style={{
         background: '#fff',
-        borderRadius: '18px',
+        borderRadius: '28px',
         padding: '40px',
-        width: '100%',
-        maxWidth: '400px',
-        boxShadow: '0 24px 80px rgba(0,0,0,.35)',
+        width: '100%', maxWidth: '400px',
+        boxShadow: '0 24px 80px rgba(0,0,0,.4)',
         position: 'relative',
-        borderTop: `5px solid ${THEME.accent}`,
       }}>
-        {/* Logo */}
+        {/* Logomark */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
-            width: '68px', height: '68px', borderRadius: '18px',
-            background: `linear-gradient(135deg, ${THEME.primary} 0%, ${THEME.accent} 100%)`,
+            width: '72px', height: '72px', borderRadius: '22px',
+            background: THEME.primary,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 14px', fontSize: '32px',
+            margin: '0 auto 16px',
             boxShadow: `0 8px 24px ${THEME.primary}55`,
           }}>
-            🍽️
+            <span className="material-symbols-rounded filled" style={{ fontSize: '36px', color: '#fff' }}>restaurant</span>
           </div>
-          <h1 style={{ fontSize: '20px', fontWeight: 800, color: THEME.primary, margin: 0, letterSpacing: '-.02em' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0, letterSpacing: '-.01em' }}>
             Bravura Zimbabwe
           </h1>
-          <p style={{ fontSize: '13px', color: '#aaa', margin: '4px 0 0' }}>
-            Meal Management System · Kamativi
+          <p style={{ fontSize: '13px', color: THEME.textLow, margin: '6px 0 0' }}>
+            Meal Management System
           </p>
         </div>
 
         <form onSubmit={handleLogin}>
-          {/* Email */}
-          <div style={{ marginBottom: '14px' }}>
+          <div style={{ marginBottom: '16px' }}>
             <label style={{
-              display: 'block', fontSize: '11px', fontWeight: 700,
-              textTransform: 'uppercase', letterSpacing: '.06em',
-              color: THEME.primary, marginBottom: '6px',
+              display: 'block', fontSize: '12px', fontWeight: 500,
+              color: THEME.textMed, marginBottom: '6px',
             }}>
-              Email Address
+              Email address
             </label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              placeholder="your@email.com"
+              type="email" value={email} onChange={e => setEmail(e.target.value)}
+              required placeholder="your@email.com"
               style={{
-                width: '100%', padding: '11px 14px',
-                border: `1.5px solid ${THEME.cardBorder}`,
-                borderRadius: '10px', fontSize: '14px', color: '#1a1a2e',
+                width: '100%', padding: '12px 16px',
+                border: `1px solid ${THEME.outline}`,
+                borderRadius: '14px', fontSize: '14px', color: THEME.text,
                 fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-                transition: 'border-color 0.15s',
+                transition: 'border-color .15s, box-shadow .15s',
               }}
-              onFocus={e => e.target.style.borderColor = THEME.primary}
-              onBlur={e => e.target.style.borderColor = THEME.cardBorder}
+              onFocus={e => { e.target.style.borderColor = THEME.primary; e.target.style.boxShadow = `0 0 0 3px ${THEME.primary}22` }}
+              onBlur={e => { e.target.style.borderColor = THEME.outline; e.target.style.boxShadow = 'none' }}
             />
           </div>
 
-          {/* Password */}
-          <div style={{ marginBottom: '22px' }}>
+          <div style={{ marginBottom: '24px' }}>
             <label style={{
-              display: 'block', fontSize: '11px', fontWeight: 700,
-              textTransform: 'uppercase', letterSpacing: '.06em',
-              color: THEME.primary, marginBottom: '6px',
+              display: 'block', fontSize: '12px', fontWeight: 500,
+              color: THEME.textMed, marginBottom: '6px',
             }}>
               Password
             </label>
             <div style={{ position: 'relative' }}>
               <input
-                type={showPw ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
+                type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                required placeholder="••••••••"
                 style={{
-                  width: '100%', padding: '11px 42px 11px 14px',
-                  border: `1.5px solid ${THEME.cardBorder}`,
-                  borderRadius: '10px', fontSize: '14px', color: '#1a1a2e',
+                  width: '100%', padding: '12px 48px 12px 16px',
+                  border: `1px solid ${THEME.outline}`,
+                  borderRadius: '14px', fontSize: '14px', color: THEME.text,
                   fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-                  transition: 'border-color 0.15s',
+                  transition: 'border-color .15s, box-shadow .15s',
                 }}
-                onFocus={e => e.target.style.borderColor = THEME.primary}
-                onBlur={e => e.target.style.borderColor = THEME.cardBorder}
+                onFocus={e => { e.target.style.borderColor = THEME.primary; e.target.style.boxShadow = `0 0 0 3px ${THEME.primary}22` }}
+                onBlur={e => { e.target.style.borderColor = THEME.outline; e.target.style.boxShadow = 'none' }}
               />
               <button
-                type="button"
-                onClick={() => setShowPw(p => !p)}
+                type="button" onClick={() => setShowPw(p => !p)}
                 style={{
                   position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                  background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#aaa',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', color: THEME.textLow,
                 }}
               >
-                {showPw ? '🙈' : '👁️'}
+                <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>
+                  {showPw ? 'visibility_off' : 'visibility'}
+                </span>
               </button>
             </div>
           </div>
 
           {error && (
             <div style={{
-              background: '#FFE0E0', color: '#C00000', border: '1px solid #f5b8b8',
-              borderRadius: '10px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px',
+              display: 'flex', alignItems: 'flex-start', gap: '10px',
+              background: '#FDECEA', border: `1px solid #F5C6C4`,
+              borderRadius: '14px', padding: '12px 16px', marginBottom: '16px',
             }}>
-              {error}
+              <span className="material-symbols-rounded" style={{ fontSize: '18px', color: THEME.error, flexShrink: 0, marginTop: '1px' }}>error</span>
+              <span style={{ fontSize: '13px', color: THEME.error }}>{error}</span>
             </div>
           )}
 
           <button
-            type="submit"
-            disabled={loading}
+            type="submit" disabled={loading}
             style={{
-              width: '100%', padding: '13px',
-              background: loading ? '#aaa' : `linear-gradient(135deg, ${THEME.primary} 0%, ${THEME.accent} 100%)`,
-              color: '#fff', border: 'none', borderRadius: '10px',
-              fontSize: '14px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit', boxShadow: loading ? 'none' : `0 4px 16px ${THEME.primary}44`,
-              transition: 'all 0.15s',
+              width: '100%', padding: '14px',
+              background: loading ? THEME.textLow : THEME.primary,
+              color: '#fff', border: 'none', borderRadius: '14px',
+              fontSize: '14px', fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', letterSpacing: '.01em',
+              transition: 'background .15s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
           >
-            {loading ? 'Signing in…' : 'Sign In →'}
+            {loading ? (
+              <>
+                <span className="material-symbols-rounded" style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>progress_activity</span>
+                Signing in…
+              </>
+            ) : 'Sign in'}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', fontSize: '11px', color: '#ccc', marginTop: '24px', marginBottom: 0 }}>
-          Secured · Kamativi Mine Site · Bravura Zimbabwe Ltd
+        <p style={{ textAlign: 'center', fontSize: '11px', color: THEME.textLow, marginTop: '24px', marginBottom: 0 }}>
+          Kamativi Mine Site · Bravura Zimbabwe Ltd
         </p>
       </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 }

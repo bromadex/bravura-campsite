@@ -2,15 +2,38 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bravura Zimbabwe — Meal Management</title>
+    <!-- Google Material Symbols Rounded -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Google+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; }
-      @media print {
-        .no-print { display: none !important; }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif; background: #FAF5F5; }
+      .material-symbols-rounded {
+        font-family: 'Material Symbols Rounded';
+        font-weight: normal; font-style: normal;
+        font-size: 20px; line-height: 1; letter-spacing: normal;
+        text-transform: none; display: inline-block; white-space: nowrap;
+        word-wrap: normal; direction: ltr;
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        user-select: none; vertical-align: middle;
       }
+      /* Filled variant for active states */
+      .material-symbols-rounded.filled {
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      }
+      input, select, textarea, button { font-family: inherit; }
+      @media print {
+        nav, .topbar { display: none !important; }
+        .main-content { padding: 0 !important; }
+      }
+      /* Scrollbar styling */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #D4B8B8; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #9C2A2A; }
     </style>
   </head>
   <body>

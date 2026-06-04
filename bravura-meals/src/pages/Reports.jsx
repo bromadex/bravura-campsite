@@ -1,103 +1,143 @@
-// ── Daily Report ─────────────────────────────────────────────────────────────
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
-import { Card, StatCard, fmtDate, today, MONTHS } from '../components/ui'
-import { can } from '../utils/permissions'
+import { Card, StatCard, SortTh, useSortState, sortRows, Icon, Button, fmtDate, today, MONTHS } from '../components/ui'
+import { can, THEME } from '../utils/permissions'
 
-function ReportTable({ logs, employees, showCosts = false, prices = null }) {
-  // Build a map empId -> meals for quick lookup
-  const logMap = {}
-  logs.forEach(log => { logMap[log.employee_id] = log })
+// ── Contractor colour pool ────────────────────────────────────────────────────
+const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
+function coColor(contractors, id) {
+  const idx = contractors.findIndex(c => c.id === id)
+  return CO_COLORS[idx >= 0 ? idx % CO_COLORS.length : 0]
+}
 
-  let totalB = 0, totalL = 0, totalS = 0
+// ── Shared sortable report table ──────────────────────────────────────────────
+function ReportTable({ rows, showCosts = false, prices = null, isRange = false, contractors = [] }) {
+  const [sortState, onSort] = useSortState('name', 'asc')
 
-  const rows = employees.map((emp, i) => {
-    const log = logMap[emp.id] || {}
-    const b = log.had_breakfast ? 1 : 0
-    const l = log.had_lunch     ? 1 : 0
-    const s = log.had_supper    ? 1 : 0
-    totalB += b; totalL += l; totalS += s
-    const tot = b + l + s
-    const isAny = tot > 0
+  const sorted = useMemo(() => {
+    const mapped = rows.map(r => ({
+      ...r,
+      contractorName: contractors.find(c => c.id === r.contractor_id)?.name || r.contractor?.name || '—',
+    }))
+    return sortRows(mapped, sortState.key, sortState.dir)
+  }, [rows, sortState, contractors])
 
-    const chk = (v, color) => v
-      ? <span style={{ color, fontWeight: 700, fontSize: '18px' }}>✓</span>
-      : <span style={{ color: '#ddd' }}>—</span>
+  let totB = 0, totL = 0, totS = 0
+  sorted.forEach(r => { totB += r.b||0; totL += r.l||0; totS += r.s||0 })
+  const grandTotal = totB + totL + totS
 
-    return (
-      <tr key={emp.id} style={{ borderBottom: '1px solid #eee', background: '#fff' }}>
-        <td style={{ padding: '8px 10px', color: '#888', textAlign: 'center', fontSize: '12px' }}>{i+1}</td>
-        <td style={{ padding: '8px 10px', fontWeight: isAny ? 600 : 400, color: isAny ? '#1a1a2e' : '#aaa' }}>{emp.name}</td>
-        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-          <span style={{ background: emp.group_name === 'Manhattan' ? '#E0F2F1' : '#D6E4F0', color: emp.group_name === 'Manhattan' ? '#00897B' : '#1F3864', padding: '1px 7px', borderRadius: '10px', fontSize: '10px', fontWeight: 700 }}>
-            {emp.group_name === 'Manhattan' ? 'MTN' : 'MAIN'}
-          </span>
-        </td>
-        <td style={{ padding: '8px 10px', textAlign: 'center' }}>{chk(log.had_breakfast, '#C55A11')}</td>
-        <td style={{ padding: '8px 10px', textAlign: 'center' }}>{chk(log.had_lunch,     '#00897B')}</td>
-        <td style={{ padding: '8px 10px', textAlign: 'center' }}>{chk(log.had_supper,    '#5E35B1')}</td>
-        <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 700, color: isAny ? '#2F5496' : '#aaa' }}>{tot || '—'}</td>
-        {showCosts && prices && (
-          <td style={{ padding: '8px 10px', textAlign: 'right', color: '#1F3864', fontWeight: isAny ? 700 : 400 }}>
-            {isAny ? `$${(b*prices.b + l*prices.l + s*prices.s).toFixed(2)}` : '—'}
-          </td>
-        )}
-      </tr>
-    )
-  })
-
-  const grandTotal = totalB + totalL + totalS
+  const hStyle = { background: THEME.primary }
+  const chkCell = (v, color) => v
+    ? <Icon name="check_circle" size={18} filled style={{ color }} />
+    : <span style={{ color: THEME.outlineVar, fontSize: '16px', lineHeight: 1 }}>—</span>
 
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
         <thead>
-          <tr style={{ background: '#1F3864', color: '#fff' }}>
-            <th style={{ padding: '10px 10px', width: '36px' }}>#</th>
-            <th style={{ padding: '10px 10px', textAlign: 'left' }}>Employee</th>
-            <th style={{ padding: '10px 10px', textAlign: 'center', width: '60px' }}>Group</th>
-            <th style={{ padding: '10px 10px', textAlign: 'center', width: '80px', background: '#7e4a1a' }}>🌅 B'fast</th>
-            <th style={{ padding: '10px 10px', textAlign: 'center', width: '80px', background: '#0f6e56' }}>☀️ Lunch</th>
-            <th style={{ padding: '10px 10px', textAlign: 'center', width: '80px', background: '#3c3489' }}>🌙 Supper</th>
-            <th style={{ padding: '10px 10px', textAlign: 'center', width: '60px' }}>Total</th>
-            {showCosts && <th style={{ padding: '10px 10px', textAlign: 'right' }}>Cost (USD)</th>}
+          <tr style={{ background: THEME.primary, color: '#fff' }}>
+            <th style={{ ...hStyle, padding: '12px 10px', width: '40px', textAlign: 'center', fontWeight: 500, fontSize: '11px', color: 'rgba(255,255,255,.6)' }}>#</th>
+            <SortTh label="Employee"   sortKey="name"           sortState={sortState} onSort={onSort} style={hStyle} />
+            <SortTh label="Contractor" sortKey="contractorName" sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
+            <SortTh label="Breakfasts" sortKey="b"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.breakfastClr + 'CC' }} />
+            <SortTh label="Lunches"    sortKey="l"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.lunchClr + 'CC' }} />
+            <SortTh label="Suppers"    sortKey="s"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.supperClr + 'CC' }} />
+            <SortTh label="Total"      sortKey="total"          sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
+            {showCosts && prices && <th style={{ ...hStyle, padding: '12px 14px', textAlign: 'right', fontWeight: 500, fontSize: '12px' }}>Cost (USD)</th>}
           </tr>
         </thead>
         <tbody>
-          {rows}
-          <tr style={{ background: '#1F3864', color: '#fff', fontWeight: 700 }}>
-            <td colSpan={3} style={{ padding: '10px 12px' }}>Grand Total</td>
-            <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalB}</td>
-            <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalL}</td>
-            <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalS}</td>
-            <td style={{ padding: '10px 12px', textAlign: 'center' }}>{grandTotal}</td>
+          {sorted.map((r, i) => {
+            const tot = (r.b||0) + (r.l||0) + (r.s||0)
+            const isAny = tot > 0
+            const color = coColor(contractors, r.contractor_id)
+            return (
+              <tr
+                key={r.employee_id || r.id || i}
+                style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: isAny ? '#fff' : '#FAFAFA' }}
+                onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
+                onMouseLeave={e => e.currentTarget.style.background = isAny ? '#fff' : '#FAFAFA'}
+              >
+                <td style={{ padding: '10px', textAlign: 'center', color: THEME.textLow, fontSize: '11px' }}>{i+1}</td>
+                <td style={{ padding: '10px 14px', fontWeight: isAny ? 500 : 400, color: isAny ? THEME.text : THEME.textLow }}>
+                  {r.name}
+                </td>
+                <td style={{ padding: '10px', textAlign: 'center' }}>
+                  {r.contractorName !== '—' ? (
+                    <span style={{
+                      background: color + '18', color, padding: '3px 10px',
+                      borderRadius: '8px', fontSize: '11px', fontWeight: 500,
+                    }}>
+                      {r.contractorName}
+                    </span>
+                  ) : <span style={{ color: THEME.textLow }}>—</span>}
+                </td>
+                <td style={{ padding: '10px', textAlign: 'center' }}>
+                  {isRange
+                    ? <span style={{ fontWeight: 600, color: r.b ? THEME.breakfastClr : THEME.textLow }}>{r.b || '—'}</span>
+                    : chkCell(r.b, THEME.breakfastClr)
+                  }
+                </td>
+                <td style={{ padding: '10px', textAlign: 'center' }}>
+                  {isRange
+                    ? <span style={{ fontWeight: 600, color: r.l ? THEME.lunchClr : THEME.textLow }}>{r.l || '—'}</span>
+                    : chkCell(r.l, THEME.lunchClr)
+                  }
+                </td>
+                <td style={{ padding: '10px', textAlign: 'center' }}>
+                  {isRange
+                    ? <span style={{ fontWeight: 600, color: r.s ? THEME.supperClr : THEME.textLow }}>{r.s || '—'}</span>
+                    : chkCell(r.s, THEME.supperClr)
+                  }
+                </td>
+                <td style={{ padding: '10px', textAlign: 'center', fontWeight: 700, color: isAny ? THEME.primary : THEME.textLow }}>
+                  {tot || '—'}
+                </td>
+                {showCosts && prices && (
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: isAny ? 600 : 400, color: isAny ? THEME.text : THEME.textLow }}>
+                    {isAny ? `$${((r.b||0)*prices.b + (r.l||0)*prices.l + (r.s||0)*prices.s).toFixed(2)}` : '—'}
+                  </td>
+                )}
+              </tr>
+            )
+          })}
+        </tbody>
+        {/* Grand total footer */}
+        <tfoot>
+          <tr style={{ background: THEME.primary, color: '#fff', fontWeight: 600 }}>
+            <td colSpan={3} style={{ padding: '12px 14px', fontSize: '13px' }}>Grand Total</td>
+            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>{totB}</td>
+            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>{totL}</td>
+            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>{totS}</td>
+            <td style={{ padding: '12px', textAlign: 'center', fontSize: '16px', fontWeight: 700 }}>{grandTotal}</td>
             {showCosts && prices && (
-              <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                ${(totalB*prices.b + totalL*prices.l + totalS*prices.s).toFixed(2)}
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '14px' }}>
+                ${(totB*prices.b + totL*prices.l + totS*prices.s).toFixed(2)}
               </td>
             )}
           </tr>
-        </tbody>
+        </tfoot>
       </table>
     </div>
   )
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-
+// ── Daily Report ──────────────────────────────────────────────────────────────
 export function DailyReport() {
   const { profile } = useAuth()
   const showCosts = can.seeCosts(profile?.role)
-  const [date,      setDate]      = useState(today())
-  const [employees, setEmployees] = useState([])
-  const [logs,      setLogs]      = useState([])
-  const [prices,    setPrices]    = useState(null)
-  const [loading,   setLoading]   = useState(true)
+  const [date,        setDate]        = useState(today())
+  const [employees,   setEmployees]   = useState([])
+  const [contractors, setContractors] = useState([])
+  const [logs,        setLogs]        = useState([])
+  const [prices,      setPrices]      = useState(null)
+  const [loading,     setLoading]     = useState(true)
 
   useEffect(() => {
-    supabase.from('employees').select('*').eq('status','Active').order('group_name').order('name')
+    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','Active').order('name')
       .then(({ data }) => setEmployees(data || []))
+    supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
   }, [])
 
   useEffect(() => { load() }, [date])
@@ -108,7 +148,7 @@ export function DailyReport() {
       supabase.from('meal_logs').select('*').eq('date', date),
       showCosts
         ? supabase.from('meal_prices').select('*').lte('effective_date', date).order('effective_date', { ascending: false }).limit(1)
-        : Promise.resolve({ data: [] }),
+        : { data: [] },
     ])
     setLogs(logsRes.data || [])
     if (pricesRes.data?.[0]) {
@@ -118,51 +158,71 @@ export function DailyReport() {
     setLoading(false)
   }
 
-  const b = logs.filter(l => l.had_breakfast).length
-  const l = logs.filter(l => l.had_lunch).length
-  const s = logs.filter(l => l.had_supper).length
+  const logMap = {}
+  logs.forEach(l => { logMap[l.employee_id] = l })
+
+  const rows = employees.map(emp => {
+    const log = logMap[emp.id] || {}
+    return {
+      employee_id:   emp.id,
+      name:          emp.name,
+      contractor_id: emp.contractor_id,
+      contractor:    emp.contractor,
+      b: log.had_breakfast ? 1 : 0,
+      l: log.had_lunch     ? 1 : 0,
+      s: log.had_supper    ? 1 : 0,
+    }
+  })
+
+  const totB = rows.reduce((a,r) => a+r.b, 0)
+  const totL = rows.reduce((a,r) => a+r.l, 0)
+  const totS = rows.reduce((a,r) => a+r.s, 0)
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>Daily Report</h2>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          style={{ padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }} />
-        <button onClick={() => window.print()} style={{ padding: '7px 14px', background: '#2F5496', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'inherit' }}>
-          🖨️ Print
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Daily Report</h2>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            style={{ padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', color: THEME.text, outline: 'none' }} />
+          <Button onClick={() => window.print()} variant="tonal" icon="print">Print</Button>
+        </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '12px', marginBottom: '20px' }}>
-        <StatCard label="Breakfasts" value={b} color="#C55A11" />
-        <StatCard label="Lunches"    value={l} color="#00897B" />
-        <StatCard label="Suppers"    value={s} color="#5E35B1" />
-        <StatCard label="Total"      value={b+l+s} color="#C00000" />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
+        <StatCard label="Breakfasts" value={totB} color={THEME.breakfastClr} icon="wb_sunny" />
+        <StatCard label="Lunches"    value={totL} color={THEME.lunchClr}     icon="light_mode" />
+        <StatCard label="Suppers"    value={totS} color={THEME.supperClr}    icon="bedtime" />
+        <StatCard label="Total"      value={totB+totL+totS} color={THEME.primary} icon="groups" />
         {showCosts && prices && (
-          <StatCard label="Total Cost" value={`$${(b*prices.b + l*prices.l + s*prices.s).toFixed(2)}`} color="#1F3864" />
+          <StatCard label="Day Cost" value={`$${(totB*prices.b + totL*prices.l + totS*prices.s).toFixed(2)}`} color={THEME.info} icon="payments" />
         )}
       </div>
-      <Card>
-        {loading ? <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Loading…</div> : (
-          <ReportTable logs={logs} employees={employees} showCosts={showCosts} prices={prices} />
-        )}
+
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        {loading
+          ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
+          : <ReportTable rows={rows} showCosts={showCosts} prices={prices} contractors={contractors} />
+        }
       </Card>
     </div>
   )
 }
 
+// ── Range Report ──────────────────────────────────────────────────────────────
 export function RangeReport() {
-  const { profile } = useAuth()
-  const showCosts = can.seeCosts(profile?.role)
   const now = new Date()
-  const [start,     setStart]     = useState(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`)
-  const [end,       setEnd]       = useState(today())
-  const [employees, setEmployees] = useState([])
-  const [summary,   setSummary]   = useState([])
-  const [loading,   setLoading]   = useState(false)
+  const [start,       setStart]       = useState(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`)
+  const [end,         setEnd]         = useState(today())
+  const [employees,   setEmployees]   = useState([])
+  const [contractors, setContractors] = useState([])
+  const [summary,     setSummary]     = useState({})
+  const [loading,     setLoading]     = useState(false)
 
   useEffect(() => {
-    supabase.from('employees').select('*').eq('status','Active').order('group_name').order('name')
+    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','Active').order('name')
       .then(({ data }) => setEmployees(data || []))
+    supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
   }, [])
 
   useEffect(() => { load() }, [start, end])
@@ -170,9 +230,7 @@ export function RangeReport() {
   async function load() {
     if (!start || !end) return
     setLoading(true)
-    const { data: logs } = await supabase
-      .from('meal_logs').select('*').gte('date', start).lte('date', end)
-    // Aggregate per employee
+    const { data: logs } = await supabase.from('meal_logs').select('*').gte('date', start).lte('date', end)
     const agg = {}
     logs?.forEach(log => {
       if (!agg[log.employee_id]) agg[log.employee_id] = { b: 0, l: 0, s: 0 }
@@ -184,91 +242,60 @@ export function RangeReport() {
     setLoading(false)
   }
 
-  let totalB = 0, totalL = 0, totalS = 0
-  employees.forEach(e => { const a = summary[e.id] || {}; totalB += a.b||0; totalL += a.l||0; totalS += a.s||0 })
+  const rows = employees.map(emp => {
+    const a = summary[emp.id] || { b: 0, l: 0, s: 0 }
+    return { employee_id: emp.id, name: emp.name, contractor_id: emp.contractor_id, contractor: emp.contractor, ...a, total: a.b+a.l+a.s }
+  })
+  const totB = rows.reduce((a,r) => a+r.b, 0)
+  const totL = rows.reduce((a,r) => a+r.l, 0)
+  const totS = rows.reduce((a,r) => a+r.s, 0)
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700, alignSelf: 'center' }}>Range Report</h2>
-        {[['From', start, setStart], ['To', end, setEnd]].map(([label, val, setter]) => (
-          <div key={label}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</label>
-            <input type="date" value={val} onChange={e => setter(e.target.value)}
-              style={{ padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }} />
-          </div>
-        ))}
-        <button onClick={() => window.print()} style={{ padding: '7px 14px', background: '#2F5496', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'inherit' }}>
-          🖨️ Print
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Range Report</h2>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          {[['From', start, setStart], ['To', end, setEnd]].map(([label, val, setter]) => (
+            <div key={label}>
+              <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textMed, marginBottom: '4px' }}>{label}</div>
+              <input type="date" value={val} onChange={e => setter(e.target.value)}
+                style={{ padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }} />
+            </div>
+          ))}
+          <Button onClick={() => window.print()} variant="tonal" icon="print">Print</Button>
+        </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '12px', marginBottom: '20px' }}>
-        <StatCard label="Total B'fasts" value={totalB} color="#C55A11" />
-        <StatCard label="Total Lunches" value={totalL} color="#00897B" />
-        <StatCard label="Total Suppers" value={totalS} color="#5E35B1" />
-        <StatCard label="Grand Total"   value={totalB+totalL+totalS} color="#C00000" />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
+        <StatCard label="Total Breakfasts" value={totB} color={THEME.breakfastClr} icon="wb_sunny" />
+        <StatCard label="Total Lunches"    value={totL} color={THEME.lunchClr}     icon="light_mode" />
+        <StatCard label="Total Suppers"    value={totS} color={THEME.supperClr}    icon="bedtime" />
+        <StatCard label="Grand Total"      value={totB+totL+totS} color={THEME.primary} icon="groups" />
       </div>
-      <Card>
-        {loading ? <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Loading…</div> : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ background: '#1F3864', color: '#fff' }}>
-                  <th style={{ padding: '10px 12px', width: '36px' }}>#</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>Employee</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center' }}>Group</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', background: '#7e4a1a' }}>Breakfasts</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', background: '#0f6e56' }}>Lunches</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', background: '#3c3489' }}>Suppers</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center' }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map((emp, i) => {
-                  const a = summary[emp.id] || { b: 0, l: 0, s: 0 }
-                  const tot = a.b + a.l + a.s
-                  return (
-                    <tr key={emp.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '8px 12px', color: '#888', textAlign: 'center' }}>{i+1}</td>
-                      <td style={{ padding: '8px 12px', fontWeight: tot ? 600 : 400, color: tot ? '#1a1a2e' : '#aaa' }}>{emp.name}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                        <span style={{ background: emp.group_name === 'Manhattan' ? '#E0F2F1' : '#D6E4F0', color: emp.group_name === 'Manhattan' ? '#00897B' : '#1F3864', padding: '1px 7px', borderRadius: '10px', fontSize: '10px', fontWeight: 700 }}>
-                          {emp.group_name === 'Manhattan' ? 'MTN' : 'MAIN'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', color: a.b ? '#C55A11' : '#aaa', fontWeight: 700 }}>{a.b || '—'}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', color: a.l ? '#00897B' : '#aaa', fontWeight: 700 }}>{a.l || '—'}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', color: a.s ? '#5E35B1' : '#aaa', fontWeight: 700 }}>{a.s || '—'}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', color: tot ? '#2F5496' : '#aaa', fontWeight: 700 }}>{tot || '—'}</td>
-                    </tr>
-                  )
-                })}
-                <tr style={{ background: '#1F3864', color: '#fff', fontWeight: 700 }}>
-                  <td colSpan={3} style={{ padding: '10px 12px' }}>Grand Total</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalB}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalL}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalS}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalB+totalL+totalS}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
+
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        {loading
+          ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
+          : <ReportTable rows={rows} isRange contractors={contractors} />
+        }
       </Card>
     </div>
   )
 }
 
+// ── Monthly Report ────────────────────────────────────────────────────────────
 export function MonthlyReport() {
-  const [month,     setMonth]     = useState(new Date().getMonth())
-  const [year,      setYear]      = useState(new Date().getFullYear())
-  const [employees, setEmployees] = useState([])
-  const [summary,   setSummary]   = useState({})
-  const [loading,   setLoading]   = useState(false)
+  const [month,       setMonth]       = useState(new Date().getMonth())
+  const [year,        setYear]        = useState(new Date().getFullYear())
+  const [employees,   setEmployees]   = useState([])
+  const [contractors, setContractors] = useState([])
+  const [summary,     setSummary]     = useState({})
+  const [loading,     setLoading]     = useState(false)
 
   useEffect(() => {
-    supabase.from('employees').select('*').eq('status','Active').order('group_name').order('name')
+    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','Active').order('name')
       .then(({ data }) => setEmployees(data || []))
+    supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
   }, [])
 
   useEffect(() => { load() }, [month, year])
@@ -277,8 +304,7 @@ export function MonthlyReport() {
     setLoading(true)
     const pad = n => String(n).padStart(2,'0')
     const prefix = `${year}-${pad(month+1)}`
-    const { data: logs } = await supabase
-      .from('meal_logs').select('*').gte('date', `${prefix}-01`).lte('date', `${prefix}-31`)
+    const { data: logs } = await supabase.from('meal_logs').select('*').gte('date',`${prefix}-01`).lte('date',`${prefix}-31`)
     const agg = {}
     logs?.forEach(log => {
       if (!agg[log.employee_id]) agg[log.employee_id] = { b: 0, l: 0, s: 0 }
@@ -290,81 +316,47 @@ export function MonthlyReport() {
     setLoading(false)
   }
 
-  let totalB = 0, totalL = 0, totalS = 0
-  employees.forEach(e => { const a = summary[e.id] || {}; totalB += a.b||0; totalL += a.l||0; totalS += a.s||0 })
+  const rows = employees.map(emp => {
+    const a = summary[emp.id] || { b:0, l:0, s:0 }
+    return { employee_id: emp.id, name: emp.name, contractor_id: emp.contractor_id, contractor: emp.contractor, ...a, total: a.b+a.l+a.s }
+  })
+  const totB = rows.reduce((a,r) => a+r.b, 0)
+  const totL = rows.reduce((a,r) => a+r.l, 0)
+  const totS = rows.reduce((a,r) => a+r.s, 0)
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700, alignSelf: 'center' }}>Monthly Report</h2>
-        <div>
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Month</label>
-          <select value={month} onChange={e => setMonth(parseInt(e.target.value))}
-            style={{ padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}>
-            {MONTHS.map((m,i) => <option key={i} value={i}>{m}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Year</label>
-          <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} min="2020" max="2099"
-            style={{ width: '100px', padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }} />
-        </div>
-        <button onClick={() => window.print()} style={{ padding: '7px 14px', background: '#2F5496', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'inherit' }}>
-          🖨️ Print
-        </button>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '12px', marginBottom: '20px' }}>
-        <StatCard label="Total B'fasts" value={totalB} color="#C55A11" sub={`${MONTHS[month]} ${year}`} />
-        <StatCard label="Total Lunches" value={totalL} color="#00897B" />
-        <StatCard label="Total Suppers" value={totalS} color="#5E35B1" />
-        <StatCard label="Grand Total"   value={totalB+totalL+totalS} color="#C00000" />
-      </div>
-      <Card>
-        {loading ? <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Loading…</div> : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ background: '#1F3864', color: '#fff' }}>
-                  <th style={{ padding: '10px 12px', width: '36px' }}>#</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>Employee</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center' }}>Group</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', background: '#7e4a1a' }}>Breakfasts</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', background: '#0f6e56' }}>Lunches</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', background: '#3c3489' }}>Suppers</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center' }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map((emp, i) => {
-                  const a = summary[emp.id] || { b: 0, l: 0, s: 0 }
-                  const tot = a.b + a.l + a.s
-                  return (
-                    <tr key={emp.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '8px 12px', color: '#888', textAlign: 'center' }}>{i+1}</td>
-                      <td style={{ padding: '8px 12px', fontWeight: tot ? 600 : 400, color: tot ? '#1a1a2e' : '#aaa' }}>{emp.name}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                        <span style={{ background: emp.group_name === 'Manhattan' ? '#E0F2F1' : '#D6E4F0', color: emp.group_name === 'Manhattan' ? '#00897B' : '#1F3864', padding: '1px 7px', borderRadius: '10px', fontSize: '10px', fontWeight: 700 }}>
-                          {emp.group_name === 'Manhattan' ? 'MTN' : 'MAIN'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', color: a.b ? '#C55A11' : '#aaa', fontWeight: 700 }}>{a.b || '—'}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', color: a.l ? '#00897B' : '#aaa', fontWeight: 700 }}>{a.l || '—'}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', color: a.s ? '#5E35B1' : '#aaa', fontWeight: 700 }}>{a.s || '—'}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', color: tot ? '#2F5496' : '#aaa', fontWeight: 700 }}>{tot || '—'}</td>
-                    </tr>
-                  )
-                })}
-                <tr style={{ background: '#1F3864', color: '#fff', fontWeight: 700 }}>
-                  <td colSpan={3} style={{ padding: '10px 12px' }}>Grand Total — {MONTHS[month]} {year}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalB}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalL}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalS}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>{totalB+totalL+totalS}</td>
-                </tr>
-              </tbody>
-            </table>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Monthly Report</h2>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textMed, marginBottom: '4px' }}>Month</div>
+            <select value={month} onChange={e => setMonth(parseInt(e.target.value))}
+              style={{ padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}>
+              {MONTHS.map((m,i) => <option key={i} value={i}>{m}</option>)}
+            </select>
           </div>
-        )}
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textMed, marginBottom: '4px' }}>Year</div>
+            <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} min="2020" max="2099"
+              style={{ width: '90px', padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }} />
+          </div>
+          <Button onClick={() => window.print()} variant="tonal" icon="print">Print</Button>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
+        <StatCard label="Breakfasts" value={totB} color={THEME.breakfastClr} icon="wb_sunny" sub={`${MONTHS[month]} ${year}`} />
+        <StatCard label="Lunches"    value={totL} color={THEME.lunchClr}     icon="light_mode" />
+        <StatCard label="Suppers"    value={totS} color={THEME.supperClr}    icon="bedtime" />
+        <StatCard label="Grand Total" value={totB+totL+totS} color={THEME.primary} icon="groups" />
+      </div>
+
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        {loading
+          ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
+          : <ReportTable rows={rows} isRange contractors={contractors} />
+        }
       </Card>
     </div>
   )

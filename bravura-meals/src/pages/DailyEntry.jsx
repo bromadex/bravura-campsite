@@ -1,72 +1,73 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
-import { can } from '../utils/permissions'
-import { Card, Button, StatCard, StatusBadge, showToast, today, fmtDate } from '../components/ui'
+import { can, THEME } from '../utils/permissions'
+import { Card, Button, StatCard, StatusBadge, Icon, SortTh, useSortState, showToast, today, fmtDate } from '../components/ui'
+
+// Contractor colour pool — same as Reports
+const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457','#00838F']
+function coColor(contractors, id) {
+  const idx = contractors.findIndex(c => c.id === id)
+  return CO_COLORS[Math.max(idx, 0) % CO_COLORS.length]
+}
 
 export default function DailyEntry() {
   const { profile } = useAuth()
   const role = profile?.role
-  const [date, setDate] = useState(today())
-  const [employees, setEmployees] = useState([])
-  const [entryState, setEntryState] = useState({})   // { empId: { b, l, s } }
-  const [submission, setSubmission] = useState(null) // daily_submissions row
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [search, setSearch] = useState('')
-  const [groupFilter, setGroupFilter] = useState('all')
 
-  // Load employees once
+  const [date,        setDate]        = useState(today())
+  const [employees,   setEmployees]   = useState([])
+  const [contractors, setContractors] = useState([])
+  const [entryState,  setEntryState]  = useState({})
+  const [submission,  setSubmission]  = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [saving,      setSaving]      = useState(false)
+  const [search,      setSearch]      = useState('')
+  const [coFilter,    setCoFilter]    = useState('all')
+
+  // Sortable columns
+  const [sortState, onSort] = useSortState('name', 'asc')
+
+  // Load employees + contractors once
   useEffect(() => {
     supabase
       .from('employees')
-      .select('*')
+      .select('*, contractor:contractors(id,name,short_code)')
       .eq('status', 'Active')
-      .order('group_name').order('name')
+      .order('name')
       .then(({ data }) => setEmployees(data || []))
+
+    supabase
+      .from('contractors')
+      .select('*')
+      .order('name')
+      .then(({ data }) => setContractors(data || []))
   }, [])
 
-  // Load entry state for selected date
+  // Load submission + meal logs for selected date
   const loadDate = useCallback(async (d) => {
     setLoading(true)
-    // Get or null submission
-    const { data: sub } = await supabase
-      .from('daily_submissions')
-      .select('*')
-      .eq('date', d)
-      .maybeSingle()
-
+    const [{ data: sub }, { data: logs }] = await Promise.all([
+      supabase.from('daily_submissions').select('*').eq('date', d).maybeSingle(),
+      supabase.from('meal_logs').select('*').eq('date', d),
+    ])
     setSubmission(sub)
-
-    // Get meal logs
-    const { data: logs } = await supabase
-      .from('meal_logs')
-      .select('*')
-      .eq('date', d)
-
     const state = {}
-    if (logs) {
-      logs.forEach(log => {
-        state[log.employee_id] = {
-          b: log.had_breakfast,
-          l: log.had_lunch,
-          s: log.had_supper,
-          logId: log.id,
-        }
-      })
-    }
+    logs?.forEach(log => {
+      state[log.employee_id] = { b: log.had_breakfast, l: log.had_lunch, s: log.had_supper }
+    })
     setEntryState(state)
     setLoading(false)
   }, [])
 
   useEffect(() => { loadDate(date) }, [date, loadDate])
 
-  // Is this day editable?
+  // Editable check
   const isEditable = () => {
-    if (!submission) return true                                        // new day
-    if (submission.status === 'draft') return can.editDraft(role)
+    if (!submission) return true
+    if (submission.status === 'draft')     return can.editDraft(role)
     if (submission.status === 'submitted') return can.editSubmitted(role)
-    if (submission.status === 'approved') return can.editApproved(role)
+    if (submission.status === 'approved')  return can.editApproved(role)
     return false
   }
 
@@ -74,16 +75,12 @@ export default function DailyEntry() {
     if (!isEditable()) return
     setEntryState(prev => ({
       ...prev,
-      [empId]: {
-        b: false, l: false, s: false,
-        ...(prev[empId] || {}),
-        [meal]: !(prev[empId]?.[meal] || false),
-      },
+      [empId]: { b: false, l: false, s: false, ...(prev[empId] || {}), [meal]: !(prev[empId]?.[meal] || false) },
     }))
   }
 
-  function toggleAll(meal) {
-    const visible = filteredEmps()
+  function toggleAllMeal(meal) {
+    const visible = sortedFiltered
     const allOn = visible.every(e => entryState[e.id]?.[meal])
     setEntryState(prev => {
       const next = { ...prev }
@@ -94,28 +91,56 @@ export default function DailyEntry() {
     })
   }
 
+  // Filter + sort
+  const sortedFiltered = useMemo(() => {
+    const filtered = employees.filter(e => {
+      const matchSearch = !search || e.name.toLowerCase().includes(search.toLowerCase())
+      const matchCo     = coFilter === 'all' || e.contractor_id === coFilter
+      return matchSearch && matchCo
+    })
+    // sorting
+    return [...filtered].sort((a, b) => {
+      let av, bv
+      if (sortState.key === 'name') {
+        av = a.name; bv = b.name
+        return sortState.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      }
+      if (sortState.key === 'contractor') {
+        av = a.contractor?.name || ''; bv = b.contractor?.name || ''
+        return sortState.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      }
+      // numeric meal cols
+      const ea = entryState[a.id] || {}
+      const eb = entryState[b.id] || {}
+      if (sortState.key === 'b') { av = ea.b?1:0; bv = eb.b?1:0 }
+      if (sortState.key === 'l') { av = ea.l?1:0; bv = eb.l?1:0 }
+      if (sortState.key === 's') { av = ea.s?1:0; bv = eb.s?1:0 }
+      if (sortState.key === 'total') {
+        av = (ea.b?1:0)+(ea.l?1:0)+(ea.s?1:0)
+        bv = (eb.b?1:0)+(eb.l?1:0)+(eb.s?1:0)
+      }
+      return sortState.dir === 'asc' ? av - bv : bv - av
+    })
+  }, [employees, search, coFilter, sortState, entryState])
+
   async function saveEntries() {
     if (!isEditable()) { showToast('This day is locked', 'red'); return }
     setSaving(true)
     try {
-      // Upsert daily_submissions
       let subId = submission?.id
       if (!subId) {
         const { data: newSub, error } = await supabase
           .from('daily_submissions')
           .insert({ date, status: 'draft', submitted_by: profile.id })
-          .select()
-          .single()
+          .select().single()
         if (error) throw error
         subId = newSub.id
         setSubmission(newSub)
       }
-
-      // Upsert meal_logs for each employee
       const upserts = employees.map(e => ({
         submission_id: subId,
         date,
-        employee_id: e.id,
+        employee_id:   e.id,
         employee_name: e.name,
         had_breakfast: !!(entryState[e.id]?.b),
         had_lunch:     !!(entryState[e.id]?.l),
@@ -123,12 +148,8 @@ export default function DailyEntry() {
         recorded_by:   profile.id,
         recorded_at:   new Date().toISOString(),
       }))
-
-      const { error } = await supabase
-        .from('meal_logs')
-        .upsert(upserts, { onConflict: 'date,employee_id' })
+      const { error } = await supabase.from('meal_logs').upsert(upserts, { onConflict: 'date,employee_id' })
       if (error) throw error
-
       showToast('Entries saved', 'green')
       loadDate(date)
     } catch (err) {
@@ -147,19 +168,11 @@ export default function DailyEntry() {
       .eq('id', submission.id)
     setSaving(false)
     if (error) { showToast(error.message, 'red'); return }
-    showToast('Submitted for approval ✓', 'green')
+    showToast('Submitted for approval', 'green')
     loadDate(date)
   }
 
-  function filteredEmps() {
-    return employees.filter(e => {
-      const matchSearch = !search || e.name.toLowerCase().includes(search.toLowerCase())
-      const matchGroup  = groupFilter === 'all' || e.group_name === groupFilter
-      return matchSearch && matchGroup
-    })
-  }
-
-  // Totals
+  // Running totals (all employees, not just visible)
   const totals = { b: 0, l: 0, s: 0 }
   employees.forEach(e => {
     const m = entryState[e.id] || {}
@@ -169,187 +182,301 @@ export default function DailyEntry() {
   })
 
   const editable = isEditable()
-  const visible  = filteredEmps()
+
+  // Unique contractors that have at least one active employee
+  const activeCos = contractors.filter(c => employees.some(e => e.contractor_id === c.id))
+
+  const hStyle = { background: THEME.primary }
 
   return (
     <div>
-      {/* Header bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ fontSize: '17px', fontWeight: 700, margin: 0 }}>Daily Meal Entry</h2>
+          <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Daily Meal Entry</h2>
           {submission && (
-            <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <StatusBadge status={submission.status} />
               {!editable && (
-                <span style={{ fontSize: '12px', color: '#C00000', fontWeight: 600 }}>
-                  🔒 This day is locked — {submission.status}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: THEME.error, fontWeight: 500 }}>
+                  <Icon name="lock" size={14} style={{ color: THEME.error }} />
+                  Locked — {submission.status}
+                </div>
               )}
             </div>
           )}
         </div>
+
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
             style={{
-              padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px',
-              fontSize: '13px', fontFamily: 'inherit',
+              padding: '9px 14px', border: `1px solid ${THEME.outline}`,
+              borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit',
+              color: THEME.text, outline: 'none',
             }}
           />
           {editable && (
-            <Button onClick={saveEntries} variant="success" disabled={saving}>
-              {saving ? 'Saving…' : '💾 Save entries'}
+            <Button onClick={saveEntries} variant="filled" icon="save" disabled={saving}>
+              {saving ? 'Saving…' : 'Save entries'}
             </Button>
           )}
           {submission?.status === 'draft' && can.submitForApproval(role) && (
-            <Button onClick={submitForApproval} variant="primary" disabled={saving}>
-              📤 Submit for approval
+            <Button onClick={submitForApproval} variant="tonal" icon="send" disabled={saving}>
+              Submit for approval
             </Button>
           )}
         </div>
       </div>
 
-      {/* Stat row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '12px', marginBottom: '20px' }}>
-        <StatCard label="Breakfasts" value={totals.b} color="#C55A11" />
-        <StatCard label="Lunches"    value={totals.l} color="#00897B" />
-        <StatCard label="Suppers"    value={totals.s} color="#5E35B1" />
-        <StatCard label="Total meals" value={totals.b + totals.l + totals.s} color="#C00000" />
+      {/* ── Stat cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
+        <StatCard label="Breakfasts"  value={totals.b}                     color={THEME.breakfastClr} icon="wb_sunny" />
+        <StatCard label="Lunches"     value={totals.l}                     color={THEME.lunchClr}     icon="light_mode" />
+        <StatCard label="Suppers"     value={totals.s}                     color={THEME.supperClr}    icon="bedtime" />
+        <StatCard label="Total meals" value={totals.b + totals.l + totals.s} color={THEME.primary}   icon="groups" />
       </div>
 
-      {/* Controls */}
-      <Card style={{ marginBottom: '16px' }}>
+      {/* ── Filter bar ── */}
+      <Card style={{ marginBottom: '16px', padding: '14px 16px' }}>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            type="text"
-            placeholder="🔍 Filter employees…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{
-              flex: 1, minWidth: '200px', maxWidth: '320px',
-              padding: '7px 12px', border: '1px solid #dde2ea', borderRadius: '8px',
-              fontSize: '13px', fontFamily: 'inherit',
-            }}
-          />
-          {['all', 'Main Site', 'Manhattan'].map(g => (
-            <button
-              key={g}
-              onClick={() => setGroupFilter(g)}
+          {/* Search */}
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+            <Icon name="search" size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: THEME.textLow }} />
+            <input
+              type="text"
+              placeholder="Search employee…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
               style={{
-                padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                cursor: 'pointer', border: '1px solid #dde2ea', fontFamily: 'inherit',
-                background: groupFilter === g ? '#1F3864' : 'transparent',
-                color: groupFilter === g ? '#fff' : '#4a5568',
+                width: '100%', padding: '8px 12px 8px 34px',
+                border: `1px solid ${THEME.outline}`, borderRadius: '12px',
+                fontSize: '13px', fontFamily: 'inherit', outline: 'none',
+                color: THEME.text, boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Contractor filter chips */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setCoFilter('all')}
+              style={{
+                padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 500,
+                cursor: 'pointer', border: `1px solid ${coFilter === 'all' ? THEME.primary : THEME.outline}`,
+                fontFamily: 'inherit',
+                background: coFilter === 'all' ? THEME.surfaceVar : 'transparent',
+                color: coFilter === 'all' ? THEME.primary : THEME.textMed,
               }}
             >
-              {g === 'all' ? 'All groups' : g}
+              All contractors
             </button>
-          ))}
+            {activeCos.map((c, i) => {
+              const color = CO_COLORS[i % CO_COLORS.length]
+              const isActive = coFilter === c.id
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setCoFilter(c.id)}
+                  style={{
+                    padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 500,
+                    cursor: 'pointer', border: `1px solid ${isActive ? color : THEME.outline}`,
+                    fontFamily: 'inherit',
+                    background: isActive ? color + '18' : 'transparent',
+                    color: isActive ? color : THEME.textMed,
+                  }}
+                >
+                  {c.short_code || c.name}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Toggle all buttons — only when editable */}
           {editable && (
-            <>
-              <Button onClick={() => toggleAll('b')} variant="ghost" size="sm">All Breakfast</Button>
-              <Button onClick={() => toggleAll('l')} variant="ghost" size="sm">All Lunch</Button>
-              <Button onClick={() => toggleAll('s')} variant="ghost" size="sm">All Supper</Button>
-            </>
+            <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+              {[
+                { meal: 'b', label: 'All Breakfast', color: THEME.breakfastClr },
+                { meal: 'l', label: 'All Lunch',     color: THEME.lunchClr },
+                { meal: 's', label: 'All Supper',    color: THEME.supperClr },
+              ].map(({ meal, label, color }) => (
+                <button
+                  key={meal}
+                  onClick={() => toggleAllMeal(meal)}
+                  style={{
+                    padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 500,
+                    cursor: 'pointer', border: `1px solid ${color}`,
+                    fontFamily: 'inherit', background: color + '14', color,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </Card>
 
-      {/* Table */}
+      {/* ── Table ── */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Loading…</div>
-      ) : (
-        <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #dde2ea' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ background: '#1F3864', color: '#fff' }}>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '12px', width: '36px' }}>#</th>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '12px' }}>Employee</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: '12px', width: '60px' }}>Group</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: '12px', width: '80px', background: '#7e4a1a' }}>🌅 B'fast</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: '12px', width: '80px', background: '#0f6e56' }}>☀️ Lunch</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: '12px', width: '80px', background: '#3c3489' }}>🌙 Supper</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: '12px', width: '60px' }}>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((emp, i) => {
-                const m    = entryState[emp.id] || { b: false, l: false, s: false }
-                const tot  = (m.b?1:0)+(m.l?1:0)+(m.s?1:0)
-                const isAll = m.b && m.l && m.s
-                const isAny = m.b || m.l || m.s
-                return (
-                  <tr
-                    key={emp.id}
-                    style={{
-                      borderBottom: '1px solid #dde2ea',
-                      background: isAll ? '#f0fff4' : isAny ? '#fffbf0' : '#fff',
-                    }}
-                  >
-                    <td style={{ padding: '9px 12px', color: '#888', textAlign: 'center' }}>{i+1}</td>
-                    <td style={{ padding: '9px 12px', fontWeight: isAny ? 600 : 400 }}>{emp.name}</td>
-                    <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                      <span style={{
-                        background: emp.group_name === 'Manhattan' ? '#E0F2F1' : '#D6E4F0',
-                        color: emp.group_name === 'Manhattan' ? '#00897B' : '#1F3864',
-                        padding: '1px 7px', borderRadius: '10px', fontSize: '10px', fontWeight: 700,
-                      }}>
-                        {emp.group_name === 'Manhattan' ? 'MTN' : 'MAIN'}
-                      </span>
-                    </td>
-                    {['b','l','s'].map(meal => (
-                      <td key={meal} style={{ padding: '9px 12px', textAlign: 'center' }}>
-                        <MealTick
-                          on={!!m[meal]}
-                          meal={meal}
-                          editable={editable}
-                          onClick={() => toggleMeal(emp.id, meal)}
-                        />
-                      </td>
-                    ))}
-                    <td style={{ padding: '9px 12px', textAlign: 'center', fontWeight: 700, fontSize: '15px', color: isAny ? '#2F5496' : '#888' }}>
-                      {tot || ''}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '48px', color: THEME.textLow }}>
+          <Icon name="progress_activity" size={22} style={{ color: THEME.primary }} />
+          Loading…
         </div>
+      ) : (
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: THEME.primary, color: '#fff' }}>
+                  {/* # */}
+                  <th style={{ ...hStyle, padding: '12px 10px', width: '40px', textAlign: 'center', fontWeight: 400, fontSize: '11px', color: 'rgba(255,255,255,.5)' }}>
+                    #
+                  </th>
+                  {/* Sortable: Employee */}
+                  <SortTh label="Employee"   sortKey="name"       sortState={sortState} onSort={onSort} style={hStyle} />
+                  {/* Sortable: Contractor */}
+                  <SortTh label="Contractor" sortKey="contractor" sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
+                  {/* Sortable: meal columns */}
+                  <SortTh label="Breakfast"  sortKey="b"          sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.breakfastClr }} />
+                  <SortTh label="Lunch"      sortKey="l"          sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.lunchClr }} />
+                  <SortTh label="Supper"     sortKey="s"          sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.supperClr }} />
+                  <SortTh label="Total"      sortKey="total"      sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {sortedFiltered.map((emp, i) => {
+                  const m    = entryState[emp.id] || { b: false, l: false, s: false }
+                  const tot  = (m.b?1:0) + (m.l?1:0) + (m.s?1:0)
+                  const isAny = tot > 0
+                  const color = coColor(contractors, emp.contractor_id)
+
+                  return (
+                    <tr
+                      key={emp.id}
+                      style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: '#fff', transition: 'background .1s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                    >
+                      {/* Row number */}
+                      <td style={{ padding: '10px', textAlign: 'center', color: THEME.textLow, fontSize: '11px' }}>
+                        {i + 1}
+                      </td>
+
+                      {/* Employee name */}
+                      <td style={{ padding: '10px 14px', fontWeight: isAny ? 500 : 400, color: isAny ? THEME.text : THEME.textMed }}>
+                        {emp.name}
+                      </td>
+
+                      {/* Contractor chip */}
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        {emp.contractor ? (
+                          <span style={{
+                            background: color + '18', color,
+                            padding: '3px 10px', borderRadius: '8px',
+                            fontSize: '11px', fontWeight: 500, whiteSpace: 'nowrap',
+                          }}>
+                            {emp.contractor.short_code || emp.contractor.name}
+                          </span>
+                        ) : (
+                          <span style={{ color: THEME.textLow }}>—</span>
+                        )}
+                      </td>
+
+                      {/* Meal tick cells */}
+                      {['b','l','s'].map(meal => (
+                        <td key={meal} style={{ padding: '8px', textAlign: 'center' }}>
+                          <MealTick
+                            on={!!m[meal]}
+                            meal={meal}
+                            editable={editable}
+                            onClick={() => toggleMeal(emp.id, meal)}
+                          />
+                        </td>
+                      ))}
+
+                      {/* Total */}
+                      <td style={{ padding: '10px', textAlign: 'center', fontWeight: 700, color: isAny ? THEME.primary : THEME.textLow }}>
+                        {tot || '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+
+              {/* Grand total footer */}
+              <tfoot>
+                <tr style={{ background: THEME.primary, color: '#fff', fontWeight: 600 }}>
+                  <td colSpan={3} style={{ padding: '12px 14px', fontSize: '13px' }}>
+                    Grand Total ({sortedFiltered.length} employees shown)
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>
+                    {sortedFiltered.reduce((a,e) => a + (entryState[e.id]?.b ? 1 : 0), 0)}
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>
+                    {sortedFiltered.reduce((a,e) => a + (entryState[e.id]?.l ? 1 : 0), 0)}
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>
+                    {sortedFiltered.reduce((a,e) => a + (entryState[e.id]?.s ? 1 : 0), 0)}
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '16px', fontWeight: 700 }}>
+                    {sortedFiltered.reduce((a,e) => {
+                      const m = entryState[e.id] || {}
+                      return a + (m.b?1:0) + (m.l?1:0) + (m.s?1:0)
+                    }, 0)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   )
 }
 
-// ── Meal tick component ─────────────────────────────────────────────────────
+// ── Meal tick — MD3 style checkbox ────────────────────────────────────────────
 function MealTick({ on, meal, editable, onClick }) {
-  const colors = {
-    b: { border: '#C55A11', bg: '#FCE4D6', color: '#C55A11' },
-    l: { border: '#00897B', bg: '#E0F2F1', color: '#00897B' },
-    s: { border: '#5E35B1', bg: '#EDE7F6', color: '#5E35B1' },
+  const palette = {
+    b: { active: THEME.breakfastClr, bg: '#FFF3E0' },
+    l: { active: THEME.lunchClr,     bg: '#E8F5E9' },
+    s: { active: THEME.supperClr,    bg: '#EDE7F6' },
   }
-  const c = colors[meal]
+  const p = palette[meal]
+
   return (
     <div
       onClick={editable ? onClick : undefined}
+      title={editable ? (on ? 'Click to remove' : 'Click to mark') : ''}
       style={{
-        width: '36px', height: '36px',
+        width: '40px', height: '40px',
         cursor: editable ? 'pointer' : 'default',
-        border: `2px solid ${on ? c.border : '#dde2ea'}`,
-        borderRadius: '6px',
+        borderRadius: '10px',
+        border: `2px solid ${on ? p.active : THEME.outline}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: on ? c.bg : '#fff',
-        color: on ? c.color : '#dde2ea',
+        background: on ? p.bg : '#fff',
         margin: '0 auto',
-        transition: 'all .15s',
+        transition: 'all .15s cubic-bezier(.4,0,.2,1)',
+        boxShadow: on ? `0 2px 8px ${p.active}33` : 'none',
       }}
     >
       {on && (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
+        <span
+          className="material-symbols-rounded filled"
+          style={{ fontSize: '20px', color: p.active }}
+        >
+          check_circle
+        </span>
+      )}
+      {!on && editable && (
+        <span
+          className="material-symbols-rounded"
+          style={{ fontSize: '20px', color: THEME.outlineVar }}
+        >
+          radio_button_unchecked
+        </span>
       )}
     </div>
   )

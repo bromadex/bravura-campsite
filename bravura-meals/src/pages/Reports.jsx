@@ -11,6 +11,26 @@ function coColor(contractors, id) {
   return CO_COLORS[idx >= 0 ? idx % CO_COLORS.length : 0]
 }
 
+// ── Print header — shown only when printing ───────────────────────────────────
+function PrintHeader({ title, subtitle }) {
+  return (
+    <div className="print-only" style={{ display: 'none', marginBottom: '16px' }}>
+      <div style={{ borderBottom: `3px solid ${THEME.primary}`, paddingBottom: '10px', marginBottom: '12px' }}>
+        <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.primary }}>
+          Bravura Zimbabwe Ltd — Kamativi Mine Site
+        </div>
+        <div style={{ fontSize: '13px', color: '#555', marginTop: '2px' }}>Meal Management System</div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div style={{ fontSize: '16px', fontWeight: 600 }}>{title}</div>
+        <div style={{ fontSize: '12px', color: '#555' }}>
+          {subtitle} &nbsp;|&nbsp; Printed: {new Date().toLocaleString('en-GB')}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Shared sortable report table ──────────────────────────────────────────────
 function ReportTable({ rows, showCosts = false, prices = null, isRange = false, contractors = [] }) {
   const [sortState, onSort] = useSortState('name', 'asc')
@@ -30,9 +50,10 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
   const hStyle = { background: THEME.primary }
   const chkCell = (v, color) => v
     ? <Icon name="check_circle" size={18} filled style={{ color }} />
-    : <span style={{ color: THEME.outlineVar, fontSize: '16px', lineHeight: 1 }}>—</span>
+    : <span style={{ color: THEME.outlineVar, fontSize: '14px' }}>—</span>
 
   return (
+    // NO overflow:hidden here — that's what was killing multi-page print
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
         <thead>
@@ -40,16 +61,18 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
             <th style={{ ...hStyle, padding: '12px 10px', width: '40px', textAlign: 'center', fontWeight: 500, fontSize: '11px', color: 'rgba(255,255,255,.6)' }}>#</th>
             <SortTh label="Employee"   sortKey="name"           sortState={sortState} onSort={onSort} style={hStyle} />
             <SortTh label="Contractor" sortKey="contractorName" sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
-            <SortTh label="Breakfasts" sortKey="b"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.breakfastClr + 'CC' }} />
-            <SortTh label="Lunches"    sortKey="l"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.lunchClr + 'CC' }} />
-            <SortTh label="Suppers"    sortKey="s"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.supperClr + 'CC' }} />
+            <SortTh label="Breakfasts" sortKey="b"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.breakfastClr }} />
+            <SortTh label="Lunches"    sortKey="l"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.lunchClr }} />
+            <SortTh label="Suppers"    sortKey="s"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.supperClr }} />
             <SortTh label="Total"      sortKey="total"          sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
-            {showCosts && prices && <th style={{ ...hStyle, padding: '12px 14px', textAlign: 'right', fontWeight: 500, fontSize: '12px' }}>Cost (USD)</th>}
+            {showCosts && prices && (
+              <th style={{ ...hStyle, padding: '12px 14px', textAlign: 'right', fontWeight: 500, fontSize: '12px' }}>Cost (USD)</th>
+            )}
           </tr>
         </thead>
         <tbody>
           {sorted.map((r, i) => {
-            const tot = (r.b||0) + (r.l||0) + (r.s||0)
+            const tot   = (r.b||0) + (r.l||0) + (r.s||0)
             const isAny = tot > 0
             const color = coColor(contractors, r.contractor_id)
             return (
@@ -59,11 +82,11 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
                 onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
                 onMouseLeave={e => e.currentTarget.style.background = isAny ? '#fff' : '#FAFAFA'}
               >
-                <td style={{ padding: '10px', textAlign: 'center', color: THEME.textLow, fontSize: '11px' }}>{i+1}</td>
-                <td style={{ padding: '10px 14px', fontWeight: isAny ? 500 : 400, color: isAny ? THEME.text : THEME.textLow }}>
+                <td style={{ padding: '9px 10px', textAlign: 'center', color: THEME.textLow, fontSize: '11px' }}>{i+1}</td>
+                <td style={{ padding: '9px 14px', fontWeight: isAny ? 500 : 400, color: isAny ? THEME.text : THEME.textLow }}>
                   {r.name}
                 </td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>
+                <td style={{ padding: '9px 10px', textAlign: 'center' }}>
                   {r.contractorName !== '—' ? (
                     <span style={{
                       background: color + '18', color, padding: '3px 10px',
@@ -73,29 +96,29 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
                     </span>
                   ) : <span style={{ color: THEME.textLow }}>—</span>}
                 </td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>
+                <td style={{ padding: '9px 10px', textAlign: 'center' }}>
                   {isRange
                     ? <span style={{ fontWeight: 600, color: r.b ? THEME.breakfastClr : THEME.textLow }}>{r.b || '—'}</span>
                     : chkCell(r.b, THEME.breakfastClr)
                   }
                 </td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>
+                <td style={{ padding: '9px 10px', textAlign: 'center' }}>
                   {isRange
                     ? <span style={{ fontWeight: 600, color: r.l ? THEME.lunchClr : THEME.textLow }}>{r.l || '—'}</span>
                     : chkCell(r.l, THEME.lunchClr)
                   }
                 </td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>
+                <td style={{ padding: '9px 10px', textAlign: 'center' }}>
                   {isRange
                     ? <span style={{ fontWeight: 600, color: r.s ? THEME.supperClr : THEME.textLow }}>{r.s || '—'}</span>
                     : chkCell(r.s, THEME.supperClr)
                   }
                 </td>
-                <td style={{ padding: '10px', textAlign: 'center', fontWeight: 700, color: isAny ? THEME.primary : THEME.textLow }}>
+                <td style={{ padding: '9px 10px', textAlign: 'center', fontWeight: 700, color: isAny ? THEME.primary : THEME.textLow }}>
                   {tot || '—'}
                 </td>
                 {showCosts && prices && (
-                  <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: isAny ? 600 : 400, color: isAny ? THEME.text : THEME.textLow }}>
+                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: isAny ? 600 : 400, color: isAny ? THEME.text : THEME.textLow }}>
                     {isAny ? `$${((r.b||0)*prices.b + (r.l||0)*prices.l + (r.s||0)*prices.s).toFixed(2)}` : '—'}
                   </td>
                 )}
@@ -103,7 +126,6 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
             )
           })}
         </tbody>
-        {/* Grand total footer */}
         <tfoot>
           <tr style={{ background: THEME.primary, color: '#fff', fontWeight: 600 }}>
             <td colSpan={3} style={{ padding: '12px 14px', fontSize: '13px' }}>Grand Total</td>
@@ -179,16 +201,23 @@ export function DailyReport() {
   const totS = rows.reduce((a,r) => a+r.s, 0)
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+    <div className="print-page">
+      <PrintHeader
+        title="Daily Meal Report"
+        subtitle={`Date: ${fmtDate(date)}`}
+      />
+
+      {/* Screen-only controls */}
+      <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Daily Report</h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            style={{ padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', color: THEME.text, outline: 'none' }} />
+            style={{ padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }} />
           <Button onClick={() => window.print()} variant="tonal" icon="print">Print</Button>
         </div>
       </div>
 
+      {/* Stat row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
         <StatCard label="Breakfasts" value={totB} color={THEME.breakfastClr} icon="wb_sunny" />
         <StatCard label="Lunches"    value={totL} color={THEME.lunchClr}     icon="light_mode" />
@@ -199,12 +228,13 @@ export function DailyReport() {
         )}
       </div>
 
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Table — no overflow:hidden wrapper */}
+      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: '#fff' }}>
         {loading
           ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
           : <ReportTable rows={rows} showCosts={showCosts} prices={prices} contractors={contractors} />
         }
-      </Card>
+      </div>
     </div>
   )
 }
@@ -251,8 +281,13 @@ export function RangeReport() {
   const totS = rows.reduce((a,r) => a+r.s, 0)
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+    <div className="print-page">
+      <PrintHeader
+        title="Date Range Meal Report"
+        subtitle={`Period: ${fmtDate(start)} — ${fmtDate(end)}`}
+      />
+
+      <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Range Report</h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           {[['From', start, setStart], ['To', end, setEnd]].map(([label, val, setter]) => (
@@ -273,12 +308,12 @@ export function RangeReport() {
         <StatCard label="Grand Total"      value={totB+totL+totS} color={THEME.primary} icon="groups" />
       </div>
 
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
+      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: '#fff' }}>
         {loading
           ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
           : <ReportTable rows={rows} isRange contractors={contractors} />
         }
-      </Card>
+      </div>
     </div>
   )
 }
@@ -325,8 +360,13 @@ export function MonthlyReport() {
   const totS = rows.reduce((a,r) => a+r.s, 0)
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+    <div className="print-page">
+      <PrintHeader
+        title="Monthly Meal Report"
+        subtitle={`${MONTHS[month]} ${year}`}
+      />
+
+      <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Monthly Report</h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
@@ -346,18 +386,18 @@ export function MonthlyReport() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
-        <StatCard label="Breakfasts" value={totB} color={THEME.breakfastClr} icon="wb_sunny" sub={`${MONTHS[month]} ${year}`} />
-        <StatCard label="Lunches"    value={totL} color={THEME.lunchClr}     icon="light_mode" />
-        <StatCard label="Suppers"    value={totS} color={THEME.supperClr}    icon="bedtime" />
+        <StatCard label="Breakfasts"  value={totB} color={THEME.breakfastClr} icon="wb_sunny" sub={`${MONTHS[month]} ${year}`} />
+        <StatCard label="Lunches"     value={totL} color={THEME.lunchClr}     icon="light_mode" />
+        <StatCard label="Suppers"     value={totS} color={THEME.supperClr}    icon="bedtime" />
         <StatCard label="Grand Total" value={totB+totL+totS} color={THEME.primary} icon="groups" />
       </div>
 
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
+      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: '#fff' }}>
         {loading
           ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
           : <ReportTable rows={rows} isRange contractors={contractors} />
         }
-      </Card>
+      </div>
     </div>
   )
 }

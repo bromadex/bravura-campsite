@@ -25,9 +25,96 @@
         font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
       }
       input, select, textarea, button { font-family: inherit; }
+      /* ── Print styles ─────────────────────────────────────────────── */
+
+      /* Utility classes — toggled by @media print below */
+      .no-print   { /* visible on screen, hidden when printing */ }
+      .print-only { display: none; /* hidden on screen, shown when printing */ }
+
       @media print {
-        nav, .topbar { display: none !important; }
-        .main-content { padding: 0 !important; }
+        @page { margin: 14mm 12mm; size: A4 portrait; }
+
+        /* Ensure backgrounds & colours print */
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+        /* Reset html/body so content flows freely across pages */
+        html, body {
+          height: auto !important;
+          overflow: visible !important;
+          background: #fff !important;
+          font-size: 12px !important;
+        }
+
+        /* Flatten the React flex shell completely */
+        #root,
+        #root > div {
+          display: block !important;
+          height: auto !important;
+          overflow: visible !important;
+          width: 100% !important;
+        }
+
+        /* Hide the sidebar nav entirely */
+        #root > div > nav { display: none !important; }
+
+        /* The main column (right of sidebar) */
+        #root > div > div {
+          display: block !important;
+          height: auto !important;
+          overflow: visible !important;
+          width: 100% !important;
+        }
+
+        /* Top app bar */
+        #root > div > div > div:first-child { display: none !important; }
+
+        /* The scrollable page content area */
+        #root > div > div > div:last-child {
+          overflow: visible !important;
+          height: auto !important;
+          padding: 0 !important;
+          background: #fff !important;
+        }
+
+        /* Hide controls that make no sense on paper */
+        .no-print { display: none !important; }
+
+        /* Show print-only elements (report header) */
+        .print-only { display: block !important; }
+
+        /* Remove card shadows / borders */
+        .print-page > div { box-shadow: none !important; }
+
+        /* Make sure table wrapper doesn't clip */
+        div { overflow: visible !important; }
+
+        /* Table across multiple pages */
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          font-size: 11px !important;
+          page-break-inside: auto !important;
+        }
+        thead { display: table-header-group !important; }  /* repeat on every page */
+        tfoot { display: table-footer-group !important; }  /* repeat on every page */
+        tr    { page-break-inside: avoid !important; page-break-after: auto !important; }
+        td, th { padding: 5px 7px !important; }
+
+        /* Stat card grid — lay flat in a row */
+        .print-page > div[style*="grid"] {
+          display: flex !important;
+          flex-wrap: wrap !important;
+          gap: 6px !important;
+          margin-bottom: 10px !important;
+        }
+        .print-page > div[style*="grid"] > div {
+          flex: 1 !important;
+          min-width: 70px !important;
+          padding: 6px 8px !important;
+          border: 1px solid #ddd !important;
+          border-radius: 6px !important;
+          box-shadow: none !important;
+        }
       }
       /* Scrollbar styling */
       ::-webkit-scrollbar { width: 6px; height: 6px; }

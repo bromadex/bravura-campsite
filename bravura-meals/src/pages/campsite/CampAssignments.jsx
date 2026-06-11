@@ -1,0 +1,400 @@
+import { useState, useMemo } from 'react'
+import { useCampsite } from '../../contexts/CampsiteContext'
+import { useAuth } from '../../auth/AuthContext'
+import { THEME } from '../../utils/permissions'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate } from '../../components/ui'
+
+const tabs = ['Active', 'History', 'On Leave']
+
+export default function CampAssignments() {
+  const { profile } = useAuth()
+  const { rooms, blocks, employees, assignments, setLeaveStatus, returnFromLeave,
+          assignRoom, transferRoom, releaseRoom, loading } = useCampsite()
+
+  const [tab,        setTab]        = useState('Active')
+  const [search,     setSearch]     = useState('')
+
+  // Assign modal
+  const [assignModal,  setAssignModal]  = useState(false)
+  const [assignEmpId,  setAssignEmpId]  = useState('')
+  const [assignRoomId, setAssignRoomId] = useState('')
+  const [assignNotes,  setAssignNotes]  = useState('')
+  const [saving,       setSaving]       = useState(false)
+
+  // Transfer modal
+  const [transferModal, setTransferModal] = useState(false)
+  const [transferTarget, setTransferTarget] = useState(null) // assignment
+  const [transferRoomId, setTransferRoomId] = useState('')
+  const [transferNotes,  setTransferNotes]  = useState('')
+
+  // Release confirm
+  const [releaseTarget, setReleaseTarget] = useState(null)
+  const [releaseNotes,  setReleaseNotes]  = useState('')
+
+  // Leave modal
+  const [leaveModal,  setLeaveModal]  = useState(false)
+  const [leaveTarget, setLeaveTarget] = useState(null) // employee
+  const [leaveForm,   setLeaveForm]   = useState({ type: 'short_leave', start: '', end: '', notes: '' })
+
+  // --- Filtered data ---
+  const activeAssignments = assignments.filter(a => a.status === 'active')
+  const historyAssignments = assignments.filter(a => a.status !== 'active')
+  const onLeaveEmployees   = employees.filter(e => e.leave_status !== 'active')
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase()
+    if (tab === 'Active') {
+      return activeAssignments.filter(a =>
+        !q ||
+        a.employee?.name?.toLowerCase().includes(q) ||
+        a.room?.room_number?.toLowerCase().includes(q) ||
+        a.room?.block?.name?.toLowerCase().includes(q) ||
+        a.employee?.contractor?.name?.toLowerCase().includes(q)
+      )
+    }
+    if (tab === 'History') {
+      return historyAssignments.filter(a =>
+        !q ||
+        a.employee?.name?.toLowerCase().includes(q) ||
+        a.room?.room_number?.toLowerCase().includes(q)
+      )
+    }
+    // On Leave
+    return onLeaveEmployees.filter(e =>
+      !q || e.name?.toLowerCase().includes(q) || e.contractor?.name?.toLowerCase().includes(q)
+    )
+  }, [tab, search, activeAssignments, historyAssignments, onLeaveEmployees])
+
+  // --- Available rooms for assignment/transfer ---
+  function availableRooms(excludeRoomId = null) {
+    return rooms.filter(r => {
+      if (r.is_maintenance) return false
+      if (r.id === excludeRoomId) return false
+      const occ = assignments.filter(a => a.room_id === r.id && a.status === 'active').length
+      return occ < r.capacity
+    })
+  }
+
+  // --- Unassigned employees ---
+  const unassignedEmployees = useMemo(() => {
+    const assignedIds = new Set(activeAssignments.map(a => a.employee_id))
+    return employees.filter(e => !assignedIds.has(e.id))
+  }, [employees, activeAssignments])
+
+  // --- Actions ---
+  async function doAssign() {
+    if (!assignEmpId || !assignRoomId) { showToast('Select employee and room', 'red'); return }
+    setSaving(true)
+    try {
+      await assignRoom({ employeeId: assignEmpId, roomId: assignRoomId, notes: assignNotes, assignedBy: profile?.id })
+      showToast('Room assigned', 'green')
+      setAssignModal(false); setAssignEmpId(''); setAssignRoomId(''); setAssignNotes('')
+    } catch (err) { showToast(err.message, 'red') }
+    finally { setSaving(false) }
+  }
+
+  async function doTransfer() {
+    if (!transferRoomId) { showToast('Select target room', 'red'); return }
+    setSaving(true)
+    try {
+      await transferRoom({ assignmentId: transferTarget.id, newRoomId: transferRoomId, notes: transferNotes, assignedBy: profile?.id })
+      showToast('Transfer complete', 'green')
+      setTransferModal(false); setTransferTarget(null); setTransferRoomId(''); setTransferNotes('')
+    } catch (err) { showToast(err.message, 'red') }
+    finally { setSaving(false) }
+  }
+
+  async function doRelease() {
+    setSaving(true)
+    try {
+      await releaseRoom({ assignmentId: releaseTarget.id, notes: releaseNotes, releasedBy: profile?.id })
+      showToast('Room released', 'green')
+      setReleaseTarget(null); setReleaseNotes('')
+    } catch (err) { showToast(err.message, 'red') }
+    finally { setSaving(false) }
+  }
+
+  async function doSetLeave() {
+    if (!leaveForm.start) { showToast('Start date required', 'red'); return }
+    setSaving(true)
+    try {
+      await setLeaveStatus({ employeeId: leaveTarget.id, leaveStatus: leaveForm.type, startDate: leaveForm.start, endDate: leaveForm.end, notes: leaveForm.notes })
+      showToast(`${leaveTarget.name} set to ${leaveForm.type === 'short_leave' ? 'Short Leave' : 'Long Leave'}`, 'green')
+      setLeaveModal(false); setLeaveTarget(null)
+    } catch (err) { showToast(err.message, 'red') }
+    finally { setSaving(false) }
+  }
+
+  async function doReturnFromLeave(emp) {
+    try {
+      await returnFromLeave(emp.id)
+      showToast(`${emp.name} returned from leave`, 'green')
+    } catch (err) { showToast(err.message, 'red') }
+  }
+
+  const leaveLabel = { short_leave: 'Short Leave', long_leave: 'Long Leave' }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Assignments</h2>
+        <Button onClick={() => setAssignModal(true)} variant="filled" icon="add_home">Assign Room</Button>
+      </div>
+
+      {/* Tab bar */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', borderBottom: `2px solid ${THEME.outlineVar}` }}>
+        {tabs.map(t => (
+          <div key={t} onClick={() => setTab(t)} style={{
+            padding: '8px 18px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+            color: tab === t ? THEME.primary : THEME.textMed,
+            borderBottom: `2px solid ${tab === t ? THEME.primary : 'transparent'}`,
+            marginBottom: '-2px', borderRadius: '8px 8px 0 0',
+          }}>
+            {t}
+            <span style={{ marginLeft: '6px', padding: '1px 7px', borderRadius: '10px', fontSize: '11px', background: tab === t ? THEME.surfaceVar : 'transparent', color: tab === t ? THEME.primary : THEME.textLow }}>
+              {t === 'Active' ? activeAssignments.length : t === 'History' ? historyAssignments.length : onLeaveEmployees.length}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Search */}
+      <Card style={{ marginBottom: '14px', padding: '10px 14px' }}>
+        <div style={{ position: 'relative', maxWidth: '340px' }}>
+          <Icon name="search" size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: THEME.textLow }} />
+          <input type="text" placeholder="Search employee, room, block, contractor…" value={search} onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', padding: '8px 10px 8px 32px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+      </Card>
+
+      {/* Content */}
+      {loading ? (
+        <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
+          <Icon name="progress_activity" size={24} style={{ color: THEME.primary }} />
+        </div>
+      ) : (
+
+        /* ── Active / History table ── */
+        tab !== 'On Leave' ? (
+          <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+              <thead>
+                <tr style={{ background: THEME.primary, color: '#fff' }}>
+                  {['Employee','Contractor','Room','Block','Assigned','Released','Status', tab === 'Active' ? 'Actions' : ''].filter(Boolean).map(h => (
+                    <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No records found</td></tr>
+                ) : filtered.map(a => {
+                  const statusMap = { active: { bg: '#E8F5E9', c: '#1B5E20', l: 'Active' }, released: { bg: '#F5F5F5', c: '#757575', l: 'Released' }, transferred: { bg: '#E3F2FD', c: '#1558A6', l: 'Transferred' } }
+                  const s = statusMap[a.status] || statusMap.released
+                  return (
+                    <tr key={a.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
+                      onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                      <td style={{ padding: '11px 14px', fontWeight: 500 }}>{a.employee?.name || '—'}</td>
+                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{a.employee?.contractor?.name || '—'}</td>
+                      <td style={{ padding: '11px 14px', fontWeight: 600 }}>{a.room?.room_number || '—'}</td>
+                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{a.room?.block?.name || '—'}</td>
+                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{fmtDate(a.assigned_date)}</td>
+                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{a.released_date ? fmtDate(a.released_date) : '—'}</td>
+                      <td style={{ padding: '11px 14px' }}>
+                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: s.bg, color: s.c }}>{s.l}</span>
+                      </td>
+                      {tab === 'Active' && (
+                        <td style={{ padding: '11px 14px' }}>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button onClick={() => { setTransferTarget(a); setTransferModal(true) }} title="Transfer room"
+                              style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Icon name="swap_horiz" size={14} style={{ color: THEME.info }} /> Transfer
+                            </button>
+                            <button onClick={() => { setLeaveTarget(a.employee); setLeaveModal(true) }} title="Set leave"
+                              style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Icon name="flight_takeoff" size={14} style={{ color: THEME.warning }} /> Leave
+                            </button>
+                            <button onClick={() => { setReleaseTarget(a); setReleaseNotes('') }} title="Release room"
+                              style={{ padding: '4px 10px', border: `1px solid #f5b8b8`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Icon name="logout" size={14} style={{ color: THEME.error }} /> Release
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+
+          /* ── On Leave table ── */
+          <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+              <thead>
+                <tr style={{ background: THEME.primary, color: '#fff' }}>
+                  {['Employee','Contractor','Leave Type','Start','End','Notes','Actions'].map(h => (
+                    <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No employees on leave</td></tr>
+                ) : filtered.map(emp => {
+                  const typeColor = emp.leave_status === 'short_leave' ? { bg: '#FFF8E1', c: '#7D5700' } : { bg: '#EDE7F6', c: '#4A3C8C' }
+                  return (
+                    <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
+                      onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                      <td style={{ padding: '11px 14px', fontWeight: 500 }}>{emp.name}</td>
+                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{emp.contractor?.name || '—'}</td>
+                      <td style={{ padding: '11px 14px' }}>
+                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: typeColor.bg, color: typeColor.c }}>
+                          {leaveLabel[emp.leave_status]}
+                        </span>
+                      </td>
+                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{emp.leave_start ? fmtDate(emp.leave_start) : '—'}</td>
+                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{emp.leave_end   ? fmtDate(emp.leave_end)   : '—'}</td>
+                      <td style={{ padding: '11px 14px', color: THEME.textLow, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.leave_notes || '—'}</td>
+                      <td style={{ padding: '11px 14px' }}>
+                        <button onClick={() => doReturnFromLeave(emp)}
+                          style={{ padding: '5px 12px', border: `1px solid ${THEME.success}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: 500, color: THEME.success, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Icon name="login" size={14} style={{ color: THEME.success }} /> Return
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {/* ── Assign Modal ── */}
+      <Modal open={assignModal} onClose={() => setAssignModal(false)} title="Assign Room"
+        footer={<>
+          <Button onClick={() => setAssignModal(false)} variant="text">Cancel</Button>
+          <Button onClick={doAssign} variant="filled" disabled={saving}>{saving ? 'Assigning…' : 'Assign'}</Button>
+        </>}>
+        <div style={{ marginBottom: '14px' }}>
+          <SectionLabel>Employee *</SectionLabel>
+          <select value={assignEmpId} onChange={e => setAssignEmpId(e.target.value)}
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}>
+            <option value="">— Select employee —</option>
+            {unassignedEmployees.map(e => (
+              <option key={e.id} value={e.id}>{e.name}{e.contractor ? ` (${e.contractor.name})` : ''}</option>
+            ))}
+          </select>
+          {unassignedEmployees.length === 0 && <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '4px' }}>All active employees already have rooms assigned.</div>}
+        </div>
+        <div style={{ marginBottom: '14px' }}>
+          <SectionLabel>Room *</SectionLabel>
+          <select value={assignRoomId} onChange={e => setAssignRoomId(e.target.value)}
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}>
+            <option value="">— Select room —</option>
+            {availableRooms().map(r => {
+              const occ = assignments.filter(a => a.room_id === r.id && a.status === 'active').length
+              const block = blocks.find(b => b.id === r.block_id)
+              return <option key={r.id} value={r.id}>{block?.name} — {r.room_number} ({occ}/{r.capacity} occupied)</option>
+            })}
+          </select>
+        </div>
+        <div>
+          <SectionLabel>Notes</SectionLabel>
+          <textarea value={assignNotes} onChange={e => setAssignNotes(e.target.value)} rows={2} placeholder="Optional…"
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
+        </div>
+      </Modal>
+
+      {/* ── Transfer Modal ── */}
+      <Modal open={transferModal} onClose={() => setTransferModal(false)} title={`Transfer Room — ${transferTarget?.employee?.name}`}
+        footer={<>
+          <Button onClick={() => setTransferModal(false)} variant="text">Cancel</Button>
+          <Button onClick={doTransfer} variant="filled" disabled={saving}>{saving ? 'Transferring…' : 'Transfer'}</Button>
+        </>}>
+        <div style={{ marginBottom: '12px', padding: '10px 14px', background: THEME.surfaceVar, borderRadius: '12px', fontSize: '13px', color: THEME.textMed }}>
+          Current room: <strong style={{ color: THEME.text }}>{transferTarget?.room?.block?.name} — {transferTarget?.room?.room_number}</strong>
+        </div>
+        <div style={{ marginBottom: '14px' }}>
+          <SectionLabel>New Room *</SectionLabel>
+          <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}>
+            <option value="">— Select new room —</option>
+            {availableRooms(transferTarget?.room_id).map(r => {
+              const occ = assignments.filter(a => a.room_id === r.id && a.status === 'active').length
+              const block = blocks.find(b => b.id === r.block_id)
+              return <option key={r.id} value={r.id}>{block?.name} — {r.room_number} ({occ}/{r.capacity} occupied)</option>
+            })}
+          </select>
+        </div>
+        <div>
+          <SectionLabel>Reason / Notes</SectionLabel>
+          <textarea value={transferNotes} onChange={e => setTransferNotes(e.target.value)} rows={2} placeholder="Reason for transfer…"
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
+        </div>
+      </Modal>
+
+      {/* ── Release Confirm ── */}
+      <Modal open={!!releaseTarget} onClose={() => setReleaseTarget(null)} title={`Release Room — ${releaseTarget?.employee?.name}`}
+        footer={<>
+          <Button onClick={() => setReleaseTarget(null)} variant="text">Cancel</Button>
+          <Button onClick={doRelease} variant="danger" disabled={saving}>{saving ? 'Releasing…' : 'Release Room'}</Button>
+        </>}>
+        <div style={{ marginBottom: '12px', padding: '10px 14px', background: '#FDECEA', borderRadius: '12px', fontSize: '13px', color: THEME.error }}>
+          This will release <strong>{releaseTarget?.employee?.name}</strong> from <strong>{releaseTarget?.room?.block?.name} — {releaseTarget?.room?.room_number}</strong> and mark the room as available.
+        </div>
+        <div>
+          <SectionLabel>Notes</SectionLabel>
+          <textarea value={releaseNotes} onChange={e => setReleaseNotes(e.target.value)} rows={2} placeholder="Reason for release…"
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
+        </div>
+      </Modal>
+
+      {/* ── Leave Modal ── */}
+      <Modal open={leaveModal} onClose={() => setLeaveModal(false)} title={`Set Leave — ${leaveTarget?.name}`}
+        footer={<>
+          <Button onClick={() => setLeaveModal(false)} variant="text">Cancel</Button>
+          <Button onClick={doSetLeave} variant="filled" disabled={saving}>{saving ? 'Saving…' : 'Set Leave'}</Button>
+        </>}>
+        <div style={{ marginBottom: '14px' }}>
+          <SectionLabel>Leave Type *</SectionLabel>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {[
+              { v: 'short_leave', l: 'Short Leave', note: 'Room is kept occupied' },
+              { v: 'long_leave',  l: 'Long Leave',  note: 'Room will be released automatically' },
+            ].map(opt => (
+              <label key={opt.v} style={{ flex: 1, padding: '12px', border: `2px solid ${leaveForm.type === opt.v ? THEME.primary : THEME.outline}`, borderRadius: '12px', cursor: 'pointer', background: leaveForm.type === opt.v ? THEME.surfaceVar : '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <input type="radio" name="leaveType" value={opt.v} checked={leaveForm.type === opt.v} onChange={e => setLeaveForm(f => ({ ...f, type: e.target.value }))} />
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{opt.l}</span>
+                </div>
+                <div style={{ fontSize: '11px', color: THEME.textLow }}>{opt.note}</div>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+          <div>
+            <SectionLabel>Start Date *</SectionLabel>
+            <input type="date" value={leaveForm.start} onChange={e => setLeaveForm(f => ({ ...f, start: e.target.value }))}
+              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <SectionLabel>Expected Return</SectionLabel>
+            <input type="date" value={leaveForm.end} onChange={e => setLeaveForm(f => ({ ...f, end: e.target.value }))}
+              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+        </div>
+        <div>
+          <SectionLabel>Notes</SectionLabel>
+          <textarea value={leaveForm.notes} onChange={e => setLeaveForm(f => ({ ...f, notes: e.target.value }))} rows={2}
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
+        </div>
+      </Modal>
+    </div>
+  )
+}

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+   import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 
 const CampsiteContext = createContext(null)
@@ -104,6 +104,19 @@ export function CampsiteProvider({ children }) {
   }
   async function updateRoom(id, data) {
     const { error } = await supabase.from('camp_rooms').update(data).eq('id', id)
+    if (error) throw error
+    await fetchAll()
+  }
+  async function deleteRoom(roomId) {
+    // Block delete if room has any assignment history
+    const { data: existing } = await supabase
+      .from('room_assignments')
+      .select('id')
+      .eq('room_id', roomId)
+      .limit(1)
+    if (existing && existing.length > 0)
+      throw new Error('Cannot delete — room has assignment history. Use maintenance mode instead.')
+    const { error } = await supabase.from('camp_rooms').delete().eq('id', roomId)
     if (error) throw error
     await fetchAll()
   }
@@ -241,7 +254,7 @@ export function CampsiteProvider({ children }) {
       supplies, supplyTxns, loading, kpis,
       getRoomStatus,
       addBlock, updateBlock, deleteBlock,
-      addRoom, updateRoom, setMaintenance,
+      addRoom, updateRoom, deleteRoom, setMaintenance,
       assignRoom, transferRoom, releaseRoom,
       setLeaveStatus, returnFromLeave,
       addSupplyItem, recordSupplyTxn,

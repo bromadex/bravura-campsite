@@ -1,5 +1,7 @@
-export { default as CampHeadcount }   from './CampHeadcount'
-export { default as CampBlocks }      from './CampBlocks'
-export { default as CampRooms }       from './CampRooms'
-export { default as CampAssignments } from './CampAssignments'
-export { default as CampSupplies }    from './CampSupplies'
+export { default as CampHeadcount }      from './CampHeadcount'
+export { default as CampBlocks }         from './CampBlocks'
+export { default as CampRooms }          from './CampRooms'
+export { default as CampAssignments }    from './CampAssignments'
+export { default as CampSupplies }       from './CampSupplies'
+export { default as CampOccupancyReport} from './CampOccupancyReport'
+ 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
 import LoginPage    from './auth/LoginPage'
-import ERPHome      from './pages/ERPHome'
+import HomeLauncher from './pages/HomeLauncher'
 import MealsPinGate from './auth/MealsPinGate'
 import ModuleLayout from './components/ModuleLayout'
 import { THEME, workforceNav, campsiteNav, mealsNav, moduleAccess } from './utils/permissions'
@@ -95,7 +95,7 @@ const DEFAULT_PAGE = {
 function AppContent() {
   const { user, profile, loading } = useAuth()
 
-  // null = ERP home, string = active module id
+  // null = home launcher, string = active module id
   const [activeModule,   setActiveModule]   = useState(null)
   const [mealsUnlocked,  setMealsUnlocked]  = useState(false)
   const [currentPage,    setCurrentPage]    = useState(null)
@@ -125,7 +125,7 @@ function AppContent() {
       flexDirection: 'column', gap: '14px',
     }}>
       <span className="material-symbols-rounded filled" style={{ fontSize: '44px', color: THEME.activeBar }}>diamond</span>
-      <span style={{ color: 'rgba(255,255,255,.55)', fontSize: '14px', letterSpacing: '.06em' }}>BRAVURA ERP</span>
+      <span style={{ color: 'rgba(255,255,255,.55)', fontSize: '14px', letterSpacing: '.06em' }}>BRAVURA</span>
     </div>
   )
 
@@ -134,9 +134,9 @@ function AppContent() {
 
   const role = profile.role
 
-  // ── ERP Home ──
+  // ── Home launcher ──
   if (!activeModule) {
-    return <ERPHome onEnterModule={enterModule} />
+    return <HomeLauncher onEnterModule={enterModule} />
   }
 
   // ── Meals PIN gate ──

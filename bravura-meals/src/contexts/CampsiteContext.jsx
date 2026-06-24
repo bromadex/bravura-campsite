@@ -1,4 +1,4 @@
-   import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 
 const CampsiteContext = createContext(null)
@@ -6,9 +6,11 @@ const CampsiteContext = createContext(null)
 export function CampsiteProvider({ children }) {
   const [blocks,      setBlocks]      = useState([])
   const [rooms,       setRooms]       = useState([])
+  const [fixtures,    setFixtures]    = useState([])
   const [assignments, setAssignments] = useState([])
   const [employees,   setEmployees]   = useState([])
   const [contractors, setContractors] = useState([])
+  const [visitors,    setVisitors]    = useState([])
   const [supplies,    setSupplies]    = useState([])
   const [supplyTxns,  setSupplyTxns]  = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -16,26 +18,31 @@ export function CampsiteProvider({ children }) {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [bRes, rRes, aRes, eRes, cRes, sRes, txRes] = await Promise.all([
+      const [bRes, rRes, fxRes, aRes, eRes, cRes, vRes, sRes, txRes] = await Promise.all([
         supabase.from('camp_blocks').select('*').order('name'),
         supabase.from('camp_rooms').select('*, block:camp_blocks(id,name)').order('room_number'),
+        supabase.from('camp_fixtures').select('*'),
         supabase.from('room_assignments').select(`
           *,
-          employee:employees(id, name, status, leave_status, contractor_id,
+          employee:employees(id, name, status, leave_status, gender, contractor_id,
             contractor:contractors(id, name, short_code)),
+          visitor:camp_visitors(id, name, gender, phone, purpose),
           room:camp_rooms(id, room_number, block_id, capacity,
             block:camp_blocks(id, name))
         `).order('created_at', { ascending: false }),
         supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','Active').order('name'),
         supabase.from('contractors').select('*').eq('status','Active').order('name'),
+        supabase.from('camp_visitors').select('*').order('created_at', { ascending: false }),
         supabase.from('camp_supply_balance').select('*'),
         supabase.from('camp_supply_txns').select('*, item:camp_supply_items(id,name,unit), recorded_by_profile:profiles(full_name)').order('txn_date', { ascending: false }).order('created_at', { ascending: false }).limit(200),
       ])
       setBlocks(bRes.data || [])
       setRooms(rRes.data || [])
+      setFixtures(fxRes.data || [])
       setAssignments(aRes.data || [])
       setEmployees(eRes.data || [])
       setContractors(cRes.data || [])
+      setVisitors(vRes.data || [])
       setSupplies(sRes.data || [])
       setSupplyTxns(txRes.data || [])
     } catch (err) {
@@ -108,7 +115,6 @@ export function CampsiteProvider({ children }) {
     await fetchAll()
   }
   async function deleteRoom(roomId) {
-    // Block delete if room has any assignment history
     const { data: existing } = await supabase
       .from('room_assignments')
       .select('id')
@@ -134,25 +140,42 @@ export function CampsiteProvider({ children }) {
   }
 
   // ── Assignments ────────────────────────────────────────────────────────────
-  async function assignRoom({ employeeId, roomId, notes, assignedBy }) {
-    // Check employee doesn't already have a room
-    const existing = assignments.find(a => a.employee_id === employeeId && a.status === 'active')
-    if (existing) throw new Error('Employee already has an active room assignment. Transfer or release first.')
+  // Supports employees OR visitors via occupantType, plus a friendly
+  // client-side gender pre-check (the DB trigger is the authoritative check).
+  async function assignRoom({ employeeId, visitorId, roomId, occupantType = 'employee', notes, expectedCheckout, assignedBy }) {
+    if (occupantType === 'employee' && !employeeId) throw new Error('Employee is required')
+    if (occupantType === 'visitor'  && !visitorId)  throw new Error('Visitor is required')
 
-    // Check room capacity
+    const existing = occupantType === 'employee'
+      ? assignments.find(a => a.employee_id === employeeId && a.status === 'active')
+      : assignments.find(a => a.visitor_id === visitorId && a.status === 'active')
+    if (existing) throw new Error('This person already has an active room assignment. Transfer or release first.')
+
     const room = rooms.find(r => r.id === roomId)
     if (!room) throw new Error('Room not found')
     if (room.is_maintenance) throw new Error('Room is under maintenance')
     const currentOccupancy = assignments.filter(a => a.room_id === roomId && a.status === 'active').length
     if (currentOccupancy >= room.capacity) throw new Error('Room is at full capacity')
 
+    if (room.gender && room.gender !== 'unassigned') {
+      const personGender = occupantType === 'employee'
+        ? employees.find(e => e.id === employeeId)?.gender
+        : visitors.find(v => v.id === visitorId)?.gender
+      if (personGender && personGender !== room.gender) {
+        throw new Error(`This room is allocated to ${room.gender === 'male' ? 'males' : 'females'} only`)
+      }
+    }
+
     const { error } = await supabase.from('room_assignments').insert({
-      employee_id:   employeeId,
-      room_id:       roomId,
-      assigned_date: new Date().toISOString().slice(0, 10),
-      status:        'active',
-      assigned_by:   assignedBy || null,
-      notes:         notes || null,
+      employee_id:       occupantType === 'employee' ? employeeId : null,
+      visitor_id:        occupantType === 'visitor'  ? visitorId  : null,
+      occupant_type:     occupantType,
+      room_id:           roomId,
+      assigned_date:     new Date().toISOString().slice(0, 10),
+      expected_checkout: expectedCheckout || null,
+      status:            'active',
+      assigned_by:       assignedBy || null,
+      notes:             notes || null,
     })
     if (error) throw error
     await fetchAll()
@@ -168,20 +191,28 @@ export function CampsiteProvider({ children }) {
     const occupancy = assignments.filter(a => a.room_id === newRoomId && a.status === 'active').length
     if (occupancy >= newRoom.capacity) throw new Error('Target room is at full capacity')
 
-    // Release old
+    if (newRoom.gender && newRoom.gender !== 'unassigned') {
+      const personGender = assignment.employee?.gender || assignment.visitor?.gender
+      if (personGender && personGender !== newRoom.gender) {
+        throw new Error(`Target room is allocated to ${newRoom.gender === 'male' ? 'males' : 'females'} only`)
+      }
+    }
+
     await supabase.from('room_assignments').update({
       status:        'transferred',
       released_date: new Date().toISOString().slice(0, 10),
     }).eq('id', assignmentId)
 
-    // Create new
     const { error } = await supabase.from('room_assignments').insert({
-      employee_id:   assignment.employee_id,
-      room_id:       newRoomId,
-      assigned_date: new Date().toISOString().slice(0, 10),
-      status:        'active',
-      assigned_by:   assignedBy || null,
-      notes:         notes || null,
+      employee_id:       assignment.employee_id,
+      visitor_id:        assignment.visitor_id,
+      occupant_type:     assignment.occupant_type,
+      room_id:           newRoomId,
+      assigned_date:     new Date().toISOString().slice(0, 10),
+      expected_checkout: assignment.expected_checkout,
+      status:            'active',
+      assigned_by:       assignedBy || null,
+      notes:             notes || null,
     })
     if (error) throw error
     await fetchAll()
@@ -198,6 +229,14 @@ export function CampsiteProvider({ children }) {
     await fetchAll()
   }
 
+  // ── Visitors ───────────────────────────────────────────────────────────────
+  async function addVisitor(data) {
+    const { data: created, error } = await supabase.from('camp_visitors').insert(data).select().single()
+    if (error) throw error
+    await fetchAll()
+    return created
+  }
+
   // ── Leave management ───────────────────────────────────────────────────────
   async function setLeaveStatus({ employeeId, leaveStatus, startDate, endDate, notes }) {
     const { error } = await supabase.from('employees').update({
@@ -207,7 +246,6 @@ export function CampsiteProvider({ children }) {
       leave_notes:  notes     || null,
     }).eq('id', employeeId)
     if (error) throw error
-    // Triggers in DB handle auto-release for long leave
     await fetchAll()
   }
 
@@ -250,12 +288,13 @@ export function CampsiteProvider({ children }) {
 
   return (
     <CampsiteContext.Provider value={{
-      blocks, rooms, assignments, employees, contractors,
+      blocks, rooms, fixtures, assignments, employees, contractors, visitors,
       supplies, supplyTxns, loading, kpis,
       getRoomStatus,
       addBlock, updateBlock, deleteBlock,
       addRoom, updateRoom, deleteRoom, setMaintenance,
       assignRoom, transferRoom, releaseRoom,
+      addVisitor,
       setLeaveStatus, returnFromLeave,
       addSupplyItem, recordSupplyTxn,
       refresh: fetchAll,

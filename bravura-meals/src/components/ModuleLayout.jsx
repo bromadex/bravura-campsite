@@ -115,7 +115,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.5)' }}
         >
           <Icon name="home" size={18} style={{ color: 'inherit', flexShrink: 0 }} />
-          {!collapsed && <span style={{ fontSize: '12px', fontWeight: 500 }}>ERP Home</span>}
+          {!collapsed && <span style={{ fontSize: '12px', fontWeight: 500 }}>Home</span>}
         </div>
 
         {/* Nav items */}

@@ -24,7 +24,7 @@ export const THEME = {
   supperClr:    '#4A3C8C',
 }
 
-// ─── Module accent colours (match ERP card style) ─────────────────────────────
+// ─── Module accent colours (match dashboard card style) ───────────────────────
 export const MODULE_COLORS = {
   workforce: '#E07B39',  // warm orange  – HR/people feel
   campsite:  '#2A9D8F',  // teal         – outdoors/camp

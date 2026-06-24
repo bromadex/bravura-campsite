@@ -17,6 +17,7 @@ import WorkforceReports from './pages/workforce/WorkforceReports'
 import {
   CampHeadcount, CampBlocks, CampRooms,
   CampAssignments, CampSupplies, CampOccupancyReport,
+  CampFloorplan,
 } from './pages/campsite'
 
 // ── Meals pages ───────────────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ function getCampsitePage(page, role, setPage) {
   const AM = ['super_admin','approver','meal_officer']
   switch (page) {
     case 'camp_headcount':   return <CampHeadcount />
+    case 'camp_floorplan':   return <CampFloorplan />
     case 'camp_assignments': return <CampAssignments />
     case 'camp_rooms':       return <CampRooms />
     case 'camp_blocks':      return AM.includes(role) ? <CampBlocks /> : null

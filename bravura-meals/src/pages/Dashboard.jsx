@@ -219,12 +219,12 @@ export default function Dashboard({ setPage }) {
               <div style={{ fontSize: '14px', fontWeight: 500, color: THEME.text }}>Quick Actions</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {can.enterMeals(role)     && <ActionBtn icon="edit_note"    label="Enter today's meals"   onClick={() => setPage('entry')} />}
-              {can.approveDay(role)     && <ActionBtn icon="task_alt"     label="Review submissions"    onClick={() => setPage('approvals')} />}
-              {can.confirmCounts(role)  && <ActionBtn icon="restaurant"   label="Confirm kitchen counts" onClick={() => setPage('kitchen')} />}
-              {can.setPrices(role)      && <ActionBtn icon="sell"         label="Update meal prices"    onClick={() => setPage('pricing')} />}
-              {can.seeReports(role)     && <ActionBtn icon="today"        label="Daily report"          onClick={() => setPage('daily')} />}
-              {can.seeCosts(role)       && <ActionBtn icon="receipt_long" label="View billing"          onClick={() => setPage('billing')} />}
+              {can.enterMeals(role)     && <ActionBtn icon="edit_note"    label="Enter today's meals"   onClick={() => setPage('meals_entry')} />}
+              {can.approveDay(role)     && <ActionBtn icon="task_alt"     label="Review submissions"    onClick={() => setPage('meals_approvals')} />}
+              {can.confirmCounts(role)  && <ActionBtn icon="restaurant"   label="Confirm kitchen counts" onClick={() => setPage('meals_kitchen')} />}
+              {can.setPrices(role)      && <ActionBtn icon="sell"         label="Update meal prices"    onClick={() => setPage('meals_pricing')} />}
+              {can.seeReports(role)     && <ActionBtn icon="today"        label="Daily report"          onClick={() => setPage('meals_daily')} />}
+              {can.seeCosts(role)       && <ActionBtn icon="receipt_long" label="View billing"          onClick={() => setPage('meals_billing')} />}
             </div>
           </Card>
         </div>

@@ -95,6 +95,7 @@ export function workforceNav(role) {
 export function campsiteNav(role) {
   return [
     { id: 'camp_headcount',   label: 'Headcount',        section: 'Overview',    icon: 'people_alt' },
+    { id: 'camp_floorplan',   label: 'Visual Layout',     section: 'Management',  icon: 'view_in_ar' },
     { id: 'camp_assignments', label: 'Room Assignments',  section: 'Management',  icon: 'assignment_ind' },
     { id: 'camp_rooms',       label: 'Rooms',            section: 'Management',  icon: 'meeting_room' },
     { id: 'camp_blocks',      label: 'Blocks',           section: 'Management',  icon: 'domain' },

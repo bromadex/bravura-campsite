@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { can, THEME } from '../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, StatusBadge, showToast, initials, SectionLabel } from '../components/ui'
 
-const EMPTY_FORM = { name: '', contractor_id: '', status: 'Active' }
+const EMPTY_FORM = { name: '', contractor_id: '', status: 'Active', gender: '' }
 
 export default function Employees() {
   const { profile } = useAuth()
@@ -63,6 +63,7 @@ export default function Employees() {
       name:          emp.name,
       contractor_id: emp.contractor_id || '',
       status:        emp.status,
+      gender:        emp.gender || '',
     })
     setModal(true)
   }
@@ -77,6 +78,7 @@ export default function Employees() {
         contractor_id: form.contractor_id,
         group_name:    contractors.find(c => c.id === form.contractor_id)?.name || '',
         status:        form.status,
+        gender:        form.gender || null,
       }
       if (editing) {
         const { error } = await supabase.from('employees').update(payload).eq('id', editing.id)
@@ -321,7 +323,7 @@ export default function Employees() {
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
           <div>
             <SectionLabel>Employer / Contractor</SectionLabel>
             <select
@@ -337,6 +339,19 @@ export default function Employees() {
           </div>
 
           <div>
+            <SectionLabel>Gender</SectionLabel>
+            <select
+              value={form.gender}
+              onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
+              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
+            >
+              <option value="">— Not set —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div>
             <SectionLabel>Status</SectionLabel>
             <select
               value={form.status}
@@ -347,6 +362,10 @@ export default function Employees() {
               <option value="Inactive">Inactive</option>
             </select>
           </div>
+        </div>
+
+        <div style={{ marginTop: '10px', fontSize: '11px', color: THEME.textLow || '#9aa' }}>
+          Gender is used by Campsite room assignment to enforce single-gender rooms.
         </div>
 
         {contractors.length === 0 && (

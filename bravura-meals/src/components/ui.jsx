@@ -37,16 +37,22 @@ export function StatCard({ label, value, sub, color, icon }) {
 }
 
 // ── Card — MD3 outlined card ──────────────────────────────────────────────────
-export function Card({ children, style = {}, elevated = false }) {
+export function Card({ children, style = {}, elevated = false, onClick, onMouseEnter, onMouseLeave, ...rest }) {
   return (
-    <div style={{
-      background: '#fff',
-      border: `1px solid ${THEME.outlineVar}`,
-      borderRadius: '16px',
-      padding: '20px',
-      boxShadow: elevated ? '0 2px 8px rgba(0,0,0,.08)' : '0 1px 2px rgba(0,0,0,.04)',
-      ...style,
-    }}>
+    <div
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      style={{
+        background: '#fff',
+        border: `1px solid ${THEME.outlineVar}`,
+        borderRadius: '16px',
+        padding: '20px',
+        boxShadow: elevated ? '0 2px 8px rgba(0,0,0,.08)' : '0 1px 2px rgba(0,0,0,.04)',
+        ...style,
+      }}
+      {...rest}
+    >
       {children}
     </div>
   )

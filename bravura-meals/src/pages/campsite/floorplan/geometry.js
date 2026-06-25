@@ -50,7 +50,9 @@ export function doorArcPath(x, y, radius, startAngle, endAngle) {
 
 // Compute the bounding viewBox for a block's full floorplan, with margin
 export function computeViewBox(blockWidth, blockHeight, margin = 600) {
-  return `${-margin} ${-margin} ${blockWidth + margin * 2} ${blockHeight + margin * 2}`
+  const w = Number.isFinite(blockWidth)  && blockWidth  > 0 ? blockWidth  : 20000
+  const h = Number.isFinite(blockHeight) && blockHeight > 0 ? blockHeight : 10000
+  return `${-margin} ${-margin} ${w + margin * 2} ${h + margin * 2}`
 }
 
 // Double-door swing icon (two quarter-circles meeting in the middle) —

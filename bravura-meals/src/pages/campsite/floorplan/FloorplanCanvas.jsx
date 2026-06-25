@@ -20,7 +20,13 @@ export default function FloorplanCanvas({
   const [isPanning, setIsPanning] = useState(false)
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
 
-  const baseViewBox = computeViewBox(block.floorplan_width, block.floorplan_height)
+  // Safe fallbacks — if the block's canvas size wasn't set in the DB,
+  // fall back to a generic size instead of producing an invalid (NaN) viewBox
+  // that silently renders nothing.
+  const boardWidth  = Number(block?.floorplan_width)  || 20000
+  const boardHeight = Number(block?.floorplan_height) || 10000
+
+  const baseViewBox = computeViewBox(boardWidth, boardHeight)
   const [vbX, vbY, vbW, vbH] = baseViewBox.split(' ').map(Number)
 
   // Apply zoom/pan to the viewBox
@@ -70,7 +76,7 @@ export default function FloorplanCanvas({
       >
         {/* Building outer shell */}
         <rect
-          x={0} y={0} width={block.floorplan_width} height={block.floorplan_height}
+          x={0} y={0} width={boardWidth} height={boardHeight}
           fill="#FAFAFA" stroke="#37474F" strokeWidth={40}
         />
 

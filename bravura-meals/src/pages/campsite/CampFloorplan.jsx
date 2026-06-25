@@ -104,6 +104,36 @@ export default function CampFloorplan() {
   const blockRooms    = rooms.filter(r => r.block_id === selectedBlockId && r.pos_x != null)
   const blockFixtures = fixtures.filter(f => f.block_id === selectedBlockId)
 
+  // Guard: block vanished (e.g. deleted elsewhere) or has no positioned rooms.
+  // Show a clear message instead of silently rendering a blank/broken canvas.
+  if (!block || blockRooms.length === 0) {
+    return (
+      <div>
+        <button onClick={() => setSelectedBlockId(null)} style={{
+          display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 14px',
+          border: `1px solid ${THEME.outline}`, borderRadius: '20px', background: '#fff',
+          cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.textMed,
+          fontFamily: 'inherit', marginBottom: '20px',
+        }}>
+          <Icon name="arrow_back" size={16} style={{ color: THEME.textMed }} /> All Blocks
+        </button>
+        <Card>
+          <div style={{ textAlign: 'center', padding: '48px 24px', color: THEME.textLow }}>
+            <Icon name="warning" size={40} style={{ color: THEME.warning, display: 'block', margin: '0 auto 12px' }} />
+            <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, marginBottom: '6px' }}>
+              {!block ? 'Block not found' : 'No room layout found for this block'}
+            </div>
+            <div style={{ fontSize: '13px' }}>
+              {!block
+                ? 'This block may have been removed. Go back and pick another block.'
+                : 'This block has rooms but none have layout coordinates yet. Run the floorplan seed script for this block, or contact your administrator.'}
+            </div>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
   const totalBeds    = blockRooms.reduce((a, r) => a + r.capacity, 0)
   const occupiedBeds = activeAssignments.filter(a => blockRooms.some(r => r.id === a.room_id)).length
   const availableBeds = totalBeds - occupiedBeds

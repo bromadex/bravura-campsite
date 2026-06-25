@@ -58,16 +58,18 @@ export default function CampFloorplan() {
                 <Card
                   key={block.id}
                   style={{
-                    cursor: hasGeometry ? 'pointer' : 'not-allowed',
-                    opacity: hasGeometry ? 1 : 0.5,
-                    borderTop: `4px solid ${THEME.primary}`,
+                    cursor: hasGeometry ? 'pointer' : 'default',
+                    borderTop: `4px solid ${hasGeometry ? THEME.primary : THEME.outline}`,
                     transition: 'transform .15s, box-shadow .15s',
+                    position: 'relative',
                   }}
                   onClick={() => hasGeometry && setSelectedBlockId(block.id)}
+                  onMouseEnter={e => { if (hasGeometry) e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.1)' }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = '' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: THEME.surfaceVar, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="apartment" size={22} style={{ color: THEME.primary }} />
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: hasGeometry ? THEME.surfaceVar : '#F3F3F3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="apartment" size={22} style={{ color: hasGeometry ? THEME.primary : THEME.textLow }} />
                     </div>
                     <div>
                       <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text }}>{block.name}</div>
@@ -79,8 +81,13 @@ export default function CampFloorplan() {
                     <span>{blockRooms.length - occRooms} available</span>
                   </div>
                   {!hasGeometry && (
-                    <div style={{ marginTop: '8px', fontSize: '11px', color: THEME.warning }}>
-                      Floorplan not configured
+                    <div style={{
+                      marginTop: '10px', display: 'flex', alignItems: 'center', gap: '5px',
+                      fontSize: '11px', fontWeight: 500, color: THEME.textLow,
+                      background: '#F3F3F3', borderRadius: '8px', padding: '5px 9px',
+                    }}>
+                      <Icon name="info" size={13} style={{ color: THEME.textLow }} />
+                      Visual layout not set up yet
                     </div>
                   )}
                 </Card>

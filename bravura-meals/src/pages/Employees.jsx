@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { useAuth } from '../auth/AuthContext'
-import { can, THEME } from '../utils/permissions'
+import { THEME } from '../utils/permissions'
+import { usePermissions } from '../contexts/PermissionsContext'
 import { Card, Button, Modal, ConfirmModal, StatusBadge, showToast, initials, SectionLabel } from '../components/ui'
 
 const EMPTY_FORM = { name: '', contractor_id: '', status: 'active', gender: '' }
 
 export default function Employees() {
-  const { profile } = useAuth()
-  const role = profile?.role
-  const canDelete = can.deleteEmployee(role)
+  // Swapped to real RBAC per the approved matrix — Delete is now scoped to
+  // HR Officer / System Administrator only, matching 03_RBAC_MATRIX.md.
+  const { can: canRBAC } = usePermissions()
+  const canDelete = canRBAC('employees.delete')
 
   const [employees,    setEmployees]    = useState([])
   const [contractors,  setContractors]  = useState([])

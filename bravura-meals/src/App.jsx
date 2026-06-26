@@ -5,7 +5,6 @@ import { SiteProvider } from './contexts/SiteContext'
 import { PermissionsProvider, usePermissions } from './contexts/PermissionsContext'
 import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
-import MealsPinGate from './auth/MealsPinGate'
 import ModuleLayout from './components/ModuleLayout'
 import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, moduleAccess } from './utils/permissions'
 
@@ -142,7 +141,6 @@ function AppContent() {
 
   // null = home launcher, string = active module id
   const [activeModule,   setActiveModule]   = useState(null)
-  const [mealsUnlocked,  setMealsUnlocked]  = useState(false)
   const [currentPage,    setCurrentPage]    = useState(null)
   const { can } = usePermissions()
 
@@ -154,8 +152,6 @@ function AppContent() {
   function goHome() {
     setActiveModule(null)
     setCurrentPage(null)
-    // Lock meals again when going home
-    setMealsUnlocked(false)
   }
 
   function setPage(page) {
@@ -190,16 +186,13 @@ function AppContent() {
     return <HomeLauncher onEnterModule={enterModule} />
   }
 
-  // ── Meals PIN gate ──
-  if (activeModule === 'meals' && !mealsUnlocked) {
-    return (
-      <MealsPinGate
-        profile={profile}
-        onUnlock={() => setMealsUnlocked(true)}
-        onBack={goHome}
-      />
-    )
-  }
+  // Meals PIN gate removed — every page inside Meals now has its own real
+  // RBAC permission check (see getMealsPage), which is what actually gates
+  // access correctly per the approved direction: "Access to Meals... should
+  // be controlled through the RBAC and Site Access model only." The PIN was
+  // never doing anything those checks don't already do, and its default
+  // (anyone with no PIN set could enter with '0000') was weaker than no gate
+  // at all once real permissions existed underneath it.
 
   // ── Resolve page content ──
   const meta   = MODULE_META[activeModule]

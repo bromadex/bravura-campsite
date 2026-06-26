@@ -41,15 +41,11 @@ export default function LoginPage() {
       }}>
         {/* Logomark */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '72px', height: '72px', borderRadius: '22px',
-            background: THEME.primary,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
-            boxShadow: `0 8px 24px ${THEME.primary}55`,
-          }}>
-            <span className="material-symbols-rounded filled" style={{ fontSize: '36px', color: '#fff' }}>restaurant</span>
-          </div>
+          <img
+            src="/logo/bravura-logo.png"
+            alt="Bravura"
+            style={{ height: '64px', width: 'auto', margin: '0 auto 16px', display: 'block' }}
+          />
           <h1 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0, letterSpacing: '-.01em' }}>
             Bravura Zimbabwe
           </h1>

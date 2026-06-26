@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
 import { THEME } from '../utils/permissions'
 import { usePermissions } from '../contexts/PermissionsContext'
+import { useSite } from '../contexts/SiteContext'
 import { Card, Button, StatCard, StatusBadge, Icon, SortTh, useSortState, showToast, today, fmtDate } from '../components/ui'
 
 // Contractor colour pool — same as Reports
@@ -15,6 +16,7 @@ function coColor(contractors, id) {
 export default function DailyEntry() {
   const { profile } = useAuth()
   const { can } = usePermissions()
+  const { currentSiteId, currentSite } = useSite()
 
   const [date,        setDate]        = useState(today())
   const [employees,   setEmployees]   = useState([])
@@ -29,12 +31,15 @@ export default function DailyEntry() {
   // Sortable columns
   const [sortState, onSort] = useSortState('name', 'asc')
 
-  // Load employees + contractors once
+  // Load employees + contractors, re-fetched whenever the selected site
+  // changes — same filtering pattern already used on the Employees page.
   useEffect(() => {
+    if (!currentSiteId) return
     supabase
       .from('employees')
       .select('*, contractor:contractors(id,name,short_code)')
       .eq('status', 'active')
+      .eq('site_id', currentSiteId)
       .order('name')
       .then(({ data }) => setEmployees(data || []))
 
@@ -43,23 +48,33 @@ export default function DailyEntry() {
       .select('*')
       .order('name')
       .then(({ data }) => setContractors(data || []))
-  }, [])
+  }, [currentSiteId])
 
-  // Load submission + meal logs for selected date
+  // Load submission + meal logs for selected date AND site. A given date
+  // can now have one daily_submissions row PER SITE, not one globally —
+  // filtering by site_id is what keeps Kamativi's Tuesday separate from
+  // Selous's Tuesday. meal_logs has no site_id of its own (it inherits
+  // through employee_id), so it's scoped to the already site-filtered
+  // employee list — guarded the same way as everywhere else in this
+  // project: skip the query entirely rather than risk an empty .in() list
+  // behaving ambiguously.
   const loadDate = useCallback(async (d) => {
     setLoading(true)
-    const [{ data: sub }, { data: logs }] = await Promise.all([
-      supabase.from('daily_submissions').select('*').eq('date', d).maybeSingle(),
-      supabase.from('meal_logs').select('*').eq('date', d),
+    const employeeIds = employees.map(e => e.id)
+    const [{ data: sub }, logsRes] = await Promise.all([
+      supabase.from('daily_submissions').select('*').eq('date', d).eq('site_id', currentSiteId).maybeSingle(),
+      employeeIds.length > 0
+        ? supabase.from('meal_logs').select('*').eq('date', d).in('employee_id', employeeIds)
+        : Promise.resolve({ data: [] }),
     ])
     setSubmission(sub)
     const state = {}
-    logs?.forEach(log => {
+    logsRes.data?.forEach(log => {
       state[log.employee_id] = { b: log.had_breakfast, l: log.had_lunch, s: log.had_supper }
     })
     setEntryState(state)
     setLoading(false)
-  }, [])
+  }, [currentSiteId, employees])
 
   useEffect(() => { loadDate(date) }, [date, loadDate])
 
@@ -136,9 +151,13 @@ export default function DailyEntry() {
     try {
       let subId = submission?.id
       if (!subId) {
+        // Stamped with the currently selected site — otherwise the
+        // database default (Kamativi) would silently apply even while
+        // working in a different site, same fix already applied to
+        // employees, blocks, and supply items.
         const { data: newSub, error } = await supabase
           .from('daily_submissions')
-          .insert({ date, status: 'draft', submitted_by: profile.id })
+          .insert({ date, status: 'draft', submitted_by: profile.id, site_id: currentSiteId })
           .select().single()
         if (error) throw error
         subId = newSub.id
@@ -200,7 +219,13 @@ export default function DailyEntry() {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Daily Meal Entry</h2>
+          <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
+            Daily Meal Entry
+            <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
+              <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
+              {currentSite?.name || '—'}
+            </span>
+          </h2>
           {submission && (
             <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <StatusBadge status={submission.status} />
@@ -354,7 +379,16 @@ export default function DailyEntry() {
                 </tr>
               </thead>
               <tbody>
-                {sortedFiltered.map((emp, i) => {
+                {sortedFiltered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
+                      <Icon name="badge" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
+                      {employees.length === 0
+                        ? `No active employees recorded at ${currentSite?.name || 'this site'} yet`
+                        : 'No employees match your filter'}
+                    </td>
+                  </tr>
+                ) : sortedFiltered.map((emp, i) => {
                   const m    = entryState[emp.id] || { b: false, l: false, s: false }
                   const tot  = (m.b?1:0) + (m.l?1:0) + (m.s?1:0)
                   const isAny = tot > 0

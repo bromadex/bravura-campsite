@@ -54,8 +54,13 @@ export const moduleAccess = {
   // All authenticated users can see Workforce & Campsite
   workforce: r => !!r,
   campsite:  r => !!r,
-  // Meals requires specific roles (separate PIN gate enforced in UI)
-  meals:     r => ['super_admin','meal_officer','approver','kitchen','kitchen_owner'].includes(r),
+  // Meals: swapped to real RBAC alongside the PIN gate removal — every page
+  // inside Meals is now permission-gated, so the module tile should use the
+  // same single source of truth rather than a separate hardcoded role list.
+  // Camp Supervisor (old 'approver') loses the tile too — consistent, not a
+  // new narrowing, since they'd already lost every meaningful action inside
+  // Meals in the page-level swap.
+  meals:     (role, can) => can ? can('meals.view') : false,
   // Administration is new code — gated by REAL RBAC from the start, not the
   // legacy role string. Signature is (role, can) so the same .access(role, can)
   // call works for every module; the three above simply ignore the extra arg.

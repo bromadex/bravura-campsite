@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
-import { Card, StatCard, SortTh, useSortState, sortRows, Icon, Button, fmtDate, today, MONTHS } from '../components/ui'
+import { Card, StatCard, SortTh, useSortState, sortRows, Icon, Button, fmtDate, today, MONTHS, showToast } from '../components/ui'
 import { can, THEME } from '../utils/permissions'
 
 // ── Contractor colour pool ────────────────────────────────────────────────────
@@ -260,7 +260,11 @@ export function RangeReport() {
   async function load() {
     if (!start || !end) return
     setLoading(true)
-    const { data: logs } = await supabase.from('meal_logs').select('*').gte('date', start).lte('date', end)
+    const { data: logs, error } = await supabase.from('meal_logs').select('*').gte('date', start).lte('date', end)
+    if (error) {
+      console.error('RangeReport load error:', error)
+      showToast('Failed to load range report: ' + error.message, 'red')
+    }
     const agg = {}
     logs?.forEach(log => {
       if (!agg[log.employee_id]) agg[log.employee_id] = { b: 0, l: 0, s: 0 }
@@ -339,7 +343,19 @@ export function MonthlyReport() {
     setLoading(true)
     const pad = n => String(n).padStart(2,'0')
     const prefix = `${year}-${pad(month+1)}`
-    const { data: logs } = await supabase.from('meal_logs').select('*').gte('date',`${prefix}-01`).lte('date',`${prefix}-31`)
+    // Compute the REAL last day of this month (28-31) rather than hardcoding
+    // 31 — June/Sept/April/Nov have 30 days, Feb has 28/29, and querying a
+    // date column with an invalid literal like '2026-06-31' causes Postgres
+    // to error out, which previously was silently swallowed and just showed
+    // an all-zero report instead of surfacing the failure.
+    const lastDay = new Date(year, month + 1, 0).getDate()
+    const { data: logs, error } = await supabase.from('meal_logs').select('*')
+      .gte('date', `${prefix}-01`)
+      .lte('date', `${prefix}-${pad(lastDay)}`)
+    if (error) {
+      console.error('MonthlyReport load error:', error)
+      showToast('Failed to load monthly report: ' + error.message, 'red')
+    }
     const agg = {}
     logs?.forEach(log => {
       if (!agg[log.employee_id]) agg[log.employee_id] = { b: 0, l: 0, s: 0 }

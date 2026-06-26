@@ -22,19 +22,17 @@ export function CampsiteProvider({ children }) {
     if (!currentSiteId) { setLoading(false); return }
     setLoading(true)
     try {
-      // Step 1: site-scoped blocks, plus everything that doesn't depend on
-      // knowing which blocks belong to this site, all in parallel.
-      // Supplies and Visitors are deliberately NOT filtered by site yet —
-      // that's a separate phase, since the supply-balance view doesn't
-      // currently expose site_id at all and needs a small DB change first,
-      // not just a frontend filter.
-      const [bRes, eRes, cRes, vRes, sRes, txRes] = await Promise.all([
+      // Step 1: site-scoped blocks and supplies, plus everything that
+      // doesn't depend on knowing which blocks belong to this site, all in
+      // parallel. Supplies now filters by site too — the balance view was
+      // updated to expose site_id (see fix_supply_balance_site_id.sql).
+      // Visitors remain unfiltered for now — a known, smaller, separate gap.
+      const [bRes, eRes, cRes, vRes, sRes] = await Promise.all([
         supabase.from('camp_blocks').select('*').eq('site_id', currentSiteId).order('name'),
         supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').eq('site_id', currentSiteId).order('name'),
         supabase.from('contractors').select('*').eq('status','Active').order('name'),
         supabase.from('camp_visitors').select('*').order('created_at', { ascending: false }),
-        supabase.from('camp_supply_balance').select('*'),
-        supabase.from('camp_supply_txns').select('*, item:camp_supply_items(id,name,unit), recorded_by_profile:profiles(full_name)').order('txn_date', { ascending: false }).order('created_at', { ascending: false }).limit(200),
+        supabase.from('camp_supply_balance').select('*').eq('site_id', currentSiteId),
       ])
 
       const siteBlocks = bRes.data || []
@@ -71,6 +69,21 @@ export function CampsiteProvider({ children }) {
         assignmentsData = aRes.data || []
       }
 
+      // Step 4: supply transactions depend on which supply items belong to
+      // this site — same empty-array guard as everywhere else above.
+      const siteSupplies = sRes.data || []
+      const itemIds = siteSupplies.map(s => s.id)
+      let txnsData = []
+      if (itemIds.length > 0) {
+        const txRes = await supabase.from('camp_supply_txns')
+          .select('*, item:camp_supply_items(id,name,unit), recorded_by_profile:profiles(full_name)')
+          .in('item_id', itemIds)
+          .order('txn_date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(200)
+        txnsData = txRes.data || []
+      }
+
       setBlocks(siteBlocks)
       setRooms(roomsData)
       setFixtures(fixturesData)
@@ -78,8 +91,8 @@ export function CampsiteProvider({ children }) {
       setEmployees(eRes.data || [])
       setContractors(cRes.data || [])
       setVisitors(vRes.data || [])
-      setSupplies(sRes.data || [])
-      setSupplyTxns(txRes.data || [])
+      setSupplies(siteSupplies)
+      setSupplyTxns(txnsData)
     } catch (err) {
       console.error('CampsiteContext fetchAll error:', err)
     } finally {
@@ -300,7 +313,9 @@ export function CampsiteProvider({ children }) {
 
   // ── Camp Supplies ──────────────────────────────────────────────────────────
   async function addSupplyItem(data) {
-    const { error } = await supabase.from('camp_supply_items').insert(data)
+    // Stamped with the currently selected site — same fix already applied
+    // to new employees and new blocks, for the same reason.
+    const { error } = await supabase.from('camp_supply_items').insert({ ...data, site_id: currentSiteId })
     if (error) throw error
     await fetchAll()
   }

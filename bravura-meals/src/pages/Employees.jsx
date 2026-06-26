@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { can, THEME } from '../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, StatusBadge, showToast, initials, SectionLabel } from '../components/ui'
 
-const EMPTY_FORM = { name: '', contractor_id: '', status: 'Active', gender: '' }
+const EMPTY_FORM = { name: '', contractor_id: '', status: 'active', gender: '' }
 
 export default function Employees() {
   const { profile } = useAuth()
@@ -15,7 +15,7 @@ export default function Employees() {
   const [contractors,  setContractors]  = useState([])
   const [loading,      setLoading]      = useState(true)
   const [search,       setSearch]       = useState('')
-  const [filterStatus, setFilterStatus] = useState('Active')
+  const [filterStatus, setFilterStatus] = useState('active')
   const [filterCo,     setFilterCo]     = useState('all')
 
   // Employee modal
@@ -99,7 +99,7 @@ export default function Employees() {
   }
 
   async function toggleStatus(emp) {
-    const newStatus = emp.status === 'Active' ? 'Inactive' : 'Active'
+    const newStatus = emp.status === 'active' ? 'terminated' : 'active'
     const { error } = await supabase.from('employees').update({ status: newStatus }).eq('id', emp.id)
     if (error) { showToast(error.message, 'red'); return }
     showToast(`${emp.name} → ${newStatus}`)
@@ -127,7 +127,7 @@ export default function Employees() {
     return matchSearch && matchStatus && matchCo
   })
 
-  const activeCount = employees.filter(e => e.status === 'Active').length
+  const activeCount = employees.filter(e => e.status === 'active').length
 
   // Colour pool for contractor avatars
   const coColors = ['#6B1C1C','#00897B','#5E35B1','#1565C0','#C55A11','#2E7D32','#AD1457']
@@ -171,14 +171,14 @@ export default function Employees() {
 
           {/* Status filter */}
           <div style={{ display: 'flex', gap: '4px' }}>
-            {['Active','Inactive','all'].map(s => (
-              <button key={s} onClick={() => setFilterStatus(s)} style={{
+            {[['active','Active'],['terminated','Terminated'],['all','All Status']].map(([val, label]) => (
+              <button key={val} onClick={() => setFilterStatus(val)} style={{
                 padding: '5px 11px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
                 cursor: 'pointer', border: `1px solid ${THEME.cardBorder}`, fontFamily: 'inherit',
-                background: filterStatus === s ? THEME.primary : 'transparent',
-                color: filterStatus === s ? '#fff' : '#4a5568',
+                background: filterStatus === val ? THEME.primary : 'transparent',
+                color: filterStatus === val ? '#fff' : '#4a5568',
               }}>
-                {s === 'all' ? 'All Status' : s}
+                {label}
               </button>
             ))}
           </div>
@@ -229,7 +229,7 @@ export default function Employees() {
                   borderRadius: '10px',
                   padding: '12px 14px',
                   display: 'flex', alignItems: 'center', gap: '10px',
-                  opacity: emp.status === 'Inactive' ? 0.5 : 1,
+                  opacity: emp.status === 'terminated' ? 0.5 : 1,
                   transition: 'box-shadow .15s, border-color .15s',
                   position: 'relative',
                 }}
@@ -279,9 +279,9 @@ export default function Employees() {
                   >✏️</button>
                   <button
                     onClick={() => toggleStatus(emp)}
-                    title={emp.status === 'Active' ? 'Deactivate' : 'Activate'}
+                    title={emp.status === 'active' ? 'Deactivate' : 'Activate'}
                     style={{ width: '26px', height: '26px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '6px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
-                  >{emp.status === 'Active' ? '🚫' : '✅'}</button>
+                  >{emp.status === 'active' ? '🚫' : '✅'}</button>
                   {canDelete && (
                     <button
                       onClick={() => setDeleteTarget(emp)}
@@ -358,8 +358,8 @@ export default function Employees() {
               onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
               style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
             >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
+              <option value="active">Active</option>
+              <option value="terminated">Terminated</option>
             </select>
           </div>
         </div>

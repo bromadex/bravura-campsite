@@ -1,9 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
+import { useSite } from './SiteContext'
 
 const CampsiteContext = createContext(null)
 
 export function CampsiteProvider({ children }) {
+  const { currentSiteId } = useSite()
+
   const [blocks,      setBlocks]      = useState([])
   const [rooms,       setRooms]       = useState([])
   const [fixtures,    setFixtures]    = useState([])
@@ -16,30 +19,62 @@ export function CampsiteProvider({ children }) {
   const [loading,     setLoading]     = useState(true)
 
   const fetchAll = useCallback(async () => {
+    if (!currentSiteId) { setLoading(false); return }
     setLoading(true)
     try {
-      const [bRes, rRes, fxRes, aRes, eRes, cRes, vRes, sRes, txRes] = await Promise.all([
-        supabase.from('camp_blocks').select('*').order('name'),
-        supabase.from('camp_rooms').select('*, block:camp_blocks(id,name)').order('room_number'),
-        supabase.from('camp_fixtures').select('*'),
-        supabase.from('room_assignments').select(`
+      // Step 1: site-scoped blocks, plus everything that doesn't depend on
+      // knowing which blocks belong to this site, all in parallel.
+      // Supplies and Visitors are deliberately NOT filtered by site yet —
+      // that's a separate phase, since the supply-balance view doesn't
+      // currently expose site_id at all and needs a small DB change first,
+      // not just a frontend filter.
+      const [bRes, eRes, cRes, vRes, sRes, txRes] = await Promise.all([
+        supabase.from('camp_blocks').select('*').eq('site_id', currentSiteId).order('name'),
+        supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').eq('site_id', currentSiteId).order('name'),
+        supabase.from('contractors').select('*').eq('status','Active').order('name'),
+        supabase.from('camp_visitors').select('*').order('created_at', { ascending: false }),
+        supabase.from('camp_supply_balance').select('*'),
+        supabase.from('camp_supply_txns').select('*, item:camp_supply_items(id,name,unit), recorded_by_profile:profiles(full_name)').order('txn_date', { ascending: false }).order('created_at', { ascending: false }).limit(200),
+      ])
+
+      const siteBlocks = bRes.data || []
+      const blockIds = siteBlocks.map(b => b.id)
+
+      // Step 2: rooms + fixtures depend on which blocks belong to this site.
+      // Explicitly guarded on blockIds.length — an empty .in() array can
+      // behave ambiguously across PostgREST versions (some return
+      // everything rather than nothing), so we skip the query entirely
+      // rather than trust that edge case to do the right thing.
+      let roomsData = [], fixturesData = []
+      if (blockIds.length > 0) {
+        const [rRes, fxRes] = await Promise.all([
+          supabase.from('camp_rooms').select('*, block:camp_blocks(id,name)').in('block_id', blockIds).order('room_number'),
+          supabase.from('camp_fixtures').select('*').in('block_id', blockIds),
+        ])
+        roomsData = rRes.data || []
+        fixturesData = fxRes.data || []
+      }
+
+      // Step 3: assignments depend on which rooms belong to this site —
+      // same empty-array guard as above.
+      let assignmentsData = []
+      const roomIds = roomsData.map(r => r.id)
+      if (roomIds.length > 0) {
+        const aRes = await supabase.from('room_assignments').select(`
           *,
           employee:employees(id, name, status, leave_status, gender, contractor_id,
             contractor:contractors(id, name, short_code)),
           visitor:camp_visitors(id, name, gender, phone, purpose),
           room:camp_rooms(id, room_number, block_id, capacity,
             block:camp_blocks(id, name))
-        `).order('created_at', { ascending: false }),
-        supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').order('name'),
-        supabase.from('contractors').select('*').eq('status','Active').order('name'),
-        supabase.from('camp_visitors').select('*').order('created_at', { ascending: false }),
-        supabase.from('camp_supply_balance').select('*'),
-        supabase.from('camp_supply_txns').select('*, item:camp_supply_items(id,name,unit), recorded_by_profile:profiles(full_name)').order('txn_date', { ascending: false }).order('created_at', { ascending: false }).limit(200),
-      ])
-      setBlocks(bRes.data || [])
-      setRooms(rRes.data || [])
-      setFixtures(fxRes.data || [])
-      setAssignments(aRes.data || [])
+        `).in('room_id', roomIds).order('created_at', { ascending: false })
+        assignmentsData = aRes.data || []
+      }
+
+      setBlocks(siteBlocks)
+      setRooms(roomsData)
+      setFixtures(fixturesData)
+      setAssignments(assignmentsData)
       setEmployees(eRes.data || [])
       setContractors(cRes.data || [])
       setVisitors(vRes.data || [])
@@ -50,7 +85,7 @@ export function CampsiteProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [currentSiteId])
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
@@ -86,7 +121,10 @@ export function CampsiteProvider({ children }) {
 
   // ── Blocks ─────────────────────────────────────────────────────────────────
   async function addBlock(data) {
-    const { error } = await supabase.from('camp_blocks').insert(data)
+    // Stamped with the currently selected site — otherwise the database
+    // default (Kamativi) would silently apply even while viewing a
+    // different site, same fix already applied for new employees.
+    const { error } = await supabase.from('camp_blocks').insert({ ...data, site_id: currentSiteId })
     if (error) throw error
     await fetchAll()
   }

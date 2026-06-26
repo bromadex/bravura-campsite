@@ -66,36 +66,56 @@ function getWorkforcePage(page, role, can) {
   }
 }
 
-function getCampsitePage(page, role, setPage) {
-  const AM = ['super_admin','approver','meal_officer']
+function getCampsitePage(page, role, setPage, can) {
   switch (page) {
     case 'camp_headcount':   return <CampHeadcount />
     case 'camp_floorplan':   return <CampFloorplan />
     case 'camp_assignments': return <CampAssignments />
     case 'camp_rooms':       return <CampRooms />
-    case 'camp_blocks':      return AM.includes(role) ? <CampBlocks /> : null
+    // accommodation.create: System Admin + Camp Supervisor have it, Meal
+    // Officer does not under the approved matrix (no Accommodation grant at
+    // all) — narrower than the old AM list for Meal Officer specifically.
+    // Same "tighten now, broaden later" principle already agreed for
+    // Employees/Leave; zero practical effect today since only Admin is active.
+    case 'camp_blocks':      return can('accommodation.create') ? <CampBlocks /> : null
     case 'camp_supplies':    return <CampSupplies />
     case 'camp_occ_report':  return <CampOccupancyReport />
     default:                 return <CampHeadcount />
   }
 }
 
-function getMealsPage(page, role, setPage) {
-  const A  = ['super_admin','approver']
-  const AM = ['super_admin','approver','meal_officer']
-  const MA = ['super_admin','meal_officer']
+function getMealsPage(page, role, setPage, can) {
   switch (page) {
     case 'meals_dashboard': return <Dashboard setPage={setPage} />
-    case 'meals_entry':     return MA.includes(role) ? <DailyEntry />     : null
-    case 'meals_approvals': return A.includes(role)  ? <Approvals />      : null
-    case 'meals_kitchen':   return ['super_admin','kitchen'].includes(role) ? <KitchenConfirm /> : null
-    case 'meals_flags':     return <Flags />
-    case 'meals_daily':     return !['kitchen'].includes(role) ? <DailyReport />   : null
-    case 'meals_range':     return !['kitchen'].includes(role) ? <RangeReport />   : null
-    case 'meals_monthly':   return !['kitchen'].includes(role) ? <MonthlyReport /> : null
-    case 'meals_billing':   return ['super_admin','approver','kitchen_owner'].includes(role) ? <Billing />  : null
-    case 'meals_pricing':   return ['super_admin','kitchen_owner'].includes(role)            ? <Pricing />  : null
-    case 'meals_settings':  return role === 'super_admin' ? <Settings /> : null
+    // meals.create: System Admin + Meal Officer — exact match to old MA list.
+    case 'meals_entry':     return can('meals.create') ? <DailyEntry />     : null
+    // meals.approve: System Admin only under current grants — Camp
+    // Supervisor (old 'approver') has zero Meals permissions in the approved
+    // matrix. Same tighten-now pattern as everywhere else in this swap.
+    case 'meals_approvals': return can('meals.approve') ? <Approvals />      : null
+    // meals.edit: System Admin + Kitchen Staff — exact match to old list.
+    case 'meals_kitchen':   return can('meals.edit') ? <KitchenConfirm /> : null
+    // meals.view: previously had NO page-level gate at all — only the nav
+    // item was conditionally hidden. This closes that gap rather than
+    // narrowing anything that was actually reachable through normal use.
+    case 'meals_flags':     return can('meals.view') ? <Flags /> : null
+    // meals.view: old gate was "everyone except kitchen" (a deny-list).
+    // Kitchen Staff DOES hold meals.view under the approved matrix, so this
+    // is a deliberate, harmless broadening — they can now see read-only
+    // meal-count reports they couldn't before. Not a narrowing for anyone.
+    case 'meals_daily':     return can('meals.view') ? <DailyReport />   : null
+    case 'meals_range':     return can('meals.view') ? <RangeReport />   : null
+    case 'meals_monthly':   return can('meals.view') ? <MonthlyReport /> : null
+    // meals.approve: System Admin only today — Camp Supervisor and Pricing
+    // Officer could see Billing under the old list; under the matrix,
+    // financial visibility sits with Finance Officer/Admin. Same pattern.
+    case 'meals_billing':   return can('meals.approve') ? <Billing />  : null
+    // meals.edit: System Admin + Pricing Officer — exact match to old list.
+    case 'meals_pricing':   return can('meals.edit') ? <Pricing />  : null
+    // meals.delete: used here as a proxy for "most trusted tier" since
+    // there's no dedicated settings permission yet — matches the old
+    // super_admin-only gate exactly (only System/Group Admin hold Delete).
+    case 'meals_settings':  return can('meals.delete') ? <Settings /> : null
     default:                return <Dashboard setPage={setPage} />
   }
 }
@@ -188,8 +208,8 @@ function AppContent() {
 
   let content = null
   if (activeModule === 'workforce') content = getWorkforcePage(currentPage, role, can)
-  if (activeModule === 'campsite')  content = getCampsitePage(currentPage, role, setPage)
-  if (activeModule === 'meals')     content = getMealsPage(currentPage, role, setPage)
+  if (activeModule === 'campsite')  content = getCampsitePage(currentPage, role, setPage, can)
+  if (activeModule === 'meals')     content = getMealsPage(currentPage, role, setPage, can)
   if (activeModule === 'admin')     content = getAdminPage(currentPage, can)
 
   const AccessDenied = (

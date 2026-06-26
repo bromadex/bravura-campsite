@@ -195,6 +195,13 @@ export function StatusBadge({ status }) {
     dismissed: { bg: '#F5F5F5', color: '#757575', label: 'Dismissed' },
     Active:    { bg: '#E8F5E9', color: '#1B5E20', label: 'Active' },
     Inactive:  { bg: '#F5F5F5', color: '#757575', label: 'Inactive' },
+    // New lowercase employee status values (post-migration)
+    active:              { bg: '#E8F5E9', color: '#1B5E20', label: 'Active' },
+    terminated:          { bg: '#F5F5F5', color: '#757575', label: 'Terminated' },
+    on_leave:            { bg: '#FFF8E1', color: '#7D5700', label: 'On Leave' },
+    long_leave:          { bg: '#EDE7F6', color: '#4A3C8C', label: 'Long Leave' },
+    temporary_assignment:{ bg: '#E3F2FD', color: '#1558A6', label: 'Temporary Assignment' },
+    transferred:         { bg: '#E3F2FD', color: '#1558A6', label: 'Transferred' },
   }
   const s = map[status] || { bg: '#F5F5F5', color: '#757575', label: status }
   return (

@@ -29,6 +29,7 @@ export const MODULE_COLORS = {
   workforce: '#E07B39',  // warm orange  – HR/people feel
   campsite:  '#2A9D8F',  // teal         – outdoors/camp
   meals:     '#9C2A2A',  // maroon       – food/dining
+  admin:     '#5C6BC0',  // indigo       – system/administration, distinct from the 3 business modules
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -55,6 +56,10 @@ export const moduleAccess = {
   campsite:  r => !!r,
   // Meals requires specific roles (separate PIN gate enforced in UI)
   meals:     r => ['super_admin','meal_officer','approver','kitchen','kitchen_owner'].includes(r),
+  // Administration is new code — gated by REAL RBAC from the start, not the
+  // legacy role string. Signature is (role, can) so the same .access(role, can)
+  // call works for every module; the three above simply ignore the extra arg.
+  admin:     (role, can) => can ? can('users.view') : false,
 }
 
 // ─── Permission helpers ───────────────────────────────────────────────────────
@@ -119,4 +124,10 @@ export function mealsNav(role) {
     { id: 'meals_settings',  label: 'Settings',          section: 'Admin',   icon: 'settings',    show: can.manageSettings(role) },
   ]
   return all.filter(item => item.show !== false)
+}
+
+export function adminNav(role) {
+  return [
+    { id: 'admin_users', label: 'Users & Roles', section: 'Administration', icon: 'manage_accounts' },
+  ]
 }

@@ -1,17 +1,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { useAuth } from '../auth/AuthContext'
 import { THEME } from '../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, StatusBadge, showToast, SectionLabel } from '../components/ui'
+import { Card, Button, Modal, ConfirmModal, StatusBadge, Icon, showToast, SectionLabel } from '../components/ui'
 
 const EMPTY_FORM = { name: '', short_code: '', status: 'Active' }
 
-// Colour pool — one per contractor card
-const COLORS = ['#6B1C1C','#00897B','#5E35B1','#1565C0','#C55A11','#2E7D32','#AD1457','#00838F','#4527A0']
+// Colour pool — one per contractor card, matches the palette used everywhere else
+const COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457','#00838F','#4527A0']
 
 export default function Contractors() {
-  const { profile } = useAuth()
-
   const [contractors, setContractors] = useState([])
   const [empCounts,   setEmpCounts]   = useState({})
   const [loading,     setLoading]     = useState(true)
@@ -32,12 +29,15 @@ export default function Contractors() {
       supabase.from('employees').select('contractor_id, status'),
     ])
     setContractors(cos || [])
-    // Count active employees per contractor
+    // Count active employees per contractor.
+    // NOTE: employees.status values are lowercase ('active'/'terminated')
+    // since the status-model migration — contractors.status is a separate
+    // table and stays capitalized ('Active'/'Inactive'). Don't conflate them.
     const counts = {}
     emps?.forEach(e => {
       if (!counts[e.contractor_id]) counts[e.contractor_id] = { active: 0, total: 0 }
       counts[e.contractor_id].total++
-      if (e.status === 'Active') counts[e.contractor_id].active++
+      if (e.status === 'active') counts[e.contractor_id].active++
     })
     setEmpCounts(counts)
     setLoading(false)
@@ -67,11 +67,11 @@ export default function Contractors() {
       if (editing) {
         const { error } = await supabase.from('contractors').update(payload).eq('id', editing.id)
         if (error) throw error
-        showToast('Contractor updated ✓', 'green')
+        showToast('Contractor updated', 'green')
       } else {
         const { error } = await supabase.from('contractors').insert(payload)
         if (error) throw error
-        showToast('Contractor added ✓', 'green')
+        showToast('Contractor added', 'green')
       }
       setModal(false)
       fetchAll()
@@ -86,7 +86,7 @@ export default function Contractors() {
     const next = co.status === 'Active' ? 'Inactive' : 'Active'
     const { error } = await supabase.from('contractors').update({ status: next }).eq('id', co.id)
     if (error) { showToast(error.message, 'red'); return }
-    showToast(`${co.name} → ${next}`)
+    showToast(`${co.name} → ${next}`, 'green')
     fetchAll()
   }
 
@@ -112,23 +112,28 @@ export default function Contractors() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: THEME.primary }}>
-            Contractors & Employers
+          <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
+            Contractors
+            <span style={{ marginLeft: '10px', padding: '2px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed }}>
+              {contractors.length}
+            </span>
           </h2>
-          <div style={{ fontSize: '12px', color: '#888', marginTop: '3px' }}>
+          <div style={{ fontSize: '13px', color: THEME.textLow, marginTop: '4px' }}>
             Companies whose employees eat on site. Add new contractors as they arrive.
           </div>
         </div>
-        <Button onClick={openAdd} variant="primary">+ Add Contractor</Button>
+        <Button onClick={openAdd} variant="filled" icon="add">Add Contractor</Button>
       </div>
 
       {/* Cards */}
       {loading ? (
-        <div style={{ color: '#aaa', padding: '40px', textAlign: 'center' }}>Loading…</div>
+        <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
+          <Icon name="progress_activity" size={24} style={{ color: THEME.primary }} />
+        </div>
       ) : contractors.length === 0 ? (
         <Card>
-          <div style={{ textAlign: 'center', padding: '32px', color: '#aaa' }}>
-            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏢</div>
+          <div style={{ textAlign: 'center', padding: '40px', color: THEME.textLow }}>
+            <Icon name="business" size={40} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
             No contractors yet. Add the first one.
           </div>
         </Card>
@@ -148,21 +153,20 @@ export default function Contractors() {
                 }}
               >
                 {/* Top row */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {/* Logo circle */}
                     <div style={{
                       width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0,
                       background: color, color: '#fff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '14px', fontWeight: 800,
+                      fontSize: '14px', fontWeight: 700,
                     }}>
                       {co.short_code || co.name.slice(0,2).toUpperCase()}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '14px', color: '#1a1a2e' }}>{co.name}</div>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: THEME.text }}>{co.name}</div>
                       {co.short_code && (
-                        <div style={{ fontSize: '11px', color: '#aaa', marginTop: '1px' }}>Code: {co.short_code}</div>
+                        <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '1px' }}>Code: {co.short_code}</div>
                       )}
                     </div>
                   </div>
@@ -171,28 +175,28 @@ export default function Contractors() {
 
                 {/* Employee counts */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
-                  <div style={{ background: '#f4f6f9', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '20px', fontWeight: 700, color: '#375623' }}>{cnt.active}</div>
-                    <div style={{ fontSize: '10px', color: '#888' }}>Active Employees</div>
+                  <div style={{ background: THEME.surfaceVar, borderRadius: '10px', padding: '8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: 700, color: THEME.success }}>{cnt.active}</div>
+                    <div style={{ fontSize: '10px', color: THEME.textLow }}>Active Employees</div>
                   </div>
-                  <div style={{ background: '#f4f6f9', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
+                  <div style={{ background: THEME.surfaceVar, borderRadius: '10px', padding: '8px', textAlign: 'center' }}>
                     <div style={{ fontSize: '20px', fontWeight: 700, color: THEME.primary }}>{cnt.total}</div>
-                    <div style={{ fontSize: '10px', color: '#888' }}>Total on Record</div>
+                    <div style={{ fontSize: '10px', color: THEME.textLow }}>Total on Record</div>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  <Button onClick={() => openEdit(co)} variant="ghost" size="sm">✏️ Edit</Button>
-                  <Button onClick={() => toggleStatus(co)} variant="ghost" size="sm">
-                    {co.status === 'Active' ? '🚫 Deactivate' : '✅ Activate'}
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <Button onClick={() => openEdit(co)} variant="outlined" size="sm" icon="edit">Edit</Button>
+                  <Button onClick={() => toggleStatus(co)} variant="outlined" size="sm" icon={co.status === 'Active' ? 'block' : 'check_circle'}>
+                    {co.status === 'Active' ? 'Deactivate' : 'Activate'}
                   </Button>
                   <Button
                     onClick={() => setDeleteTarget(co)}
-                    variant="ghost" size="sm"
-                    style={{ color: '#C00000', borderColor: '#f5b8b8' }}
+                    variant="outlined" size="sm" icon="delete"
+                    style={{ color: THEME.error, borderColor: '#f5b8b8' }}
                   >
-                    🗑️ Delete
+                    Delete
                   </Button>
                 </div>
               </Card>
@@ -206,25 +210,23 @@ export default function Contractors() {
         open={modal}
         onClose={() => setModal(false)}
         title={editing ? `Edit — ${editing.name}` : 'Add New Contractor'}
-        footer={
-          <>
-            <Button onClick={() => setModal(false)} variant="ghost">Cancel</Button>
-            <Button onClick={save} variant="primary" disabled={saving}>
-              {saving ? 'Saving…' : editing ? 'Save changes' : 'Add contractor'}
-            </Button>
-          </>
-        }
+        footer={<>
+          <Button onClick={() => setModal(false)} variant="text">Cancel</Button>
+          <Button onClick={save} variant="filled" disabled={saving}>
+            {saving ? 'Saving…' : editing ? 'Save changes' : 'Add Contractor'}
+          </Button>
+        </>}
       >
         <div style={{ marginBottom: '14px' }}>
           <SectionLabel>Company / Contractor Name *</SectionLabel>
           <input
-            type="text"
-            value={form.name}
+            type="text" value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            placeholder="e.g. ABC Mining (Pvt) Ltd"
-            autoFocus
+            placeholder="e.g. ABC Mining (Pvt) Ltd" autoFocus
             onKeyDown={e => e.key === 'Enter' && save()}
-            style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+            onFocus={e => e.target.style.borderColor = THEME.primary}
+            onBlur={e => e.target.style.borderColor = THEME.outline}
           />
         </div>
 
@@ -232,21 +234,19 @@ export default function Contractors() {
           <div>
             <SectionLabel>Short Code (optional)</SectionLabel>
             <input
-              type="text"
-              value={form.short_code}
-              maxLength={6}
+              type="text" value={form.short_code} maxLength={6}
               onChange={e => setForm(f => ({ ...f, short_code: e.target.value }))}
               placeholder="e.g. ABC"
-              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box', textTransform: 'uppercase' }}
+              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', textTransform: 'uppercase' }}
             />
-            <div style={{ fontSize: '10px', color: '#aaa', marginTop: '3px' }}>Displayed on employee badges & filters</div>
+            <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>Displayed on employee badges & filters</div>
           </div>
           <div>
             <SectionLabel>Status</SectionLabel>
             <select
               value={form.status}
               onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
+              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>

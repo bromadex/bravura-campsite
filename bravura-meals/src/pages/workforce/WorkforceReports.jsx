@@ -30,8 +30,8 @@ export default function WorkforceReports() {
   )
 
   const { employees, contractors } = data
-  const active      = employees.filter(e => e.status === 'Active')
-  const inactive    = employees.filter(e => e.status === 'Inactive')
+  const active      = employees.filter(e => e.status === 'active')
+  const inactive    = employees.filter(e => e.status === 'terminated')
   const onLeave     = employees.filter(e => e.leave_status !== 'active')
   const shortLeave  = employees.filter(e => e.leave_status === 'short_leave')
   const longLeave   = employees.filter(e => e.leave_status === 'long_leave')
@@ -129,7 +129,7 @@ export default function WorkforceReports() {
             <tbody>
               {employees.map((emp, i) => {
                 const lc = { active: { bg: '#E8F5E9', c: '#1B5E20' }, short_leave: { bg: '#FFF8E1', c: '#7D5700' }, long_leave: { bg: '#EDE7F6', c: '#4A3C8C' } }[emp.leave_status] || { bg: '#F5F5F5', c: '#757575' }
-                const sc = emp.status === 'Active' ? { bg: '#E8F5E9', c: '#1B5E20' } : { bg: '#F5F5F5', c: '#757575' }
+                const sc = emp.status === 'active' ? { bg: '#E8F5E9', c: '#1B5E20' } : { bg: '#F5F5F5', c: '#757575' }
                 return (
                   <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                     onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}

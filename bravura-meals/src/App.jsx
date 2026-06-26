@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
 import { SiteProvider } from './contexts/SiteContext'
-import { PermissionsProvider } from './contexts/PermissionsContext'
+import { PermissionsProvider, usePermissions } from './contexts/PermissionsContext'
 import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
 import MealsPinGate from './auth/MealsPinGate'
@@ -43,10 +43,12 @@ const MODULE_META = {
 }
 
 // ── Route resolvers ───────────────────────────────────────────────────────────
-function getWorkforcePage(page, role) {
+function getWorkforcePage(page, role, can) {
   const AM = ['super_admin','approver','meal_officer']
   switch (page) {
-    case 'wf_employees':   return AM.includes(role) ? <Employees />    : null
+    // Swapped to real RBAC per the approved matrix (employees.view) —
+    // verified equivalent for all 5 current accounts before this changed.
+    case 'wf_employees':   return can('employees.view') ? <Employees />    : null
     case 'wf_contractors': return AM.includes(role) ? <Contractors />  : null
     case 'wf_leave':       return AM.includes(role) ? <WorkforceLeave /> : null
     case 'wf_reports':     return <WorkforceReports />
@@ -103,6 +105,7 @@ function AppContent() {
   const [activeModule,   setActiveModule]   = useState(null)
   const [mealsUnlocked,  setMealsUnlocked]  = useState(false)
   const [currentPage,    setCurrentPage]    = useState(null)
+  const { can } = usePermissions()
 
   function enterModule(moduleId) {
     setActiveModule(moduleId)
@@ -128,7 +131,12 @@ function AppContent() {
       fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif",
       flexDirection: 'column', gap: '14px',
     }}>
-      <span className="material-symbols-rounded filled" style={{ fontSize: '44px', color: THEME.activeBar }}>diamond</span>
+      <div style={{
+        background: 'rgba(255,255,255,.92)', borderRadius: '20px',
+        padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <img src="/logo/bravura-logo.png" alt="Bravura" style={{ height: '44px', width: 'auto' }} />
+      </div>
       <span style={{ color: 'rgba(255,255,255,.55)', fontSize: '14px', letterSpacing: '.06em' }}>BRAVURA</span>
     </div>
   )
@@ -160,7 +168,7 @@ function AppContent() {
   const navItems = navFn(role)
 
   let content = null
-  if (activeModule === 'workforce') content = getWorkforcePage(currentPage, role)
+  if (activeModule === 'workforce') content = getWorkforcePage(currentPage, role, can)
   if (activeModule === 'campsite')  content = getCampsitePage(currentPage, role, setPage)
   if (activeModule === 'meals')     content = getMealsPage(currentPage, role, setPage)
 

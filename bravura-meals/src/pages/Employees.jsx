@@ -1,391 +1,226 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { THEME } from '../utils/permissions'
-import { usePermissions } from '../contexts/PermissionsContext'
-import { Card, Button, Modal, ConfirmModal, StatusBadge, showToast, initials, SectionLabel } from '../components/ui'
+import { useState } from 'react'
+import { AuthProvider, useAuth } from './auth/AuthContext'
+import { CampsiteProvider } from './contexts/CampsiteContext'
+import { SiteProvider } from './contexts/SiteContext'
+import { PermissionsProvider, usePermissions } from './contexts/PermissionsContext'
+import LoginPage    from './auth/LoginPage'
+import HomeLauncher from './pages/HomeLauncher'
+import MealsPinGate from './auth/MealsPinGate'
+import ModuleLayout from './components/ModuleLayout'
+import { THEME, workforceNav, campsiteNav, mealsNav, moduleAccess } from './utils/permissions'
 
-const EMPTY_FORM = { name: '', contractor_id: '', status: 'active', gender: '' }
+// ── Workforce pages ───────────────────────────────────────────────────────────
+import Employees    from './pages/Employees'
+import Contractors  from './pages/Contractors'
+import WorkforceLeave   from './pages/workforce/WorkforceLeave'
+import WorkforceReports from './pages/workforce/WorkforceReports'
 
-export default function Employees() {
-  // Swapped to real RBAC per the approved matrix — Delete is now scoped to
-  // HR Officer / System Administrator only, matching 03_RBAC_MATRIX.md.
-  const { can: canRBAC } = usePermissions()
-  const canDelete = canRBAC('employees.delete')
+// ── Campsite pages ────────────────────────────────────────────────────────────
+import {
+  CampHeadcount, CampBlocks, CampRooms,
+  CampAssignments, CampSupplies, CampOccupancyReport,
+  CampFloorplan,
+} from './pages/campsite'
 
-  const [employees,    setEmployees]    = useState([])
-  const [contractors,  setContractors]  = useState([])
-  const [loading,      setLoading]      = useState(true)
-  const [search,       setSearch]       = useState('')
-  const [filterStatus, setFilterStatus] = useState('active')
-  const [filterCo,     setFilterCo]     = useState('all')
+// ── Meals pages ───────────────────────────────────────────────────────────────
+import Dashboard      from './pages/Dashboard'
+import DailyEntry     from './pages/DailyEntry'
+import Approvals      from './pages/Approvals'
+import KitchenConfirm from './pages/KitchenConfirm'
+import Flags          from './pages/Flags'
+import DailyReport    from './pages/DailyReport'
+import RangeReport    from './pages/RangeReport'
+import MonthlyReport  from './pages/MonthlyReport'
+import Billing        from './pages/Billing'
+import Pricing        from './pages/Pricing'
+import Settings       from './pages/Settings'
 
-  // Employee modal
-  const [modal,        setModal]        = useState(false)
-  const [editing,      setEditing]      = useState(null)
-  const [form,         setForm]         = useState(EMPTY_FORM)
-  const [saving,       setSaving]       = useState(false)
+// ── Module configs ────────────────────────────────────────────────────────────
+const MODULE_META = {
+  workforce: { label: 'Workforce Management',  icon: 'badge',           navFn: workforceNav },
+  campsite:  { label: 'Campsite Management',   icon: 'holiday_village', navFn: campsiteNav  },
+  meals:     { label: 'Meal Management',       icon: 'restaurant',      navFn: mealsNav     },
+}
 
-  // Delete confirm
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [deleting,     setDeleting]     = useState(false)
+// ── Route resolvers ───────────────────────────────────────────────────────────
+function getWorkforcePage(page, role, can) {
+  const AM = ['super_admin','approver','meal_officer']
+  switch (page) {
+    // Swapped to real RBAC per the approved matrix (employees.view) —
+    // verified equivalent for all 5 current accounts before this changed.
+    case 'wf_employees':   return can('employees.view') ? <Employees />    : null
+    case 'wf_contractors': return AM.includes(role) ? <Contractors />  : null
+    case 'wf_leave':       return AM.includes(role) ? <WorkforceLeave /> : null
+    case 'wf_reports':     return <WorkforceReports />
+    default:               return <WorkforceReports />
+  }
+}
 
-  useEffect(() => {
-    fetchContractors()
-    fetchEmployees()
-  }, [])
+function getCampsitePage(page, role, setPage) {
+  const AM = ['super_admin','approver','meal_officer']
+  switch (page) {
+    case 'camp_headcount':   return <CampHeadcount />
+    case 'camp_floorplan':   return <CampFloorplan />
+    case 'camp_assignments': return <CampAssignments />
+    case 'camp_rooms':       return <CampRooms />
+    case 'camp_blocks':      return AM.includes(role) ? <CampBlocks /> : null
+    case 'camp_supplies':    return <CampSupplies />
+    case 'camp_occ_report':  return <CampOccupancyReport />
+    default:                 return <CampHeadcount />
+  }
+}
 
-  async function fetchContractors() {
-    const { data } = await supabase
-      .from('contractors')
-      .select('*')
-      .order('name')
-    setContractors(data || [])
+function getMealsPage(page, role, setPage) {
+  const A  = ['super_admin','approver']
+  const AM = ['super_admin','approver','meal_officer']
+  const MA = ['super_admin','meal_officer']
+  switch (page) {
+    case 'meals_dashboard': return <Dashboard setPage={setPage} />
+    case 'meals_entry':     return MA.includes(role) ? <DailyEntry />     : null
+    case 'meals_approvals': return A.includes(role)  ? <Approvals />      : null
+    case 'meals_kitchen':   return ['super_admin','kitchen'].includes(role) ? <KitchenConfirm /> : null
+    case 'meals_flags':     return <Flags />
+    case 'meals_daily':     return !['kitchen'].includes(role) ? <DailyReport />   : null
+    case 'meals_range':     return !['kitchen'].includes(role) ? <RangeReport />   : null
+    case 'meals_monthly':   return !['kitchen'].includes(role) ? <MonthlyReport /> : null
+    case 'meals_billing':   return ['super_admin','approver','kitchen_owner'].includes(role) ? <Billing />  : null
+    case 'meals_pricing':   return ['super_admin','kitchen_owner'].includes(role)            ? <Pricing />  : null
+    case 'meals_settings':  return role === 'super_admin' ? <Settings /> : null
+    default:                return <Dashboard setPage={setPage} />
+  }
+}
+
+// ── Default page per module ───────────────────────────────────────────────────
+const DEFAULT_PAGE = {
+  workforce: 'wf_employees',
+  campsite:  'camp_headcount',
+  meals:     'meals_dashboard',
+}
+
+// ── App shell ─────────────────────────────────────────────────────────────────
+function AppContent() {
+  const { user, profile, loading } = useAuth()
+
+  // null = home launcher, string = active module id
+  const [activeModule,   setActiveModule]   = useState(null)
+  const [mealsUnlocked,  setMealsUnlocked]  = useState(false)
+  const [currentPage,    setCurrentPage]    = useState(null)
+  const { can } = usePermissions()
+
+  function enterModule(moduleId) {
+    setActiveModule(moduleId)
+    setCurrentPage(DEFAULT_PAGE[moduleId])
   }
 
-  async function fetchEmployees() {
-    setLoading(true)
-    const { data } = await supabase
-      .from('employees')
-      .select('*, contractor:contractors(id, name, short_code)')
-      .order('name')
-    setEmployees(data || [])
-    setLoading(false)
+  function goHome() {
+    setActiveModule(null)
+    setCurrentPage(null)
+    // Lock meals again when going home
+    setMealsUnlocked(false)
   }
 
-  function openAdd() {
-    setEditing(null)
-    setForm({ ...EMPTY_FORM, contractor_id: contractors[0]?.id || '' })
-    setModal(true)
+  function setPage(page) {
+    setCurrentPage(page)
   }
 
-  function openEdit(emp) {
-    setEditing(emp)
-    setForm({
-      name:          emp.name,
-      contractor_id: emp.contractor_id || '',
-      status:        emp.status,
-      gender:        emp.gender || '',
-    })
-    setModal(true)
+  // ── Loading ──
+  if (loading) return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: THEME.sidebar, color: '#fff',
+      fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif",
+      flexDirection: 'column', gap: '14px',
+    }}>
+      <div style={{
+        background: 'rgba(255,255,255,.92)', borderRadius: '20px',
+        padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <img src="/logo/bravura-logo.png" alt="Bravura" style={{ height: '44px', width: 'auto' }} />
+      </div>
+      <span style={{ color: 'rgba(255,255,255,.55)', fontSize: '14px', letterSpacing: '.06em' }}>BRAVURA</span>
+    </div>
+  )
+
+  // ── Not authenticated ──
+  if (!user || !profile) return <LoginPage />
+
+  const role = profile.role
+
+  // ── Home launcher ──
+  if (!activeModule) {
+    return <HomeLauncher onEnterModule={enterModule} />
   }
 
-  async function saveEmployee() {
-    if (!form.name.trim())       { showToast('Please enter a name', 'red'); return }
-    if (!form.contractor_id)     { showToast('Please select a contractor', 'red'); return }
-    setSaving(true)
-    try {
-      const payload = {
-        name:          form.name.trim(),
-        contractor_id: form.contractor_id,
-        group_name:    contractors.find(c => c.id === form.contractor_id)?.name || '',
-        status:        form.status,
-        gender:        form.gender || null,
-      }
-      if (editing) {
-        const { error } = await supabase.from('employees').update(payload).eq('id', editing.id)
-        if (error) throw error
-        showToast('Employee updated ✓', 'green')
-      } else {
-        const { error } = await supabase.from('employees').insert(payload)
-        if (error) throw error
-        showToast('Employee added ✓', 'green')
-      }
-      setModal(false)
-      fetchEmployees()
-    } catch (err) {
-      showToast(err.message, 'red')
-    } finally {
-      setSaving(false)
-    }
+  // ── Meals PIN gate ──
+  if (activeModule === 'meals' && !mealsUnlocked) {
+    return (
+      <MealsPinGate
+        profile={profile}
+        onUnlock={() => setMealsUnlocked(true)}
+        onBack={goHome}
+      />
+    )
   }
 
-  async function toggleStatus(emp) {
-    const newStatus = emp.status === 'active' ? 'terminated' : 'active'
-    const { error } = await supabase.from('employees').update({ status: newStatus }).eq('id', emp.id)
-    if (error) { showToast(error.message, 'red'); return }
-    showToast(`${emp.name} → ${newStatus}`)
-    fetchEmployees()
+  // ── Resolve page content ──
+  const meta   = MODULE_META[activeModule]
+  const navFn  = meta.navFn
+  const navItems = navFn(role)
+
+  let content = null
+  if (activeModule === 'workforce') content = getWorkforcePage(currentPage, role, can)
+  if (activeModule === 'campsite')  content = getCampsitePage(currentPage, role, setPage)
+  if (activeModule === 'meals')     content = getMealsPage(currentPage, role, setPage)
+
+  const AccessDenied = (
+    <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
+      <span className="material-symbols-rounded" style={{ fontSize: '56px', color: THEME.outline, display: 'block', marginBottom: '14px' }}>lock</span>
+      <p style={{ fontSize: '15px' }}>You don't have access to this section.</p>
+    </div>
+  )
+
+  // Campsite wraps in CampsiteProvider
+  if (activeModule === 'campsite' || activeModule === 'workforce') {
+    return (
+      <CampsiteProvider>
+        <ModuleLayout
+          moduleId={activeModule}
+          moduleLabel={meta.label}
+          moduleIcon={meta.icon}
+          navItems={navItems}
+          page={currentPage}
+          setPage={setPage}
+          onHome={goHome}
+        >
+          {content || AccessDenied}
+        </ModuleLayout>
+      </CampsiteProvider>
+    )
   }
-
-  async function deleteEmployee() {
-    if (!deleteTarget) return
-    setDeleting(true)
-    const { error } = await supabase.from('employees').delete().eq('id', deleteTarget.id)
-    setDeleting(false)
-    if (error) { showToast('Cannot delete: ' + error.message, 'red'); setDeleteTarget(null); return }
-    showToast(`${deleteTarget.name} deleted`, 'red')
-    setDeleteTarget(null)
-    fetchEmployees()
-  }
-
-  // Unique contractor list for filter tabs
-  const contractorTabs = contractors.filter(c => employees.some(e => e.contractor_id === c.id))
-
-  const filtered = employees.filter(e => {
-    const matchSearch = !search || e.name.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = filterStatus === 'all' || e.status === filterStatus
-    const matchCo     = filterCo === 'all' || e.contractor_id === filterCo
-    return matchSearch && matchStatus && matchCo
-  })
-
-  const activeCount = employees.filter(e => e.status === 'active').length
-
-  // Colour pool for contractor avatars
-  const coColors = ['#6B1C1C','#00897B','#5E35B1','#1565C0','#C55A11','#2E7D32','#AD1457']
-  const coColorMap = {}
-  contractors.forEach((c, i) => { coColorMap[c.id] = coColors[i % coColors.length] })
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: THEME.primary }}>
-            Employee Master List
-          </h2>
-          <div style={{ marginTop: '4px', display: 'flex', gap: '8px' }}>
-            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: '#E2EFDA', color: '#375623' }}>
-              {activeCount} active
-            </span>
-            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: '#F5EDEE', color: THEME.primary }}>
-              {employees.length} total
-            </span>
-          </div>
-        </div>
-        <Button onClick={openAdd} variant="primary">+ Add Employee</Button>
-      </div>
+    <ModuleLayout
+      moduleId={activeModule}
+      moduleLabel={meta.label}
+      moduleIcon={meta.icon}
+      navItems={navItems}
+      page={currentPage}
+      setPage={setPage}
+      onHome={goHome}
+    >
+      {content || AccessDenied}
+    </ModuleLayout>
+  )
+}
 
-      {/* Filters */}
-      <Card style={{ marginBottom: '16px', padding: '14px 16px' }}>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            type="text"
-            placeholder="🔍 Search by name…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{
-              flex: 1, minWidth: '180px', maxWidth: '280px',
-              padding: '7px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px',
-              fontSize: '13px', fontFamily: 'inherit', outline: 'none',
-            }}
-          />
-
-          {/* Status filter */}
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {[['active','Active'],['terminated','Terminated'],['all','All Status']].map(([val, label]) => (
-              <button key={val} onClick={() => setFilterStatus(val)} style={{
-                padding: '5px 11px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                cursor: 'pointer', border: `1px solid ${THEME.cardBorder}`, fontFamily: 'inherit',
-                background: filterStatus === val ? THEME.primary : 'transparent',
-                color: filterStatus === val ? '#fff' : '#4a5568',
-              }}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Contractor filter */}
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-            <button onClick={() => setFilterCo('all')} style={{
-              padding: '5px 11px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-              cursor: 'pointer', border: `1px solid ${THEME.cardBorder}`, fontFamily: 'inherit',
-              background: filterCo === 'all' ? THEME.primaryLight : 'transparent',
-              color: filterCo === 'all' ? '#fff' : '#4a5568',
-            }}>
-              All Companies
-            </button>
-            {contractorTabs.map(c => (
-              <button key={c.id} onClick={() => setFilterCo(c.id)} style={{
-                padding: '5px 11px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                cursor: 'pointer', border: `1px solid ${THEME.cardBorder}`, fontFamily: 'inherit',
-                background: filterCo === c.id ? coColorMap[c.id] : 'transparent',
-                color: filterCo === c.id ? '#fff' : '#4a5568',
-              }}>
-                {c.short_code || c.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </Card>
-
-      {/* Employee grid */}
-      {loading ? (
-        <div style={{ color: '#aaa', padding: '40px', textAlign: 'center' }}>Loading…</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px', color: '#aaa' }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>👤</div>
-          No employees match your filter.
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: '10px' }}>
-          {filtered.map(emp => {
-            const coColor = coColorMap[emp.contractor_id] || THEME.primary
-            return (
-              <div
-                key={emp.id}
-                className="emp-card"
-                style={{
-                  background: '#fff',
-                  border: `1px solid ${THEME.cardBorder}`,
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  opacity: emp.status === 'terminated' ? 0.5 : 1,
-                  transition: 'box-shadow .15s, border-color .15s',
-                  position: 'relative',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = coColor
-                  e.currentTarget.style.boxShadow = `0 2px 12px rgba(107,28,28,.1)`
-                  e.currentTarget.querySelector('.emp-actions').style.opacity = '1'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = THEME.cardBorder
-                  e.currentTarget.style.boxShadow = 'none'
-                  e.currentTarget.querySelector('.emp-actions').style.opacity = '0'
-                }}
-              >
-                {/* Avatar */}
-                <div style={{
-                  width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '12px', fontWeight: 700, color: '#fff',
-                  background: coColor,
-                }}>
-                  {initials(emp.name)}
-                </div>
-
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e' }}>
-                    {emp.name}
-                  </div>
-                  <div style={{ fontSize: '11px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{
-                      background: coColor + '22', color: coColor,
-                      padding: '1px 6px', borderRadius: '8px', fontWeight: 700, fontSize: '10px',
-                    }}>
-                      {emp.contractor?.short_code || emp.contractor?.name || '—'}
-                    </span>
-                    <StatusBadge status={emp.status} />
-                  </div>
-                </div>
-
-                {/* Hover actions */}
-                <div className="emp-actions" style={{ display: 'flex', flexDirection: 'column', gap: '3px', opacity: 0, transition: 'opacity .15s', flexShrink: 0 }}>
-                  <button
-                    onClick={() => openEdit(emp)}
-                    title="Edit"
-                    style={{ width: '26px', height: '26px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '6px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
-                  >✏️</button>
-                  <button
-                    onClick={() => toggleStatus(emp)}
-                    title={emp.status === 'active' ? 'Deactivate' : 'Activate'}
-                    style={{ width: '26px', height: '26px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '6px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
-                  >{emp.status === 'active' ? '🚫' : '✅'}</button>
-                  {canDelete && (
-                    <button
-                      onClick={() => setDeleteTarget(emp)}
-                      title="Delete"
-                      style={{ width: '26px', height: '26px', border: '1px solid #f5b8b8', borderRadius: '6px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
-                    >🗑️</button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Add / Edit Modal */}
-      <Modal
-        open={modal}
-        onClose={() => setModal(false)}
-        title={editing ? `Edit — ${editing.name}` : 'Add New Employee'}
-        footer={
-          <>
-            <Button onClick={() => setModal(false)} variant="ghost">Cancel</Button>
-            <Button onClick={saveEmployee} variant="primary" disabled={saving}>
-              {saving ? 'Saving…' : editing ? 'Save changes' : 'Add employee'}
-            </Button>
-          </>
-        }
-      >
-        <div style={{ marginBottom: '14px' }}>
-          <SectionLabel>Full Name</SectionLabel>
-          <input
-            type="text"
-            value={form.name}
-            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            placeholder="e.g. John Banda"
-            autoFocus
-            onKeyDown={e => e.key === 'Enter' && saveEmployee()}
-            style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-          <div>
-            <SectionLabel>Employer / Contractor</SectionLabel>
-            <select
-              value={form.contractor_id}
-              onChange={e => setForm(f => ({ ...f, contractor_id: e.target.value }))}
-              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
-            >
-              <option value="">— Select —</option>
-              {contractors.filter(c => c.status === 'Active').map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <SectionLabel>Gender</SectionLabel>
-            <select
-              value={form.gender}
-              onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
-              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
-            >
-              <option value="">— Not set —</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-
-          <div>
-            <SectionLabel>Status</SectionLabel>
-            <select
-              value={form.status}
-              onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
-            >
-              <option value="active">Active</option>
-              <option value="terminated">Terminated</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ marginTop: '10px', fontSize: '11px', color: THEME.textLow || '#9aa' }}>
-          Gender is used by Campsite room assignment to enforce single-gender rooms.
-        </div>
-
-        {contractors.length === 0 && (
-          <div style={{ marginTop: '12px', padding: '10px 14px', background: '#FFF2CC', borderRadius: '8px', fontSize: '12px', color: '#7B5800' }}>
-            ⚠ No contractors found. Please add a contractor first under <strong>Admin → Contractors</strong>.
-          </div>
-        )}
-      </Modal>
-
-      {/* Delete confirm */}
-      <ConfirmModal
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={deleteEmployee}
-        title="Delete Employee?"
-        message={`Are you sure you want to permanently delete ${deleteTarget?.name}? This cannot be undone. Historical meal records will still reference their name.`}
-        confirmLabel={deleting ? 'Deleting…' : 'Delete'}
-        danger
-      />
-    </div>
+export default function App() {
+  return (
+    <AuthProvider>
+      <SiteProvider>
+        <PermissionsProvider>
+          <AppContent />
+        </PermissionsProvider>
+      </SiteProvider>
+    </AuthProvider>
   )
 }

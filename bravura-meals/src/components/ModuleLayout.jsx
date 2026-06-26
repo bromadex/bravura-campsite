@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { THEME, ROLE_LABELS, MODULE_COLORS } from '../utils/permissions'
 import { supabase } from '../supabaseClient'
+import SiteSwitcher from './SiteSwitcher'
 
 const Icon = ({ name, size = 20, filled = false, style = {} }) => (
   <span
@@ -259,6 +260,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SiteSwitcher />
             <div style={{
               display: 'flex', alignItems: 'center', gap: '5px',
               padding: '5px 12px', borderRadius: '20px',

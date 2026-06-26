@@ -53,10 +53,11 @@ export default function HomeLauncher({ onEnterModule }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             width: '34px', height: '34px', borderRadius: '10px',
-            background: 'rgba(255,255,255,.15)',
+            background: 'rgba(255,255,255,.92)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '4px', overflow: 'hidden',
           }}>
-            <span className="material-symbols-rounded filled" style={{ fontSize: '20px', color: '#fff' }}>diamond</span>
+            <img src="/logo/bravura-icon-512.png" alt="Bravura" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div>
             <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700, letterSpacing: '.02em' }}>

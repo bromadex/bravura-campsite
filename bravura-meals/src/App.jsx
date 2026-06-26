@@ -7,7 +7,7 @@ import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
 import MealsPinGate from './auth/MealsPinGate'
 import ModuleLayout from './components/ModuleLayout'
-import { THEME, workforceNav, campsiteNav, mealsNav, moduleAccess } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, moduleAccess } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 import Employees    from './pages/Employees'
@@ -34,12 +34,14 @@ import MonthlyReport  from './pages/MonthlyReport'
 import Billing        from './pages/Billing'
 import Pricing        from './pages/Pricing'
 import Settings       from './pages/Settings'
+import UserManagement from './pages/admin/UserManagement'
 
 // ── Module configs ────────────────────────────────────────────────────────────
 const MODULE_META = {
   workforce: { label: 'Workforce Management',  icon: 'badge',           navFn: workforceNav },
   campsite:  { label: 'Campsite Management',   icon: 'holiday_village', navFn: campsiteNav  },
   meals:     { label: 'Meal Management',       icon: 'restaurant',      navFn: mealsNav     },
+  admin:     { label: 'Administration',        icon: 'admin_panel_settings', navFn: adminNav },
 }
 
 // ── Route resolvers ───────────────────────────────────────────────────────────
@@ -98,11 +100,20 @@ function getMealsPage(page, role, setPage) {
   }
 }
 
+// New code — gated by real RBAC from the start, same as Employees.view was.
+function getAdminPage(page, can) {
+  switch (page) {
+    case 'admin_users': return can('users.view') ? <UserManagement /> : null
+    default:             return can('users.view') ? <UserManagement /> : null
+  }
+}
+
 // ── Default page per module ───────────────────────────────────────────────────
 const DEFAULT_PAGE = {
   workforce: 'wf_employees',
   campsite:  'camp_headcount',
   meals:     'meals_dashboard',
+  admin:     'admin_users',
 }
 
 // ── App shell ─────────────────────────────────────────────────────────────────
@@ -179,6 +190,7 @@ function AppContent() {
   if (activeModule === 'workforce') content = getWorkforcePage(currentPage, role, can)
   if (activeModule === 'campsite')  content = getCampsitePage(currentPage, role, setPage)
   if (activeModule === 'meals')     content = getMealsPage(currentPage, role, setPage)
+  if (activeModule === 'admin')     content = getAdminPage(currentPage, can)
 
   const AccessDenied = (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>

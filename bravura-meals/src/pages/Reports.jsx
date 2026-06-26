@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
-import { useAuth } from '../auth/AuthContext'
 import { Card, StatCard, SortTh, useSortState, sortRows, Icon, Button, fmtDate, today, MONTHS, showToast } from '../components/ui'
-import { can, THEME } from '../utils/permissions'
+import { THEME } from '../utils/permissions'
+import { usePermissions } from '../contexts/PermissionsContext'
 
 // ── Contractor colour pool ────────────────────────────────────────────────────
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
@@ -147,8 +147,11 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
 
 // ── Daily Report ──────────────────────────────────────────────────────────────
 export function DailyReport() {
-  const { profile } = useAuth()
-  const showCosts = can.seeCosts(profile?.role)
+  const { can } = usePermissions()
+  // meals.approve: matches old seeCosts (super_admin, approver, kitchen_owner)
+  // — narrower for Camp Supervisor and Pricing Officer under the approved
+  // matrix. Same tighten-now pattern used throughout this swap.
+  const showCosts = can('meals.approve')
   const [date,        setDate]        = useState(today())
   const [employees,   setEmployees]   = useState([])
   const [contractors, setContractors] = useState([])

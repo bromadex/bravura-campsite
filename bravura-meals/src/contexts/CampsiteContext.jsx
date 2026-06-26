@@ -30,7 +30,7 @@ export function CampsiteProvider({ children }) {
           room:camp_rooms(id, room_number, block_id, capacity,
             block:camp_blocks(id, name))
         `).order('created_at', { ascending: false }),
-        supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','Active').order('name'),
+        supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').order('name'),
         supabase.from('contractors').select('*').eq('status','Active').order('name'),
         supabase.from('camp_visitors').select('*').order('created_at', { ascending: false }),
         supabase.from('camp_supply_balance').select('*'),

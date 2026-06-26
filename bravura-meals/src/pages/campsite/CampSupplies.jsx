@@ -1,12 +1,20 @@
 import { useState, useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useAuth } from '../../auth/AuthContext'
+import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, Icon, SectionLabel, showToast, fmtDate, MONTHS } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, MONTHS } from '../../components/ui'
 
 export default function CampSupplies() {
   const { profile } = useAuth()
-  const { supplies, supplyTxns, addSupplyItem, recordSupplyTxn, loading } = useCampsite()
+  const { can } = usePermissions()
+  const canEdit   = can('supplies.edit')
+  const canDelete = can('supplies.delete')
+  const {
+    supplies, supplyTxns, employees,
+    addSupplyItem, recordSupplyTxn, updateSupplyTxn, deleteSupplyTxn,
+    loading,
+  } = useCampsite()
 
   const [tab,         setTab]         = useState('balance')
   const [txnModal,    setTxnModal]    = useState(false)
@@ -15,10 +23,15 @@ export default function CampSupplies() {
   const [saving,      setSaving]      = useState(false)
 
   // Transaction form
-  const [txnForm, setTxnForm] = useState({ itemId: '', quantity: '', reference: '', notes: '', txnDate: new Date().toISOString().slice(0,10) })
+  const [txnForm, setTxnForm] = useState({ itemId: '', quantity: '', reference: '', notes: '', txnDate: new Date().toISOString().slice(0,10), issuedToEmployeeId: '', issuedToText: '' })
 
   // New item form
   const [itemForm, setItemForm] = useState({ name: '', unit: 'Units' })
+
+  // Edit / delete transaction
+  const [editTxn,     setEditTxn]     = useState(null) // the txn being edited
+  const [editForm,    setEditForm]    = useState(null)
+  const [deleteTxn,   setDeleteTxn]   = useState(null) // the txn being deleted
 
   // Monthly report filters
   const now = new Date()
@@ -27,7 +40,7 @@ export default function CampSupplies() {
 
   function openTxn(type) {
     setTxnType(type)
-    setTxnForm({ itemId: '', quantity: '', reference: '', notes: '', txnDate: new Date().toISOString().slice(0,10) })
+    setTxnForm({ itemId: '', quantity: '', reference: '', notes: '', txnDate: new Date().toISOString().slice(0,10), issuedToEmployeeId: '', issuedToText: '' })
     setTxnModal(true)
   }
 
@@ -37,17 +50,61 @@ export default function CampSupplies() {
     setSaving(true)
     try {
       await recordSupplyTxn({
-        itemId:      txnForm.itemId,
-        txnType:     txnType,
-        quantity:    txnForm.quantity,
-        reference:   txnForm.reference,
-        notes:       txnForm.notes,
-        txnDate:     txnForm.txnDate,
-        recordedBy:  profile?.id,
+        itemId:             txnForm.itemId,
+        txnType:             txnType,
+        quantity:            txnForm.quantity,
+        reference:           txnForm.reference,
+        notes:               txnForm.notes,
+        txnDate:             txnForm.txnDate,
+        recordedBy:          profile?.id,
+        issuedToEmployeeId:  txnForm.issuedToEmployeeId || null,
+        issuedToText:        txnForm.issuedToText || null,
       })
       showToast(`Stock ${txnType === 'receive' ? 'received' : 'issued'} successfully`, 'green')
       setTxnModal(false)
     } catch (err) { showToast(err.message, 'red') }
+    finally { setSaving(false) }
+  }
+
+  function openEditTxn(txn) {
+    setEditTxn(txn)
+    setEditForm({
+      quantity:            txn.quantity,
+      reference:           txn.reference || '',
+      notes:               txn.notes || '',
+      txnDate:             txn.txn_date,
+      issuedToEmployeeId:  txn.issued_to_employee_id || '',
+      issuedToText:        txn.issued_to_text || '',
+    })
+  }
+
+  async function doEditTxn() {
+    if (!editForm.quantity) { showToast('Enter quantity', 'red'); return }
+    setSaving(true)
+    try {
+      await updateSupplyTxn({
+        txnId:              editTxn.id,
+        quantity:           editForm.quantity,
+        reference:          editForm.reference,
+        notes:              editForm.notes,
+        txnDate:            editForm.txnDate,
+        issuedToEmployeeId: editForm.issuedToEmployeeId || null,
+        issuedToText:       editForm.issuedToText || null,
+        updatedBy:          profile?.id,
+      })
+      showToast('Transaction updated', 'green')
+      setEditTxn(null)
+    } catch (err) { showToast(err.message, 'red') }
+    finally { setSaving(false) }
+  }
+
+  async function doDeleteTxn() {
+    setSaving(true)
+    try {
+      await deleteSupplyTxn(deleteTxn.id)
+      showToast('Transaction deleted', 'red')
+      setDeleteTxn(null)
+    } catch (err) { showToast(err.message, 'red'); setDeleteTxn(null) }
     finally { setSaving(false) }
   }
 
@@ -153,16 +210,17 @@ export default function CampSupplies() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
               <thead>
                 <tr style={{ background: THEME.primary, color: '#fff' }}>
-                  {['Date','Item','Type','Quantity','Unit','Reference','Notes','Recorded By'].map(h => (
+                  {['Date','Item','Type','Quantity','Unit','Issued To','Reference','Notes','Recorded By','Actions'].map(h => (
                     <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {supplyTxns.length === 0 ? (
-                  <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No transactions yet</td></tr>
+                  <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No transactions yet</td></tr>
                 ) : supplyTxns.map(txn => {
                   const isReceive = txn.txn_type === 'receive'
+                  const issuedToLabel = txn.issued_to_employee?.name || txn.issued_to_text || (isReceive ? '—' : '—')
                   return (
                     <tr key={txn.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                       onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
@@ -180,9 +238,27 @@ export default function CampSupplies() {
                         {isReceive ? '+' : '−'}{parseFloat(txn.quantity).toFixed(txn.item?.unit === 'Kg' ? 1 : 0)}
                       </td>
                       <td style={{ padding: '10px 14px', color: THEME.textLow }}>{txn.item?.unit}</td>
+                      <td style={{ padding: '10px 14px', color: THEME.textMed }}>{issuedToLabel}</td>
                       <td style={{ padding: '10px 14px', color: THEME.textMed }}>{txn.reference || '—'}</td>
                       <td style={{ padding: '10px 14px', color: THEME.textLow }}>{txn.notes || '—'}</td>
-                      <td style={{ padding: '10px 14px', color: THEME.textMed }}>{txn.recorded_by_profile?.full_name || '—'}</td>
+                      <td style={{ padding: '10px 14px', color: THEME.textMed }}>
+                        {txn.recorded_by_profile?.full_name || '—'}
+                        {txn.updated_at && (
+                          <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '1px' }}>edited</div>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={() => openEditTxn(txn)} title="Edit" disabled={!canEdit}
+                            style={{ width: '28px', height: '28px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon name="edit" size={13} style={{ color: THEME.textMed }} />
+                          </button>
+                          <button onClick={() => setDeleteTxn(txn)} title="Delete" disabled={!canDelete}
+                            style={{ width: '28px', height: '28px', border: '1px solid #f5b8b8', borderRadius: '8px', background: '#fff', cursor: canDelete ? 'pointer' : 'not-allowed', opacity: canDelete ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon name="delete" size={13} style={{ color: THEME.error }} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   )
                 })}
@@ -278,6 +354,28 @@ export default function CampSupplies() {
               style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
           </div>
         </div>
+
+        {/* Issued To — only relevant for an issue, since nothing is being
+            handed to anyone on a receipt. Either pick a real employee or
+            type a free-text recipient like "Kitchen" or "Block 3". */}
+        {txnType === 'issue' && (
+          <div style={{ marginBottom: '14px' }}>
+            <SectionLabel>Issued To</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <select value={txnForm.issuedToEmployeeId} onChange={e => setTxnForm(f => ({ ...f, issuedToEmployeeId: e.target.value, issuedToText: e.target.value ? '' : f.issuedToText }))}
+                style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}>
+                <option value="">— Select employee (optional) —</option>
+                {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+              <input type="text" value={txnForm.issuedToText} onChange={e => setTxnForm(f => ({ ...f, issuedToText: e.target.value, issuedToEmployeeId: e.target.value ? '' : f.issuedToEmployeeId }))}
+                placeholder="Or type e.g. Kitchen, Block 3"
+                style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+            </div>
+            <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
+              Pick one or the other — selecting an employee clears the text field, and vice versa.
+            </div>
+          </div>
+        )}
         <div style={{ marginBottom: '14px' }}>
           <SectionLabel>Reference / Delivery Note</SectionLabel>
           <input type="text" value={txnForm.reference} onChange={e => setTxnForm(f => ({ ...f, reference: e.target.value }))}
@@ -310,6 +408,72 @@ export default function CampSupplies() {
             style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
         </div>
       </Modal>
+
+      {/* ── Edit Transaction Modal ── */}
+      <Modal open={!!editTxn} onClose={() => setEditTxn(null)}
+        title={`Edit ${editTxn?.txn_type === 'receive' ? 'Receipt' : 'Issue'} — ${editTxn?.item?.name || ''}`}
+        footer={<>
+          <Button onClick={() => setEditTxn(null)} variant="text">Cancel</Button>
+          <Button onClick={doEditTxn} variant="filled" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+        </>}>
+        {editForm && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+              <div>
+                <SectionLabel>Quantity *</SectionLabel>
+                <input type="number" min="0.01" step="0.01" value={editForm.quantity} onChange={e => setEditForm(f => ({ ...f, quantity: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+              </div>
+              <div>
+                <SectionLabel>Date</SectionLabel>
+                <input type="date" value={editForm.txnDate} onChange={e => setEditForm(f => ({ ...f, txnDate: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+              </div>
+            </div>
+
+            {editTxn?.txn_type === 'issue' && (
+              <div style={{ marginBottom: '14px' }}>
+                <SectionLabel>Issued To</SectionLabel>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <select value={editForm.issuedToEmployeeId} onChange={e => setEditForm(f => ({ ...f, issuedToEmployeeId: e.target.value, issuedToText: e.target.value ? '' : f.issuedToText }))}
+                    style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}>
+                    <option value="">— Select employee (optional) —</option>
+                    {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                  </select>
+                  <input type="text" value={editForm.issuedToText} onChange={e => setEditForm(f => ({ ...f, issuedToText: e.target.value, issuedToEmployeeId: e.target.value ? '' : f.issuedToEmployeeId }))}
+                    placeholder="Or type e.g. Kitchen, Block 3"
+                    style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginBottom: '14px' }}>
+              <SectionLabel>Reference / Delivery Note</SectionLabel>
+              <input type="text" value={editForm.reference} onChange={e => setEditForm(f => ({ ...f, reference: e.target.value }))}
+                style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+            </div>
+            <div>
+              <SectionLabel>Notes</SectionLabel>
+              <textarea value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} rows={2}
+                style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
+            </div>
+            <div style={{ marginTop: '10px', fontSize: '11px', color: THEME.textLow }}>
+              Item and transaction type can't be changed here — delete and re-record if either was wrong.
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* ── Delete Transaction Confirm ── */}
+      <ConfirmModal
+        open={!!deleteTxn}
+        onClose={() => setDeleteTxn(null)}
+        onConfirm={doDeleteTxn}
+        title="Delete this transaction?"
+        message={`Permanently delete this ${deleteTxn?.txn_type === 'receive' ? 'receipt' : 'issue'} of ${deleteTxn?.quantity} ${deleteTxn?.item?.unit} for "${deleteTxn?.item?.name}"? This cannot be undone. Blocked automatically if it would push stock below zero.`}
+        confirmLabel={saving ? 'Deleting…' : 'Delete'}
+        danger
+      />
     </div>
   )
 }

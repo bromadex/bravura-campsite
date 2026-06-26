@@ -157,7 +157,7 @@ export function DailyReport() {
   const [loading,     setLoading]     = useState(true)
 
   useEffect(() => {
-    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','Active').order('name')
+    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').order('name')
       .then(({ data }) => setEmployees(data || []))
     supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
   }, [])
@@ -250,7 +250,7 @@ export function RangeReport() {
   const [loading,     setLoading]     = useState(false)
 
   useEffect(() => {
-    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','Active').order('name')
+    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').order('name')
       .then(({ data }) => setEmployees(data || []))
     supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
   }, [])
@@ -328,7 +328,7 @@ export function MonthlyReport() {
   const [loading,     setLoading]     = useState(false)
 
   useEffect(() => {
-    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','Active').order('name')
+    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').order('name')
       .then(({ data }) => setEmployees(data || []))
     supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
   }, [])

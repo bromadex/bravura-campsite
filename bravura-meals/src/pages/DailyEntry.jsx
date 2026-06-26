@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
-import { can, THEME } from '../utils/permissions'
+import { THEME } from '../utils/permissions'
+import { usePermissions } from '../contexts/PermissionsContext'
 import { Card, Button, StatCard, StatusBadge, Icon, SortTh, useSortState, showToast, today, fmtDate } from '../components/ui'
 
 // Contractor colour pool — same as Reports
@@ -13,7 +14,7 @@ function coColor(contractors, id) {
 
 export default function DailyEntry() {
   const { profile } = useAuth()
-  const role = profile?.role
+  const { can } = usePermissions()
 
   const [date,        setDate]        = useState(today())
   const [employees,   setEmployees]   = useState([])
@@ -63,11 +64,17 @@ export default function DailyEntry() {
   useEffect(() => { loadDate(date) }, [date, loadDate])
 
   // Editable check
+  // meals.edit: matches the old editDraft list (System Admin + Meal Officer)
+  // meals.approve: matches old editSubmitted — narrower for Camp Supervisor
+  //   under the approved matrix, same tighten-now pattern used throughout
+  //   this swap
+  // meals.delete: proxy for "most trusted tier" — matches old editApproved
+  //   (super_admin only), since only System/Group Admin hold Delete on Meals
   const isEditable = () => {
     if (!submission) return true
-    if (submission.status === 'draft')     return can.editDraft(role)
-    if (submission.status === 'submitted') return can.editSubmitted(role)
-    if (submission.status === 'approved')  return can.editApproved(role)
+    if (submission.status === 'draft')     return can('meals.edit')
+    if (submission.status === 'submitted') return can('meals.approve')
+    if (submission.status === 'approved')  return can('meals.delete')
     return false
   }
 
@@ -223,7 +230,7 @@ export default function DailyEntry() {
               {saving ? 'Saving…' : 'Save entries'}
             </Button>
           )}
-          {submission?.status === 'draft' && can.submitForApproval(role) && (
+          {submission?.status === 'draft' && can('meals.edit') && (
             <Button onClick={submitForApproval} variant="tonal" icon="send" disabled={saving}>
               Submit for approval
             </Button>

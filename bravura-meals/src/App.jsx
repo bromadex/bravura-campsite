@@ -44,13 +44,21 @@ const MODULE_META = {
 
 // ── Route resolvers ───────────────────────────────────────────────────────────
 function getWorkforcePage(page, role, can) {
-  const AM = ['super_admin','approver','meal_officer']
   switch (page) {
-    // Swapped to real RBAC per the approved matrix (employees.view) —
-    // verified equivalent for all 5 current accounts before this changed.
-    case 'wf_employees':   return can('employees.view') ? <Employees />    : null
-    case 'wf_contractors': return AM.includes(role) ? <Contractors />  : null
-    case 'wf_leave':       return AM.includes(role) ? <WorkforceLeave /> : null
+    // All three swapped to real RBAC per the approved matrix — each verified
+    // against the current 5-account mapping before changing.
+    case 'wf_employees':   return can('employees.view') ? <Employees />     : null
+    // contractors.view: granted to Admin, Camp Supervisor, Meal Officer —
+    // exactly matches old behaviour, zero access change.
+    case 'wf_contractors': return can('contractors.view') ? <Contractors /> : null
+    // employees.edit: Leave Management edits an employee's status directly,
+    // so it's gated the same way the Employees Delete button is — HR
+    // Officer / Admin only under the approved matrix. Narrower than the old
+    // gate for Camp Supervisor/Meal Officer, but matches the same "tighten
+    // now, broaden later when those roles are actually assigned" principle
+    // already agreed for Employees, and has no practical effect today since
+    // only the Admin account is active.
+    case 'wf_leave':        return can('employees.edit') ? <WorkforceLeave /> : null
     case 'wf_reports':     return <WorkforceReports />
     default:               return <WorkforceReports />
   }

@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { THEME } from '../utils/permissions'
 import { usePermissions } from '../contexts/PermissionsContext'
-import { Card, Button, Modal, ConfirmModal, StatusBadge, showToast, initials, SectionLabel } from '../components/ui'
+import { Card, Button, Modal, ConfirmModal, StatusBadge, Icon, showToast, initials, SectionLabel } from '../components/ui'
 
 const EMPTY_FORM = { name: '', contractor_id: '', status: 'active', gender: '' }
 
+// Colour pool for contractor pills — same palette used across the app
+const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
+
 export default function Employees() {
-  // Swapped to real RBAC per the approved matrix — Delete is now scoped to
-  // HR Officer / System Administrator only, matching 03_RBAC_MATRIX.md.
-  const { can: canRBAC } = usePermissions()
-  const canDelete = canRBAC('employees.delete')
+  // Real RBAC per the approved matrix — Delete is scoped to HR Officer /
+  // System Administrator only, matching 03_RBAC_MATRIX.md.
+  const { can } = usePermissions()
+  const canDelete = can('employees.delete')
 
   const [employees,    setEmployees]    = useState([])
   const [contractors,  setContractors]  = useState([])
@@ -19,13 +22,11 @@ export default function Employees() {
   const [filterStatus, setFilterStatus] = useState('active')
   const [filterCo,     setFilterCo]     = useState('all')
 
-  // Employee modal
   const [modal,        setModal]        = useState(false)
   const [editing,      setEditing]      = useState(null)
   const [form,         setForm]         = useState(EMPTY_FORM)
   const [saving,       setSaving]       = useState(false)
 
-  // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting,     setDeleting]     = useState(false)
 
@@ -35,10 +36,7 @@ export default function Employees() {
   }, [])
 
   async function fetchContractors() {
-    const { data } = await supabase
-      .from('contractors')
-      .select('*')
-      .order('name')
+    const { data } = await supabase.from('contractors').select('*').order('name')
     setContractors(data || [])
   }
 
@@ -70,8 +68,8 @@ export default function Employees() {
   }
 
   async function saveEmployee() {
-    if (!form.name.trim())       { showToast('Please enter a name', 'red'); return }
-    if (!form.contractor_id)     { showToast('Please select a contractor', 'red'); return }
+    if (!form.name.trim())   { showToast('Please enter a name', 'red'); return }
+    if (!form.contractor_id) { showToast('Please select a contractor', 'red'); return }
     setSaving(true)
     try {
       const payload = {
@@ -84,11 +82,11 @@ export default function Employees() {
       if (editing) {
         const { error } = await supabase.from('employees').update(payload).eq('id', editing.id)
         if (error) throw error
-        showToast('Employee updated ✓', 'green')
+        showToast('Employee updated', 'green')
       } else {
         const { error } = await supabase.from('employees').insert(payload)
         if (error) throw error
-        showToast('Employee added ✓', 'green')
+        showToast('Employee added', 'green')
       }
       setModal(false)
       fetchEmployees()
@@ -103,7 +101,7 @@ export default function Employees() {
     const newStatus = emp.status === 'active' ? 'terminated' : 'active'
     const { error } = await supabase.from('employees').update({ status: newStatus }).eq('id', emp.id)
     if (error) { showToast(error.message, 'red'); return }
-    showToast(`${emp.name} → ${newStatus}`)
+    showToast(`${emp.name} → ${newStatus === 'active' ? 'Active' : 'Terminated'}`, 'green')
     fetchEmployees()
   }
 
@@ -118,182 +116,163 @@ export default function Employees() {
     fetchEmployees()
   }
 
-  // Unique contractor list for filter tabs
   const contractorTabs = contractors.filter(c => employees.some(e => e.contractor_id === c.id))
+  const coColorMap = {}
+  contractors.forEach((c, i) => { coColorMap[c.id] = CO_COLORS[i % CO_COLORS.length] })
 
-  const filtered = employees.filter(e => {
+  const filtered = useMemo(() => employees.filter(e => {
     const matchSearch = !search || e.name.toLowerCase().includes(search.toLowerCase())
     const matchStatus = filterStatus === 'all' || e.status === filterStatus
-    const matchCo     = filterCo === 'all' || e.contractor_id === filterCo
+    const matchCo      = filterCo === 'all' || e.contractor_id === filterCo
     return matchSearch && matchStatus && matchCo
-  })
+  }), [employees, search, filterStatus, filterCo])
 
   const activeCount = employees.filter(e => e.status === 'active').length
-
-  // Colour pool for contractor avatars
-  const coColors = ['#6B1C1C','#00897B','#5E35B1','#1565C0','#C55A11','#2E7D32','#AD1457']
-  const coColorMap = {}
-  contractors.forEach((c, i) => { coColorMap[c.id] = coColors[i % coColors.length] })
 
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: THEME.primary }}>
-            Employee Master List
+          <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
+            Employees
+            <span style={{ marginLeft: '10px', padding: '2px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed }}>
+              {employees.length}
+            </span>
           </h2>
-          <div style={{ marginTop: '4px', display: 'flex', gap: '8px' }}>
-            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: '#E2EFDA', color: '#375623' }}>
+          <div style={{ marginTop: '6px', display: 'flex', gap: '8px' }}>
+            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: '#E8F5E9', color: '#1B5E20' }}>
               {activeCount} active
             </span>
-            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: '#F5EDEE', color: THEME.primary }}>
-              {employees.length} total
+            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed }}>
+              {employees.length - activeCount} terminated
             </span>
           </div>
         </div>
-        <Button onClick={openAdd} variant="primary">+ Add Employee</Button>
+        <Button onClick={openAdd} variant="filled" icon="add">Add Employee</Button>
       </div>
 
       {/* Filters */}
-      <Card style={{ marginBottom: '16px', padding: '14px 16px' }}>
+      <Card style={{ marginBottom: '16px', padding: '12px 16px' }}>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            type="text"
-            placeholder="🔍 Search by name…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{
-              flex: 1, minWidth: '180px', maxWidth: '280px',
-              padding: '7px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px',
-              fontSize: '13px', fontFamily: 'inherit', outline: 'none',
-            }}
-          />
-
-          {/* Status filter */}
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {[['active','Active'],['terminated','Terminated'],['all','All Status']].map(([val, label]) => (
-              <button key={val} onClick={() => setFilterStatus(val)} style={{
-                padding: '5px 11px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                cursor: 'pointer', border: `1px solid ${THEME.cardBorder}`, fontFamily: 'inherit',
-                background: filterStatus === val ? THEME.primary : 'transparent',
-                color: filterStatus === val ? '#fff' : '#4a5568',
-              }}>
-                {label}
-              </button>
-            ))}
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+            <Icon name="search" size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: THEME.textLow }} />
+            <input
+              type="text" placeholder="Search by name…" value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', padding: '7px 10px 7px 32px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+            />
           </div>
 
-          {/* Contractor filter */}
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-            <button onClick={() => setFilterCo('all')} style={{
-              padding: '5px 11px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-              cursor: 'pointer', border: `1px solid ${THEME.cardBorder}`, fontFamily: 'inherit',
-              background: filterCo === 'all' ? THEME.primaryLight : 'transparent',
-              color: filterCo === 'all' ? '#fff' : '#4a5568',
+          {[['active','Active'],['terminated','Terminated'],['all','All Status']].map(([val, label]) => (
+            <button key={val} onClick={() => setFilterStatus(val)} style={{
+              padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 500,
+              cursor: 'pointer', fontFamily: 'inherit',
+              border: `1px solid ${filterStatus === val ? THEME.primary : THEME.outline}`,
+              background: filterStatus === val ? THEME.surfaceVar : 'transparent',
+              color: filterStatus === val ? THEME.primary : THEME.textMed,
             }}>
-              All Companies
+              {label}
             </button>
-            {contractorTabs.map(c => (
-              <button key={c.id} onClick={() => setFilterCo(c.id)} style={{
-                padding: '5px 11px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                cursor: 'pointer', border: `1px solid ${THEME.cardBorder}`, fontFamily: 'inherit',
-                background: filterCo === c.id ? coColorMap[c.id] : 'transparent',
-                color: filterCo === c.id ? '#fff' : '#4a5568',
-              }}>
-                {c.short_code || c.name}
-              </button>
-            ))}
-          </div>
+          ))}
+
+          <select value={filterCo} onChange={e => setFilterCo(e.target.value)}
+            style={{ padding: '7px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}>
+            <option value="all">All Contractors</option>
+            {contractorTabs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </div>
       </Card>
 
-      {/* Employee grid */}
+      {/* Table */}
       {loading ? (
-        <div style={{ color: '#aaa', padding: '40px', textAlign: 'center' }}>Loading…</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px', color: '#aaa' }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>👤</div>
-          No employees match your filter.
+        <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
+          <Icon name="progress_activity" size={24} style={{ color: THEME.primary }} />
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: '10px' }}>
-          {filtered.map(emp => {
-            const coColor = coColorMap[emp.contractor_id] || THEME.primary
-            return (
-              <div
-                key={emp.id}
-                className="emp-card"
-                style={{
-                  background: '#fff',
-                  border: `1px solid ${THEME.cardBorder}`,
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  opacity: emp.status === 'terminated' ? 0.5 : 1,
-                  transition: 'box-shadow .15s, border-color .15s',
-                  position: 'relative',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = coColor
-                  e.currentTarget.style.boxShadow = `0 2px 12px rgba(107,28,28,.1)`
-                  e.currentTarget.querySelector('.emp-actions').style.opacity = '1'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = THEME.cardBorder
-                  e.currentTarget.style.boxShadow = 'none'
-                  e.currentTarget.querySelector('.emp-actions').style.opacity = '0'
-                }}
-              >
-                {/* Avatar */}
-                <div style={{
-                  width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '12px', fontWeight: 700, color: '#fff',
-                  background: coColor,
-                }}>
-                  {initials(emp.name)}
-                </div>
-
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e' }}>
-                    {emp.name}
-                  </div>
-                  <div style={{ fontSize: '11px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{
-                      background: coColor + '22', color: coColor,
-                      padding: '1px 6px', borderRadius: '8px', fontWeight: 700, fontSize: '10px',
-                    }}>
-                      {emp.contractor?.short_code || emp.contractor?.name || '—'}
-                    </span>
-                    <StatusBadge status={emp.status} />
-                  </div>
-                </div>
-
-                {/* Hover actions */}
-                <div className="emp-actions" style={{ display: 'flex', flexDirection: 'column', gap: '3px', opacity: 0, transition: 'opacity .15s', flexShrink: 0 }}>
-                  <button
-                    onClick={() => openEdit(emp)}
-                    title="Edit"
-                    style={{ width: '26px', height: '26px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '6px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
-                  >✏️</button>
-                  <button
-                    onClick={() => toggleStatus(emp)}
-                    title={emp.status === 'active' ? 'Deactivate' : 'Activate'}
-                    style={{ width: '26px', height: '26px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '6px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
-                  >{emp.status === 'active' ? '🚫' : '✅'}</button>
-                  {canDelete && (
-                    <button
-                      onClick={() => setDeleteTarget(emp)}
-                      title="Delete"
-                      style={{ width: '26px', height: '26px', border: '1px solid #f5b8b8', borderRadius: '6px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
-                    >🗑️</button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+        <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+            <thead>
+              <tr style={{ background: THEME.primary, color: '#fff' }}>
+                {['Employee','Contractor','Gender','Status','Actions'].map(h => (
+                  <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
+                    <Icon name="badge" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
+                    No employees match your filter
+                  </td>
+                </tr>
+              ) : filtered.map(emp => {
+                const coColor = coColorMap[emp.contractor_id] || THEME.primary
+                return (
+                  <tr
+                    key={emp.id}
+                    style={{ borderBottom: `1px solid ${THEME.outlineVar}`, opacity: emp.status === 'terminated' ? 0.6 : 1 }}
+                    onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
+                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                  >
+                    <td style={{ padding: '10px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '12px', fontWeight: 700, color: '#fff', background: coColor,
+                        }}>
+                          {initials(emp.name)}
+                        </div>
+                        <span style={{ fontWeight: 500, color: THEME.text }}>{emp.name}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      {emp.contractor ? (
+                        <span style={{ background: coColor + '18', color: coColor, padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 600 }}>
+                          {emp.contractor.short_code || emp.contractor.name}
+                        </span>
+                      ) : <span style={{ color: THEME.textLow }}>—</span>}
+                    </td>
+                    <td style={{ padding: '10px 14px', color: THEME.textMed }}>
+                      {emp.gender ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <Icon name={emp.gender === 'female' ? 'woman' : 'man'} size={15} style={{ color: THEME.textLow }} />
+                          {emp.gender === 'female' ? 'Female' : 'Male'}
+                        </span>
+                      ) : <span style={{ color: THEME.textLow }}>—</span>}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <StatusBadge status={emp.status} />
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={() => openEdit(emp)} title="Edit"
+                          style={{ width: '30px', height: '30px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon name="edit" size={14} style={{ color: THEME.textMed }} />
+                        </button>
+                        <button
+                          onClick={() => toggleStatus(emp)}
+                          title={emp.status === 'active' ? 'Mark Terminated' : 'Reactivate'}
+                          style={{ width: '30px', height: '30px', border: `1px solid ${emp.status === 'active' ? THEME.warning : THEME.success}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon name={emp.status === 'active' ? 'block' : 'check_circle'} size={14} style={{ color: emp.status === 'active' ? THEME.warning : THEME.success }} />
+                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => setDeleteTarget(emp)}
+                            title="Delete"
+                            style={{ width: '30px', height: '30px', border: '1px solid #f5b8b8', borderRadius: '8px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon name="delete" size={14} style={{ color: THEME.error }} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -302,25 +281,23 @@ export default function Employees() {
         open={modal}
         onClose={() => setModal(false)}
         title={editing ? `Edit — ${editing.name}` : 'Add New Employee'}
-        footer={
-          <>
-            <Button onClick={() => setModal(false)} variant="ghost">Cancel</Button>
-            <Button onClick={saveEmployee} variant="primary" disabled={saving}>
-              {saving ? 'Saving…' : editing ? 'Save changes' : 'Add employee'}
-            </Button>
-          </>
-        }
+        footer={<>
+          <Button onClick={() => setModal(false)} variant="text">Cancel</Button>
+          <Button onClick={saveEmployee} variant="filled" disabled={saving}>
+            {saving ? 'Saving…' : editing ? 'Save changes' : 'Add Employee'}
+          </Button>
+        </>}
       >
         <div style={{ marginBottom: '14px' }}>
-          <SectionLabel>Full Name</SectionLabel>
+          <SectionLabel>Full Name *</SectionLabel>
           <input
-            type="text"
-            value={form.name}
+            type="text" value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            placeholder="e.g. John Banda"
-            autoFocus
+            placeholder="e.g. John Banda" autoFocus
             onKeyDown={e => e.key === 'Enter' && saveEmployee()}
-            style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+            onFocus={e => e.target.style.borderColor = THEME.primary}
+            onBlur={e => e.target.style.borderColor = THEME.outline}
           />
         </div>
 
@@ -330,7 +307,7 @@ export default function Employees() {
             <select
               value={form.contractor_id}
               onChange={e => setForm(f => ({ ...f, contractor_id: e.target.value }))}
-              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
+              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}
             >
               <option value="">— Select —</option>
               {contractors.filter(c => c.status === 'Active').map(c => (
@@ -344,7 +321,7 @@ export default function Employees() {
             <select
               value={form.gender}
               onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
-              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
+              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}
             >
               <option value="">— Not set —</option>
               <option value="male">Male</option>
@@ -357,7 +334,7 @@ export default function Employees() {
             <select
               value={form.status}
               onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.cardBorder}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
+              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}
             >
               <option value="active">Active</option>
               <option value="terminated">Terminated</option>
@@ -365,13 +342,14 @@ export default function Employees() {
           </div>
         </div>
 
-        <div style={{ marginTop: '10px', fontSize: '11px', color: THEME.textLow || '#9aa' }}>
+        <div style={{ marginTop: '10px', fontSize: '11px', color: THEME.textLow }}>
           Gender is used by Campsite room assignment to enforce single-gender rooms.
         </div>
 
         {contractors.length === 0 && (
-          <div style={{ marginTop: '12px', padding: '10px 14px', background: '#FFF2CC', borderRadius: '8px', fontSize: '12px', color: '#7B5800' }}>
-            ⚠ No contractors found. Please add a contractor first under <strong>Admin → Contractors</strong>.
+          <div style={{ marginTop: '14px', padding: '10px 14px', background: '#FFF8E1', borderRadius: '10px', fontSize: '12px', color: '#7D5700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Icon name="warning" size={16} style={{ color: '#7D5700' }} />
+            No contractors found. Please add a contractor first under <strong>Contractors</strong>.
           </div>
         )}
       </Modal>

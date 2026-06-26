@@ -378,9 +378,9 @@ export default function CampSupplies() {
         )}
         <div style={{ marginBottom: '14px' }}>
           <SectionLabel>Reference / Delivery Note</SectionLabel>
-          <input type="text" value={txnForm.reference} onChange={e => setTxnForm(f => ({ ...f, reference: e.target.value }))}
-            placeholder="e.g. DN-001"
-            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+          <textarea value={txnForm.reference} onChange={e => setTxnForm(f => ({ ...f, reference: e.target.value }))}
+            placeholder="e.g. DN-001" rows={2}
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
         </div>
         <div>
           <SectionLabel>Notes</SectionLabel>
@@ -449,8 +449,8 @@ export default function CampSupplies() {
 
             <div style={{ marginBottom: '14px' }}>
               <SectionLabel>Reference / Delivery Note</SectionLabel>
-              <input type="text" value={editForm.reference} onChange={e => setEditForm(f => ({ ...f, reference: e.target.value }))}
-                style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+              <textarea value={editForm.reference} onChange={e => setEditForm(f => ({ ...f, reference: e.target.value }))} rows={2}
+                style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
             </div>
             <div>
               <SectionLabel>Notes</SectionLabel>

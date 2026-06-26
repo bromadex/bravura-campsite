@@ -33,7 +33,7 @@ export default function DailyEntry() {
     supabase
       .from('employees')
       .select('*, contractor:contractors(id,name,short_code)')
-      .eq('status', 'Active')
+      .eq('status', 'active')
       .order('name')
       .then(({ data }) => setEmployees(data || []))
 

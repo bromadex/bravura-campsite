@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { THEME } from '../utils/permissions'
 import { usePermissions } from '../contexts/PermissionsContext'
+import { useSite } from '../contexts/SiteContext'
 import { Card, Button, Modal, ConfirmModal, StatusBadge, Icon, showToast, initials, SectionLabel } from '../components/ui'
 
 const EMPTY_FORM = { name: '', contractor_id: '', status: 'active', gender: '' }
@@ -14,6 +15,11 @@ export default function Employees() {
   // System Administrator only, matching 03_RBAC_MATRIX.md.
   const { can } = usePermissions()
   const canDelete = can('employees.delete')
+
+  // Site filtering — the actual payoff for the site foundation work.
+  // currentSite is read so its name can be shown in the empty-state message
+  // (so switching to a site with no data reads as "correct," not "broken").
+  const { currentSiteId, currentSite } = useSite()
 
   const [employees,    setEmployees]    = useState([])
   const [contractors,  setContractors]  = useState([])
@@ -32,8 +38,14 @@ export default function Employees() {
 
   useEffect(() => {
     fetchContractors()
-    fetchEmployees()
   }, [])
+
+  // Re-fetch whenever the selected site changes — this is the actual
+  // filtering. Guarded on currentSiteId being resolved first, so we don't
+  // fire an unfiltered query while SiteContext is still loading.
+  useEffect(() => {
+    if (currentSiteId) fetchEmployees()
+  }, [currentSiteId])
 
   async function fetchContractors() {
     const { data } = await supabase.from('contractors').select('*').order('name')
@@ -45,6 +57,7 @@ export default function Employees() {
     const { data } = await supabase
       .from('employees')
       .select('*, contractor:contractors(id, name, short_code)')
+      .eq('site_id', currentSiteId)
       .order('name')
     setEmployees(data || [])
     setLoading(false)
@@ -80,11 +93,18 @@ export default function Employees() {
         gender:        form.gender || null,
       }
       if (editing) {
+        // Site is deliberately NOT touched on edit — changing where an
+        // employee belongs is a transfer (employee_movements), not a plain
+        // field edit. That's its own future roadmap item.
         const { error } = await supabase.from('employees').update(payload).eq('id', editing.id)
         if (error) throw error
         showToast('Employee updated', 'green')
       } else {
-        const { error } = await supabase.from('employees').insert(payload)
+        // New employees are stamped with whichever site is currently
+        // selected — otherwise the database default (Kamativi) would
+        // silently apply even while viewing a different site, and the new
+        // record would never show up in the list you just added it from.
+        const { error } = await supabase.from('employees').insert({ ...payload, site_id: currentSiteId })
         if (error) throw error
         showToast('Employee added', 'green')
       }
@@ -140,12 +160,16 @@ export default function Employees() {
               {employees.length}
             </span>
           </h2>
-          <div style={{ marginTop: '6px', display: 'flex', gap: '8px' }}>
+          <div style={{ marginTop: '6px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: '#E8F5E9', color: '#1B5E20' }}>
               {activeCount} active
             </span>
             <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed }}>
               {employees.length - activeCount} terminated
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary }}>
+              <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
+              {currentSite?.name || '—'}
             </span>
           </div>
         </div>
@@ -204,7 +228,9 @@ export default function Employees() {
                 <tr>
                   <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
                     <Icon name="badge" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
-                    No employees match your filter
+                    {employees.length === 0
+                      ? `No employees recorded at ${currentSite?.name || 'this site'} yet`
+                      : 'No employees match your filter'}
                   </td>
                 </tr>
               ) : filtered.map(emp => {

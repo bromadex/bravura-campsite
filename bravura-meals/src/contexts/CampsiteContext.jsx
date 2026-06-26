@@ -1,311 +1,107 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../auth/AuthContext'
 
-const CampsiteContext = createContext(null)
+// ── SiteContext ────────────────────────────────────────────────────────────────
+// Phase scope (deliberately narrow): know which sites exist, know which sites
+// the current user can access, and expose a "current site" selection.
+//
+// What this phase does NOT do yet: it does not change how any existing page
+// fetches data. Employees, Daily Entry, Reports, Campsite — all of them keep
+// querying exactly as they do today. Wiring those queries to actually filter
+// by the selected site is a separate, later phase, reviewed on its own,
+// specifically so this phase can't break anything currently working.
+//
+// Default behaviour matches today's real-world fact: every existing user is
+// scoped to Kamativi (or, for System Administrator, has access to all sites
+// but there is currently only one site with real data). Selecting a
+// different site here changes nothing visible yet — it's the foundation the
+// next phase builds on, not the filtering itself.
 
-export function CampsiteProvider({ children }) {
-  const [blocks,      setBlocks]      = useState([])
-  const [rooms,       setRooms]       = useState([])
-  const [fixtures,    setFixtures]    = useState([])
-  const [assignments, setAssignments] = useState([])
-  const [employees,   setEmployees]   = useState([])
-  const [contractors, setContractors] = useState([])
-  const [visitors,    setVisitors]    = useState([])
-  const [supplies,    setSupplies]    = useState([])
-  const [supplyTxns,  setSupplyTxns]  = useState([])
-  const [loading,     setLoading]     = useState(true)
+const SiteContext = createContext(null)
 
-  const fetchAll = useCallback(async () => {
+export function SiteProvider({ children }) {
+  const { profile } = useAuth()
+  const [allSites,        setAllSites]        = useState([])
+  const [accessibleSites, setAccessibleSites] = useState([])
+  const [hasAllSiteAccess, setHasAllSiteAccess] = useState(false)
+  const [currentSiteId,   setCurrentSiteId]   = useState(null)
+  const [loading,         setLoading]         = useState(true)
+
+  const loadSiteAccess = useCallback(async () => {
+    if (!profile?.id) { setLoading(false); return }
     setLoading(true)
     try {
-      const [bRes, rRes, fxRes, aRes, eRes, cRes, vRes, sRes, txRes] = await Promise.all([
-        supabase.from('camp_blocks').select('*').order('name'),
-        supabase.from('camp_rooms').select('*, block:camp_blocks(id,name)').order('room_number'),
-        supabase.from('camp_fixtures').select('*'),
-        supabase.from('room_assignments').select(`
-          *,
-          employee:employees(id, name, status, leave_status, gender, contractor_id,
-            contractor:contractors(id, name, short_code)),
-          visitor:camp_visitors(id, name, gender, phone, purpose),
-          room:camp_rooms(id, room_number, block_id, capacity,
-            block:camp_blocks(id, name))
-        `).order('created_at', { ascending: false }),
-        supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').order('name'),
-        supabase.from('contractors').select('*').eq('status','Active').order('name'),
-        supabase.from('camp_visitors').select('*').order('created_at', { ascending: false }),
-        supabase.from('camp_supply_balance').select('*'),
-        supabase.from('camp_supply_txns').select('*, item:camp_supply_items(id,name,unit), recorded_by_profile:profiles(full_name)').order('txn_date', { ascending: false }).order('created_at', { ascending: false }).limit(200),
+      const [sitesRes, userRolesRes] = await Promise.all([
+        supabase.from('sites').select('*').eq('is_active', true).order('name'),
+        // A user_roles row with site_id = null means that role grants access
+        // to every site, including ones created in the future — exactly the
+        // "Group Administrator sees everything automatically" behaviour the
+        // foundation was designed for.
+        supabase.from('user_roles').select('site_id').eq('user_id', profile.id),
       ])
-      setBlocks(bRes.data || [])
-      setRooms(rRes.data || [])
-      setFixtures(fxRes.data || [])
-      setAssignments(aRes.data || [])
-      setEmployees(eRes.data || [])
-      setContractors(cRes.data || [])
-      setVisitors(vRes.data || [])
-      setSupplies(sRes.data || [])
-      setSupplyTxns(txRes.data || [])
+
+      const sites = sitesRes.data || []
+      setAllSites(sites)
+
+      const roleRows = userRolesRes.data || []
+      const allSiteAccess = roleRows.some(r => r.site_id === null)
+      setHasAllSiteAccess(allSiteAccess)
+
+      let accessible
+      if (allSiteAccess) {
+        accessible = sites
+      } else {
+        const accessibleIds = new Set(roleRows.map(r => r.site_id).filter(Boolean))
+        accessible = sites.filter(s => accessibleIds.has(s.id))
+      }
+      setAccessibleSites(accessible)
+
+      // Default selection: Kamativi if accessible, otherwise the first
+      // accessible site. This preserves today's behaviour exactly — every
+      // current user either only has Kamativi, or (System Administrator)
+      // defaults to seeing Kamativi first since it's the only site with
+      // real data right now.
+      setCurrentSiteId(prev => {
+        if (prev && accessible.some(s => s.id === prev)) return prev // keep existing selection if still valid
+        const kamativi = accessible.find(s => s.code === 'KAM')
+        return kamativi?.id || accessible[0]?.id || null
+      })
     } catch (err) {
-      console.error('CampsiteContext fetchAll error:', err)
+      console.error('SiteContext load error:', err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [profile?.id])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => { loadSiteAccess() }, [loadSiteAccess])
 
-  // ── Derived room status ────────────────────────────────────────────────────
-  function getRoomStatus(roomId) {
-    const room = rooms.find(r => r.id === roomId)
-    if (!room) return 'unknown'
-    if (room.is_maintenance) return 'maintenance'
-    const active = assignments.filter(a => a.room_id === roomId && a.status === 'active')
-    if (active.length === 0) return 'available'
-    if (room.capacity && active.length >= room.capacity) return 'occupied'
-    return 'occupied'
-  }
+  const currentSite = allSites.find(s => s.id === currentSiteId) || null
 
-  // ── KPIs ───────────────────────────────────────────────────────────────────
-  const activeAssignments = assignments.filter(a => a.status === 'active')
-  const occupiedRoomIds   = new Set(activeAssignments.map(a => a.room_id))
-
-  const kpis = {
-    totalEmployees:    employees.length,
-    totalContractors:  contractors.length,
-    totalResidents:    activeAssignments.length,
-    totalRooms:        rooms.length,
-    occupiedRooms:     occupiedRoomIds.size,
-    availableRooms:    rooms.filter(r => !r.is_maintenance && !occupiedRoomIds.has(r.id)).length,
-    maintenanceRooms:  rooms.filter(r => r.is_maintenance).length,
-    onShortLeave:      employees.filter(e => e.leave_status === 'short_leave').length,
-    onLongLeave:       employees.filter(e => e.leave_status === 'long_leave').length,
-    occupancyPct:      rooms.length > 0
-      ? Math.round((occupiedRoomIds.size / rooms.length) * 100)
-      : 0,
-  }
-
-  // ── Blocks ─────────────────────────────────────────────────────────────────
-  async function addBlock(data) {
-    const { error } = await supabase.from('camp_blocks').insert(data)
-    if (error) throw error
-    await fetchAll()
-  }
-  async function updateBlock(id, data) {
-    const { error } = await supabase.from('camp_blocks').update(data).eq('id', id)
-    if (error) throw error
-    await fetchAll()
-  }
-  async function deleteBlock(id) {
-    const hasRooms = rooms.some(r => r.block_id === id)
-    if (hasRooms) throw new Error('Cannot delete block — it has rooms. Remove rooms first.')
-    const { error } = await supabase.from('camp_blocks').delete().eq('id', id)
-    if (error) throw error
-    await fetchAll()
-  }
-
-  // ── Rooms ──────────────────────────────────────────────────────────────────
-  async function addRoom(data) {
-    const { error } = await supabase.from('camp_rooms').insert(data)
-    if (error) throw error
-    await fetchAll()
-  }
-  async function updateRoom(id, data) {
-    const { error } = await supabase.from('camp_rooms').update(data).eq('id', id)
-    if (error) throw error
-    await fetchAll()
-  }
-  async function deleteRoom(roomId) {
-    const { data: existing } = await supabase
-      .from('room_assignments')
-      .select('id')
-      .eq('room_id', roomId)
-      .limit(1)
-    if (existing && existing.length > 0)
-      throw new Error('Cannot delete — room has assignment history. Use maintenance mode instead.')
-    const { error } = await supabase.from('camp_rooms').delete().eq('id', roomId)
-    if (error) throw error
-    await fetchAll()
-  }
-  async function setMaintenance(roomId, isMaintenance, reason = '') {
-    const active = assignments.filter(a => a.room_id === roomId && a.status === 'active')
-    if (isMaintenance && active.length > 0)
-      throw new Error('Cannot put occupied room into maintenance. Release occupants first.')
-    const { error } = await supabase.from('camp_rooms').update({
-      is_maintenance:     isMaintenance,
-      status:             isMaintenance ? 'maintenance' : 'available',
-      maintenance_reason: isMaintenance ? reason : null,
-    }).eq('id', roomId)
-    if (error) throw error
-    await fetchAll()
-  }
-
-  // ── Assignments ────────────────────────────────────────────────────────────
-  // Supports employees OR visitors via occupantType, plus a friendly
-  // client-side gender pre-check (the DB trigger is the authoritative check).
-  async function assignRoom({ employeeId, visitorId, roomId, occupantType = 'employee', notes, expectedCheckout, assignedBy }) {
-    if (occupantType === 'employee' && !employeeId) throw new Error('Employee is required')
-    if (occupantType === 'visitor'  && !visitorId)  throw new Error('Visitor is required')
-
-    const existing = occupantType === 'employee'
-      ? assignments.find(a => a.employee_id === employeeId && a.status === 'active')
-      : assignments.find(a => a.visitor_id === visitorId && a.status === 'active')
-    if (existing) throw new Error('This person already has an active room assignment. Transfer or release first.')
-
-    const room = rooms.find(r => r.id === roomId)
-    if (!room) throw new Error('Room not found')
-    if (room.is_maintenance) throw new Error('Room is under maintenance')
-    const currentOccupancy = assignments.filter(a => a.room_id === roomId && a.status === 'active').length
-    if (currentOccupancy >= room.capacity) throw new Error('Room is at full capacity')
-
-    if (room.gender && room.gender !== 'unassigned') {
-      const personGender = occupantType === 'employee'
-        ? employees.find(e => e.id === employeeId)?.gender
-        : visitors.find(v => v.id === visitorId)?.gender
-      if (personGender && personGender !== room.gender) {
-        throw new Error(`This room is allocated to ${room.gender === 'male' ? 'males' : 'females'} only`)
-      }
+  function switchSite(siteId) {
+    if (accessibleSites.some(s => s.id === siteId)) {
+      setCurrentSiteId(siteId)
     }
-
-    const { error } = await supabase.from('room_assignments').insert({
-      employee_id:       occupantType === 'employee' ? employeeId : null,
-      visitor_id:        occupantType === 'visitor'  ? visitorId  : null,
-      occupant_type:     occupantType,
-      room_id:           roomId,
-      assigned_date:     new Date().toISOString().slice(0, 10),
-      expected_checkout: expectedCheckout || null,
-      status:            'active',
-      assigned_by:       assignedBy || null,
-      notes:             notes || null,
-    })
-    if (error) throw error
-    await fetchAll()
-  }
-
-  async function transferRoom({ assignmentId, newRoomId, notes, assignedBy }) {
-    const assignment = assignments.find(a => a.id === assignmentId)
-    if (!assignment) throw new Error('Assignment not found')
-
-    const newRoom = rooms.find(r => r.id === newRoomId)
-    if (!newRoom) throw new Error('Target room not found')
-    if (newRoom.is_maintenance) throw new Error('Target room is under maintenance')
-    const occupancy = assignments.filter(a => a.room_id === newRoomId && a.status === 'active').length
-    if (occupancy >= newRoom.capacity) throw new Error('Target room is at full capacity')
-
-    if (newRoom.gender && newRoom.gender !== 'unassigned') {
-      const personGender = assignment.employee?.gender || assignment.visitor?.gender
-      if (personGender && personGender !== newRoom.gender) {
-        throw new Error(`Target room is allocated to ${newRoom.gender === 'male' ? 'males' : 'females'} only`)
-      }
-    }
-
-    await supabase.from('room_assignments').update({
-      status:        'transferred',
-      released_date: new Date().toISOString().slice(0, 10),
-    }).eq('id', assignmentId)
-
-    const { error } = await supabase.from('room_assignments').insert({
-      employee_id:       assignment.employee_id,
-      visitor_id:        assignment.visitor_id,
-      occupant_type:     assignment.occupant_type,
-      room_id:           newRoomId,
-      assigned_date:     new Date().toISOString().slice(0, 10),
-      expected_checkout: assignment.expected_checkout,
-      status:            'active',
-      assigned_by:       assignedBy || null,
-      notes:             notes || null,
-    })
-    if (error) throw error
-    await fetchAll()
-  }
-
-  async function releaseRoom({ assignmentId, notes, releasedBy }) {
-    const { error } = await supabase.from('room_assignments').update({
-      status:        'released',
-      released_date: new Date().toISOString().slice(0, 10),
-      released_by:   releasedBy || null,
-      notes:         notes || null,
-    }).eq('id', assignmentId)
-    if (error) throw error
-    await fetchAll()
-  }
-
-  // ── Visitors ───────────────────────────────────────────────────────────────
-  async function addVisitor(data) {
-    const { data: created, error } = await supabase.from('camp_visitors').insert(data).select().single()
-    if (error) throw error
-    await fetchAll()
-    return created
-  }
-
-  // ── Leave management ───────────────────────────────────────────────────────
-  async function setLeaveStatus({ employeeId, leaveStatus, startDate, endDate, notes }) {
-    const { error } = await supabase.from('employees').update({
-      leave_status: leaveStatus,
-      leave_start:  startDate || null,
-      leave_end:    endDate   || null,
-      leave_notes:  notes     || null,
-    }).eq('id', employeeId)
-    if (error) throw error
-    await fetchAll()
-  }
-
-  async function returnFromLeave(employeeId) {
-    const { error } = await supabase.from('employees').update({
-      leave_status: 'active',
-      leave_start:  null,
-      leave_end:    null,
-      leave_notes:  null,
-    }).eq('id', employeeId)
-    if (error) throw error
-    await fetchAll()
-  }
-
-  // ── Camp Supplies ──────────────────────────────────────────────────────────
-  async function addSupplyItem(data) {
-    const { error } = await supabase.from('camp_supply_items').insert(data)
-    if (error) throw error
-    await fetchAll()
-  }
-
-  async function recordSupplyTxn({ itemId, txnType, quantity, reference, notes, recordedBy, txnDate }) {
-    if (txnType === 'issue') {
-      const item = supplies.find(s => s.id === itemId)
-      if (item && parseFloat(item.balance) < parseFloat(quantity))
-        throw new Error(`Insufficient stock. Balance: ${item.balance} ${item.unit}`)
-    }
-    const { error } = await supabase.from('camp_supply_txns').insert({
-      item_id:     itemId,
-      txn_type:    txnType,
-      quantity:    parseFloat(quantity),
-      reference:   reference || null,
-      notes:       notes     || null,
-      txn_date:    txnDate   || new Date().toISOString().slice(0, 10),
-      recorded_by: recordedBy || null,
-    })
-    if (error) throw error
-    await fetchAll()
   }
 
   return (
-    <CampsiteContext.Provider value={{
-      blocks, rooms, fixtures, assignments, employees, contractors, visitors,
-      supplies, supplyTxns, loading, kpis,
-      getRoomStatus,
-      addBlock, updateBlock, deleteBlock,
-      addRoom, updateRoom, deleteRoom, setMaintenance,
-      assignRoom, transferRoom, releaseRoom,
-      addVisitor,
-      setLeaveStatus, returnFromLeave,
-      addSupplyItem, recordSupplyTxn,
-      refresh: fetchAll,
+    <SiteContext.Provider value={{
+      allSites,
+      accessibleSites,
+      hasAllSiteAccess,
+      currentSiteId,
+      currentSite,
+      switchSite,
+      loading,
+      refresh: loadSiteAccess,
     }}>
       {children}
-    </CampsiteContext.Provider>
+    </SiteContext.Provider>
   )
 }
 
-export function useCampsite() {
-  const ctx = useContext(CampsiteContext)
-  if (!ctx) throw new Error('useCampsite must be inside CampsiteProvider')
+export function useSite() {
+  const ctx = useContext(SiteContext)
+  if (!ctx) throw new Error('useSite must be used inside SiteProvider')
   return ctx
 }

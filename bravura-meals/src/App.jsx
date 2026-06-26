@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
+import { SiteProvider } from './contexts/SiteContext'
 import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
 import MealsPinGate from './auth/MealsPinGate'
@@ -206,7 +207,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <SiteProvider>
+        <AppContent />
+      </SiteProvider>
     </AuthProvider>
   )
 }

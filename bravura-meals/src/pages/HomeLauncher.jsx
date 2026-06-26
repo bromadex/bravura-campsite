@@ -27,7 +27,6 @@ const ALL_MODULES = [
     icon:     'restaurant',
     color:    MODULE_COLORS.meals,
     access:   moduleAccess.meals,
-    requiresPin: true,
   },
   {
     id:       'admin',
@@ -184,20 +183,6 @@ function ModuleCard({ mod, onClick }) {
       <div style={{ fontSize: '11px', color: '#9CA3AF', lineHeight: 1.4 }}>
         {mod.sub}
       </div>
-
-      {/* Lock badge for Meals */}
-      {mod.requiresPin && (
-        <div style={{
-          marginTop: '10px',
-          display: 'inline-flex', alignItems: 'center', gap: '3px',
-          padding: '2px 8px', borderRadius: '20px',
-          background: mod.color + '14', color: mod.color,
-          fontSize: '10px', fontWeight: 600,
-        }}>
-          <span className="material-symbols-rounded" style={{ fontSize: '11px' }}>lock</span>
-          PIN required
-        </div>
-      )}
     </div>
   )
 }

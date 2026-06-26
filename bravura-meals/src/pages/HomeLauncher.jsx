@@ -1,5 +1,6 @@
 import { MODULE_COLORS, THEME, ROLE_LABELS, moduleAccess } from '../utils/permissions'
 import { useAuth } from '../auth/AuthContext'
+import { usePermissions } from '../contexts/PermissionsContext'
 
 // ── Module card definitions ───────────────────────────────────────────────────
 const ALL_MODULES = [
@@ -28,13 +29,22 @@ const ALL_MODULES = [
     access:   moduleAccess.meals,
     requiresPin: true,
   },
+  {
+    id:       'admin',
+    label:    'Administration',
+    sub:      'Users, roles & site access',
+    icon:     'admin_panel_settings',
+    color:    MODULE_COLORS.admin,
+    access:   moduleAccess.admin,
+  },
 ]
 
 export default function HomeLauncher({ onEnterModule }) {
   const { profile, signOut } = useAuth()
+  const { can } = usePermissions()
   const role = profile?.role
 
-  const visible = ALL_MODULES.filter(m => m.access(role))
+  const visible = ALL_MODULES.filter(m => m.access(role, can))
 
   return (
     <div style={{

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
 import { Card, Button, StatusBadge, showToast, fmtDate } from '../components/ui'
-import { can } from '../utils/permissions'
+import { usePermissions } from '../contexts/PermissionsContext'
 
 const REASON_LABELS = {
   count_mismatch:     'Count Mismatch',
@@ -14,6 +14,7 @@ const REASON_LABELS = {
 export default function Flags() {
   const { profile } = useAuth()
   const role = profile?.role
+  const { can } = usePermissions()
   const [flags, setFlags] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
@@ -185,7 +186,10 @@ export default function Flags() {
               </div>
 
               {/* Resolution */}
-              {selected.status === 'open' && can.resolveFlag(role) && (
+              {/* meals.approve: matches old resolveFlag (super_admin, approver) —
+                  narrower for Camp Supervisor under the approved matrix, same
+                  pattern used throughout this swap. */}
+              {selected.status === 'open' && can('meals.approve') && (
                 <>
                   <div style={{ marginBottom: '12px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', color: '#4a5568', marginBottom: '5px' }}>

@@ -76,7 +76,7 @@ export function CampsiteProvider({ children }) {
       let txnsData = []
       if (itemIds.length > 0) {
         const txRes = await supabase.from('camp_supply_txns')
-          .select('*, item:camp_supply_items(id,name,unit), recorded_by_profile:profiles(full_name)')
+          .select('*, item:camp_supply_items(id,name,unit), recorded_by_profile:profiles(full_name), issued_to_employee:employees(id,name)')
           .in('item_id', itemIds)
           .order('txn_date', { ascending: false })
           .order('created_at', { ascending: false })
@@ -320,21 +320,77 @@ export function CampsiteProvider({ children }) {
     await fetchAll()
   }
 
-  async function recordSupplyTxn({ itemId, txnType, quantity, reference, notes, recordedBy, txnDate }) {
+  async function recordSupplyTxn({ itemId, txnType, quantity, reference, notes, recordedBy, txnDate, issuedToEmployeeId, issuedToText }) {
     if (txnType === 'issue') {
       const item = supplies.find(s => s.id === itemId)
       if (item && parseFloat(item.balance) < parseFloat(quantity))
         throw new Error(`Insufficient stock. Balance: ${item.balance} ${item.unit}`)
     }
     const { error } = await supabase.from('camp_supply_txns').insert({
-      item_id:     itemId,
-      txn_type:    txnType,
-      quantity:    parseFloat(quantity),
-      reference:   reference || null,
-      notes:       notes     || null,
-      txn_date:    txnDate   || new Date().toISOString().slice(0, 10),
-      recorded_by: recordedBy || null,
+      item_id:               itemId,
+      txn_type:              txnType,
+      quantity:               parseFloat(quantity),
+      reference:              reference || null,
+      notes:                  notes     || null,
+      txn_date:               txnDate   || new Date().toISOString().slice(0, 10),
+      recorded_by:            recordedBy || null,
+      // Recipient only makes sense for an issue — who the stock went to,
+      // as distinct from recorded_by (the staff member who handed it out).
+      // Either a real employee or a free-text recipient like "Kitchen".
+      issued_to_employee_id: txnType === 'issue' ? (issuedToEmployeeId || null) : null,
+      issued_to_text:        txnType === 'issue' ? (issuedToText || null) : null,
     })
+    if (error) throw error
+    await fetchAll()
+  }
+
+  // Would changing this transaction's quantity (or removing it entirely)
+  // push the item's balance negative? Same protective principle as
+  // blocking deletion of the last System Administrator — don't let an
+  // edit or delete silently corrupt a number that's depended on elsewhere.
+  function wouldGoNegative(txn, newQuantity) {
+    const item = supplies.find(s => s.id === txn.item_id)
+    if (!item) return false
+    const currentBalance = parseFloat(item.balance)
+    const oldQty = parseFloat(txn.quantity)
+    const newQty = newQuantity == null ? 0 : parseFloat(newQuantity) // null = deletion
+    // A 'receive' adds to balance; removing/shrinking one subtracts.
+    // An 'issue' subtracts from balance; removing/shrinking one adds back.
+    const delta = txn.txn_type === 'receive' ? (newQty - oldQty) : (oldQty - newQty)
+    return currentBalance + delta < 0
+  }
+
+  async function updateSupplyTxn({ txnId, quantity, reference, notes, txnDate, issuedToEmployeeId, issuedToText, updatedBy }) {
+    const txn = supplyTxns.find(t => t.id === txnId)
+    if (!txn) throw new Error('Transaction not found')
+
+    if (wouldGoNegative(txn, quantity)) {
+      throw new Error('This change would push stock below zero. Check the new quantity against current balance.')
+    }
+
+    const { error } = await supabase.from('camp_supply_txns').update({
+      quantity:               parseFloat(quantity),
+      reference:              reference || null,
+      notes:                  notes     || null,
+      txn_date:               txnDate   || txn.txn_date,
+      issued_to_employee_id: txn.txn_type === 'issue' ? (issuedToEmployeeId || null) : null,
+      issued_to_text:        txn.txn_type === 'issue' ? (issuedToText || null) : null,
+      updated_by:             updatedBy || null,
+      updated_at:             new Date().toISOString(),
+    }).eq('id', txnId)
+    if (error) throw error
+    await fetchAll()
+  }
+
+  async function deleteSupplyTxn(txnId) {
+    const txn = supplyTxns.find(t => t.id === txnId)
+    if (!txn) throw new Error('Transaction not found')
+
+    if (wouldGoNegative(txn, null)) {
+      throw new Error('Cannot delete — this transaction is part of the stock history other balances depend on. Removing it would push stock below zero.')
+    }
+
+    const { error } = await supabase.from('camp_supply_txns').delete().eq('id', txnId)
     if (error) throw error
     await fetchAll()
   }
@@ -349,7 +405,7 @@ export function CampsiteProvider({ children }) {
       assignRoom, transferRoom, releaseRoom,
       addVisitor,
       setLeaveStatus, returnFromLeave,
-      addSupplyItem, recordSupplyTxn,
+      addSupplyItem, recordSupplyTxn, updateSupplyTxn, deleteSupplyTxn,
       refresh: fetchAll,
     }}>
       {children}

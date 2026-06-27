@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext'
 import { THEME, ROLE_LABELS, MODULE_COLORS } from '../utils/permissions'
 import { supabase } from '../supabaseClient'
 import SiteSwitcher from './SiteSwitcher'
+import { ThemeToggle } from './ui'
 
 const Icon = ({ name, size = 20, filled = false, style = {} }) => (
   <span
@@ -229,7 +230,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
           borderBottom: `1px solid ${THEME.outlineVar}`,
           padding: '0 16px', height: '60px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,.05)',
+          flexShrink: 0, boxShadow: THEME.shadow1,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button onClick={() => setCollapsed(c => !c)} style={{
@@ -261,6 +262,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <SiteSwitcher />
+            <ThemeToggle size="sm" />
             <div style={{
               display: 'flex', alignItems: 'center', gap: '5px',
               padding: '5px 12px', borderRadius: '20px',
@@ -274,7 +276,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
               <div onClick={() => setPage('meals_flags')} style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
                 padding: '5px 12px', borderRadius: '20px',
-                background: '#FDECEA', border: '1px solid #F5C6C4',
+                background: THEME.statusErrorBg, border: `1px solid ${THEME.error}55`,
                 fontSize: '12px', fontWeight: 600, color: THEME.error, cursor: 'pointer',
               }}>
                 <Icon name="flag" size={13} style={{ color: THEME.error }} />

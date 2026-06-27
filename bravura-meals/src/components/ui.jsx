@@ -190,6 +190,11 @@ export function StatusBadge({ status }) {
     submitted: { bg: THEME.surfaceVar, color: THEME.primary, label: 'Submitted' },
     approved:  { bg: '#E8F5E9', color: '#1B5E20', label: 'Approved' },
     queried:   { bg: '#FDECEA', color: THEME.error, label: 'Queried' },
+    // Stock transfer workflow states
+    pending:    { bg: '#FFF8E1', color: '#7D5700', label: 'Pending' },
+    in_transit: { bg: THEME.surfaceVar, color: THEME.info, label: 'In Transit' },
+    completed:  { bg: '#E8F5E9', color: '#1B5E20', label: 'Completed' },
+    cancelled:  { bg: '#F5F5F5', color: '#757575', label: 'Cancelled' },
     open:      { bg: '#FDECEA', color: THEME.error, label: 'Open' },
     resolved:  { bg: '#E8F5E9', color: '#1B5E20', label: 'Resolved' },
     dismissed: { bg: '#F5F5F5', color: '#757575', label: 'Dismissed' },

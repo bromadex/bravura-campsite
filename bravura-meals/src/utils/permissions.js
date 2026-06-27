@@ -1,34 +1,85 @@
-// ─── MD3 Bravura Theme ────────────────────────────────────────────────────────
+// ─── Bravura Design System ──────────────────────────────────────────────────
+// Colour values below are CSS variable references, not literal hex codes —
+// defined for both light and dark in index.html, anchored to the real logo
+// colour (#982329, sampled directly from the logo file) rather than picked
+// by eye. Every existing page that already does `background: THEME.primary`
+// etc. becomes theme-aware automatically through this one change, with zero
+// changes needed to the pages themselves — the browser resolves the CSS
+// variable to whichever theme is currently active via the data-theme
+// attribute on <html>.
 export const THEME = {
-  primary:      '#9C2A2A',
-  primaryDark:  '#7B1A1A',
-  primaryLight: '#C0504D',
-  onPrimary:    '#FFFFFF',
-  surface:      '#FFFBFA',
-  surfaceVar:   '#F5EDEE',
-  outline:      '#D4B8B8',
-  outlineVar:   '#ECD8D8',
-  sidebar:      '#2D1515',
-  sidebarMid:   '#3D1E1E',
-  activeBar:    '#F4A896',
-  bg:           '#FAF5F5',
-  text:         '#1C0A0A',
-  textMed:      '#5C3C3C',
-  textLow:      '#9E8080',
-  error:        '#B3261E',
-  success:      '#386A20',
-  warning:      '#7D5700',
-  info:         '#1558A6',
-  breakfastClr: '#BF5400',
-  lunchClr:     '#1A6B52',
-  supperClr:    '#4A3C8C',
+  primary:      'var(--color-primary)',
+  primaryDark:  'var(--color-primary-dark)',
+  primaryLight: 'var(--color-primary-light)',
+  primaryHover: 'var(--color-primary-hover)',
+  onPrimary:    'var(--color-on-primary)',
+  accent:       'var(--color-accent)',
+  accentDark:   'var(--color-accent-dark)',
+  accentLight:  'var(--color-accent-light)',
+  surface:      'var(--color-surface)',
+  surfaceVar:   'var(--color-surface-variant)',
+  surfaceHover: 'var(--color-surface-hover)',
+  outline:      'var(--color-outline)',
+  outlineVar:   'var(--color-outline-variant)',
+  sidebar:      'var(--color-sidebar)',
+  sidebarMid:   'var(--color-sidebar-mid)',
+  activeBar:    'var(--color-active-bar)',
+  bg:           'var(--color-bg)',
+  text:         'var(--color-text)',
+  textMed:      'var(--color-text-medium)',
+  textLow:      'var(--color-text-low)',
+  error:        'var(--color-error)',
+  success:      'var(--color-success)',
+  warning:      'var(--color-warning)',
+  info:         'var(--color-info)',
+  breakfastClr: 'var(--color-breakfast)',
+  lunchClr:     'var(--color-lunch)',
+  supperClr:    'var(--color-supper)',
+  // Semantic status tint pairs — used by StatusBadge and anywhere else that
+  // needs a "soft background + matching text" treatment. Six reusable pairs
+  // instead of nine-plus ad-hoc hex combinations repeated per status value.
+  statusSuccessBg:   'var(--status-success-bg)',   statusSuccessText:   'var(--status-success-text)',
+  statusWarningBg:   'var(--status-warning-bg)',   statusWarningText:   'var(--status-warning-text)',
+  statusErrorBg:     'var(--status-error-bg)',     statusErrorText:     'var(--status-error-text)',
+  statusNeutralBg:   'var(--status-neutral-bg)',   statusNeutralText:   'var(--status-neutral-text)',
+  statusInfoBg:      'var(--status-info-bg)',      statusInfoText:      'var(--status-info-text)',
+  statusTertiaryBg:  'var(--status-tertiary-bg)',  statusTertiaryText:  'var(--status-tertiary-text)',
+  shadow1: 'var(--shadow-1)',
+  shadow2: 'var(--shadow-2)',
+  shadow3: 'var(--shadow-3)',
+}
+
+// ─── Spacing scale — 4px base unit, standard across the app ──────────────────
+// Theme-independent (spacing doesn't change between light/dark), so these
+// are plain values, not CSS variables. Established now for Phase C to
+// consume page by page — not yet retrofitted into every existing inline
+// style, which would be the page-by-page work itself, not the foundation.
+export const SPACING = {
+  xs: '4px', sm: '8px', md: '12px', lg: '16px',
+  xl: '20px', xxl: '24px', xxxl: '32px',
+}
+
+// ─── Border radius scale ──────────────────────────────────────────────────────
+export const RADIUS = {
+  sm: '8px', md: '12px', lg: '16px', xl: '20px', pill: '999px',
+}
+
+// ─── Typography scale ─────────────────────────────────────────────────────────
+export const TYPE = {
+  fontFamily: "'Google Sans', 'Segoe UI', Arial, sans-serif",
+  xs: { size: '11px', weight: 500 },
+  sm: { size: '13px', weight: 500 },
+  base: { size: '14px', weight: 400 },
+  lg: { size: '16px', weight: 500 },
+  title: { size: '22px', weight: 400 },
+  display: { size: '28px', weight: 300 },
 }
 
 // ─── Module accent colours (match dashboard card style) ───────────────────────
 export const MODULE_COLORS = {
   workforce: '#E07B39',  // warm orange  – HR/people feel
   campsite:  '#2A9D8F',  // teal         – outdoors/camp
-  meals:     '#9C2A2A',  // maroon       – food/dining
+  meals:     '#982329',  // maroon       – food/dining, matches the real logo anchor colour
   admin:     '#5C6BC0',  // indigo       – system/administration, distinct from the 3 business modules
 }
 

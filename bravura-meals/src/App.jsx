@@ -34,6 +34,7 @@ import Billing        from './pages/Billing'
 import Pricing        from './pages/Pricing'
 import Settings       from './pages/Settings'
 import UserManagement from './pages/admin/UserManagement'
+import AuditLogViewer from './pages/admin/AuditLogViewer'
 
 // ── Module configs ────────────────────────────────────────────────────────────
 const MODULE_META = {
@@ -123,6 +124,11 @@ function getMealsPage(page, role, setPage, can) {
 function getAdminPage(page, can) {
   switch (page) {
     case 'admin_users': return can('users.view') ? <UserManagement /> : null
+    // Reusing users.view as the trust-tier gate here too — there's no
+    // dedicated audit permission yet, and "who can see user accounts" is
+    // the same trust level as "who can see the system's full change
+    // history." Same proxy pattern already used for Meals Settings.
+    case 'admin_audit':  return can('users.view') ? <AuditLogViewer /> : null
     default:             return can('users.view') ? <UserManagement /> : null
   }
 }

@@ -110,6 +110,7 @@ export function campsiteNav(role) {
     { id: 'camp_rooms',       label: 'Rooms',            section: 'Management',  icon: 'meeting_room' },
     { id: 'camp_blocks',      label: 'Blocks',           section: 'Management',  icon: 'domain' },
     { id: 'camp_supplies',    label: 'Camp Supplies',    section: 'Management',  icon: 'inventory_2' },
+    { id: 'camp_transfers',   label: 'Stock Transfers',  section: 'Management',  icon: 'sync_alt' },
     { id: 'camp_occ_report',  label: 'Occupancy Reports',section: 'Reports',     icon: 'analytics' },
   ]
 }

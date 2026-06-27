@@ -20,11 +20,11 @@ function PrintHeader({ title, subtitle }) {
         <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.primary }}>
           Bravura Zimbabwe Ltd — Kamativi Mine Site
         </div>
-        <div style={{ fontSize: '13px', color: '#555', marginTop: '2px' }}>Meal Management System</div>
+        <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '2px' }}>Meal Management System</div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div style={{ fontSize: '16px', fontWeight: 600 }}>{title}</div>
-        <div style={{ fontSize: '12px', color: '#555' }}>
+        <div style={{ fontSize: '12px', color: THEME.textMed }}>
           {subtitle} &nbsp;|&nbsp; Printed: {new Date().toLocaleString('en-GB')}
         </div>
       </div>
@@ -250,7 +250,7 @@ export function DailyReport() {
       </div>
 
       {/* Table — no overflow:hidden wrapper */}
-      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: '#fff' }}>
+      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
         {loading
           ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
           : <ReportTable rows={rows} showCosts={showCosts} prices={prices} contractors={contractors} />
@@ -350,7 +350,7 @@ export function RangeReport() {
         <StatCard label="Grand Total"      value={totB+totL+totS} color={THEME.primary} icon="groups" />
       </div>
 
-      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: '#fff' }}>
+      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
         {loading
           ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
           : <ReportTable rows={rows} isRange contractors={contractors} />
@@ -464,7 +464,7 @@ export function MonthlyReport() {
         <StatCard label="Grand Total" value={totB+totL+totS} color={THEME.primary} icon="groups" />
       </div>
 
-      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: '#fff' }}>
+      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
         {loading
           ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
           : <ReportTable rows={rows} isRange contractors={contractors} />

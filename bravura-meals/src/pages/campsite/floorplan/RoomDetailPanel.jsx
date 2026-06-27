@@ -8,12 +8,13 @@ import { useCampsite } from '../../../contexts/CampsiteContext'
 // Two tabs: Quick View (read-only info) and Occupants (assign/move/remove)
 export default function RoomDetailPanel({ room, onClose, profile }) {
   const {
-    rooms, assignments, employees, contractors, visitors,
+    rooms, beds, assignments, employees, contractors, visitors,
     assignRoom, transferRoom, releaseRoom, setMaintenance, addVisitor,
   } = useCampsite()
 
   const [tab, setTab] = useState('quick') // quick | occupants
   const [assignModal, setAssignModal] = useState(false)
+  const [assignBedId, setAssignBedId] = useState('') // which bed this assignment targets
   const [occupantType, setOccupantType] = useState('employee')
   const [pickedId, setPickedId] = useState('')
   const [expectedCheckout, setExpectedCheckout] = useState('')
@@ -26,6 +27,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
 
   const [transferTarget, setTransferTarget] = useState(null) // assignment being moved
   const [transferRoomId, setTransferRoomId] = useState('')
+  const [transferBedId, setTransferBedId] = useState('')
   const [removeTarget, setRemoveTarget] = useState(null)
 
   if (!room) return null
@@ -34,7 +36,12 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
   const colors = ROOM_STATUS_COLORS[status]
   const activeOccupants = assignments.filter(a => a.room_id === room.id && a.status === 'active')
   const occ = activeOccupants.length
-  const pct = room.capacity > 0 ? Math.round((occ / room.capacity) * 100) : 0
+  // Beds are now the real source of truth for capacity — room.capacity is
+  // kept in sync with bed count by addRoom/updateRoom, but reading the
+  // actual bed rows here is more directly correct than trusting a number.
+  const roomBeds = beds.filter(b => b.room_id === room.id).sort((a, b) => (parseInt(a.bed_number)||0) - (parseInt(b.bed_number)||0))
+  const availableBeds = roomBeds.filter(b => b.status === 'available')
+  const pct = roomBeds.length > 0 ? Math.round((occ / roomBeds.length) * 100) : 0
 
   // People not currently assigned anywhere (eligible for this room)
   const assignedEmpIds = new Set(assignments.filter(a => a.status === 'active' && a.employee_id).map(a => a.employee_id))
@@ -51,6 +58,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
     try {
       await assignRoom({
         roomId: room.id,
+        bedId: assignBedId || null,
         employeeId: occupantType === 'employee' ? pickedId : null,
         visitorId:  occupantType === 'visitor'  ? pickedId : null,
         occupantType,
@@ -58,7 +66,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
         assignedBy: profile?.id,
       })
       showToast('Assigned successfully', 'green')
-      setAssignModal(false); setPickedId(''); setExpectedCheckout('')
+      setAssignModal(false); setPickedId(''); setExpectedCheckout(''); setAssignBedId('')
     } catch (err) {
       showToast(err.message, 'red')
     } finally {
@@ -78,13 +86,14 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
       })
       await assignRoom({
         roomId: room.id,
+        bedId: assignBedId || null,
         visitorId: created.id,
         occupantType: 'visitor',
         expectedCheckout: expectedCheckout || null,
         assignedBy: profile?.id,
       })
       showToast(`${created.name} added and assigned`, 'green')
-      setAssignModal(false); setShowNewVisitor(false)
+      setAssignModal(false); setShowNewVisitor(false); setAssignBedId('')
       setNewVisitor({ name: '', phone: '', purpose: '', gender: '' })
     } catch (err) {
       showToast(err.message, 'red')
@@ -97,9 +106,9 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
     if (!transferRoomId) { showToast('Select target room', 'red'); return }
     setSaving(true)
     try {
-      await transferRoom({ assignmentId: transferTarget.id, newRoomId: transferRoomId, assignedBy: profile?.id })
+      await transferRoom({ assignmentId: transferTarget.id, newRoomId: transferRoomId, newBedId: transferBedId || null, assignedBy: profile?.id })
       showToast('Occupant moved', 'green')
-      setTransferTarget(null); setTransferRoomId('')
+      setTransferTarget(null); setTransferRoomId(''); setTransferBedId('')
     } catch (err) {
       showToast(err.message, 'red')
     } finally {
@@ -120,12 +129,11 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
     }
   }
 
-  // Rooms with free space, excluding this one — for transfer target picker
+  // Rooms with at least one free bed, excluding this one — for transfer target picker
   function availableTargetRooms(excludeRoomId) {
     return rooms.filter(r => {
       if (r.id === excludeRoomId || r.is_maintenance) return false
-      const o = assignments.filter(a => a.room_id === r.id && a.status === 'active').length
-      return o < r.capacity
+      return beds.some(b => b.room_id === r.id && b.status === 'available')
     })
   }
 
@@ -177,7 +185,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
         {tab === 'quick' ? (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
-              <StatBox label="Capacity"   value={room.capacity} icon="bed" />
+              <StatBox label="Capacity"   value={roomBeds.length} icon="bed" />
               <StatBox label="Occupied"   value={occ} icon="groups" />
               <StatBox label="Occupancy"  value={`${pct}%`} icon="percent" />
               <StatBox label="Gender"     value={roomGender ? (roomGender === 'male' ? 'Male' : 'Female') : 'Unset'} icon={roomGender === 'female' ? 'woman' : 'man'} />
@@ -213,8 +221,8 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
             )}
 
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {occ < room.capacity && !room.is_maintenance && (
-                <Button onClick={() => setAssignModal(true)} variant="filled" icon="person_add">Assign Occupant</Button>
+              {availableBeds.length > 0 && !room.is_maintenance && (
+                <Button onClick={() => { setAssignBedId(availableBeds[0]?.id || ''); setAssignModal(true) }} variant="filled" icon="person_add">Assign Occupant</Button>
               )}
               <Button
                 onClick={async () => {
@@ -230,57 +238,79 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
           </>
         ) : (
           <>
-            {activeOccupants.length === 0 ? (
+            {roomBeds.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px 0', color: THEME.textLow }}>
                 <Icon name="bed" size={36} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
-                No occupants yet
+                No beds set up for this room yet
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {activeOccupants.map(a => {
-                  const person = a.employee || a.visitor
+                {roomBeds.map(bed => {
+                  const a = activeOccupants.find(x => x.bed_id === bed.id)
+                  const person = a?.employee || a?.visitor
                   return (
-                    <div key={a.id} style={{ border: `1px solid ${THEME.outlineVar}`, borderRadius: '12px', padding: '12px' }}>
+                    <div key={bed.id} style={{ border: `1px solid ${THEME.outlineVar}`, borderRadius: '12px', padding: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: '14px', color: THEME.text }}>{person?.name || 'Unknown'}</div>
-                          <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '1px' }}>
-                            {a.occupant_type === 'visitor' ? 'Visitor' : (a.employee?.contractor?.name || 'Employee')}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            width: '26px', height: '26px', borderRadius: '8px', flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '11px', fontWeight: 700, color: '#fff',
+                            background: bed.status === 'maintenance' ? THEME.warning : (a ? THEME.primary : THEME.outline),
+                          }}>
+                            {bed.bed_number}
+                          </span>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '14px', color: THEME.text }}>
+                              {person?.name || (bed.status === 'maintenance' ? 'Under maintenance' : 'Available')}
+                            </div>
+                            {a && (
+                              <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '1px' }}>
+                                {a.occupant_type === 'visitor' ? 'Visitor' : (a.employee?.contractor?.name || 'Employee')}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary }}>
-                          {a.occupant_type === 'visitor' ? 'VISITOR' : 'STAFF'}
-                        </span>
+                        {a && (
+                          <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary }}>
+                            {a.occupant_type === 'visitor' ? 'VISITOR' : 'STAFF'}
+                          </span>
+                        )}
                       </div>
-                      <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '8px' }}>
-                        Check-in: {fmtDate(a.assigned_date)}
-                        {a.expected_checkout && <> · Expected out: {fmtDate(a.expected_checkout)}</>}
-                      </div>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button onClick={() => setTransferTarget(a)} style={{ flex: 1, padding: '6px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          <Icon name="swap_horiz" size={13} style={{ color: THEME.info }} /> Move
+
+                      {a ? (
+                        <>
+                          <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '8px' }}>
+                            Check-in: {fmtDate(a.assigned_date)}
+                            {a.expected_checkout && <> · Expected out: {fmtDate(a.expected_checkout)}</>}
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button onClick={() => { setTransferTarget(a); setTransferRoomId(''); setTransferBedId('') }} style={{ flex: 1, padding: '6px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                              <Icon name="swap_horiz" size={13} style={{ color: THEME.info }} /> Move
+                            </button>
+                            <button onClick={() => setRemoveTarget(a)} style={{ flex: 1, padding: '6px', border: '1px solid #f5b8b8', borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                              <Icon name="person_remove" size={13} style={{ color: THEME.error }} /> Remove
+                            </button>
+                          </div>
+                        </>
+                      ) : bed.status === 'available' && !room.is_maintenance ? (
+                        <button onClick={() => { setAssignBedId(bed.id); setAssignModal(true) }} style={{ width: '100%', padding: '7px', border: `1px solid ${THEME.primary}`, borderRadius: '8px', background: THEME.surfaceVar, cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: THEME.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                          <Icon name="person_add" size={14} style={{ color: THEME.primary }} /> Assign to Bed {bed.bed_number}
                         </button>
-                        <button onClick={() => setRemoveTarget(a)} style={{ flex: 1, padding: '6px', border: '1px solid #f5b8b8', borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          <Icon name="person_remove" size={13} style={{ color: THEME.error }} /> Remove
-                        </button>
-                      </div>
+                      ) : (
+                        <div style={{ fontSize: '12px', color: THEME.textLow }}>Not available for assignment</div>
+                      )}
                     </div>
                   )
                 })}
               </div>
-            )}
-
-            {occ < room.capacity && !room.is_maintenance && (
-              <Button onClick={() => setAssignModal(true)} variant="filled" icon="person_add" style={{ width: '100%', marginTop: '14px', justifyContent: 'center' }}>
-                Add Occupant
-              </Button>
             )}
           </>
         )}
       </div>
 
       {/* ── Assign Modal ── */}
-      <Modal open={assignModal} onClose={() => setAssignModal(false)} title={`Assign to Room ${room.room_number}`}
+      <Modal open={assignModal} onClose={() => { setAssignModal(false); setAssignBedId('') }} title={`Assign to Room ${room.room_number}`}
         footer={<>
           <Button onClick={() => setAssignModal(false)} variant="text">Cancel</Button>
           <Button
@@ -291,6 +321,24 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
             {saving || creatingVisitor ? 'Assigning…' : 'Assign'}
           </Button>
         </>}>
+        <div style={{ marginBottom: '14px' }}>
+          <SectionLabel>Bed</SectionLabel>
+          {availableBeds.length === 0 ? (
+            <div style={{ padding: '10px 12px', background: '#FDECEA', borderRadius: '10px', fontSize: '13px', color: THEME.error }}>
+              No free beds in this room.
+            </div>
+          ) : availableBeds.length === 1 ? (
+            <div style={{ padding: '9px 12px', background: THEME.surfaceVar, borderRadius: '10px', fontSize: '13px', color: THEME.text }}>
+              Bed {availableBeds[0].bed_number} (only free bed)
+            </div>
+          ) : (
+            <select value={assignBedId} onChange={e => setAssignBedId(e.target.value)}
+              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}>
+              {availableBeds.map(b => <option key={b.id} value={b.id}>Bed {b.bed_number}</option>)}
+            </select>
+          )}
+        </div>
+
         <div style={{ marginBottom: '14px' }}>
           <SectionLabel>Occupant Type</SectionLabel>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -376,20 +424,46 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
       </Modal>
 
       {/* ── Transfer Modal ── */}
-      <Modal open={!!transferTarget} onClose={() => setTransferTarget(null)} title={`Move ${transferTarget?.employee?.name || transferTarget?.visitor?.name}`}
+      <Modal open={!!transferTarget} onClose={() => { setTransferTarget(null); setTransferBedId('') }} title={`Move ${transferTarget?.employee?.name || transferTarget?.visitor?.name}`}
         footer={<>
-          <Button onClick={() => setTransferTarget(null)} variant="text">Cancel</Button>
+          <Button onClick={() => { setTransferTarget(null); setTransferBedId('') }} variant="text">Cancel</Button>
           <Button onClick={doTransfer} variant="filled" disabled={saving}>{saving ? 'Moving…' : 'Move'}</Button>
         </>}>
-        <SectionLabel>Target Room</SectionLabel>
-        <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
-          style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}>
-          <option value="">— Select room —</option>
-          {availableTargetRooms(room.id).map(r => {
-            const o = assignments.filter(a => a.room_id === r.id && a.status === 'active').length
-            return <option key={r.id} value={r.id}>{r.block?.name} — Room {r.room_number} ({o}/{r.capacity})</option>
-          })}
-        </select>
+        <div style={{ marginBottom: '14px' }}>
+          <SectionLabel>Target Room</SectionLabel>
+          <select value={transferRoomId} onChange={e => {
+            setTransferRoomId(e.target.value)
+            const freeBeds = beds.filter(b => b.room_id === e.target.value && b.status === 'available')
+            setTransferBedId(freeBeds[0]?.id || '')
+          }}
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}>
+            <option value="">— Select room —</option>
+            {availableTargetRooms(room.id).map(r => {
+              const free = beds.filter(b => b.room_id === r.id && b.status === 'available').length
+              const total = beds.filter(b => b.room_id === r.id).length
+              return <option key={r.id} value={r.id}>{r.block?.name} — Room {r.room_number} ({total - free}/{total})</option>
+            })}
+          </select>
+        </div>
+
+        {transferRoomId && (() => {
+          const targetFreeBeds = beds.filter(b => b.room_id === transferRoomId && b.status === 'available')
+          return (
+            <div>
+              <SectionLabel>Target Bed</SectionLabel>
+              {targetFreeBeds.length <= 1 ? (
+                <div style={{ padding: '9px 12px', background: THEME.surfaceVar, borderRadius: '10px', fontSize: '13px', color: THEME.text }}>
+                  {targetFreeBeds[0] ? `Bed ${targetFreeBeds[0].bed_number} (only free bed)` : 'No free beds'}
+                </div>
+              ) : (
+                <select value={transferBedId} onChange={e => setTransferBedId(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}>
+                  {targetFreeBeds.map(b => <option key={b.id} value={b.id}>Bed {b.bed_number}</option>)}
+                </select>
+              )}
+            </div>
+          )
+        })()}
       </Modal>
 
       {/* ── Remove Confirm ── */}

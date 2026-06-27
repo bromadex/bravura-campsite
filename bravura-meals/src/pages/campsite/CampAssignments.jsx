@@ -8,7 +8,7 @@ const tabs = ['Active', 'History', 'On Leave']
 
 export default function CampAssignments() {
   const { profile } = useAuth()
-  const { rooms, blocks, employees, assignments, setLeaveStatus, returnFromLeave,
+  const { rooms, blocks, employees, assignments, returnFromLeave,
           assignRoom, transferRoom, releaseRoom, loading } = useCampsite()
 
   const [tab,        setTab]        = useState('Active')
@@ -31,15 +31,10 @@ export default function CampAssignments() {
   const [releaseTarget, setReleaseTarget] = useState(null)
   const [releaseNotes,  setReleaseNotes]  = useState('')
 
-  // Leave modal
-  const [leaveModal,  setLeaveModal]  = useState(false)
-  const [leaveTarget, setLeaveTarget] = useState(null) // employee
-  const [leaveForm,   setLeaveForm]   = useState({ type: 'short_leave', start: '', end: '', notes: '' })
-
   // --- Filtered data ---
   const activeAssignments = assignments.filter(a => a.status === 'active')
   const historyAssignments = assignments.filter(a => a.status !== 'active')
-  const onLeaveEmployees   = employees.filter(e => e.leave_status !== 'active')
+  const onLeaveEmployees   = employees.filter(e => e.status === 'on_leave' || e.status === 'long_leave')
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -114,25 +109,20 @@ export default function CampAssignments() {
     finally { setSaving(false) }
   }
 
-  async function doSetLeave() {
-    if (!leaveForm.start) { showToast('Start date required', 'red'); return }
-    setSaving(true)
-    try {
-      await setLeaveStatus({ employeeId: leaveTarget.id, leaveStatus: leaveForm.type, startDate: leaveForm.start, endDate: leaveForm.end, notes: leaveForm.notes })
-      showToast(`${leaveTarget.name} set to ${leaveForm.type === 'short_leave' ? 'Short Leave' : 'Long Leave'}`, 'green')
-      setLeaveModal(false); setLeaveTarget(null)
-    } catch (err) { showToast(err.message, 'red') }
-    finally { setSaving(false) }
-  }
-
+  // Setting leave is handled on the Workforce → Leave Management page now,
+  // which has the full category picker (Annual/Sick/Compassionate vs
+  // Maternity/Study/Extended Medical). Keeping a second, simpler copy of
+  // that same form here would mean two places to maintain in lockstep —
+  // this tab stays read-only plus a Return action, which is simple enough
+  // not to need its own page.
   async function doReturnFromLeave(emp) {
     try {
-      await returnFromLeave(emp.id)
+      await returnFromLeave(emp.id, profile?.id, emp.site_id)
       showToast(`${emp.name} returned from leave`, 'green')
     } catch (err) { showToast(err.message, 'red') }
   }
 
-  const leaveLabel = { short_leave: 'Short Leave', long_leave: 'Long Leave' }
+  const leaveLabel = { on_leave: 'On Leave', long_leave: 'Long Leave' }
 
   return (
     <div>
@@ -211,10 +201,6 @@ export default function CampAssignments() {
                               style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <Icon name="swap_horiz" size={14} style={{ color: THEME.info }} /> Transfer
                             </button>
-                            <button onClick={() => { setLeaveTarget(a.employee); setLeaveModal(true) }} title="Set leave"
-                              style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Icon name="flight_takeoff" size={14} style={{ color: THEME.warning }} /> Leave
-                            </button>
                             <button onClick={() => { setReleaseTarget(a); setReleaseNotes('') }} title="Release room"
                               style={{ padding: '4px 10px', border: `1px solid #f5b8b8`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <Icon name="logout" size={14} style={{ color: THEME.error }} /> Release
@@ -235,16 +221,16 @@ export default function CampAssignments() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
               <thead>
                 <tr style={{ background: THEME.primary, color: '#fff' }}>
-                  {['Employee','Contractor','Leave Type','Start','End','Notes','Actions'].map(h => (
+                  {['Employee','Contractor','Status','Actions'].map(h => (
                     <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No employees on leave</td></tr>
+                  <tr><td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No employees on leave</td></tr>
                 ) : filtered.map(emp => {
-                  const typeColor = emp.leave_status === 'short_leave' ? { bg: '#FFF8E1', c: '#7D5700' } : { bg: '#EDE7F6', c: '#4A3C8C' }
+                  const typeColor = emp.status === 'on_leave' ? { bg: '#FFF8E1', c: '#7D5700' } : { bg: '#EDE7F6', c: '#4A3C8C' }
                   return (
                     <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                       onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
@@ -253,12 +239,9 @@ export default function CampAssignments() {
                       <td style={{ padding: '11px 14px', color: THEME.textMed }}>{emp.contractor?.name || '—'}</td>
                       <td style={{ padding: '11px 14px' }}>
                         <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: typeColor.bg, color: typeColor.c }}>
-                          {leaveLabel[emp.leave_status]}
+                          {leaveLabel[emp.status]}
                         </span>
                       </td>
-                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{emp.leave_start ? fmtDate(emp.leave_start) : '—'}</td>
-                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{emp.leave_end   ? fmtDate(emp.leave_end)   : '—'}</td>
-                      <td style={{ padding: '11px 14px', color: THEME.textLow, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.leave_notes || '—'}</td>
                       <td style={{ padding: '11px 14px' }}>
                         <button onClick={() => doReturnFromLeave(emp)}
                           style={{ padding: '5px 12px', border: `1px solid ${THEME.success}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: 500, color: THEME.success, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -350,48 +333,6 @@ export default function CampAssignments() {
         <div>
           <SectionLabel>Notes</SectionLabel>
           <textarea value={releaseNotes} onChange={e => setReleaseNotes(e.target.value)} rows={2} placeholder="Reason for release…"
-            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
-        </div>
-      </Modal>
-
-      {/* ── Leave Modal ── */}
-      <Modal open={leaveModal} onClose={() => setLeaveModal(false)} title={`Set Leave — ${leaveTarget?.name}`}
-        footer={<>
-          <Button onClick={() => setLeaveModal(false)} variant="text">Cancel</Button>
-          <Button onClick={doSetLeave} variant="filled" disabled={saving}>{saving ? 'Saving…' : 'Set Leave'}</Button>
-        </>}>
-        <div style={{ marginBottom: '14px' }}>
-          <SectionLabel>Leave Type *</SectionLabel>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {[
-              { v: 'short_leave', l: 'Short Leave', note: 'Room is kept occupied' },
-              { v: 'long_leave',  l: 'Long Leave',  note: 'Room will be released automatically' },
-            ].map(opt => (
-              <label key={opt.v} style={{ flex: 1, padding: '12px', border: `2px solid ${leaveForm.type === opt.v ? THEME.primary : THEME.outline}`, borderRadius: '12px', cursor: 'pointer', background: leaveForm.type === opt.v ? THEME.surfaceVar : '#fff' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <input type="radio" name="leaveType" value={opt.v} checked={leaveForm.type === opt.v} onChange={e => setLeaveForm(f => ({ ...f, type: e.target.value }))} />
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{opt.l}</span>
-                </div>
-                <div style={{ fontSize: '11px', color: THEME.textLow }}>{opt.note}</div>
-              </label>
-            ))}
-          </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-          <div>
-            <SectionLabel>Start Date *</SectionLabel>
-            <input type="date" value={leaveForm.start} onChange={e => setLeaveForm(f => ({ ...f, start: e.target.value }))}
-              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
-          </div>
-          <div>
-            <SectionLabel>Expected Return</SectionLabel>
-            <input type="date" value={leaveForm.end} onChange={e => setLeaveForm(f => ({ ...f, end: e.target.value }))}
-              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
-          </div>
-        </div>
-        <div>
-          <SectionLabel>Notes</SectionLabel>
-          <textarea value={leaveForm.notes} onChange={e => setLeaveForm(f => ({ ...f, notes: e.target.value }))} rows={2}
             style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
         </div>
       </Modal>

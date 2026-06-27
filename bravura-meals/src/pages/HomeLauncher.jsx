@@ -1,6 +1,7 @@
 import { MODULE_COLORS, THEME, ROLE_LABELS, moduleAccess } from '../utils/permissions'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 // ── Module card definitions ───────────────────────────────────────────────────
 const ALL_MODULES = [
@@ -40,6 +41,7 @@ const ALL_MODULES = [
 
 export default function HomeLauncher({ onEnterModule }) {
   const { profile, signOut } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const { can } = usePermissions()
   const role = profile?.role
 
@@ -48,12 +50,12 @@ export default function HomeLauncher({ onEnterModule }) {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#F0F2F5',
+      background: THEME.bg,
       fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif",
     }}>
       {/* Top Bar */}
       <div style={{
-        background: THEME.primary,
+        background: THEME.sidebarMid,
         padding: '0 20px',
         height: '56px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -79,6 +81,25 @@ export default function HomeLauncher({ onEnterModule }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Theme toggle — styled to match the sign-out button beside it,
+              since this header sits on a dark maroon bar, not the lighter
+              surface the shared ThemeToggle component was built for. */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+            style={{
+              background: 'rgba(255,255,255,.12)', border: 'none', cursor: 'pointer',
+              borderRadius: '8px', width: '34px', height: '34px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', transition: 'background .15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.2)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.12)'}
+          >
+            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>
+              {theme === 'light' ? 'dark_mode' : 'light_mode'}
+            </span>
+          </button>
           {/* User avatar */}
           <div style={{
             width: '34px', height: '34px', borderRadius: '50%',
@@ -108,10 +129,10 @@ export default function HomeLauncher({ onEnterModule }) {
 
       {/* Welcome */}
       <div style={{ textAlign: 'center', padding: '40px 20px 28px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1A1A2E', margin: '0 0 6px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 700, color: THEME.text, margin: '0 0 6px' }}>
           Welcome, {profile?.full_name?.split(' ')[0] || profile?.username}
         </h1>
-        <p style={{ fontSize: '15px', color: '#6B7280', margin: 0 }}>
+        <p style={{ fontSize: '15px', color: THEME.textMed, margin: 0 }}>
           Select a module to get started
         </p>
       </div>
@@ -131,7 +152,7 @@ export default function HomeLauncher({ onEnterModule }) {
       </div>
 
       {/* Footer */}
-      <div style={{ textAlign: 'center', padding: '0 20px 24px', fontSize: '11px', color: '#9CA3AF' }}>
+      <div style={{ textAlign: 'center', padding: '0 20px 24px', fontSize: '11px', color: THEME.textLow }}>
         {ROLE_LABELS[role]} · Bravura Zimbabwe Ltd · Kamativi Mine Site
       </div>
     </div>
@@ -147,17 +168,15 @@ function ModuleCard({ mod, onClick }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: '#fff',
+        background: THEME.surface,
         borderRadius: '16px',
         padding: '24px 16px 20px',
         textAlign: 'center',
         cursor: 'pointer',
-        boxShadow: hovered
-          ? '0 8px 24px rgba(0,0,0,.12)'
-          : '0 1px 4px rgba(0,0,0,.08)',
+        boxShadow: hovered ? THEME.shadow2 : THEME.shadow1,
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
         transition: 'all .2s cubic-bezier(.4,0,.2,1)',
-        border: `1px solid ${hovered ? mod.color + '44' : '#E5E7EB'}`,
+        border: `1px solid ${hovered ? mod.color + '44' : THEME.outlineVar}`,
       }}
     >
       {/* Icon circle */}
@@ -177,10 +196,10 @@ function ModuleCard({ mod, onClick }) {
         </span>
       </div>
 
-      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1A1A2E', marginBottom: '4px', lineHeight: 1.3 }}>
+      <div style={{ fontSize: '14px', fontWeight: 700, color: THEME.text, marginBottom: '4px', lineHeight: 1.3 }}>
         {mod.label}
       </div>
-      <div style={{ fontSize: '11px', color: '#9CA3AF', lineHeight: 1.4 }}>
+      <div style={{ fontSize: '11px', color: THEME.textLow, lineHeight: 1.4 }}>
         {mod.sub}
       </div>
     </div>

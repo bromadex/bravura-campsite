@@ -156,7 +156,7 @@ export default function CampHeadcount() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {[
-              { label: 'Active on Site',   value: employees.filter(e => e.leave_status === 'active').length,      color: THEME.success,  icon: 'check_circle' },
+              { label: 'Active on Site',   value: employees.filter(e => e.status === 'active').length,            color: THEME.success,  icon: 'check_circle' },
               { label: 'Short Leave',      value: kpis.onShortLeave,                                              color: THEME.warning,  icon: 'schedule' },
               { label: 'Long Leave',       value: kpis.onLongLeave,                                               color: '#5E35B1',      icon: 'flight_takeoff' },
             ].map(row => (

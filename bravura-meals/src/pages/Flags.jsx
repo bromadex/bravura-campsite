@@ -184,7 +184,7 @@ export default function Flags() {
 
               <div style={{ marginBottom: '14px' }}>
                 <SectionLabel>Message from Kitchen</SectionLabel>
-                <div style={{ background: '#FFF8E1', borderRadius: '10px', padding: '12px', fontSize: '13px', lineHeight: 1.6, color: THEME.text }}>
+                <div style={{ background: THEME.statusWarningBg, borderRadius: '10px', padding: '12px', fontSize: '13px', lineHeight: 1.6, color: THEME.text }}>
                   {selected.message}
                 </div>
               </div>
@@ -249,7 +249,7 @@ export default function Flags() {
                 </>
               )}
               {selected.status !== 'open' && selected.resolution_note && (
-                <div style={{ background: '#E8F5E9', borderRadius: '10px', padding: '12px', fontSize: '13px' }}>
+                <div style={{ background: THEME.statusSuccessBg, borderRadius: '10px', padding: '12px', fontSize: '13px' }}>
                   <div style={{ fontWeight: 600, color: THEME.success, marginBottom: '4px' }}>Resolution note</div>
                   <div style={{ color: THEME.text }}>{selected.resolution_note}</div>
                 </div>

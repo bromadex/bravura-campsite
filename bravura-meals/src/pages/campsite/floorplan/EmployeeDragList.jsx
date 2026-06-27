@@ -32,7 +32,7 @@ export default function EmployeeDragList({ employees, contractors, assignments, 
       <div
         onClick={() => setCollapsed(false)}
         style={{
-          width: '40px', background: '#fff', borderRight: `1px solid ${THEME.outlineVar}`,
+          width: '40px', background: THEME.surface, borderRight: `1px solid ${THEME.outlineVar}`,
           display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '16px',
           cursor: 'pointer', gap: '8px',
         }}
@@ -47,7 +47,7 @@ export default function EmployeeDragList({ employees, contractors, assignments, 
 
   return (
     <div style={{
-      width: '260px', background: '#fff', borderRight: `1px solid ${THEME.outlineVar}`,
+      width: '260px', background: THEME.surface, borderRight: `1px solid ${THEME.outlineVar}`,
       display: 'flex', flexDirection: 'column', flexShrink: 0,
     }}>
       {/* Header */}
@@ -115,7 +115,7 @@ export default function EmployeeDragList({ employees, contractors, assignments, 
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 8px',
                   borderRadius: '10px', cursor: 'grab', marginBottom: '2px',
-                  border: `1px solid ${THEME.outlineVar}`, background: '#fff',
+                  border: `1px solid ${THEME.outlineVar}`, background: THEME.surface,
                   transition: 'background .15s',
                 }}
                 onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}

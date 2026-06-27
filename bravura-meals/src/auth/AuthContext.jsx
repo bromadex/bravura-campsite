@@ -14,29 +14,44 @@ export function AuthProvider({ children }) {
       .select('*')
       .eq('id', userId)
       .single()
+    if (error) {
+      // Surfaced clearly rather than silently leaving profile null forever
+      // — a transient failure here used to be indistinguishable from "not
+      // logged in" at all, which is the root of the refresh-to-login bug.
+      console.error('fetchProfile error:', error)
+    }
     if (!error && data) setProfile(data)
   }
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let mounted = true
+
+    async function init() {
+      // Awaited properly now — loading only becomes false once the profile
+      // has actually arrived (or definitively failed), never while it's
+      // still in flight. That in-between window was the actual bug: a
+      // valid session with a profile fetch that simply hadn't completed
+      // yet was being treated as "not authenticated."
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!mounted) return
       setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      setLoading(false)
-    })
+      if (session?.user) await fetchProfile(session.user.id)
+      if (mounted) setLoading(false)
+    }
+    init()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        await fetchProfile(session.user.id)
       } else {
         setProfile(null)
       }
-      setLoading(false)
+      if (mounted) setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => { mounted = false; subscription.unsubscribe() }
   }, [])
 
   async function signIn(email, password) {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { Card, Button, StatCard, showToast, fmtDate, today, MONTHS } from '../components/ui'
+import { THEME } from '../utils/permissions'
 
 export default function Billing() {
   const [tab,       setTab]       = useState('daily')
@@ -88,7 +89,7 @@ export default function Billing() {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           {tab === 'daily' && (
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Date</label>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Date</label>
               <input type="date" value={dailyDate} onChange={e => setDailyDate(e.target.value)}
                 style={{ padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }} />
             </div>
@@ -96,12 +97,12 @@ export default function Billing() {
           {tab === 'range' && (
             <>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>From</label>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>From</label>
                 <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)}
                   style={{ padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>To</label>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>To</label>
                 <input type="date" value={rangeEnd} onChange={e => setRangeEnd(e.target.value)}
                   style={{ padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }} />
               </div>
@@ -110,14 +111,14 @@ export default function Billing() {
           {tab === 'monthly' && (
             <>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Month</label>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Month</label>
                 <select value={month} onChange={e => setMonth(parseInt(e.target.value))}
                   style={{ padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}>
                   {MONTHS.map((m,i) => <option key={i} value={i}>{m}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Year</label>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Year</label>
                 <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} min="2020" max="2099"
                   style={{ width: '100px', padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }} />
               </div>
@@ -129,7 +130,7 @@ export default function Billing() {
       </Card>
 
       {loading ? (
-        <div style={{ color: '#888', padding: '40px', textAlign: 'center' }}>Calculating…</div>
+        <div style={{ color: THEME.textMed, padding: '40px', textAlign: 'center' }}>Calculating…</div>
       ) : !data ? null : (
         <>
           {/* Summary stats */}
@@ -138,20 +139,20 @@ export default function Billing() {
             <StatCard label="Lunches"    value={data.totals.l} color="#00897B" />
             <StatCard label="Suppers"    value={data.totals.s} color="#5E35B1" />
             <StatCard label="Total Meals" value={data.totals.b+data.totals.l+data.totals.s} color="#C00000" />
-            <StatCard label="Total Cost"  value={`$${data.totals.cost.toFixed(2)}`} color="#1F3864"
+            <StatCard label="Total Cost"  value={`$${data.totals.cost.toFixed(2)}`} color={THEME.primary}
               sub={tab !== 'daily' ? `${data.rows.length} day(s)` : ''} />
           </div>
 
           {/* Per-day table (range / monthly) */}
           {tab !== 'daily' && data.rows.length > 1 && (
             <Card style={{ marginBottom: '20px' }}>
-              <div style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.06em', color: '#888', marginBottom: '12px' }}>
+              <div style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.06em', color: THEME.textMed, marginBottom: '12px' }}>
                 Daily Breakdown
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{ background: '#1F3864', color: '#fff' }}>
+                    <tr style={{ background: THEME.primary, color: THEME.onPrimary }}>
                       <th style={{ padding: '8px 12px', textAlign: 'left' }}>Date</th>
                       <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
                       <th style={{ padding: '8px 12px', textAlign: 'center' }}>Breakfast</th>
@@ -178,13 +179,13 @@ export default function Billing() {
                         <td style={{ padding: '8px 12px', textAlign: 'center' }}>{row.lunch_count}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'center' }}>{row.supper_count}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700 }}>{row.total_meals}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#1F3864' }}>
+                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: THEME.primary }}>
                           ${parseFloat(row.total_cost_usd || 0).toFixed(2)}
                         </td>
                       </tr>
                     ))}
                     {/* Grand total row */}
-                    <tr style={{ background: '#1F3864', color: '#fff', fontWeight: 700 }}>
+                    <tr style={{ background: THEME.primary, color: THEME.onPrimary, fontWeight: 700 }}>
                       <td colSpan={2} style={{ padding: '10px 12px' }}>Grand Total</td>
                       <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.b}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.l}</td>
@@ -205,28 +206,28 @@ export default function Billing() {
             <Card>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
                 {[
-                  { label: 'Breakfast', count: data.rows[0].breakfast_count, price: data.rows[0].breakfast_usd, c: '#C55A11' },
-                  { label: 'Lunch',     count: data.rows[0].lunch_count,     price: data.rows[0].lunch_usd,     c: '#00897B' },
-                  { label: 'Supper',    count: data.rows[0].supper_count,    price: data.rows[0].supper_usd,    c: '#5E35B1' },
+                  { label: 'Breakfast', count: data.rows[0].breakfast_count, price: data.rows[0].breakfast_usd, c: THEME.breakfastClr },
+                  { label: 'Lunch',     count: data.rows[0].lunch_count,     price: data.rows[0].lunch_usd,     c: THEME.lunchClr },
+                  { label: 'Supper',    count: data.rows[0].supper_count,    price: data.rows[0].supper_usd,    c: THEME.supperClr },
                 ].map(x => (
-                  <div key={x.label} style={{ background: '#f4f6f9', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
+                  <div key={x.label} style={{ background: THEME.surfaceVar, borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
                     <div style={{ fontSize: '22px', fontWeight: 700, color: x.c }}>{x.count}</div>
-                    <div style={{ fontSize: '12px', color: '#888' }}>{x.label}</div>
-                    <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>@ ${Number(x.price).toFixed(2)} each</div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#1F3864', marginTop: '6px' }}>
+                    <div style={{ fontSize: '12px', color: THEME.textMed }}>{x.label}</div>
+                    <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>@ ${Number(x.price).toFixed(2)} each</div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: THEME.primary, marginTop: '6px' }}>
                       = ${(x.count * x.price).toFixed(2)}
                     </div>
                   </div>
                 ))}
               </div>
-              <div style={{ textAlign: 'right', marginTop: '16px', fontSize: '20px', fontWeight: 700, color: '#1F3864' }}>
+              <div style={{ textAlign: 'right', marginTop: '16px', fontSize: '20px', fontWeight: 700, color: THEME.primary }}>
                 Total: ${parseFloat(data.rows[0]?.total_cost_usd || 0).toFixed(2)}
               </div>
             </Card>
           )}
 
           {data.rows.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: THEME.textMed }}>
               No billing data found for the selected period.
             </div>
           )}

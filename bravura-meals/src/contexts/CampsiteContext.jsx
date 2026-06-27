@@ -10,6 +10,7 @@ export function CampsiteProvider({ children }) {
   const [blocks,      setBlocks]      = useState([])
   const [rooms,       setRooms]       = useState([])
   const [fixtures,    setFixtures]    = useState([])
+  const [beds,        setBeds]        = useState([])
   const [assignments, setAssignments] = useState([])
   const [employees,   setEmployees]   = useState([])
   const [contractors, setContractors] = useState([])
@@ -59,20 +60,27 @@ export function CampsiteProvider({ children }) {
         fixturesData = fxRes.data || []
       }
 
-      // Step 3: assignments depend on which rooms belong to this site —
-      // same empty-array guard as above.
-      let assignmentsData = []
+      // Step 3: assignments and beds both depend on which rooms belong to
+      // this site — same empty-array guard as above. Beds are fetched here
+      // (not alongside rooms in step 2) because they share the exact same
+      // dependency on roomIds that assignments does.
+      let assignmentsData = [], bedsData = []
       const roomIds = roomsData.map(r => r.id)
       if (roomIds.length > 0) {
-        const aRes = await supabase.from('room_assignments').select(`
-          *,
-          employee:employees(id, name, status, leave_status, gender, contractor_id,
-            contractor:contractors(id, name, short_code)),
-          visitor:camp_visitors(id, name, gender, phone, purpose),
-          room:camp_rooms(id, room_number, block_id, capacity,
-            block:camp_blocks(id, name))
-        `).in('room_id', roomIds).order('created_at', { ascending: false })
+        const [aRes, bedsRes] = await Promise.all([
+          supabase.from('room_assignments').select(`
+            *,
+            employee:employees(id, name, status, leave_status, gender, contractor_id,
+              contractor:contractors(id, name, short_code)),
+            visitor:camp_visitors(id, name, gender, phone, purpose),
+            room:camp_rooms(id, room_number, block_id, capacity,
+              block:camp_blocks(id, name)),
+            bed:beds(id, bed_number)
+          `).in('room_id', roomIds).order('created_at', { ascending: false }),
+          supabase.from('beds').select('*').in('room_id', roomIds).order('bed_number'),
+        ])
         assignmentsData = aRes.data || []
+        bedsData = bedsRes.data || []
       }
 
       // Step 4: supply transactions depend on which supply items belong to
@@ -93,6 +101,7 @@ export function CampsiteProvider({ children }) {
       setBlocks(siteBlocks)
       setRooms(roomsData)
       setFixtures(fixturesData)
+      setBeds(bedsData)
       setAssignments(assignmentsData)
       setEmployees(eRes.data || [])
       setContractors(cRes.data || [])
@@ -162,11 +171,55 @@ export function CampsiteProvider({ children }) {
 
   // ── Rooms ──────────────────────────────────────────────────────────────────
   async function addRoom(data) {
-    const { error } = await supabase.from('camp_rooms').insert(data)
+    const { data: created, error } = await supabase.from('camp_rooms').insert(data).select().single()
     if (error) throw error
+    // A room's bed count should always match its capacity — create one
+    // bed row per capacity unit now, rather than leaving capacity as a
+    // number with nothing physical backing it.
+    const capacity = parseInt(data.capacity) || 0
+    if (capacity > 0) {
+      const newBeds = Array.from({ length: capacity }, (_, i) => ({
+        room_id: created.id,
+        bed_number: String(i + 1),
+      }))
+      await supabase.from('beds').insert(newBeds)
+    }
     await fetchAll()
   }
+
   async function updateRoom(id, data) {
+    // If capacity is changing, reconcile the beds table to match —
+    // otherwise the capacity NUMBER and the actual physical beds available
+    // to assign someone to would silently drift apart the moment this
+    // changes, which would make bed-level assignment quietly wrong.
+    if (data.capacity != null) {
+      const newCapacity = parseInt(data.capacity) || 0
+      const existingBeds = beds.filter(b => b.room_id === id)
+      const diff = newCapacity - existingBeds.length
+
+      if (diff > 0) {
+        // Increasing capacity — add new bed rows, numbered to continue
+        // after the highest existing bed number.
+        const existingNumbers = existingBeds.map(b => parseInt(b.bed_number) || 0)
+        const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0
+        const newBeds = Array.from({ length: diff }, (_, i) => ({
+          room_id: id,
+          bed_number: String(maxNum + i + 1),
+        }))
+        await supabase.from('beds').insert(newBeds)
+      } else if (diff < 0) {
+        // Decreasing capacity — only allow removing beds that are actually
+        // free. Refuse rather than silently delete an occupied bed out
+        // from under whoever is assigned to it.
+        const removable = existingBeds.filter(b => b.status !== 'occupied')
+        if (removable.length < Math.abs(diff)) {
+          throw new Error(`Cannot reduce capacity — ${existingBeds.length - removable.length} bed(s) in this room are currently occupied. Release or transfer those assignments first.`)
+        }
+        const toRemove = removable.slice(0, Math.abs(diff)).map(b => b.id)
+        await supabase.from('beds').delete().in('id', toRemove)
+      }
+    }
+
     const { error } = await supabase.from('camp_rooms').update(data).eq('id', id)
     if (error) throw error
     await fetchAll()
@@ -199,7 +252,7 @@ export function CampsiteProvider({ children }) {
   // ── Assignments ────────────────────────────────────────────────────────────
   // Supports employees OR visitors via occupantType, plus a friendly
   // client-side gender pre-check (the DB trigger is the authoritative check).
-  async function assignRoom({ employeeId, visitorId, roomId, occupantType = 'employee', notes, expectedCheckout, assignedBy }) {
+  async function assignRoom({ employeeId, visitorId, roomId, bedId, occupantType = 'employee', notes, expectedCheckout, assignedBy }) {
     if (occupantType === 'employee' && !employeeId) throw new Error('Employee is required')
     if (occupantType === 'visitor'  && !visitorId)  throw new Error('Visitor is required')
 
@@ -211,8 +264,24 @@ export function CampsiteProvider({ children }) {
     const room = rooms.find(r => r.id === roomId)
     if (!room) throw new Error('Room not found')
     if (room.is_maintenance) throw new Error('Room is under maintenance')
-    const currentOccupancy = assignments.filter(a => a.room_id === roomId && a.status === 'active').length
-    if (currentOccupancy >= room.capacity) throw new Error('Room is at full capacity')
+
+    // Bed-level occupancy — the actual source of truth now, rather than
+    // just comparing an assignment count to the capacity number. If a
+    // specific bed was chosen (e.g. from the floorplan detail panel), it's
+    // validated directly. If not (e.g. dragging onto the room as a whole),
+    // the first available bed is picked automatically — this keeps
+    // existing room-level drag-and-drop flows working unchanged.
+    const roomBeds = beds.filter(b => b.room_id === roomId)
+    let targetBed
+    if (bedId) {
+      targetBed = roomBeds.find(b => b.id === bedId)
+      if (!targetBed) throw new Error('Selected bed not found in this room')
+      if (targetBed.status === 'occupied') throw new Error('That bed is already occupied')
+      if (targetBed.status === 'maintenance') throw new Error('That bed is under maintenance')
+    } else {
+      targetBed = roomBeds.find(b => b.status === 'available')
+      if (!targetBed) throw new Error('Room is at full capacity')
+    }
 
     if (room.gender && room.gender !== 'unassigned') {
       const personGender = occupantType === 'employee'
@@ -228,6 +297,7 @@ export function CampsiteProvider({ children }) {
       visitor_id:        occupantType === 'visitor'  ? visitorId  : null,
       occupant_type:     occupantType,
       room_id:           roomId,
+      bed_id:            targetBed.id,
       assigned_date:     new Date().toISOString().slice(0, 10),
       expected_checkout: expectedCheckout || null,
       status:            'active',
@@ -238,15 +308,27 @@ export function CampsiteProvider({ children }) {
     await fetchAll()
   }
 
-  async function transferRoom({ assignmentId, newRoomId, notes, assignedBy }) {
+  async function transferRoom({ assignmentId, newRoomId, newBedId, notes, assignedBy }) {
     const assignment = assignments.find(a => a.id === assignmentId)
     if (!assignment) throw new Error('Assignment not found')
 
     const newRoom = rooms.find(r => r.id === newRoomId)
     if (!newRoom) throw new Error('Target room not found')
     if (newRoom.is_maintenance) throw new Error('Target room is under maintenance')
-    const occupancy = assignments.filter(a => a.room_id === newRoomId && a.status === 'active').length
-    if (occupancy >= newRoom.capacity) throw new Error('Target room is at full capacity')
+
+    // Same bed-level validation as assignRoom — a specific bed if chosen,
+    // otherwise auto-pick the first free one in the target room.
+    const targetRoomBeds = beds.filter(b => b.room_id === newRoomId)
+    let targetBed
+    if (newBedId) {
+      targetBed = targetRoomBeds.find(b => b.id === newBedId)
+      if (!targetBed) throw new Error('Selected bed not found in target room')
+      if (targetBed.status === 'occupied') throw new Error('That bed is already occupied')
+      if (targetBed.status === 'maintenance') throw new Error('That bed is under maintenance')
+    } else {
+      targetBed = targetRoomBeds.find(b => b.status === 'available')
+      if (!targetBed) throw new Error('Target room is at full capacity')
+    }
 
     if (newRoom.gender && newRoom.gender !== 'unassigned') {
       const personGender = assignment.employee?.gender || assignment.visitor?.gender
@@ -265,6 +347,7 @@ export function CampsiteProvider({ children }) {
       visitor_id:        assignment.visitor_id,
       occupant_type:     assignment.occupant_type,
       room_id:           newRoomId,
+      bed_id:            targetBed.id,
       assigned_date:     new Date().toISOString().slice(0, 10),
       expected_checkout: assignment.expected_checkout,
       status:            'active',
@@ -432,7 +515,7 @@ export function CampsiteProvider({ children }) {
 
   return (
     <CampsiteContext.Provider value={{
-      blocks, rooms, fixtures, assignments, employees, contractors, visitors,
+      blocks, rooms, fixtures, beds, assignments, employees, contractors, visitors,
       supplies, supplyTxns, loading, kpis,
       getRoomStatus,
       addBlock, updateBlock, deleteBlock,

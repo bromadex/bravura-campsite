@@ -114,19 +114,25 @@ export function campsiteNav(role) {
   ]
 }
 
-export function mealsNav(role) {
+export function mealsNav(role, can) {
+  // Matches exactly the same permission codes already used for the actual
+  // page routes in App.jsx's getMealsPage — nav visibility and real access
+  // were quietly out of sync until now, since this function was never
+  // converted during the original RBAC swap even though every page route
+  // underneath it was.
   const all = [
     { id: 'meals_dashboard', label: 'Dashboard',         section: 'Main',    icon: 'dashboard' },
-    { id: 'meals_entry',     label: 'Daily Meal Entry',  section: 'Main',    icon: 'edit_note',   show: can.enterMeals(role) },
-    { id: 'meals_approvals', label: 'Approvals',         section: 'Main',    icon: 'task_alt',    show: can.approveDay(role) },
-    { id: 'meals_kitchen',   label: 'Kitchen Verify',    section: 'Main',    icon: 'restaurant',  show: can.confirmCounts(role) },
-    { id: 'meals_flags',     label: 'Flags & Queries',   section: 'Main',    icon: 'flag',        show: can.raiseFlag(role) || can.resolveFlag(role) },
-    { id: 'meals_daily',     label: 'Daily Report',      section: 'Reports', icon: 'today',       show: can.seeReports(role) },
-    { id: 'meals_range',     label: 'Range Report',      section: 'Reports', icon: 'date_range',  show: can.seeReports(role) },
-    { id: 'meals_monthly',   label: 'Monthly Report',    section: 'Reports', icon: 'bar_chart',   show: can.seeReports(role) },
-    { id: 'meals_billing',   label: 'Billing',           section: 'Reports', icon: 'receipt_long',show: can.seeCosts(role) },
-    { id: 'meals_pricing',   label: 'Pricing Management',section: 'Admin',   icon: 'sell',        show: can.setPrices(role) },
-    { id: 'meals_settings',  label: 'Settings',          section: 'Admin',   icon: 'settings',    show: can.manageSettings(role) },
+    { id: 'meals_entry',     label: 'Daily Meal Entry',  section: 'Main',    icon: 'edit_note',   show: can('meals.create') },
+    { id: 'meals_approvals', label: 'Approvals',         section: 'Main',    icon: 'task_alt',    show: can('meals.approve') },
+    { id: 'meals_kitchen',   label: 'Kitchen Verify',    section: 'Main',    icon: 'restaurant',  show: can('meals.edit') },
+    { id: 'meals_flags',     label: 'Flags & Queries',   section: 'Main',    icon: 'flag',        show: can('meals.view') },
+    { id: 'meals_daily',     label: 'Daily Report',      section: 'Reports', icon: 'today',       show: can('meals.view') },
+    { id: 'meals_range',     label: 'Range Report',      section: 'Reports', icon: 'date_range',  show: can('meals.view') },
+    { id: 'meals_monthly',   label: 'Monthly Report',    section: 'Reports', icon: 'bar_chart',   show: can('meals.view') },
+    { id: 'meals_billing',   label: 'Billing',           section: 'Reports', icon: 'receipt_long',show: can('meals.approve') },
+    { id: 'meals_providers', label: 'Meal Providers',    section: 'Admin',   icon: 'storefront',  show: can('meals.edit') },
+    { id: 'meals_pricing',   label: 'Pricing Management',section: 'Admin',   icon: 'sell',        show: can('meals.edit') },
+    { id: 'meals_settings',  label: 'Settings',          section: 'Admin',   icon: 'settings',    show: can('meals.delete') },
   ]
   return all.filter(item => item.show !== false)
 }

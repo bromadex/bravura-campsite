@@ -140,7 +140,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
   return (
     <div style={{
       position: 'fixed', top: 0, right: 0, height: '100vh', width: '380px',
-      background: '#fff', boxShadow: '-4px 0 24px rgba(0,0,0,.12)',
+      background: THEME.surface, boxShadow: '-4px 0 24px rgba(0,0,0,.12)',
       zIndex: 1500, display: 'flex', flexDirection: 'column',
       animation: 'slideIn .2s ease-out',
     }}>
@@ -153,7 +153,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
             <div style={{ fontSize: '22px', fontWeight: 700, color: colors.label }}>Room {room.room_number}</div>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '4px',
-              padding: '3px 10px', borderRadius: '20px', background: '#fff',
+              padding: '3px 10px', borderRadius: '20px', background: THEME.surface,
               fontSize: '11px', fontWeight: 600, color: colors.label,
             }}>
               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: colors.dot }} />
@@ -215,7 +215,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
             ))}
 
             {room.is_maintenance && (
-              <div style={{ marginTop: '16px', padding: '12px', background: '#FFF8E1', borderRadius: '10px', fontSize: '13px', color: '#7D5700' }}>
+              <div style={{ marginTop: '16px', padding: '12px', background: THEME.statusWarningBg, borderRadius: '10px', fontSize: '13px', color: THEME.statusWarningText }}>
                 <strong>Maintenance:</strong> {room.maintenance_reason || 'No reason given'}
               </div>
             )}
@@ -285,10 +285,10 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
                             {a.expected_checkout && <> · Expected out: {fmtDate(a.expected_checkout)}</>}
                           </div>
                           <div style={{ display: 'flex', gap: '6px' }}>
-                            <button onClick={() => { setTransferTarget(a); setTransferRoomId(''); setTransferBedId('') }} style={{ flex: 1, padding: '6px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                            <button onClick={() => { setTransferTarget(a); setTransferRoomId(''); setTransferBedId('') }} style={{ flex: 1, padding: '6px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                               <Icon name="swap_horiz" size={13} style={{ color: THEME.info }} /> Move
                             </button>
-                            <button onClick={() => setRemoveTarget(a)} style={{ flex: 1, padding: '6px', border: '1px solid #f5b8b8', borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                            <button onClick={() => setRemoveTarget(a)} style={{ flex: 1, padding: '6px', border: '1px solid #f5b8b8', borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                               <Icon name="person_remove" size={13} style={{ color: THEME.error }} /> Remove
                             </button>
                           </div>
@@ -324,7 +324,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
         <div style={{ marginBottom: '14px' }}>
           <SectionLabel>Bed</SectionLabel>
           {availableBeds.length === 0 ? (
-            <div style={{ padding: '10px 12px', background: '#FDECEA', borderRadius: '10px', fontSize: '13px', color: THEME.error }}>
+            <div style={{ padding: '10px 12px', background: THEME.statusErrorBg, borderRadius: '10px', fontSize: '13px', color: THEME.error }}>
               No free beds in this room.
             </div>
           ) : availableBeds.length === 1 ? (
@@ -356,7 +356,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
         </div>
 
         {roomGender && (
-          <div style={{ marginBottom: '14px', padding: '8px 12px', background: '#FFF8E1', borderRadius: '8px', fontSize: '12px', color: '#7D5700' }}>
+          <div style={{ marginBottom: '14px', padding: '8px 12px', background: THEME.statusWarningBg, borderRadius: '8px', fontSize: '12px', color: THEME.statusWarningText }}>
             This room is currently allocated to {roomGender === 'male' ? 'males' : 'females'} only.
           </div>
         )}

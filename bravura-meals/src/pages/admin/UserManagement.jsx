@@ -114,7 +114,7 @@ export default function UserManagement() {
       </div>
 
       {/* Note on creating brand-new accounts */}
-      <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: '10px', background: '#EEF1FB' }}>
+      <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: '10px', background: THEME.statusTertiaryBg }}>
         <Icon name="info" size={18} style={{ color: MODULE_COLOR, flexShrink: 0, marginTop: '1px' }} />
         <div style={{ fontSize: '12px', color: THEME.textMed, lineHeight: 1.5 }}>
           To create a brand-new login, use <strong>Supabase Dashboard → Authentication → Add User</strong> —
@@ -129,7 +129,7 @@ export default function UserManagement() {
         </div>
       ) : (
         <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
             <thead>
               <tr style={{ background: MODULE_COLOR, color: '#fff' }}>
                 {['User','Roles & Site Access','Actions'].map(h => (
@@ -215,7 +215,7 @@ export default function UserManagement() {
               <button
                 onClick={() => setRevokeTarget(ur)}
                 title="Revoke"
-                style={{ width: '26px', height: '26px', border: '1px solid #f5b8b8', borderRadius: '8px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: '26px', height: '26px', border: '1px solid #f5b8b8', borderRadius: '8px', background: THEME.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <Icon name="close" size={14} style={{ color: THEME.error }} />
               </button>

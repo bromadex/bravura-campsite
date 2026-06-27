@@ -57,9 +57,9 @@ export default function WorkforceReports() {
           { label: 'Active',           v: active.length,      c: THEME.success },
           { label: 'Inactive',         v: inactive.length,    c: THEME.textLow },
           { label: 'On Leave',         v: onLeave.length,     c: THEME.warning },
-          { label: 'Contractors',      v: contractors.length, c: '#1558A6' },
+          { label: 'Contractors',      v: contractors.length, c: THEME.info },
         ].map(s => (
-          <div key={s.label} style={{ background: '#fff', border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
+          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
             <div style={{ fontSize: '32px', fontWeight: 300, color: s.c }}>{s.v}</div>
             <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>{s.label}</div>
           </div>
@@ -98,7 +98,7 @@ export default function WorkforceReports() {
           {[
             { label: 'Active on Site', v: active.length,                                            c: THEME.success,  icon: 'check_circle' },
             { label: 'Short Leave',    v: shortLeave.length,                                        c: THEME.warning,  icon: 'schedule' },
-            { label: 'Long Leave',     v: longLeave.length,                                         c: '#5E35B1',      icon: 'flight_takeoff' },
+            { label: 'Long Leave',     v: longLeave.length,                                         c: THEME.statusTertiaryText,      icon: 'flight_takeoff' },
             { label: 'Inactive',       v: inactive.length,                                          c: THEME.textLow,  icon: 'person_off' },
           ].map(row => (
             <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: THEME.surfaceVar, borderRadius: '12px', marginBottom: '8px' }}>
@@ -128,8 +128,8 @@ export default function WorkforceReports() {
             </thead>
             <tbody>
               {employees.map((emp, i) => {
-                const lc = { active: { bg: '#E8F5E9', c: '#1B5E20' }, on_leave: { bg: '#FFF8E1', c: '#7D5700' }, long_leave: { bg: '#EDE7F6', c: '#4A3C8C' } }[emp.status] || { bg: '#F5F5F5', c: '#757575' }
-                const sc = emp.status === 'active' ? { bg: '#E8F5E9', c: '#1B5E20' } : { bg: '#F5F5F5', c: '#757575' }
+                const lc = { active: { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText }, on_leave: { bg: THEME.statusWarningBg, c: THEME.statusWarningText }, long_leave: { bg: THEME.statusTertiaryBg, c: THEME.statusTertiaryText } }[emp.status] || { bg: THEME.statusNeutralBg, c: THEME.statusNeutralText }
+                const sc = emp.status === 'active' ? { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText } : { bg: THEME.statusNeutralBg, c: THEME.statusNeutralText }
                 return (
                   <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                     onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}

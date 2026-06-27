@@ -167,7 +167,7 @@ export default function CampAssignments() {
         /* ── Active / History table ── */
         tab !== 'On Leave' ? (
           <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
               <thead>
                 <tr style={{ background: THEME.primary, color: '#fff' }}>
                   {['Employee','Contractor','Room','Block','Assigned','Released','Status', tab === 'Active' ? 'Actions' : ''].filter(Boolean).map(h => (
@@ -179,7 +179,7 @@ export default function CampAssignments() {
                 {filtered.length === 0 ? (
                   <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No records found</td></tr>
                 ) : filtered.map(a => {
-                  const statusMap = { active: { bg: '#E8F5E9', c: '#1B5E20', l: 'Active' }, released: { bg: '#F5F5F5', c: '#757575', l: 'Released' }, transferred: { bg: '#E3F2FD', c: '#1558A6', l: 'Transferred' } }
+                  const statusMap = { active: { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText, l: 'Active' }, released: { bg: THEME.statusNeutralBg, c: THEME.statusNeutralText, l: 'Released' }, transferred: { bg: THEME.statusInfoBg, c: THEME.info, l: 'Transferred' } }
                   const s = statusMap[a.status] || statusMap.released
                   return (
                     <tr key={a.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
@@ -198,11 +198,11 @@ export default function CampAssignments() {
                         <td style={{ padding: '11px 14px' }}>
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <button onClick={() => { setTransferTarget(a); setTransferModal(true) }} title="Transfer room"
-                              style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <Icon name="swap_horiz" size={14} style={{ color: THEME.info }} /> Transfer
                             </button>
                             <button onClick={() => { setReleaseTarget(a); setReleaseNotes('') }} title="Release room"
-                              style={{ padding: '4px 10px', border: `1px solid #f5b8b8`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              style={{ padding: '4px 10px', border: `1px solid #f5b8b8`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <Icon name="logout" size={14} style={{ color: THEME.error }} /> Release
                             </button>
                           </div>
@@ -218,7 +218,7 @@ export default function CampAssignments() {
 
           /* ── On Leave table ── */
           <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
               <thead>
                 <tr style={{ background: THEME.primary, color: '#fff' }}>
                   {['Employee','Contractor','Status','Actions'].map(h => (
@@ -230,7 +230,7 @@ export default function CampAssignments() {
                 {filtered.length === 0 ? (
                   <tr><td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No employees on leave</td></tr>
                 ) : filtered.map(emp => {
-                  const typeColor = emp.status === 'on_leave' ? { bg: '#FFF8E1', c: '#7D5700' } : { bg: '#EDE7F6', c: '#4A3C8C' }
+                  const typeColor = emp.status === 'on_leave' ? { bg: THEME.statusWarningBg, c: THEME.statusWarningText } : { bg: THEME.statusTertiaryBg, c: THEME.statusTertiaryText }
                   return (
                     <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                       onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
@@ -244,7 +244,7 @@ export default function CampAssignments() {
                       </td>
                       <td style={{ padding: '11px 14px' }}>
                         <button onClick={() => doReturnFromLeave(emp)}
-                          style={{ padding: '5px 12px', border: `1px solid ${THEME.success}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: 500, color: THEME.success, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          style={{ padding: '5px 12px', border: `1px solid ${THEME.success}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '12px', fontWeight: 500, color: THEME.success, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <Icon name="login" size={14} style={{ color: THEME.success }} /> Return
                         </button>
                       </td>
@@ -327,7 +327,7 @@ export default function CampAssignments() {
           <Button onClick={() => setReleaseTarget(null)} variant="text">Cancel</Button>
           <Button onClick={doRelease} variant="danger" disabled={saving}>{saving ? 'Releasing…' : 'Release Room'}</Button>
         </>}>
-        <div style={{ marginBottom: '12px', padding: '10px 14px', background: '#FDECEA', borderRadius: '12px', fontSize: '13px', color: THEME.error }}>
+        <div style={{ marginBottom: '12px', padding: '10px 14px', background: THEME.statusErrorBg, borderRadius: '12px', fontSize: '13px', color: THEME.error }}>
           This will release <strong>{releaseTarget?.employee?.name}</strong> from <strong>{releaseTarget?.room?.block?.name} — {releaseTarget?.room?.room_number}</strong> and mark the room as available.
         </div>
         <div>

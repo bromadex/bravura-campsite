@@ -57,13 +57,18 @@ export function SiteProvider({ children }) {
       }
       setAccessibleSites(accessible)
 
-      // Default selection: Kamativi if accessible, otherwise the first
-      // accessible site. This preserves today's behaviour exactly — every
-      // current user either only has Kamativi, or (System Administrator)
-      // defaults to seeing Kamativi first since it's the only site with
-      // real data right now.
+      // Default selection: prefer whatever was persisted from last time
+      // (validated against this user's actual current access, in case
+      // their roles changed since), then fall back to Kamativi, then the
+      // first accessible site. Without this, a refresh would silently
+      // reset you to Kamativi's data while keeping you on the same page —
+      // landing on the right screen but the wrong site is arguably more
+      // confusing than losing the page entirely.
       setCurrentSiteId(prev => {
         if (prev && accessible.some(s => s.id === prev)) return prev // keep existing selection if still valid
+        let stored = null
+        try { stored = localStorage.getItem('bravura_current_site_id') } catch { /* private browsing etc — fall through */ }
+        if (stored && accessible.some(s => s.id === stored)) return stored
         const kamativi = accessible.find(s => s.code === 'KAM')
         return kamativi?.id || accessible[0]?.id || null
       })
@@ -81,6 +86,7 @@ export function SiteProvider({ children }) {
   function switchSite(siteId) {
     if (accessibleSites.some(s => s.id === siteId)) {
       setCurrentSiteId(siteId)
+      try { localStorage.setItem('bravura_current_site_id', siteId) } catch { /* private browsing etc — non-fatal */ }
     }
   }
 

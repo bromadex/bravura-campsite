@@ -119,7 +119,7 @@ export default function EmployeeDragList({ employees, contractors, assignments, 
                   transition: 'background .15s',
                 }}
                 onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                onMouseLeave={e => e.currentTarget.style.background = THEME.surface}
               >
                 <div style={{
                   width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,

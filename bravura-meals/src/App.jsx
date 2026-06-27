@@ -18,7 +18,7 @@ import WorkforceReports from './pages/workforce/WorkforceReports'
 import {
   CampHeadcount, CampBlocks, CampRooms,
   CampAssignments, CampSupplies, CampOccupancyReport,
-  CampFloorplan,
+  CampFloorplan, StockTransfers,
 } from './pages/campsite'
 
 // ── Meals pages ───────────────────────────────────────────────────────────────
@@ -80,6 +80,7 @@ function getCampsitePage(page, role, setPage, can) {
     // Employees/Leave; zero practical effect today since only Admin is active.
     case 'camp_blocks':      return can('accommodation.create') ? <CampBlocks /> : null
     case 'camp_supplies':    return <CampSupplies />
+    case 'camp_transfers':   return <StockTransfers />
     case 'camp_occ_report':  return <CampOccupancyReport />
     default:                 return <CampHeadcount />
   }

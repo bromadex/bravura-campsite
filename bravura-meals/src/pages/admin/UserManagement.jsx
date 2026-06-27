@@ -143,7 +143,7 @@ export default function UserManagement() {
                 return (
                   <tr key={p.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                     onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{

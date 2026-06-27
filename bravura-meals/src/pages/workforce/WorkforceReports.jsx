@@ -32,9 +32,9 @@ export default function WorkforceReports() {
   const { employees, contractors } = data
   const active      = employees.filter(e => e.status === 'active')
   const inactive    = employees.filter(e => e.status === 'terminated')
-  const onLeave     = employees.filter(e => e.leave_status !== 'active')
-  const shortLeave  = employees.filter(e => e.leave_status === 'short_leave')
-  const longLeave   = employees.filter(e => e.leave_status === 'long_leave')
+  const onLeave     = employees.filter(e => e.status === 'on_leave' || e.status === 'long_leave')
+  const shortLeave  = employees.filter(e => e.status === 'on_leave')
+  const longLeave   = employees.filter(e => e.status === 'long_leave')
 
   const byContractor = contractors.map((c, i) => ({
     ...c,
@@ -96,7 +96,7 @@ export default function WorkforceReports() {
             <div style={{ fontSize: '14px', fontWeight: 500 }}>Leave Status</div>
           </div>
           {[
-            { label: 'Active on Site', v: active.filter(e => e.leave_status === 'active').length, c: THEME.success,  icon: 'check_circle' },
+            { label: 'Active on Site', v: active.length,                                            c: THEME.success,  icon: 'check_circle' },
             { label: 'Short Leave',    v: shortLeave.length,                                        c: THEME.warning,  icon: 'schedule' },
             { label: 'Long Leave',     v: longLeave.length,                                         c: '#5E35B1',      icon: 'flight_takeoff' },
             { label: 'Inactive',       v: inactive.length,                                          c: THEME.textLow,  icon: 'person_off' },
@@ -128,7 +128,7 @@ export default function WorkforceReports() {
             </thead>
             <tbody>
               {employees.map((emp, i) => {
-                const lc = { active: { bg: '#E8F5E9', c: '#1B5E20' }, short_leave: { bg: '#FFF8E1', c: '#7D5700' }, long_leave: { bg: '#EDE7F6', c: '#4A3C8C' } }[emp.leave_status] || { bg: '#F5F5F5', c: '#757575' }
+                const lc = { active: { bg: '#E8F5E9', c: '#1B5E20' }, on_leave: { bg: '#FFF8E1', c: '#7D5700' }, long_leave: { bg: '#EDE7F6', c: '#4A3C8C' } }[emp.status] || { bg: '#F5F5F5', c: '#757575' }
                 const sc = emp.status === 'active' ? { bg: '#E8F5E9', c: '#1B5E20' } : { bg: '#F5F5F5', c: '#757575' }
                 return (
                   <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
@@ -142,7 +142,7 @@ export default function WorkforceReports() {
                     </td>
                     <td style={{ padding: '10px 14px' }}>
                       <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: lc.bg, color: lc.c }}>
-                        {{ active: 'Active', short_leave: 'Short Leave', long_leave: 'Long Leave' }[emp.leave_status] || emp.leave_status}
+                        {{ active: 'Active', on_leave: 'On Leave', long_leave: 'Long Leave', temporary_assignment: 'Temporary Assignment', transferred: 'Transferred', terminated: 'Terminated' }[emp.status] || emp.status}
                       </span>
                     </td>
                   </tr>

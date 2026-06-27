@@ -224,7 +224,7 @@ export default function CampSupplies() {
                   return (
                     <tr key={txn.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                       onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                      onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
                       <td style={{ padding: '10px 14px', color: THEME.textMed }}>{fmtDate(txn.txn_date)}</td>
                       <td style={{ padding: '10px 14px', fontWeight: 500 }}>{txn.item?.name || '—'}</td>
                       <td style={{ padding: '10px 14px' }}>
@@ -305,7 +305,7 @@ export default function CampSupplies() {
                   ) : monthlyData.map(item => (
                     <tr key={item.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                       onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                      onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
                       <td style={{ padding: '11px 14px', fontWeight: 500 }}>{item.name}</td>
                       <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.textLow }}>{item.unit}</td>
                       <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.success, fontWeight: 600 }}>+{item.received.toFixed(item.unit === 'Kg' ? 1 : 0)}</td>

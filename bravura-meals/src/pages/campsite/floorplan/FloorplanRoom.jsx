@@ -89,7 +89,8 @@ export default function FloorplanRoom({
         {room.room_number}
       </text>
 
-      {/* Occupancy badge */}
+      {/* Occupancy badge — store/maintenance rooms show their purpose
+          instead of a meaningless 0/0, since they never have beds */}
       <text
         x={x + w / 2} y={y + h / 2 + subFontSize * 1.3}
         textAnchor="middle" dominantBaseline="middle"
@@ -97,7 +98,7 @@ export default function FloorplanRoom({
         fill={colors.label} opacity={0.85}
         style={{ fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif", userSelect: 'none' }}
       >
-        {occ} / {room.capacity}
+        {room.room_type === 'store' ? 'STORE' : room.room_type === 'maintenance' ? 'WORKSHOP' : `${occ} / ${room.capacity}`}
       </text>
 
       {/* Maintenance icon overlay */}

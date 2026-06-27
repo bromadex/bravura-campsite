@@ -7,7 +7,7 @@ const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','
 function KPICard({ label, value, icon, color, sub }) {
   return (
     <div style={{
-      background: '#fff', border: `1px solid ${THEME.outlineVar}`,
+      background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
       borderRadius: '16px', padding: '20px',
       borderTop: `4px solid ${color || THEME.primary}`,
       boxShadow: '0 1px 3px rgba(0,0,0,.05)',
@@ -66,7 +66,7 @@ export default function CampHeadcount() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div style={{ fontSize: '16px', fontWeight: 600 }}>Camp Headcount Report</div>
-          <div style={{ fontSize: '12px', color: '#555' }}>Printed: {new Date().toLocaleString('en-GB')}</div>
+          <div style={{ fontSize: '12px', color: THEME.textMed }}>Printed: {new Date().toLocaleString('en-GB')}</div>
         </div>
       </div>
 
@@ -158,7 +158,7 @@ export default function CampHeadcount() {
             {[
               { label: 'Active on Site',   value: employees.filter(e => e.status === 'active').length,            color: THEME.success,  icon: 'check_circle' },
               { label: 'Short Leave',      value: kpis.onShortLeave,                                              color: THEME.warning,  icon: 'schedule' },
-              { label: 'Long Leave',       value: kpis.onLongLeave,                                               color: '#5E35B1',      icon: 'flight_takeoff' },
+              { label: 'Long Leave',       value: kpis.onLongLeave,                                               color: THEME.statusTertiaryText,      icon: 'flight_takeoff' },
             ].map(row => (
               <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: THEME.surfaceVar, borderRadius: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

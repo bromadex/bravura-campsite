@@ -157,7 +157,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
               fontSize: '11px', fontWeight: 600, color: colors.label,
             }}>
               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: colors.dot }} />
-              {{ available: 'Available', partial: 'Partially Occupied', full: 'Full', maintenance: 'Maintenance' }[status]}
+              {{ available: 'Available', partial: 'Partially Occupied', full: 'Full', maintenance: 'Maintenance', store: 'Store Room', workshop: 'Workshop / Maintenance Room' }[status]}
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,.6)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

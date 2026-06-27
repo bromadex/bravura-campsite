@@ -32,7 +32,7 @@ export default function LoginPage() {
       <div style={{ position:'absolute', width:'360px', height:'360px', borderRadius:'50%', border: '1px solid rgba(255,255,255,.04)', bottom:'-100px', left:'-80px', pointerEvents:'none' }} />
 
       <div style={{
-        background: '#fff',
+        background: THEME.surface,
         borderRadius: '28px',
         padding: '40px',
         width: '100%', maxWidth: '400px',
@@ -116,7 +116,7 @@ export default function LoginPage() {
           {error && (
             <div style={{
               display: 'flex', alignItems: 'flex-start', gap: '10px',
-              background: '#FDECEA', border: `1px solid #F5C6C4`,
+              background: THEME.statusErrorBg, border: `1px solid ${THEME.error}55`,
               borderRadius: '14px', padding: '12px 16px', marginBottom: '16px',
             }}>
               <span className="material-symbols-rounded" style={{ fontSize: '18px', color: THEME.error, flexShrink: 0, marginTop: '1px' }}>error</span>

@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient'
 import { Card, StatCard, SortTh, useSortState, sortRows, Icon, Button, fmtDate, today, MONTHS, showToast } from '../components/ui'
 import { THEME } from '../utils/permissions'
 import { usePermissions } from '../contexts/PermissionsContext'
+import { useSite } from '../contexts/SiteContext'
 
 // ── Contractor colour pool ────────────────────────────────────────────────────
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
@@ -148,6 +149,7 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
 // ── Daily Report ──────────────────────────────────────────────────────────────
 export function DailyReport() {
   const { can } = usePermissions()
+  const { currentSiteId, currentSite } = useSite()
   // meals.approve: matches old seeCosts (super_admin, approver, kitchen_owner)
   // — narrower for Camp Supervisor and Pricing Officer under the approved
   // matrix. Same tighten-now pattern used throughout this swap.
@@ -159,20 +161,30 @@ export function DailyReport() {
   const [prices,      setPrices]      = useState(null)
   const [loading,     setLoading]     = useState(true)
 
+  // Re-fetched whenever the selected site changes — same pattern used
+  // across every page in this swap.
   useEffect(() => {
-    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').order('name')
+    if (!currentSiteId) return
+    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').eq('site_id', currentSiteId).order('name')
       .then(({ data }) => setEmployees(data || []))
     supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
-  }, [])
+  }, [currentSiteId])
 
-  useEffect(() => { load() }, [date])
+  useEffect(() => { if (currentSiteId) load() }, [date, employees, currentSiteId])
 
   async function load() {
     setLoading(true)
+    // meal_logs has no site_id of its own — scoped to the already
+    // site-filtered employee list, guarded against an empty .in() array
+    // the same way as everywhere else in this project. meal_prices DOES
+    // have site_id directly, so it filters straightforwardly.
+    const employeeIds = employees.map(e => e.id)
     const [logsRes, pricesRes] = await Promise.all([
-      supabase.from('meal_logs').select('*').eq('date', date),
+      employeeIds.length > 0
+        ? supabase.from('meal_logs').select('*').eq('date', date).in('employee_id', employeeIds)
+        : Promise.resolve({ data: [] }),
       showCosts
-        ? supabase.from('meal_prices').select('*').lte('effective_date', date).order('effective_date', { ascending: false }).limit(1)
+        ? supabase.from('meal_prices').select('*').eq('site_id', currentSiteId).lte('effective_date', date).order('effective_date', { ascending: false }).limit(1)
         : { data: [] },
     ])
     setLogs(logsRes.data || [])
@@ -212,7 +224,13 @@ export function DailyReport() {
 
       {/* Screen-only controls */}
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Daily Report</h2>
+        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
+          Daily Report
+          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
+            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
+            {currentSite?.name || '—'}
+          </span>
+        </h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             style={{ padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }} />
@@ -244,6 +262,7 @@ export function DailyReport() {
 
 // ── Range Report ──────────────────────────────────────────────────────────────
 export function RangeReport() {
+  const { currentSiteId, currentSite } = useSite()
   const now = new Date()
   const [start,       setStart]       = useState(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`)
   const [end,         setEnd]         = useState(today())
@@ -253,17 +272,27 @@ export function RangeReport() {
   const [loading,     setLoading]     = useState(false)
 
   useEffect(() => {
-    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').order('name')
+    if (!currentSiteId) return
+    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').eq('site_id', currentSiteId).order('name')
       .then(({ data }) => setEmployees(data || []))
     supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
-  }, [])
+  }, [currentSiteId])
 
-  useEffect(() => { load() }, [start, end])
+  useEffect(() => { if (currentSiteId) load() }, [start, end, employees, currentSiteId])
 
   async function load() {
     if (!start || !end) return
     setLoading(true)
-    const { data: logs, error } = await supabase.from('meal_logs').select('*').gte('date', start).lte('date', end)
+    // Scoped to the site-filtered employee list — same empty-array guard
+    // used everywhere else in this project, since meal_logs has no
+    // site_id of its own.
+    const employeeIds = employees.map(e => e.id)
+    let logs = [], error = null
+    if (employeeIds.length > 0) {
+      const res = await supabase.from('meal_logs').select('*').gte('date', start).lte('date', end).in('employee_id', employeeIds)
+      logs = res.data || []
+      error = res.error
+    }
     if (error) {
       console.error('RangeReport load error:', error)
       showToast('Failed to load range report: ' + error.message, 'red')
@@ -295,7 +324,13 @@ export function RangeReport() {
       />
 
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Range Report</h2>
+        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
+          Range Report
+          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
+            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
+            {currentSite?.name || '—'}
+          </span>
+        </h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           {[['From', start, setStart], ['To', end, setEnd]].map(([label, val, setter]) => (
             <div key={label}>
@@ -327,6 +362,7 @@ export function RangeReport() {
 
 // ── Monthly Report ────────────────────────────────────────────────────────────
 export function MonthlyReport() {
+  const { currentSiteId, currentSite } = useSite()
   const [month,       setMonth]       = useState(new Date().getMonth())
   const [year,        setYear]        = useState(new Date().getFullYear())
   const [employees,   setEmployees]   = useState([])
@@ -335,12 +371,13 @@ export function MonthlyReport() {
   const [loading,     setLoading]     = useState(false)
 
   useEffect(() => {
-    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').order('name')
+    if (!currentSiteId) return
+    supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').eq('site_id', currentSiteId).order('name')
       .then(({ data }) => setEmployees(data || []))
     supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
-  }, [])
+  }, [currentSiteId])
 
-  useEffect(() => { load() }, [month, year])
+  useEffect(() => { if (currentSiteId) load() }, [month, year, employees, currentSiteId])
 
   async function load() {
     setLoading(true)
@@ -352,9 +389,19 @@ export function MonthlyReport() {
     // to error out, which previously was silently swallowed and just showed
     // an all-zero report instead of surfacing the failure.
     const lastDay = new Date(year, month + 1, 0).getDate()
-    const { data: logs, error } = await supabase.from('meal_logs').select('*')
-      .gte('date', `${prefix}-01`)
-      .lte('date', `${prefix}-${pad(lastDay)}`)
+    // Scoped to the site-filtered employee list — same empty-array guard
+    // used everywhere else in this project, since meal_logs has no
+    // site_id of its own.
+    const employeeIds = employees.map(e => e.id)
+    let logs = [], error = null
+    if (employeeIds.length > 0) {
+      const res = await supabase.from('meal_logs').select('*')
+        .gte('date', `${prefix}-01`)
+        .lte('date', `${prefix}-${pad(lastDay)}`)
+        .in('employee_id', employeeIds)
+      logs = res.data || []
+      error = res.error
+    }
     if (error) {
       console.error('MonthlyReport load error:', error)
       showToast('Failed to load monthly report: ' + error.message, 'red')
@@ -386,7 +433,13 @@ export function MonthlyReport() {
       />
 
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Monthly Report</h2>
+        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
+          Monthly Report
+          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
+            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
+            {currentSite?.name || '—'}
+          </span>
+        </h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textMed, marginBottom: '4px' }}>Month</div>

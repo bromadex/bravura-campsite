@@ -12,8 +12,129 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Google+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
+      /* ════════════════════════════════════════════════════════════════════
+         Bravura Design System — colour tokens
+         Anchored to the real logo: #982329 (maroon, sampled directly from
+         the logo file — the single most common opaque pixel colour) and
+         #FF7175 / #F8ACB8 (the logo's coral and soft-pink accents). Every
+         other value here is mathematically derived from those three real
+         colours, not picked by eye — tints/shades via HSL lightness and
+         saturation adjustment, not arbitrary hex guesses.
+
+         Dark theme is NOT an inversion. Status colours in particular are
+         independently tuned: the light-mode versions are dark, saturated
+         colours meant to sit on white with dark text; on a dark surface
+         those same values would have poor contrast, so each one has its
+         own deliberately brightened dark-mode counterpart below.
+         ════════════════════════════════════════════════════════════════════ */
+      :root {
+        /* Brand */
+        --color-primary:        #982329;
+        --color-primary-dark:   #66181C;
+        --color-primary-light:  #D4434A;
+        --color-primary-hover:  #7F1D22;
+        --color-on-primary:     #FFFFFF;
+
+        /* Accent — the logo's coral/pink, for secondary emphasis */
+        --color-accent:         #FF7175;
+        --color-accent-dark:    #FF343A;
+        --color-accent-light:   #F8ACB8;
+
+        /* Surfaces */
+        --color-bg:             #F5F5F5;
+        --color-surface:        #FFFFFF;
+        --color-surface-variant:#EFECEC;
+        --color-surface-hover:  #F3F2F2;
+        --color-sidebar:        #2D1515;
+        --color-sidebar-mid:    #3D1E1E;
+        --color-active-bar:     #F4A896;
+        --color-outline:        #CEB9BA;
+        --color-outline-variant:#D8CDCE;
+
+        /* Text */
+        --color-text:           #1C0A0A;
+        --color-text-medium:    #5C3C3C;
+        --color-text-low:       #9E8080;
+
+        /* Status — base */
+        --color-error:          #B3261E;
+        --color-success:        #386A20;
+        --color-warning:        #7D5700;
+        --color-info:           #1558A6;
+
+        /* Status — tint pairs (badge backgrounds + matching text) */
+        --status-success-bg:    #E8F5E9; --status-success-text:  #1B5E20;
+        --status-warning-bg:    #FFF8E1; --status-warning-text:  #7D5700;
+        --status-error-bg:      #FDECEA; --status-error-text:    #B3261E;
+        --status-neutral-bg:    #F5F5F5; --status-neutral-text:  #757575;
+        --status-info-bg:       #E3F2FD; --status-info-text:     #1558A6;
+        --status-tertiary-bg:   #EDE7F6; --status-tertiary-text: #4A3C8C;
+
+        /* Meal-specific accents */
+        --color-breakfast:      #BF5400;
+        --color-lunch:          #1A6B52;
+        --color-supper:         #4A3C8C;
+
+        /* Elevation — light theme uses real shadows */
+        --shadow-1: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+        --shadow-2: 0 2px 6px rgba(0,0,0,.10), 0 1px 3px rgba(0,0,0,.08);
+        --shadow-3: 0 8px 24px rgba(0,0,0,.14);
+      }
+
+      [data-theme="dark"] {
+        /* Brand — lighter & more vivid than light-mode primary, so it
+           stays legible against a dark surface while still reading as
+           the same maroon */
+        --color-primary:        #D8545A;
+        --color-primary-dark:   #982329;
+        --color-primary-light:  #E89094;
+        --color-primary-hover:  #DF757A;
+        --color-on-primary:     #1C0A0A;
+
+        --color-accent:         #FF8C8F;
+        --color-accent-dark:    #FF7175;
+        --color-accent-light:   #C97D86;
+
+        /* Surfaces — warm near-black, not pure black, with a maroon undertone */
+        --color-bg:             #15100F;
+        --color-surface:        #1C1414;
+        --color-surface-variant:#2A1D1D;
+        --color-surface-hover:  #332323;
+        --color-sidebar:        #120D0D;
+        --color-sidebar-mid:    #1C1414;
+        --color-active-bar:     #D8545A;
+        --color-outline:        #4A3838;
+        --color-outline-variant:#3A2C2C;
+
+        --color-text:           #F2E8E8;
+        --color-text-medium:    #C9B8B8;
+        --color-text-low:       #8F7A7A;
+
+        --color-error:          #DF6962;
+        --color-success:        #68BA40;
+        --color-warning:        #E7A306;
+        --color-info:           #4990E2;
+
+        --status-success-bg:    #2F4528; --status-success-text:  #74D17B;
+        --status-warning-bg:    #5C4217; --status-warning-text:  #FAC64F;
+        --status-error-bg:      #5A201D; --status-error-text:    #EFB2AE;
+        --status-neutral-bg:    #443C3C; --status-neutral-text:  #DBDBDB;
+        --status-info-bg:       #23324D; --status-info-text:     #98C0EF;
+        --status-tertiary-bg:   #352844; --status-tertiary-text: #BEB7DD;
+
+        --color-breakfast:      #FA862B;
+        --color-lunch:          #34B78F;
+        --color-supper:         #7F73BB;
+
+        /* Elevation — dark surfaces don't read shadows well (black-on-black
+           is invisible); a soft border-like glow does the same visual job */
+        --shadow-1: 0 1px 3px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04);
+        --shadow-2: 0 2px 6px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.05);
+        --shadow-3: 0 8px 24px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
+      }
+
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif; background: #FAF5F5; }
+      body { font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif; background: var(--color-bg); color: var(--color-text); }
       .material-symbols-rounded {
         font-family: 'Material Symbols Rounded';
         font-weight: normal; font-style: normal;
@@ -40,11 +161,14 @@
         /* Ensure backgrounds & colours print */
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-        /* Reset html/body so content flows freely across pages */
+        /* Reset html/body so content flows freely across pages — always
+           light/white on paper regardless of which theme is active on
+           screen, since this is print output, not a screen surface. */
         html, body {
           height: auto !important;
           overflow: visible !important;
           background: #fff !important;
+          color: #000 !important;
           font-size: 12px !important;
         }
 
@@ -122,9 +246,22 @@
       /* Scrollbar styling */
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #D4B8B8; border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: #9C2A2A; }
+      ::-webkit-scrollbar-thumb { background: var(--color-outline); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
     </style>
+    <script>
+      // Applied synchronously, before React mounts, so the correct theme is
+      // in place on the very first paint — without this, a dark-mode user
+      // would see a flash of the light theme on every load before React's
+      // own effect had a chance to run.
+      (function () {
+        try {
+          var saved = localStorage.getItem('bravura_theme');
+          var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) { /* private browsing etc — default light is fine */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -187,7 +187,7 @@ export default function Employees() {
             </span>
           </h2>
           <div style={{ marginTop: '6px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: '#E8F5E9', color: '#1B5E20' }}>
+            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.statusSuccessBg, color: THEME.statusSuccessText }}>
               {activeCount} active
             </span>
             <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed }}>
@@ -241,7 +241,7 @@ export default function Employees() {
         </div>
       ) : (
         <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
             <thead>
               <tr style={{ background: THEME.primary, color: '#fff' }}>
                 {['Employee','Contractor','Gender','Status','Actions'].map(h => (
@@ -301,20 +301,20 @@ export default function Employees() {
                     <td style={{ padding: '10px 14px' }}>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button onClick={() => openEdit(emp)} title="Edit"
-                          style={{ width: '30px', height: '30px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          style={{ width: '30px', height: '30px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Icon name="edit" size={14} style={{ color: THEME.textMed }} />
                         </button>
                         <button
                           onClick={() => toggleStatus(emp)}
                           title={emp.status === 'active' ? 'Mark Terminated' : 'Reactivate'}
-                          style={{ width: '30px', height: '30px', border: `1px solid ${emp.status === 'active' ? THEME.warning : THEME.success}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          style={{ width: '30px', height: '30px', border: `1px solid ${emp.status === 'active' ? THEME.warning : THEME.success}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <Icon name={emp.status === 'active' ? 'block' : 'check_circle'} size={14} style={{ color: emp.status === 'active' ? THEME.warning : THEME.success }} />
                         </button>
                         {canDelete && (
                           <button
                             onClick={() => setDeleteTarget(emp)}
                             title="Delete"
-                            style={{ width: '30px', height: '30px', border: '1px solid #f5b8b8', borderRadius: '8px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            style={{ width: '30px', height: '30px', border: '1px solid #f5b8b8', borderRadius: '8px', background: THEME.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Icon name="delete" size={14} style={{ color: THEME.error }} />
                           </button>
                         )}
@@ -399,8 +399,8 @@ export default function Employees() {
         </div>
 
         {contractors.length === 0 && (
-          <div style={{ marginTop: '14px', padding: '10px 14px', background: '#FFF8E1', borderRadius: '10px', fontSize: '12px', color: '#7D5700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Icon name="warning" size={16} style={{ color: '#7D5700' }} />
+          <div style={{ marginTop: '14px', padding: '10px 14px', background: THEME.statusWarningBg, borderRadius: '10px', fontSize: '12px', color: THEME.statusWarningText, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Icon name="warning" size={16} style={{ color: THEME.statusWarningText }} />
             No contractors found. Please add a contractor first under <strong>Contractors</strong>.
           </div>
         )}

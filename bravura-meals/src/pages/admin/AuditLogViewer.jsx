@@ -16,9 +16,9 @@ const TABLE_LABELS = {
 }
 
 const ACTION_COLORS = {
-  insert: { bg: '#E8F5E9', c: '#1B5E20' },
-  update: { bg: '#FFF8E1', c: '#7D5700' },
-  delete: { bg: '#FDECEA', c: THEME.error },
+  insert: { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText },
+  update: { bg: THEME.statusWarningBg, c: THEME.statusWarningText },
+  delete: { bg: THEME.statusErrorBg, c: THEME.error },
 }
 
 // Fields that exist on nearly every audited table but add no readable
@@ -114,7 +114,7 @@ export default function AuditLogViewer() {
         </div>
       ) : (
         <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
             <thead>
               <tr style={{ background: '#5C6BC0', color: '#fff' }}>
                 {['When','Table','Action','Changed','Actor',''].map(h => (

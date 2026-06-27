@@ -146,8 +146,8 @@ export default function Dashboard({ setPage }) {
           {currentSite?.name || '—'}
         </span>
         {providers.length > 0 && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#FFF3E0', color: '#7D5700' }}>
-            <Icon name="restaurant" size={12} style={{ color: '#7D5700' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.statusWarningBg, color: THEME.statusWarningText }}>
+            <Icon name="restaurant" size={12} style={{ color: THEME.statusWarningText }} />
             Catered by {providers.map(p => p.name).join(', ')}
           </span>
         )}
@@ -160,7 +160,7 @@ export default function Dashboard({ setPage }) {
           style={{
             display: 'flex', alignItems: 'center', gap: '14px',
             padding: '14px 18px', borderRadius: '16px',
-            background: '#FDECEA', border: `1px solid #F5C6C4`, cursor: 'pointer',
+            background: THEME.statusErrorBg, border: `1px solid #F5C6C4`, cursor: 'pointer',
           }}
         >
           <Icon name="flag" size={22} style={{ color: THEME.error, flexShrink: 0 }} />

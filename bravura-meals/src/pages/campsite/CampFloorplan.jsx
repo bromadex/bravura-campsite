@@ -84,7 +84,7 @@ export default function CampFloorplan() {
                     <div style={{
                       marginTop: '10px', display: 'flex', alignItems: 'center', gap: '5px',
                       fontSize: '11px', fontWeight: 500, color: THEME.textLow,
-                      background: '#F3F3F3', borderRadius: '8px', padding: '5px 9px',
+                      background: THEME.surfaceVar, borderRadius: '8px', padding: '5px 9px',
                     }}>
                       <Icon name="info" size={13} style={{ color: THEME.textLow }} />
                       Visual layout not set up yet
@@ -111,7 +111,7 @@ export default function CampFloorplan() {
       <div>
         <button onClick={() => setSelectedBlockId(null)} style={{
           display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 14px',
-          border: `1px solid ${THEME.outline}`, borderRadius: '20px', background: '#fff',
+          border: `1px solid ${THEME.outline}`, borderRadius: '20px', background: THEME.surface,
           cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.textMed,
           fontFamily: 'inherit', marginBottom: '20px',
         }}>
@@ -190,12 +190,12 @@ export default function CampFloorplan() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', margin: '-24px' }} onMouseMove={e => setMousePos({ x: e.clientX, y: e.clientY })}>
 
       {/* Header bar with back button + stats */}
-      <div style={{ padding: '20px 24px', borderBottom: `1px solid ${THEME.outlineVar}`, background: '#fff' }}>
+      <div style={{ padding: '20px 24px', borderBottom: `1px solid ${THEME.outlineVar}`, background: THEME.surface }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button onClick={() => { setSelectedBlockId(null); setSelectedRoom(null) }} style={{
               display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 14px',
-              border: `1px solid ${THEME.outline}`, borderRadius: '20px', background: '#fff',
+              border: `1px solid ${THEME.outline}`, borderRadius: '20px', background: THEME.surface,
               cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit',
             }}>
               <Icon name="arrow_back" size={16} style={{ color: THEME.textMed }} /> All Blocks

@@ -131,19 +131,25 @@ export function CampsiteProvider({ children }) {
   // ── KPIs ───────────────────────────────────────────────────────────────────
   const activeAssignments = assignments.filter(a => a.status === 'active')
   const occupiedRoomIds   = new Set(activeAssignments.map(a => a.room_id))
+  // Store and Maintenance room types were never meant to house people —
+  // excluding them from occupancy stats is the actual point of room types
+  // existing at all. Accommodation, VIP, and Isolation are all genuinely
+  // occupiable categories and stay counted.
+  const occupiableRooms  = rooms.filter(r => r.room_type !== 'store' && r.room_type !== 'maintenance')
 
   const kpis = {
     totalEmployees:    employees.length,
     totalContractors:  contractors.length,
     totalResidents:    activeAssignments.length,
-    totalRooms:        rooms.length,
+    totalRooms:        occupiableRooms.length,
     occupiedRooms:     occupiedRoomIds.size,
-    availableRooms:    rooms.filter(r => !r.is_maintenance && !occupiedRoomIds.has(r.id)).length,
+    availableRooms:    occupiableRooms.filter(r => !r.is_maintenance && !occupiedRoomIds.has(r.id)).length,
     maintenanceRooms:  rooms.filter(r => r.is_maintenance).length,
+    storeRooms:        rooms.filter(r => r.room_type === 'store').length,
     onShortLeave:      employees.filter(e => e.status === 'on_leave').length,
     onLongLeave:       employees.filter(e => e.status === 'long_leave').length,
-    occupancyPct:      rooms.length > 0
-      ? Math.round((occupiedRoomIds.size / rooms.length) * 100)
+    occupancyPct:      occupiableRooms.length > 0
+      ? Math.round((occupiedRoomIds.size / occupiableRooms.length) * 100)
       : 0,
   }
 
@@ -171,12 +177,16 @@ export function CampsiteProvider({ children }) {
 
   // ── Rooms ──────────────────────────────────────────────────────────────────
   async function addRoom(data) {
-    const { data: created, error } = await supabase.from('camp_rooms').insert(data).select().single()
+    // Store and Maintenance rooms can't contain occupants — force capacity
+    // to 0 regardless of what was passed, rather than trusting the form
+    // alone to enforce this.
+    const isNonOccupiable = data.room_type === 'store' || data.room_type === 'maintenance'
+    const payload = isNonOccupiable ? { ...data, capacity: 0 } : data
+
+    const { data: created, error } = await supabase.from('camp_rooms').insert(payload).select().single()
     if (error) throw error
-    // A room's bed count should always match its capacity — create one
-    // bed row per capacity unit now, rather than leaving capacity as a
-    // number with nothing physical backing it.
-    const capacity = parseInt(data.capacity) || 0
+
+    const capacity = parseInt(payload.capacity) || 0
     if (capacity > 0) {
       const newBeds = Array.from({ length: capacity }, (_, i) => ({
         room_id: created.id,
@@ -188,18 +198,35 @@ export function CampsiteProvider({ children }) {
   }
 
   async function updateRoom(id, data) {
-    // If capacity is changing, reconcile the beds table to match —
-    // otherwise the capacity NUMBER and the actual physical beds available
-    // to assign someone to would silently drift apart the moment this
-    // changes, which would make bed-level assignment quietly wrong.
-    if (data.capacity != null) {
+    const existingRoom = rooms.find(r => r.id === id)
+    const existingBeds = beds.filter(b => b.room_id === id)
+    const oldType = existingRoom?.room_type || 'accommodation'
+    const newType = data.room_type || oldType
+    const nonOccupiableTypes = ['store', 'maintenance']
+    const becomingNonOccupiable = nonOccupiableTypes.includes(newType) && !nonOccupiableTypes.includes(oldType)
+
+    let payload = data
+
+    if (becomingNonOccupiable) {
+      // Converting to Store or Maintenance — can't have occupants or beds.
+      // Block rather than silently evict anyone currently assigned here.
+      const hasOccupants = existingBeds.some(b => b.status === 'occupied')
+      if (hasOccupants) {
+        throw new Error('Cannot change to this room type while people are assigned here. Release or transfer them first.')
+      }
+      if (existingBeds.length > 0) {
+        await supabase.from('beds').delete().in('id', existingBeds.map(b => b.id))
+      }
+      payload = { ...data, capacity: 0 }
+    } else if (data.capacity != null) {
+      // Same reconciliation as before — covers both a plain capacity edit
+      // on an already-occupiable room, and converting FROM Store/Maintenance
+      // back to an occupiable type (existingBeds.length is 0 in that case,
+      // so this naturally creates exactly the right number of new beds).
       const newCapacity = parseInt(data.capacity) || 0
-      const existingBeds = beds.filter(b => b.room_id === id)
       const diff = newCapacity - existingBeds.length
 
       if (diff > 0) {
-        // Increasing capacity — add new bed rows, numbered to continue
-        // after the highest existing bed number.
         const existingNumbers = existingBeds.map(b => parseInt(b.bed_number) || 0)
         const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0
         const newBeds = Array.from({ length: diff }, (_, i) => ({
@@ -208,9 +235,6 @@ export function CampsiteProvider({ children }) {
         }))
         await supabase.from('beds').insert(newBeds)
       } else if (diff < 0) {
-        // Decreasing capacity — only allow removing beds that are actually
-        // free. Refuse rather than silently delete an occupied bed out
-        // from under whoever is assigned to it.
         const removable = existingBeds.filter(b => b.status !== 'occupied')
         if (removable.length < Math.abs(diff)) {
           throw new Error(`Cannot reduce capacity — ${existingBeds.length - removable.length} bed(s) in this room are currently occupied. Release or transfer those assignments first.`)
@@ -220,7 +244,7 @@ export function CampsiteProvider({ children }) {
       }
     }
 
-    const { error } = await supabase.from('camp_rooms').update(data).eq('id', id)
+    const { error } = await supabase.from('camp_rooms').update(payload).eq('id', id)
     if (error) throw error
     await fetchAll()
   }

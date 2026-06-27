@@ -397,7 +397,7 @@ export default function DailyEntry() {
                   return (
                     <tr
                       key={emp.id}
-                      style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: '#fff', transition: 'background .1s' }}
+                      style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: THEME.surface, transition: 'background .1s' }}
                       onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
                       onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                     >
@@ -481,9 +481,9 @@ export default function DailyEntry() {
 // ── Meal tick — MD3 style checkbox ────────────────────────────────────────────
 function MealTick({ on, meal, editable, onClick }) {
   const palette = {
-    b: { active: THEME.breakfastClr, bg: '#FFF3E0' },
-    l: { active: THEME.lunchClr,     bg: '#E8F5E9' },
-    s: { active: THEME.supperClr,    bg: '#EDE7F6' },
+    b: { active: THEME.breakfastClr, bg: THEME.statusWarningBg },
+    l: { active: THEME.lunchClr,     bg: THEME.statusSuccessBg },
+    s: { active: THEME.supperClr,    bg: THEME.statusTertiaryBg },
   }
   const p = palette[meal]
 

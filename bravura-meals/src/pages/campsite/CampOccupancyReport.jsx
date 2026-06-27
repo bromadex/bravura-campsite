@@ -42,7 +42,7 @@ export default function CampOccupancyReport() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div style={{ fontSize: '16px', fontWeight: 600 }}>Campsite Occupancy Report</div>
-          <div style={{ fontSize: '12px', color: '#555' }}>Printed: {new Date().toLocaleString('en-GB')}</div>
+          <div style={{ fontSize: '12px', color: THEME.textMed }}>Printed: {new Date().toLocaleString('en-GB')}</div>
         </div>
       </div>
 
@@ -63,7 +63,7 @@ export default function CampOccupancyReport() {
           { label: 'Total Residents', v: grandTotals.residents,   c: '#1558A6' },
           { label: 'Occupancy Rate',  v: `${overallPct}%`,        c: pctColor },
         ].map(s => (
-          <div key={s.label} style={{ background: '#fff', border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
+          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
             <div style={{ fontSize: '28px', fontWeight: 300, color: s.c }}>{s.v}</div>
             <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>{s.label}</div>
           </div>
@@ -98,7 +98,7 @@ export default function CampOccupancyReport() {
 
       {/* Per-block table */}
       <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
           <thead>
             <tr style={{ background: MODULE_COLORS.campsite, color: '#fff' }}>
               {['Block','Total Rooms','Occupied','Available','Maintenance','Residents','Occ %'].map(h => (
@@ -116,7 +116,7 @@ export default function CampOccupancyReport() {
                 <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.error, fontWeight: 600 }}>{b.occupied}</td>
                 <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.success, fontWeight: 600 }}>{b.available}</td>
                 <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.warning }}>{b.maintenance}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'center', color: '#1558A6', fontWeight: 600 }}>{b.totalResidents}</td>
+                <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.info, fontWeight: 600 }}>{b.totalResidents}</td>
                 <td style={{ padding: '11px 14px', textAlign: 'center', fontWeight: 700, color: b.pct > 90 ? THEME.error : b.pct > 70 ? THEME.warning : THEME.success }}>{b.pct}%</td>
               </tr>
             ))}

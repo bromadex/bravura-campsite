@@ -125,12 +125,38 @@ export default function Employees() {
     fetchEmployees()
   }
 
+  // Translate raw database errors into plain English. A foreign key
+  // violation here always means the same thing — this employee has real
+  // historical records elsewhere (meal logs, room assignments, movement
+  // history, supply transactions) that the database is correctly refusing
+  // to orphan or silently cascade-delete. That's the system working as
+  // designed, not a bug — Delete is only ever safe for a record that was
+  // never really used. Terminate is the right action for anyone with
+  // genuine history.
+  function friendlyDeleteError(err, employeeName) {
+    const msg = err?.message || ''
+    if (msg.includes('foreign key constraint')) {
+      const matches = [...msg.matchAll(/on table "(\w+)"/g)]
+      const relatedTable = matches.length > 0 ? matches[matches.length - 1][1] : null
+      const tableLabels = {
+        meal_logs:                 'meal attendance records',
+        room_assignments:          'room assignment history',
+        employee_movements:        'movement or transfer history',
+        employee_position_history: 'position change history',
+        camp_supply_txns:          'supply transaction records',
+      }
+      const what = tableLabels[relatedTable] || 'historical records'
+      return `Cannot delete ${employeeName} — they have existing ${what} that depend on this record. Use the Terminate action instead to preserve their history while removing them from active lists.`
+    }
+    return msg
+  }
+
   async function deleteEmployee() {
     if (!deleteTarget) return
     setDeleting(true)
     const { error } = await supabase.from('employees').delete().eq('id', deleteTarget.id)
     setDeleting(false)
-    if (error) { showToast('Cannot delete: ' + error.message, 'red'); setDeleteTarget(null); return }
+    if (error) { showToast(friendlyDeleteError(error, deleteTarget.name), 'red'); setDeleteTarget(null); return }
     showToast(`${deleteTarget.name} deleted`, 'red')
     setDeleteTarget(null)
     fetchEmployees()
@@ -386,7 +412,7 @@ export default function Employees() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={deleteEmployee}
         title="Delete Employee?"
-        message={`Are you sure you want to permanently delete ${deleteTarget?.name}? This cannot be undone. Historical meal records will still reference their name.`}
+        message={`Permanently delete ${deleteTarget?.name}? This only works if they have no meal, room, or movement history at all — if they've ever been used anywhere in the system, the delete will be blocked to protect that history. Use Terminate instead for anyone with real activity on record.`}
         confirmLabel={deleting ? 'Deleting…' : 'Delete'}
         danger
       />

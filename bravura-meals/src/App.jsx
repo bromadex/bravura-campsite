@@ -32,6 +32,7 @@ import RangeReport    from './pages/RangeReport'
 import MonthlyReport  from './pages/MonthlyReport'
 import Billing        from './pages/Billing'
 import Pricing        from './pages/Pricing'
+import MealProviders  from './pages/MealProviders'
 import Settings       from './pages/Settings'
 import UserManagement from './pages/admin/UserManagement'
 import AuditLogViewer from './pages/admin/AuditLogViewer'
@@ -111,6 +112,7 @@ function getMealsPage(page, role, setPage, can) {
     // financial visibility sits with Finance Officer/Admin. Same pattern.
     case 'meals_billing':   return can('meals.approve') ? <Billing />  : null
     // meals.edit: System Admin + Pricing Officer — exact match to old list.
+    case 'meals_providers': return can('meals.edit') ? <MealProviders /> : null
     case 'meals_pricing':   return can('meals.edit') ? <Pricing />  : null
     // meals.delete: used here as a proxy for "most trusted tier" since
     // there's no dedicated settings permission yet — matches the old
@@ -203,7 +205,7 @@ function AppContent() {
   // ── Resolve page content ──
   const meta   = MODULE_META[activeModule]
   const navFn  = meta.navFn
-  const navItems = navFn(role)
+  const navItems = navFn(role, can)
 
   let content = null
   if (activeModule === 'workforce') content = getWorkforcePage(currentPage, role, can)

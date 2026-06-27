@@ -188,7 +188,7 @@ export default function WorkforceLeave() {
                 return (
                   <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                     onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
                     <td style={{ padding: '11px 14px', fontWeight: 500 }}>{emp.name}</td>
                     <td style={{ padding: '11px 14px', color: THEME.textMed }}>{emp.contractor?.name || '—'}</td>
                     <td style={{ padding: '11px 14px' }}>

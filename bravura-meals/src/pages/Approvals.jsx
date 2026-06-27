@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
-import { Card, Button, StatusBadge, showToast, fmtDate } from '../components/ui'
+import { useSite } from '../contexts/SiteContext'
+import { THEME } from '../utils/permissions'
+import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, fmtDate } from '../components/ui'
 
 export default function Approvals() {
   const { profile } = useAuth()
+  const { currentSiteId, currentSite } = useSite()
+
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading]         = useState(true)
   const [selected, setSelected]       = useState(null) // selected submission
@@ -13,7 +17,11 @@ export default function Approvals() {
   const [approving, setApproving]     = useState(false)
   const [notes, setNotes]             = useState('')
 
-  useEffect(() => { fetchSubmissions() }, [])
+  // Re-fetch whenever the selected site changes — same filtering pattern
+  // used everywhere else in this project.
+  useEffect(() => {
+    if (currentSiteId) fetchSubmissions()
+  }, [currentSiteId])
 
   async function fetchSubmissions() {
     setLoading(true)
@@ -24,6 +32,7 @@ export default function Approvals() {
         submitted_by_profile:profiles!daily_submissions_submitted_by_fkey(full_name, username),
         approved_by_profile:profiles!daily_submissions_approved_by_fkey(full_name, username)
       `)
+      .eq('site_id', currentSiteId)
       .in('status', ['submitted', 'approved', 'queried'])
       .order('date', { ascending: false })
       .limit(60)
@@ -35,10 +44,14 @@ export default function Approvals() {
     setSelected(sub)
     setNotes(sub.notes || '')
     setLoadingLogs(true)
+    // Filtered by submission_id, not date. A date can now have one
+    // submission PER SITE rather than one globally — filtering by date
+    // alone would mix two different sites' meal logs together on the same
+    // calendar day. submission_id is the actual, reliable link.
     const { data } = await supabase
       .from('meal_logs')
       .select('*, employee:employees(name, group_name)')
-      .eq('date', sub.date)
+      .eq('submission_id', sub.id)
       .order('employee(name)')
     setLogs(data || [])
     setLoadingLogs(false)
@@ -57,7 +70,7 @@ export default function Approvals() {
       .eq('id', selected.id)
     setApproving(false)
     if (error) { showToast(error.message, 'red'); return }
-    showToast(`✅ ${fmtDate(selected.date)} approved`, 'green')
+    showToast(`${fmtDate(selected.date)} approved`, 'green')
     setSelected(null)
     fetchSubmissions()
   }
@@ -83,161 +96,185 @@ export default function Approvals() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: selected ? '320px 1fr' : '1fr', gap: '20px' }}>
-
-      {/* Left: list of pending submissions */}
-      <div>
-        <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '14px', color: '#1a1a2e' }}>
-          Pending & Recent Days
-        </div>
-        {loading ? (
-          <div style={{ color: '#888', padding: '20px' }}>Loading…</div>
-        ) : submissions.length === 0 ? (
-          <Card>
-            <div style={{ textAlign: 'center', padding: '24px', color: '#888' }}>
-              No submissions pending approval.
-            </div>
-          </Card>
-        ) : (
-          submissions.map(sub => {
-            const isActive = selected?.id === sub.id
-            return (
-              <div
-                key={sub.id}
-                onClick={() => selectSub(sub)}
-                style={{
-                  background: isActive ? '#D6E4F0' : '#fff',
-                  border: `1px solid ${isActive ? '#2F5496' : '#dde2ea'}`,
-                  borderRadius: '10px', padding: '14px 16px', marginBottom: '8px',
-                  cursor: 'pointer', transition: 'all .15s',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 700, fontSize: '14px' }}>{fmtDate(sub.date)}</span>
-                  <StatusBadge status={sub.status} />
-                </div>
-                <div style={{ fontSize: '12px', color: '#888' }}>
-                  Submitted by: {sub.submitted_by_profile?.full_name || sub.submitted_by_profile?.username || '—'}
-                </div>
-                {sub.status === 'submitted' && (
-                  <div style={{ marginTop: '4px', fontSize: '11px', fontWeight: 700, color: '#C55A11' }}>
-                    ⚠ Awaiting your approval
-                  </div>
-                )}
-              </div>
-            )
-          })
-        )}
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
+          Approvals
+          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
+            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
+            {currentSite?.name || '—'}
+          </span>
+        </h2>
       </div>
 
-      {/* Right: detail panel */}
-      {selected && (
-        <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>{fmtDate(selected.date)}</h3>
-              <div style={{ marginTop: '4px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <StatusBadge status={selected.status} />
-              </div>
-            </div>
-            <button
-              onClick={() => setSelected(null)}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#888' }}
-            >
-              ✕
-            </button>
+      <div style={{ display: 'grid', gridTemplateColumns: selected ? '320px 1fr' : '1fr', gap: '20px' }}>
+
+        {/* Left: list of pending submissions */}
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '14px', color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+            Pending & Recent Days
           </div>
-
-          {loadingLogs ? (
-            <div style={{ color: '#888', padding: '20px 0' }}>Loading meal data…</div>
+          {loading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>
+              <Icon name="progress_activity" size={24} style={{ color: THEME.primary }} />
+            </div>
+          ) : submissions.length === 0 ? (
+            <Card>
+              <div style={{ textAlign: 'center', padding: '32px', color: THEME.textLow }}>
+                <Icon name="task_alt" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
+                No submissions recorded yet at {currentSite?.name || 'this site'}.
+              </div>
+            </Card>
           ) : (
-            <>
-              {/* Summary stats */}
-              {(() => { const s = mealSummary(logs); return (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', marginBottom: '16px' }}>
-                  {[
-                    { label: 'Breakfasts', v: s.b, c: '#C55A11' },
-                    { label: 'Lunches',    v: s.l, c: '#00897B' },
-                    { label: 'Suppers',    v: s.s, c: '#5E35B1' },
-                    { label: 'Total',      v: s.t, c: '#C00000' },
-                  ].map(x => (
-                    <div key={x.label} style={{ textAlign: 'center', background: '#f4f6f9', borderRadius: '8px', padding: '10px' }}>
-                      <div style={{ fontSize: '22px', fontWeight: 700, color: x.c }}>{x.v}</div>
-                      <div style={{ fontSize: '11px', color: '#888' }}>{x.label}</div>
-                    </div>
-                  ))}
-                </div>
-              ) })()}
-
-              {/* Meal log table */}
-              <div style={{ overflowX: 'auto', maxHeight: '320px', overflowY: 'auto', marginBottom: '16px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                  <thead style={{ background: '#1F3864', color: '#fff', position: 'sticky', top: 0 }}>
-                    <tr>
-                      <th style={{ padding: '8px 10px', textAlign: 'left' }}>Employee</th>
-                      <th style={{ padding: '8px 10px', textAlign: 'center' }}>B</th>
-                      <th style={{ padding: '8px 10px', textAlign: 'center' }}>L</th>
-                      <th style={{ padding: '8px 10px', textAlign: 'center' }}>S</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {logs.filter(log => log.had_breakfast || log.had_lunch || log.had_supper).map(log => (
-                      <tr key={log.id} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '7px 10px', fontWeight: 600 }}>{log.employee_name}</td>
-                        <td style={{ padding: '7px 10px', textAlign: 'center', color: log.had_breakfast ? '#C55A11' : '#ddd' }}>
-                          {log.had_breakfast ? '✓' : '—'}
-                        </td>
-                        <td style={{ padding: '7px 10px', textAlign: 'center', color: log.had_lunch ? '#00897B' : '#ddd' }}>
-                          {log.had_lunch ? '✓' : '—'}
-                        </td>
-                        <td style={{ padding: '7px 10px', textAlign: 'center', color: log.had_supper ? '#5E35B1' : '#ddd' }}>
-                          {log.had_supper ? '✓' : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Notes */}
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4a5568', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                  Notes / Comments
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="Optional notes or reason for rejection…"
-                  rows={3}
+            submissions.map(sub => {
+              const isActive = selected?.id === sub.id
+              return (
+                <div
+                  key={sub.id}
+                  onClick={() => selectSub(sub)}
                   style={{
-                    width: '100%', padding: '8px 12px', border: '1px solid #dde2ea',
-                    borderRadius: '8px', fontFamily: 'inherit', fontSize: '13px',
-                    resize: 'vertical', boxSizing: 'border-box',
+                    background: isActive ? THEME.surfaceVar : '#fff',
+                    border: `1px solid ${isActive ? THEME.primary : THEME.outlineVar}`,
+                    borderRadius: '12px', padding: '14px 16px', marginBottom: '8px',
+                    cursor: 'pointer', transition: 'all .15s',
                   }}
-                />
-              </div>
-
-              {/* Actions */}
-              {selected.status === 'submitted' && (
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <Button onClick={approve} variant="success" disabled={approving}>
-                    ✅ Approve
-                  </Button>
-                  <Button onClick={reject} variant="danger" disabled={approving}>
-                    ↩ Return for corrections
-                  </Button>
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: THEME.text }}>{fmtDate(sub.date)}</span>
+                    <StatusBadge status={sub.status} />
+                  </div>
+                  <div style={{ fontSize: '12px', color: THEME.textLow }}>
+                    Submitted by: {sub.submitted_by_profile?.full_name || sub.submitted_by_profile?.username || '—'}
+                  </div>
+                  {sub.status === 'submitted' && (
+                    <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, color: THEME.warning }}>
+                      <Icon name="schedule" size={13} style={{ color: THEME.warning }} />
+                      Awaiting your approval
+                    </div>
+                  )}
                 </div>
-              )}
-              {selected.status === 'approved' && (
-                <div style={{ color: '#375623', fontWeight: 700, fontSize: '13px' }}>
-                  ✅ Approved
-                  {selected.approved_at && ` on ${fmtDate(selected.approved_at.slice(0,10))}`}
-                </div>
-              )}
-            </>
+              )
+            })
           )}
-        </Card>
-      )}
+        </div>
+
+        {/* Right: detail panel */}
+        {selected && (
+          <Card>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: THEME.text }}>{fmtDate(selected.date)}</h3>
+                <div style={{ marginTop: '4px' }}>
+                  <StatusBadge status={selected.status} />
+                </div>
+              </div>
+              <button
+                onClick={() => setSelected(null)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}
+              >
+                <Icon name="close" size={18} style={{ color: THEME.textLow }} />
+              </button>
+            </div>
+
+            {loadingLogs ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>
+                <Icon name="progress_activity" size={24} style={{ color: THEME.primary }} />
+              </div>
+            ) : (
+              <>
+                {/* Summary stats */}
+                {(() => { const s = mealSummary(logs); return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', marginBottom: '16px' }}>
+                    {[
+                      { label: 'Breakfasts', v: s.b, c: THEME.breakfastClr },
+                      { label: 'Lunches',    v: s.l, c: THEME.lunchClr },
+                      { label: 'Suppers',    v: s.s, c: THEME.supperClr },
+                      { label: 'Total',      v: s.t, c: THEME.primary },
+                    ].map(x => (
+                      <div key={x.label} style={{ textAlign: 'center', background: THEME.surfaceVar, borderRadius: '10px', padding: '10px' }}>
+                        <div style={{ fontSize: '22px', fontWeight: 700, color: x.c }}>{x.v}</div>
+                        <div style={{ fontSize: '11px', color: THEME.textLow }}>{x.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) })()}
+
+                {/* Meal log table */}
+                <div style={{ overflowX: 'auto', maxHeight: '320px', overflowY: 'auto', marginBottom: '16px', borderRadius: '12px', border: `1px solid ${THEME.outlineVar}` }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead style={{ background: THEME.primary, color: '#fff', position: 'sticky', top: 0 }}>
+                      <tr>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Employee</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center' }}>B</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center' }}>L</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'center' }}>S</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logs.filter(log => log.had_breakfast || log.had_lunch || log.had_supper).length === 0 ? (
+                        <tr><td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: THEME.textLow }}>No meals recorded for this day</td></tr>
+                      ) : logs.filter(log => log.had_breakfast || log.had_lunch || log.had_supper).map(log => (
+                        <tr key={log.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                          <td style={{ padding: '7px 10px', fontWeight: 500, color: THEME.text }}>{log.employee_name}</td>
+                          <td style={{ padding: '7px 10px', textAlign: 'center' }}>
+                            {log.had_breakfast
+                              ? <Icon name="check_circle" size={15} style={{ color: THEME.breakfastClr }} />
+                              : <span style={{ color: THEME.outline }}>—</span>}
+                          </td>
+                          <td style={{ padding: '7px 10px', textAlign: 'center' }}>
+                            {log.had_lunch
+                              ? <Icon name="check_circle" size={15} style={{ color: THEME.lunchClr }} />
+                              : <span style={{ color: THEME.outline }}>—</span>}
+                          </td>
+                          <td style={{ padding: '7px 10px', textAlign: 'center' }}>
+                            {log.had_supper
+                              ? <Icon name="check_circle" size={15} style={{ color: THEME.supperClr }} />
+                              : <span style={{ color: THEME.outline }}>—</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Notes */}
+                <div style={{ marginBottom: '14px' }}>
+                  <SectionLabel>Notes / Comments</SectionLabel>
+                  <textarea
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    placeholder="Optional notes or reason for rejection…"
+                    rows={3}
+                    style={{
+                      width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`,
+                      borderRadius: '12px', fontFamily: 'inherit', fontSize: '13px',
+                      resize: 'vertical', boxSizing: 'border-box', outline: 'none',
+                    }}
+                  />
+                </div>
+
+                {/* Actions */}
+                {selected.status === 'submitted' && (
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <Button onClick={approve} variant="success" icon="check_circle" disabled={approving}>
+                      Approve
+                    </Button>
+                    <Button onClick={reject} variant="danger" icon="undo" disabled={approving}>
+                      Return for corrections
+                    </Button>
+                  </div>
+                )}
+                {selected.status === 'approved' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: THEME.success, fontWeight: 600, fontSize: '13px' }}>
+                    <Icon name="check_circle" size={16} style={{ color: THEME.success }} />
+                    Approved{selected.approved_at && ` on ${fmtDate(selected.approved_at.slice(0,10))}`}
+                  </div>
+                )}
+              </>
+            )}
+          </Card>
+        )}
+      </div>
     </div>
   )
 }

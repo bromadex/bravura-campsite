@@ -133,7 +133,7 @@ export default function AuditLogViewer() {
                   <tr key={entry.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer' }}
                     onClick={() => setSelected(entry)}
                     onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
                     <td style={{ padding: '10px 14px', color: THEME.textMed, whiteSpace: 'nowrap' }}>
                       {new Date(entry.created_at).toLocaleString()}
                     </td>

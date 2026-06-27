@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
 import { SiteProvider } from './contexts/SiteContext'
@@ -6,7 +6,7 @@ import { PermissionsProvider, usePermissions } from './contexts/PermissionsConte
 import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, moduleAccess } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 import Employees    from './pages/Employees'
@@ -144,28 +144,84 @@ const DEFAULT_PAGE = {
   admin:     'admin_users',
 }
 
+// ── Module shell — resolves :moduleId/:pageId from the URL ────────────────────
+// ModuleLayout and HomeLauncher are completely unchanged by this migration —
+// both only ever consumed setPage/onHome/onEnterModule as opaque callbacks,
+// never caring how navigation actually happens underneath. Confirmed by
+// checking both files directly before touching anything here.
+function ModuleShell() {
+  const { moduleId, pageId } = useParams()
+  const navigate = useNavigate()
+  const { profile } = useAuth()
+  const { can } = usePermissions()
+  const role = profile.role
+
+  const meta = MODULE_META[moduleId]
+  if (!meta) return <Navigate to="/" replace />
+
+  const currentPage = pageId
+  function setPage(page) { navigate(`/${moduleId}/${page}`) }
+  function goHome() { navigate('/') }
+
+  const navFn = meta.navFn
+  const navItems = navFn(role, can)
+
+  let content = null
+  if (moduleId === 'workforce') content = getWorkforcePage(currentPage, role, can)
+  if (moduleId === 'campsite')  content = getCampsitePage(currentPage, role, setPage, can)
+  if (moduleId === 'meals')     content = getMealsPage(currentPage, role, setPage, can)
+  if (moduleId === 'admin')     content = getAdminPage(currentPage, can)
+
+  const AccessDenied = (
+    <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
+      <span className="material-symbols-rounded" style={{ fontSize: '56px', color: THEME.outline, display: 'block', marginBottom: '14px' }}>lock</span>
+      <p style={{ fontSize: '15px' }}>You don't have access to this section.</p>
+    </div>
+  )
+
+  const body = (
+    <ModuleLayout
+      moduleId={moduleId}
+      moduleLabel={meta.label}
+      moduleIcon={meta.icon}
+      navItems={navItems}
+      page={currentPage}
+      setPage={setPage}
+      onHome={goHome}
+    >
+      {content || AccessDenied}
+    </ModuleLayout>
+  )
+
+  // Campsite wraps in CampsiteProvider — Workforce too, since
+  // WorkforceLeave reads from useCampsite() for its leave-recording
+  // functions. Unchanged from before, just keyed off the URL now instead
+  // of state.
+  if (moduleId === 'campsite' || moduleId === 'workforce') {
+    return <CampsiteProvider>{body}</CampsiteProvider>
+  }
+  return body
+}
+
+// A bare module URL (e.g. /workforce, with no page segment) redirects to
+// that module's default page, rather than falling through to the
+// catch-all and bouncing all the way back to the home launcher.
+function ModuleDefaultRedirect() {
+  const { moduleId } = useParams()
+  const target = DEFAULT_PAGE[moduleId]
+  if (!target) return <Navigate to="/" replace />
+  return <Navigate to={`/${moduleId}/${target}`} replace />
+}
+
+function HomeLauncherPage() {
+  const navigate = useNavigate()
+  function enterModule(moduleId) { navigate(`/${moduleId}/${DEFAULT_PAGE[moduleId]}`) }
+  return <HomeLauncher onEnterModule={enterModule} />
+}
+
 // ── App shell ─────────────────────────────────────────────────────────────────
 function AppContent() {
   const { user, profile, loading } = useAuth()
-
-  // null = home launcher, string = active module id
-  const [activeModule,   setActiveModule]   = useState(null)
-  const [currentPage,    setCurrentPage]    = useState(null)
-  const { can } = usePermissions()
-
-  function enterModule(moduleId) {
-    setActiveModule(moduleId)
-    setCurrentPage(DEFAULT_PAGE[moduleId])
-  }
-
-  function goHome() {
-    setActiveModule(null)
-    setCurrentPage(null)
-  }
-
-  function setPage(page) {
-    setCurrentPage(page)
-  }
 
   // ── Loading ──
   if (loading) return (
@@ -186,83 +242,33 @@ function AppContent() {
   )
 
   // ── Not authenticated ──
+  // Whatever URL was being visited stays in the address bar — once login
+  // succeeds, the very same URL now matches a real route and renders
+  // straight back to where the person was, with no extra logic needed.
+  // That's a direct, free benefit of routing properly instead of a
+  // dead-end nobody could plan for before.
   if (!user || !profile) return <LoginPage />
 
-  const role = profile.role
-
-  // ── Home launcher ──
-  if (!activeModule) {
-    return <HomeLauncher onEnterModule={enterModule} />
-  }
-
-  // Meals PIN gate removed — every page inside Meals now has its own real
-  // RBAC permission check (see getMealsPage), which is what actually gates
-  // access correctly per the approved direction: "Access to Meals... should
-  // be controlled through the RBAC and Site Access model only." The PIN was
-  // never doing anything those checks don't already do, and its default
-  // (anyone with no PIN set could enter with '0000') was weaker than no gate
-  // at all once real permissions existed underneath it.
-
-  // ── Resolve page content ──
-  const meta   = MODULE_META[activeModule]
-  const navFn  = meta.navFn
-  const navItems = navFn(role, can)
-
-  let content = null
-  if (activeModule === 'workforce') content = getWorkforcePage(currentPage, role, can)
-  if (activeModule === 'campsite')  content = getCampsitePage(currentPage, role, setPage, can)
-  if (activeModule === 'meals')     content = getMealsPage(currentPage, role, setPage, can)
-  if (activeModule === 'admin')     content = getAdminPage(currentPage, can)
-
-  const AccessDenied = (
-    <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
-      <span className="material-symbols-rounded" style={{ fontSize: '56px', color: THEME.outline, display: 'block', marginBottom: '14px' }}>lock</span>
-      <p style={{ fontSize: '15px' }}>You don't have access to this section.</p>
-    </div>
-  )
-
-  // Campsite wraps in CampsiteProvider
-  if (activeModule === 'campsite' || activeModule === 'workforce') {
-    return (
-      <CampsiteProvider>
-        <ModuleLayout
-          moduleId={activeModule}
-          moduleLabel={meta.label}
-          moduleIcon={meta.icon}
-          navItems={navItems}
-          page={currentPage}
-          setPage={setPage}
-          onHome={goHome}
-        >
-          {content || AccessDenied}
-        </ModuleLayout>
-      </CampsiteProvider>
-    )
-  }
-
   return (
-    <ModuleLayout
-      moduleId={activeModule}
-      moduleLabel={meta.label}
-      moduleIcon={meta.icon}
-      navItems={navItems}
-      page={currentPage}
-      setPage={setPage}
-      onHome={goHome}
-    >
-      {content || AccessDenied}
-    </ModuleLayout>
+    <Routes>
+      <Route path="/" element={<HomeLauncherPage />} />
+      <Route path="/:moduleId" element={<ModuleDefaultRedirect />} />
+      <Route path="/:moduleId/:pageId" element={<ModuleShell />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <SiteProvider>
-        <PermissionsProvider>
-          <AppContent />
-        </PermissionsProvider>
-      </SiteProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <SiteProvider>
+          <PermissionsProvider>
+            <AppContent />
+          </PermissionsProvider>
+        </SiteProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }

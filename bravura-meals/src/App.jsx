@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
 import { SiteProvider } from './contexts/SiteContext'
 import { PermissionsProvider, usePermissions } from './contexts/PermissionsContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
@@ -261,14 +262,16 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <SiteProvider>
-          <PermissionsProvider>
-            <AppContent />
-          </PermissionsProvider>
-        </SiteProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <SiteProvider>
+            <PermissionsProvider>
+              <AppContent />
+            </PermissionsProvider>
+          </SiteProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }

@@ -253,7 +253,7 @@ export default function CampRooms() {
                     key={room.id}
                     style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                     onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}
                   >
                     <td style={{ padding: '12px 14px', fontWeight: 600, color: THEME.text }}>{room.room_number}</td>
                     <td style={{ padding: '12px 14px', color: THEME.textMed }}>{room.block?.name || '—'}</td>

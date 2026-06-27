@@ -266,7 +266,7 @@ export default function Employees() {
                     key={emp.id}
                     style={{ borderBottom: `1px solid ${THEME.outlineVar}`, opacity: emp.status === 'terminated' ? 0.6 : 1 }}
                     onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}
                   >
                     <td style={{ padding: '10px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

@@ -399,7 +399,7 @@ export default function DailyEntry() {
                       key={emp.id}
                       style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: THEME.surface, transition: 'background .1s' }}
                       onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                      onMouseLeave={e => e.currentTarget.style.background = THEME.surface}
                     >
                       {/* Row number */}
                       <td style={{ padding: '10px', textAlign: 'center', color: THEME.textLow, fontSize: '11px' }}>

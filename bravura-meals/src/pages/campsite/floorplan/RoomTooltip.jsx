@@ -11,7 +11,7 @@ export default function RoomTooltip({ room, activeAssignments, employees, mouseX
     return (
       <div style={{
         position: 'fixed', left: mouseX + 16, top: mouseY + 16, zIndex: 2000,
-        background: '#1F2937', color: '#fff', padding: '8px 12px',
+        background: THEME.sidebar, color: '#fff', padding: '8px 12px',
         borderRadius: '10px', fontSize: '12px', fontWeight: 500,
         pointerEvents: 'none', boxShadow: '0 4px 16px rgba(0,0,0,.25)',
         whiteSpace: 'nowrap',
@@ -31,7 +31,7 @@ export default function RoomTooltip({ room, activeAssignments, employees, mouseX
   return (
     <div style={{
       position: 'fixed', left: mouseX + 16, top: mouseY + 16, zIndex: 2000,
-      background: '#fff', borderRadius: '14px', padding: '14px 16px',
+      background: THEME.surface, borderRadius: '14px', padding: '14px 16px',
       minWidth: '220px', boxShadow: '0 8px 28px rgba(0,0,0,.22)',
       border: `1px solid ${THEME.outlineVar}`, pointerEvents: 'none',
     }}>

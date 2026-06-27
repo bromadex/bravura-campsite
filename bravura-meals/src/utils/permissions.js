@@ -134,5 +134,6 @@ export function mealsNav(role) {
 export function adminNav(role) {
   return [
     { id: 'admin_users', label: 'Users & Roles', section: 'Administration', icon: 'manage_accounts' },
+    { id: 'admin_audit',  label: 'Audit Log',     section: 'Administration', icon: 'history' },
   ]
 }

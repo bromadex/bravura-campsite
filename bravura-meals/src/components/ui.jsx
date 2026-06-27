@@ -15,12 +15,12 @@ export function StatCard({ label, value, sub, color, icon }) {
   const c = color || THEME.primary
   return (
     <div style={{
-      background: '#fff',
+      background: THEME.surface,
       border: `1px solid ${THEME.outlineVar}`,
       borderRadius: '16px',
       padding: '16px',
       display: 'flex', flexDirection: 'column', gap: '4px',
-      boxShadow: '0 1px 2px rgba(0,0,0,.04)',
+      boxShadow: THEME.shadow1,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.06em' }}>
@@ -44,11 +44,11 @@ export function Card({ children, style = {}, elevated = false, onClick, onMouseE
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
-        background: '#fff',
+        background: THEME.surface,
         border: `1px solid ${THEME.outlineVar}`,
         borderRadius: '16px',
         padding: '20px',
-        boxShadow: elevated ? '0 2px 8px rgba(0,0,0,.08)' : '0 1px 2px rgba(0,0,0,.04)',
+        boxShadow: elevated ? THEME.shadow2 : THEME.shadow1,
         ...style,
       }}
       {...rest}
@@ -125,9 +125,9 @@ export function Modal({ open, onClose, title, children, footer }) {
       }}
     >
       <div style={{
-        background: '#fff', borderRadius: '28px', padding: '24px',
+        background: THEME.surface, borderRadius: '28px', padding: '24px',
         maxWidth: '560px', width: '100%', margin: '16px',
-        boxShadow: '0 8px 32px rgba(0,0,0,.18)',
+        boxShadow: THEME.shadow3,
       }}>
         <div style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, marginBottom: '20px', letterSpacing: '-.01em' }}>
           {title}
@@ -157,14 +157,14 @@ export function ConfirmModal({ open, onClose, onConfirm, title, message, confirm
       }}
     >
       <div style={{
-        background: '#fff', borderRadius: '28px', padding: '28px 24px',
+        background: THEME.surface, borderRadius: '28px', padding: '28px 24px',
         maxWidth: '380px', width: '100%', margin: '16px',
-        boxShadow: '0 8px 32px rgba(0,0,0,.18)',
+        boxShadow: THEME.shadow3,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
           <div style={{
             width: '40px', height: '40px', borderRadius: '50%',
-            background: danger ? '#FDECEA' : THEME.surfaceVar,
+            background: danger ? THEME.statusErrorBg : THEME.surfaceVar,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Icon name={danger ? 'delete' : 'warning'} size={20} style={{ color: danger ? THEME.error : THEME.primary }} />
@@ -186,29 +186,29 @@ export function ConfirmModal({ open, onClose, onConfirm, title, message, confirm
 // ── Status Chip ───────────────────────────────────────────────────────────────
 export function StatusBadge({ status }) {
   const map = {
-    draft:     { bg: '#FFF8E1', color: '#7D5700', label: 'Draft' },
-    submitted: { bg: THEME.surfaceVar, color: THEME.primary, label: 'Submitted' },
-    approved:  { bg: '#E8F5E9', color: '#1B5E20', label: 'Approved' },
-    queried:   { bg: '#FDECEA', color: THEME.error, label: 'Queried' },
+    draft:     { bg: THEME.statusWarningBg, color: THEME.statusWarningText, label: 'Draft' },
+    submitted: { bg: THEME.surfaceVar,      color: THEME.primary,           label: 'Submitted' },
+    approved:  { bg: THEME.statusSuccessBg, color: THEME.statusSuccessText, label: 'Approved' },
+    queried:   { bg: THEME.statusErrorBg,   color: THEME.statusErrorText,   label: 'Queried' },
     // Stock transfer workflow states
-    pending:    { bg: '#FFF8E1', color: '#7D5700', label: 'Pending' },
-    in_transit: { bg: THEME.surfaceVar, color: THEME.info, label: 'In Transit' },
-    completed:  { bg: '#E8F5E9', color: '#1B5E20', label: 'Completed' },
-    cancelled:  { bg: '#F5F5F5', color: '#757575', label: 'Cancelled' },
-    open:      { bg: '#FDECEA', color: THEME.error, label: 'Open' },
-    resolved:  { bg: '#E8F5E9', color: '#1B5E20', label: 'Resolved' },
-    dismissed: { bg: '#F5F5F5', color: '#757575', label: 'Dismissed' },
-    Active:    { bg: '#E8F5E9', color: '#1B5E20', label: 'Active' },
-    Inactive:  { bg: '#F5F5F5', color: '#757575', label: 'Inactive' },
+    pending:    { bg: THEME.statusWarningBg, color: THEME.statusWarningText, label: 'Pending' },
+    in_transit: { bg: THEME.surfaceVar,      color: THEME.info,              label: 'In Transit' },
+    completed:  { bg: THEME.statusSuccessBg, color: THEME.statusSuccessText, label: 'Completed' },
+    cancelled:  { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: 'Cancelled' },
+    open:      { bg: THEME.statusErrorBg,   color: THEME.statusErrorText,   label: 'Open' },
+    resolved:  { bg: THEME.statusSuccessBg, color: THEME.statusSuccessText, label: 'Resolved' },
+    dismissed: { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: 'Dismissed' },
+    Active:    { bg: THEME.statusSuccessBg, color: THEME.statusSuccessText, label: 'Active' },
+    Inactive:  { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: 'Inactive' },
     // New lowercase employee status values (post-migration)
-    active:              { bg: '#E8F5E9', color: '#1B5E20', label: 'Active' },
-    terminated:          { bg: '#F5F5F5', color: '#757575', label: 'Terminated' },
-    on_leave:            { bg: '#FFF8E1', color: '#7D5700', label: 'On Leave' },
-    long_leave:          { bg: '#EDE7F6', color: '#4A3C8C', label: 'Long Leave' },
-    temporary_assignment:{ bg: '#E3F2FD', color: '#1558A6', label: 'Temporary Assignment' },
-    transferred:         { bg: '#E3F2FD', color: '#1558A6', label: 'Transferred' },
+    active:              { bg: THEME.statusSuccessBg,  color: THEME.statusSuccessText,  label: 'Active' },
+    terminated:          { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Terminated' },
+    on_leave:            { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'On Leave' },
+    long_leave:          { bg: THEME.statusTertiaryBg, color: THEME.statusTertiaryText, label: 'Long Leave' },
+    temporary_assignment:{ bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Temporary Assignment' },
+    transferred:         { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Transferred' },
   }
-  const s = map[status] || { bg: '#F5F5F5', color: '#757575', label: status }
+  const s = map[status] || { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: status }
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
@@ -250,7 +250,7 @@ export function TextField({ label, value, onChange, placeholder, type = 'text', 
           borderRadius: '12px', fontSize: '14px', color: THEME.text,
           fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
           transition: 'border-color .15s, box-shadow .15s',
-          background: '#fff',
+          background: THEME.surface,
         }}
         onFocus={e => { e.target.style.borderColor = THEME.primary; e.target.style.boxShadow = `0 0 0 2px ${THEME.primary}22` }}
         onBlur={e => { e.target.style.borderColor = THEME.outline; e.target.style.boxShadow = 'none' }}
@@ -342,3 +342,26 @@ export const MONTHS = ['January','February','March','April','May','June','July',
 
 // need useState for useSortState
 import { useState } from 'react'
+import { useTheme } from '../contexts/ThemeContext'
+
+// ── Theme toggle — sun/moon switch ────────────────────────────────────────────
+export function ThemeToggle({ size = 'md' }) {
+  const { theme, toggleTheme } = useTheme()
+  const dim = size === 'sm' ? '30px' : '34px'
+  return (
+    <button
+      onClick={toggleTheme}
+      title={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+      style={{
+        width: dim, height: dim, borderRadius: '50%',
+        border: `1px solid ${THEME.outlineVar}`, background: THEME.surfaceVar,
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background .15s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceHover}
+      onMouseLeave={e => e.currentTarget.style.background = THEME.surfaceVar}
+    >
+      <Icon name={theme === 'light' ? 'dark_mode' : 'light_mode'} size={16} style={{ color: THEME.primary }} />
+    </button>
+  )
+}

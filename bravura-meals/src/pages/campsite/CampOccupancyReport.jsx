@@ -110,7 +110,7 @@ export default function CampOccupancyReport() {
             {blockStats.map(b => (
               <tr key={b.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                 onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
                 <td style={{ padding: '11px 14px', fontWeight: 600 }}>{b.name}</td>
                 <td style={{ padding: '11px 14px', textAlign: 'center' }}>{b.total}</td>
                 <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.error, fontWeight: 600 }}>{b.occupied}</td>

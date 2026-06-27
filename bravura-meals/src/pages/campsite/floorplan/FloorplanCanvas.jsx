@@ -62,7 +62,7 @@ export default function FloorplanCanvas({
   const handleDrop = useCallback((room) => { onRoomDrop?.(room) }, [onRoomDrop])
 
   return (
-    <div style={{ position: 'relative', flex: 1, overflow: 'hidden', background: '#F5F5F5' }}>
+    <div style={{ position: 'relative', flex: 1, overflow: 'hidden', background: THEME.bg }}>
       <svg
         ref={svgRef}
         viewBox={viewBox}
@@ -103,7 +103,7 @@ export default function FloorplanCanvas({
       <div style={{
         position: 'absolute', bottom: '20px', right: '20px',
         display: 'flex', flexDirection: 'column', gap: '6px',
-        background: '#fff', borderRadius: '14px', padding: '6px',
+        background: THEME.surface, borderRadius: '14px', padding: '6px',
         boxShadow: '0 4px 16px rgba(0,0,0,.15)',
       }}>
         <IconBtn icon="add"          onClick={() => setZoom(z => Math.min(4, z * 1.2))} />

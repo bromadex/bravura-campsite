@@ -190,9 +190,9 @@ export default function StockTransfers() {
       </div>
 
       {otherSites.length === 0 && (
-        <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px', background: '#FFF8E1' }}>
-          <Icon name="info" size={18} style={{ color: '#7D5700', flexShrink: 0 }} />
-          <div style={{ fontSize: '12px', color: '#7D5700' }}>
+        <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px', background: THEME.statusWarningBg }}>
+          <Icon name="info" size={18} style={{ color: THEME.statusWarningText, flexShrink: 0 }} />
+          <div style={{ fontSize: '12px', color: THEME.statusWarningText }}>
             No other sites are accessible to you, so there's nowhere to transfer to or from yet.
           </div>
         </Card>

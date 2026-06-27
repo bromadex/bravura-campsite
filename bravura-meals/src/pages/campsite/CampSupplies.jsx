@@ -194,7 +194,7 @@ export default function CampSupplies() {
                       <span>Issued: {parseFloat(item.total_issued||0).toFixed(item.unit === 'Kg' ? 1 : 0)}</span>
                     </div>
                     {bal <= 0 && (
-                      <div style={{ marginTop: '8px', padding: '5px 10px', background: '#FDECEA', borderRadius: '8px', fontSize: '11px', color: THEME.error, fontWeight: 500 }}>
+                      <div style={{ marginTop: '8px', padding: '5px 10px', background: THEME.statusErrorBg, borderRadius: '8px', fontSize: '11px', color: THEME.error, fontWeight: 500 }}>
                         Out of stock
                       </div>
                     )}
@@ -207,7 +207,7 @@ export default function CampSupplies() {
 
           /* ── Movement History ── */
           <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
               <thead>
                 <tr style={{ background: THEME.primary, color: '#fff' }}>
                   {['Date','Item','Type','Quantity','Unit','Issued To','Reference','Notes','Recorded By','Actions'].map(h => (
@@ -250,11 +250,11 @@ export default function CampSupplies() {
                       <td style={{ padding: '10px 14px' }}>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button onClick={() => openEditTxn(txn)} title="Edit" disabled={!canEdit}
-                            style={{ width: '28px', height: '28px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            style={{ width: '28px', height: '28px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Icon name="edit" size={13} style={{ color: THEME.textMed }} />
                           </button>
                           <button onClick={() => setDeleteTxn(txn)} title="Delete" disabled={!canDelete}
-                            style={{ width: '28px', height: '28px', border: '1px solid #f5b8b8', borderRadius: '8px', background: '#fff', cursor: canDelete ? 'pointer' : 'not-allowed', opacity: canDelete ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            style={{ width: '28px', height: '28px', border: '1px solid #f5b8b8', borderRadius: '8px', background: THEME.surface, cursor: canDelete ? 'pointer' : 'not-allowed', opacity: canDelete ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Icon name="delete" size={13} style={{ color: THEME.error }} />
                           </button>
                         </div>
@@ -289,7 +289,7 @@ export default function CampSupplies() {
               </div>
             </Card>
             <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
                 <thead>
                   <tr style={{ background: THEME.primary, color: '#fff' }}>
                     <th style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px' }}>Item</th>

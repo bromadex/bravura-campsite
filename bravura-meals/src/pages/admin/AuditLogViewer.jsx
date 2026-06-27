@@ -84,19 +84,7 @@ export default function AuditLogViewer() {
 
   return (
     <div>
-      <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: '0 0 6px' }}>Audit Log</h2>
-
-      {/* Honest framing — this is the actual most important thing on the page */}
-      <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: '10px', background: '#EEF1FB' }}>
-        <Icon name="info" size={18} style={{ color: '#5C6BC0', flexShrink: 0, marginTop: '1px' }} />
-        <div style={{ fontSize: '12px', color: THEME.textMed, lineHeight: 1.5 }}>
-          Recording <strong>who</strong> performed each action was only just fixed — entries from before that fix
-          will show "Unknown" for the actor, since that information was never captured and can't be recovered after
-          the fact. Going forward, every change is correctly attributed. This view also isn't filtered by site yet —
-          deriving the correct site varies per table, and showing everything is harmless today since the only active
-          account has access to every site anyway.
-        </div>
-      </Card>
+      <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: '0 0 16px' }}>Audit Log</h2>
 
       {/* Filters */}
       <Card style={{ marginBottom: '16px', padding: '12px 16px' }}>

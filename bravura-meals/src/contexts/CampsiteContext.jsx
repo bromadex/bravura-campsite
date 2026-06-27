@@ -29,7 +29,13 @@ export function CampsiteProvider({ children }) {
       // Visitors remain unfiltered for now — a known, smaller, separate gap.
       const [bRes, eRes, cRes, vRes, sRes] = await Promise.all([
         supabase.from('camp_blocks').select('*').eq('site_id', currentSiteId).order('name'),
-        supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').eq('site_id', currentSiteId).order('name'),
+        // Widened to include on_leave/long_leave, not just active. The KPI
+        // counts below and the Assignments page's "On Leave" tab both
+        // depend on these employees actually being present in this list —
+        // filtering to status='active' only meant anyone currently on
+        // leave was invisible to both, independent of anything else fixed
+        // in this same pass.
+        supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').in('status', ['active','on_leave','long_leave']).eq('site_id', currentSiteId).order('name'),
         supabase.from('contractors').select('*').eq('status','Active').order('name'),
         supabase.from('camp_visitors').select('*').order('created_at', { ascending: false }),
         supabase.from('camp_supply_balance').select('*').eq('site_id', currentSiteId),
@@ -125,8 +131,8 @@ export function CampsiteProvider({ children }) {
     occupiedRooms:     occupiedRoomIds.size,
     availableRooms:    rooms.filter(r => !r.is_maintenance && !occupiedRoomIds.has(r.id)).length,
     maintenanceRooms:  rooms.filter(r => r.is_maintenance).length,
-    onShortLeave:      employees.filter(e => e.leave_status === 'short_leave').length,
-    onLongLeave:       employees.filter(e => e.leave_status === 'long_leave').length,
+    onShortLeave:      employees.filter(e => e.status === 'on_leave').length,
+    onLongLeave:       employees.filter(e => e.status === 'long_leave').length,
     occupancyPct:      rooms.length > 0
       ? Math.round((occupiedRoomIds.size / rooms.length) * 100)
       : 0,
@@ -288,27 +294,56 @@ export function CampsiteProvider({ children }) {
     return created
   }
 
-  // ── Leave management ───────────────────────────────────────────────────────
-  async function setLeaveStatus({ employeeId, leaveStatus, startDate, endDate, notes }) {
-    const { error } = await supabase.from('employees').update({
-      leave_status: leaveStatus,
-      leave_start:  startDate || null,
-      leave_end:    endDate   || null,
-      leave_notes:  notes     || null,
-    }).eq('id', employeeId)
+  // ── Leave management — now backed by employee_movements ───────────────────
+  // Going on leave used to write directly to employees.leave_status. That
+  // column is now retired in favour of the real movement system: this
+  // inserts a 'leave' movement, and the existing database trigger
+  // (sync_employee_status_from_movement) automatically updates
+  // employees.status to 'on_leave' or 'long_leave' depending on category —
+  // which in turn fires the room auto-release trigger for long-leave
+  // categories, exactly as it did before, just through the correct chain.
+  //
+  // leaveCategory must be one of: annual, sick, compassionate (short —
+  // room stays assigned), or maternity, study, extended_medical (long —
+  // room releases automatically). The short/long split is derived from the
+  // category, not chosen directly, matching the original design.
+  async function setLeaveStatus({ employeeId, leaveCategory, startDate, endDate, reason, createdBy, siteId }) {
+    const { error } = await supabase.from('employee_movements').insert({
+      employee_id:         employeeId,
+      movement_type:       'leave',
+      leave_category:      leaveCategory,
+      // Leave isn't a location change — both sides record the employee's
+      // current site so reporting ("who was on leave at Kamativi in June")
+      // works directly off this table, per the original movement design.
+      // siteId is passed in by the caller, since this employee is still
+      // status='active' at the moment of going on leave and would be
+      // present in CampsiteContext's own (active-only) employee list — but
+      // returnFromLeave below can't rely on that same lookup, since an
+      // on-leave employee is, by definition, no longer status='active'.
+      from_site_id:        siteId || null,
+      to_site_id:          siteId || null,
+      effective_date:      startDate,
+      expected_return_date: endDate || null,
+      reason:              reason || null,
+      created_by:          createdBy || null,
+    })
     if (error) throw error
     await fetchAll()
   }
 
-  async function returnFromLeave(employeeId) {
-    const { error } = await supabase.from('employees').update({
-      leave_status: 'active',
-      leave_start:  null,
-      leave_end:    null,
-      leave_notes:  null,
-    }).eq('id', employeeId)
+  async function returnFromLeave(employeeId, createdBy, siteId) {
+    const { error } = await supabase.from('employee_movements').insert({
+      employee_id:    employeeId,
+      movement_type:  'return_from_leave',
+      from_site_id:   siteId || null,
+      to_site_id:     siteId || null,
+      effective_date: new Date().toISOString().slice(0, 10),
+      created_by:     createdBy || null,
+    })
     if (error) throw error
     await fetchAll()
+    // Room reassignment after returning from long leave is deliberately
+    // manual, per the original design — this only restores 'active' status.
   }
 
   // ── Camp Supplies ──────────────────────────────────────────────────────────

@@ -21,9 +21,9 @@ const CATEGORY_LABELS = Object.fromEntries(LEAVE_CATEGORIES.map(c => [c.value, c
 
 const STATUS_LABELS = { active: 'Active', on_leave: 'On Leave', long_leave: 'Long Leave' }
 const STATUS_COLORS = {
-  active:     { bg: '#E8F5E9', c: '#1B5E20' },
-  on_leave:   { bg: '#FFF8E1', c: '#7D5700' },
-  long_leave: { bg: '#EDE7F6', c: '#4A3C8C' },
+  active:     { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText },
+  on_leave:   { bg: THEME.statusWarningBg, c: THEME.statusWarningText },
+  long_leave: { bg: THEME.statusTertiaryBg, c: THEME.statusTertiaryText },
 }
 
 export default function WorkforceLeave() {
@@ -134,7 +134,7 @@ export default function WorkforceLeave() {
         {Object.entries(counts).map(([status, count]) => {
           const lc = STATUS_COLORS[status]
           return (
-            <div key={status} style={{ background: '#fff', border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${lc.c}` }}>
+            <div key={status} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${lc.c}` }}>
               <div style={{ fontSize: '32px', fontWeight: 300, color: lc.c }}>{count}</div>
               <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '4px' }}>{STATUS_LABELS[status]}</div>
             </div>
@@ -171,7 +171,7 @@ export default function WorkforceLeave() {
         </div>
       ) : (
         <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
             <thead>
               <tr style={{ background: THEME.primary, color: '#fff' }}>
                 {['Employee','Contractor','Status','Leave Type','Start','Expected Return','Actions'].map(h => (
@@ -204,12 +204,12 @@ export default function WorkforceLeave() {
                     <td style={{ padding: '11px 14px' }}>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         {emp.status !== 'active' ? (
-                          <button onClick={() => doReturn(emp)} style={{ padding: '4px 10px', border: `1px solid ${THEME.success}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.success, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <button onClick={() => doReturn(emp)} style={{ padding: '4px 10px', border: `1px solid ${THEME.success}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.success, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <Icon name="login" size={13} style={{ color: THEME.success }} /> Return
                           </button>
                         ) : (
                           <button onClick={() => { setLeaveTarget(emp); setLeaveForm({ category: 'annual', start: '', end: '', reason: '' }); setLeaveModal(true) }}
-                            style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <Icon name="flight_takeoff" size={13} style={{ color: THEME.warning }} /> Set Leave
                           </button>
                         )}

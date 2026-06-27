@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
-import { Card, Button, StatusBadge, showToast, today, fmtDate } from '../components/ui'
+import { useSite } from '../contexts/SiteContext'
+import { THEME } from '../utils/permissions'
+import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, today, fmtDate } from '../components/ui'
 
 export default function KitchenConfirm() {
   const { profile } = useAuth()
+  const { currentSiteId, currentSite } = useSite()
+
   const [date, setDate] = useState(today())
   const [submission, setSubmission] = useState(null)
   const [counts, setCounts] = useState({ b: '', l: '', s: '' })
@@ -17,7 +21,10 @@ export default function KitchenConfirm() {
   const [flagMsg, setFlagMsg] = useState('')
   const [flagKitchen, setFlagKitchen] = useState({ b: '', l: '', s: '' })
 
-  useEffect(() => { loadDate(date) }, [date])
+  // Re-loads whenever the date OR the selected site changes — a date can
+  // now have one submission PER SITE, so site has to be part of the lookup,
+  // not just the date.
+  useEffect(() => { if (currentSiteId) loadDate(date) }, [date, currentSiteId])
 
   async function loadDate(d) {
     setLoading(true)
@@ -25,6 +32,7 @@ export default function KitchenConfirm() {
       .from('daily_submissions')
       .select('*')
       .eq('date', d)
+      .eq('site_id', currentSiteId)
       .maybeSingle()
     setSubmission(data)
     if (data) {
@@ -54,7 +62,7 @@ export default function KitchenConfirm() {
       .eq('id', submission.id)
     setSaving(false)
     if (error) { showToast(error.message, 'red'); return }
-    showToast('Kitchen counts saved ✓', 'green')
+    showToast('Kitchen counts saved', 'green')
     loadDate(date)
   }
 
@@ -62,6 +70,9 @@ export default function KitchenConfirm() {
     if (!flagMsg.trim()) { showToast('Please describe the issue', 'red'); return }
     if (!submission?.id) { showToast('No submission found for this date', 'red'); return }
     setSaving(true)
+    // flags links to a specific daily_submissions row via submission_id,
+    // which already carries site_id — no separate site column needed here,
+    // same "derive through the parent" pattern used throughout this project.
     const { error } = await supabase.from('flags').insert({
       submission_id:  submission.id,
       date,
@@ -77,7 +88,7 @@ export default function KitchenConfirm() {
     })
     setSaving(false)
     if (error) { showToast(error.message, 'red'); return }
-    showToast('🚩 Flag raised — approver has been notified', 'green')
+    showToast('Flag raised — approver has been notified', 'green')
     setShowFlagForm(false)
     setFlagMsg('')
     loadDate(date)
@@ -86,52 +97,60 @@ export default function KitchenConfirm() {
   return (
     <div style={{ maxWidth: '600px' }}>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>Kitchen Confirmation</h2>
+        <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 400, color: THEME.text }}>
+          Kitchen Confirmation
+          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
+            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
+            {currentSite?.name || '—'}
+          </span>
+        </h2>
         <input
           type="date"
           value={date}
           onChange={e => setDate(e.target.value)}
-          style={{ padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit' }}
+          style={{ padding: '8px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}
         />
       </div>
 
       {loading ? (
-        <div style={{ color: '#888', padding: '20px' }}>Loading…</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>
+          <Icon name="progress_activity" size={24} style={{ color: THEME.primary }} />
+        </div>
       ) : !submission ? (
         <Card>
-          <div style={{ textAlign: 'center', padding: '24px', color: '#888' }}>
-            No submission found for {fmtDate(date)}. The Meal Officer hasn't submitted this day yet.
+          <div style={{ textAlign: 'center', padding: '32px', color: THEME.textLow }}>
+            <Icon name="restaurant" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
+            No submission found for {fmtDate(date)} at {currentSite?.name || 'this site'}. The Meal Officer hasn't submitted this day yet.
           </div>
         </Card>
       ) : (
         <>
           <Card style={{ marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={{ fontWeight: 700, fontSize: '15px' }}>Day Status</div>
+              <div style={{ fontWeight: 600, fontSize: '15px', color: THEME.text }}>Day Status</div>
               <StatusBadge status={submission.status} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '20px' }}>
               {[
-                { label: '🌅 Breakfast (system)', v: submission.kitchen_count_b ?? '—' },
-                { label: '☀️ Lunch (system)',     v: submission.kitchen_count_l ?? '—' },
-                { label: '🌙 Supper (system)',    v: submission.kitchen_count_s ?? '—' },
+                { label: 'Breakfast (system)', v: submission.kitchen_count_b ?? '—', icon: 'wb_sunny',  c: THEME.breakfastClr },
+                { label: 'Lunch (system)',     v: submission.kitchen_count_l ?? '—', icon: 'light_mode', c: THEME.lunchClr },
+                { label: 'Supper (system)',    v: submission.kitchen_count_s ?? '—', icon: 'bedtime',    c: THEME.supperClr },
               ].map(x => (
-                <div key={x.label} style={{ background: '#f4f6f9', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '20px', fontWeight: 700, color: '#1F3864' }}>{x.v}</div>
-                  <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>{x.label}</div>
+                <div key={x.label} style={{ background: THEME.surfaceVar, borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                  <Icon name={x.icon} size={16} style={{ color: x.c }} />
+                  <div style={{ fontSize: '20px', fontWeight: 700, color: x.c, marginTop: '4px' }}>{x.v}</div>
+                  <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>{x.label}</div>
                 </div>
               ))}
             </div>
 
             {/* Kitchen entry */}
-            <div style={{ fontWeight: 600, fontSize: '13px', color: '#4a5568', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-              What kitchen received
-            </div>
+            <SectionLabel>What kitchen received</SectionLabel>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               {['b','l','s'].map((k, i) => (
                 <div key={k}>
-                  <label style={{ display: 'block', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', color: THEME.textLow, marginBottom: '4px' }}>
                     {['Breakfast','Lunch','Supper'][i]}
                   </label>
                   <input
@@ -140,9 +159,9 @@ export default function KitchenConfirm() {
                     value={counts[k]}
                     onChange={e => setCounts(prev => ({ ...prev, [k]: e.target.value }))}
                     style={{
-                      width: '100%', padding: '8px 12px', border: '1px solid #dde2ea',
-                      borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit',
-                      textAlign: 'center', fontWeight: 700, boxSizing: 'border-box',
+                      width: '100%', padding: '8px 12px', border: `1px solid ${THEME.outline}`,
+                      borderRadius: '10px', fontSize: '14px', fontFamily: 'inherit',
+                      textAlign: 'center', fontWeight: 700, boxSizing: 'border-box', outline: 'none',
                     }}
                   />
                 </div>
@@ -150,11 +169,11 @@ export default function KitchenConfirm() {
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
-              <Button onClick={saveConfirmation} variant="success" disabled={saving}>
-                ✓ Confirm counts
+              <Button onClick={saveConfirmation} variant="success" icon="check_circle" disabled={saving}>
+                Confirm counts
               </Button>
-              <Button onClick={() => setShowFlagForm(f => !f)} variant="ghost">
-                🚩 Raise a flag / query
+              <Button onClick={() => setShowFlagForm(f => !f)} variant="ghost" icon="flag">
+                Raise a flag / query
               </Button>
             </div>
           </Card>
@@ -162,17 +181,16 @@ export default function KitchenConfirm() {
           {/* Flag form */}
           {showFlagForm && (
             <Card>
-              <div style={{ fontWeight: 700, fontSize: '14px', color: '#C00000', marginBottom: '14px' }}>
-                🚩 Raise a Flag / Query
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '14px', color: THEME.error, marginBottom: '14px' }}>
+                <Icon name="flag" size={16} style={{ color: THEME.error }} />
+                Raise a Flag / Query
               </div>
               <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                  Reason
-                </label>
+                <SectionLabel>Reason</SectionLabel>
                 <select
                   value={flagReason}
                   onChange={e => setFlagReason(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dde2ea', borderRadius: '8px', fontFamily: 'inherit', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }}
                 >
                   <option value="count_mismatch">Count mismatch (received different qty)</option>
                   <option value="missing_allocation">Missing allocation (food not delivered)</option>
@@ -182,31 +200,27 @@ export default function KitchenConfirm() {
               </div>
 
               <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                  Description
-                </label>
+                <SectionLabel>Description</SectionLabel>
                 <textarea
                   value={flagMsg}
                   onChange={e => setFlagMsg(e.target.value)}
                   placeholder="Describe the issue clearly…"
                   rows={3}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #dde2ea', borderRadius: '8px', fontFamily: 'inherit', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontFamily: 'inherit', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
                 />
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: '#4a5568', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                  What kitchen actually received (optional)
-                </div>
+                <SectionLabel>What kitchen actually received (optional)</SectionLabel>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                   {['b','l','s'].map((k,i) => (
                     <div key={k}>
-                      <label style={{ fontSize: '11px', color: '#888', display: 'block', marginBottom: '3px' }}>{['Breakfast','Lunch','Supper'][i]}</label>
+                      <label style={{ fontSize: '11px', color: THEME.textLow, display: 'block', marginBottom: '3px' }}>{['Breakfast','Lunch','Supper'][i]}</label>
                       <input
                         type="number" min="0"
                         value={flagKitchen[k]}
                         onChange={e => setFlagKitchen(p => ({ ...p, [k]: e.target.value }))}
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #dde2ea', borderRadius: '8px', fontFamily: 'inherit', fontSize: '13px', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '8px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontFamily: 'inherit', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}
                       />
                     </div>
                   ))}
@@ -214,8 +228,8 @@ export default function KitchenConfirm() {
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
-                <Button onClick={raiseFlag} variant="danger" disabled={saving}>
-                  🚩 Submit Flag
+                <Button onClick={raiseFlag} variant="danger" icon="flag" disabled={saving}>
+                  Submit Flag
                 </Button>
                 <Button onClick={() => setShowFlagForm(false)} variant="ghost">
                   Cancel

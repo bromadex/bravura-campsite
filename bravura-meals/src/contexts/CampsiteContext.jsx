@@ -457,9 +457,13 @@ export function CampsiteProvider({ children }) {
   async function addSupplyItem(data) {
     // Stamped with the currently selected site — same fix already applied
     // to new employees and new blocks, for the same reason.
-    const { error } = await supabase.from('camp_supply_items').insert({ ...data, site_id: currentSiteId })
+    // .select().single() added for the same reason as recordSupplyTxn —
+    // Stock Transfers needs the new item's id immediately when
+    // auto-provisioning a destination catalog entry that didn't exist yet.
+    const { data: created, error } = await supabase.from('camp_supply_items').insert({ ...data, site_id: currentSiteId }).select().single()
     if (error) throw error
     await fetchAll()
+    return created
   }
 
   async function recordSupplyTxn({ itemId, txnType, quantity, reference, notes, recordedBy, txnDate, issuedToEmployeeId, issuedToText }) {
@@ -468,7 +472,12 @@ export function CampsiteProvider({ children }) {
       if (item && parseFloat(item.balance) < parseFloat(quantity))
         throw new Error(`Insufficient stock. Balance: ${item.balance} ${item.unit}`)
     }
-    const { error } = await supabase.from('camp_supply_txns').insert({
+    // .select().single() added so callers that need to link this
+    // transaction elsewhere (e.g. Stock Transfers, which records the
+    // resulting txn id back onto the transfer record) have the created
+    // row's id available — existing callers that ignore the return value
+    // are unaffected.
+    const { data: created, error } = await supabase.from('camp_supply_txns').insert({
       item_id:               itemId,
       txn_type:              txnType,
       quantity:               parseFloat(quantity),
@@ -481,9 +490,10 @@ export function CampsiteProvider({ children }) {
       // Either a real employee or a free-text recipient like "Kitchen".
       issued_to_employee_id: txnType === 'issue' ? (issuedToEmployeeId || null) : null,
       issued_to_text:        txnType === 'issue' ? (issuedToText || null) : null,
-    })
+    }).select().single()
     if (error) throw error
     await fetchAll()
+    return created
   }
 
   // Would changing this transaction's quantity (or removing it entirely)

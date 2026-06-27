@@ -21,12 +21,12 @@ function RoomStatusChip({ status, roomType }) {
   // Store/Maintenance room types override the occupancy-based status
   // entirely — "Available"/"Occupied" never meant anything for a room
   // that was never meant to house people.
-  if (roomType === 'store')       return <Chip bg="#EDE7F6" color="#4527A0" label="Store Room" />
-  if (roomType === 'maintenance') return <Chip bg="#E0E0E0" color="#424242" label="Workshop" />
+  if (roomType === 'store')       return <Chip bg={THEME.statusTertiaryBg} color={THEME.statusTertiaryText} label="Store Room" />
+  if (roomType === 'maintenance') return <Chip bg={THEME.statusNeutralBg} color={THEME.statusNeutralText} label="Workshop" />
   const map = {
-    available:   { bg: '#E8F5E9', color: '#1B5E20', label: 'Available'   },
-    occupied:    { bg: '#FDECEA', color: THEME.error, label: 'Occupied'  },
-    maintenance: { bg: '#FFF8E1', color: '#7D5700',  label: 'Maintenance'},
+    available:   { bg: THEME.statusSuccessBg, color: THEME.statusSuccessText, label: 'Available'   },
+    occupied:    { bg: THEME.statusErrorBg,   color: THEME.error,             label: 'Occupied'  },
+    maintenance: { bg: THEME.statusWarningBg, color: THEME.statusWarningText, label: 'Maintenance'},
   }
   const s = map[status] || map.available
   return <Chip bg={s.bg} color={s.color} label={s.label} />
@@ -173,11 +173,11 @@ export default function CampRooms() {
           { label: 'Available',   count: availableRooms, color: THEME.success },
           { label: 'Occupied',    count: occupiedRooms,  color: THEME.error   },
           { label: 'Maintenance', count: maintRooms,     color: THEME.warning },
-          { label: 'Store / Workshop', count: nonOccupiableCount, color: '#7E57C2' },
+          { label: 'Store / Workshop', count: nonOccupiableCount, color: THEME.statusTertiaryText },
         ].map(s => (
           <div key={s.label} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '8px 16px', borderRadius: '12px', background: '#fff',
+            padding: '8px 16px', borderRadius: '12px', background: THEME.surface,
             border: `1px solid ${THEME.outlineVar}`,
             fontSize: '13px', fontWeight: 500,
           }}>
@@ -227,7 +227,7 @@ export default function CampRooms() {
         </div>
       ) : (
         <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
             <thead>
               <tr style={{ background: THEME.primary, color: '#fff' }}>
                 {['Room Number','Block','Type','Capacity','Occupancy','Status','Actions'].map(h => (
@@ -285,7 +285,7 @@ export default function CampRooms() {
                         {/* Edit */}
                         <button
                           onClick={() => openEdit(room)} title="Edit room"
-                          style={{ width: '30px', height: '30px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ width: '30px', height: '30px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         >
                           <Icon name="edit" size={14} style={{ color: THEME.textMed }} />
                         </button>
@@ -293,7 +293,7 @@ export default function CampRooms() {
                         <button
                           onClick={() => { setMaintTarget(room); setMaintReason(room.maintenance_reason || '') }}
                           title={room.is_maintenance ? 'Return to service' : 'Set maintenance'}
-                          style={{ width: '30px', height: '30px', border: `1px solid ${room.is_maintenance ? THEME.success : THEME.warning}`, borderRadius: '8px', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ width: '30px', height: '30px', border: `1px solid ${room.is_maintenance ? THEME.success : THEME.warning}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         >
                           <Icon name={room.is_maintenance ? 'check_circle' : 'construction'} size={14} style={{ color: room.is_maintenance ? THEME.success : THEME.warning }} />
                         </button>
@@ -305,7 +305,7 @@ export default function CampRooms() {
                           style={{
                             width: '30px', height: '30px',
                             border: `1px solid ${hasHistory ? THEME.outlineVar : '#f5b8b8'}`,
-                            borderRadius: '8px', background: '#fff',
+                            borderRadius: '8px', background: THEME.surface,
                             cursor: hasHistory ? 'not-allowed' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             opacity: hasHistory ? 0.4 : 1,
@@ -374,7 +374,7 @@ export default function CampRooms() {
             </div>
           )}
           {editing && isOccupiableType(editing.room_type || 'accommodation') !== isOccupiableType(form.room_type) && (
-            <div style={{ marginTop: '6px', padding: '8px 12px', background: '#FFF8E1', borderRadius: '8px', fontSize: '12px', color: '#7D5700' }}>
+            <div style={{ marginTop: '6px', padding: '8px 12px', background: THEME.statusWarningBg, borderRadius: '8px', fontSize: '12px', color: THEME.statusWarningText }}>
               Changing type {isOccupiableType(form.room_type) ? 'back to an occupiable room' : 'away from an occupiable room'} will {isOccupiableType(form.room_type) ? 'create new beds based on the capacity below' : 'remove all beds — blocked if anyone is currently assigned here'}.
             </div>
           )}

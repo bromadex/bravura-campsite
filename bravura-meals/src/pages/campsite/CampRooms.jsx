@@ -3,18 +3,38 @@ import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast } from '../../components/ui'
 
-const EMPTY = { room_number: '', block_id: '', capacity: 1, notes: '' }
+const EMPTY = { room_number: '', block_id: '', room_type: 'accommodation', capacity: 1, notes: '' }
 
-function RoomStatusChip({ status }) {
+const ROOM_TYPES = [
+  { value: 'accommodation', label: 'Accommodation', occupiable: true },
+  { value: 'vip',           label: 'VIP',            occupiable: true },
+  { value: 'isolation',     label: 'Isolation',      occupiable: true },
+  { value: 'store',         label: 'Store Room',     occupiable: false },
+  { value: 'maintenance',   label: 'Maintenance',    occupiable: false },
+]
+const ROOM_TYPE_LABELS = Object.fromEntries(ROOM_TYPES.map(t => [t.value, t.label]))
+function isOccupiableType(type) {
+  return ROOM_TYPES.find(t => t.value === type)?.occupiable ?? true
+}
+
+function RoomStatusChip({ status, roomType }) {
+  // Store/Maintenance room types override the occupancy-based status
+  // entirely — "Available"/"Occupied" never meant anything for a room
+  // that was never meant to house people.
+  if (roomType === 'store')       return <Chip bg="#EDE7F6" color="#4527A0" label="Store Room" />
+  if (roomType === 'maintenance') return <Chip bg="#E0E0E0" color="#424242" label="Workshop" />
   const map = {
     available:   { bg: '#E8F5E9', color: '#1B5E20', label: 'Available'   },
     occupied:    { bg: '#FDECEA', color: THEME.error, label: 'Occupied'  },
     maintenance: { bg: '#FFF8E1', color: '#7D5700',  label: 'Maintenance'},
   }
   const s = map[status] || map.available
+  return <Chip bg={s.bg} color={s.color} label={s.label} />
+}
+function Chip({ bg, color, label }) {
   return (
-    <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: s.bg, color: s.color }}>
-      {s.label}
+    <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: bg, color }}>
+      {label}
     </span>
   )
 }
@@ -50,7 +70,7 @@ export default function CampRooms() {
   function openAdd() { setEditing(null); setForm(EMPTY); setModal(true) }
   function openEdit(r) {
     setEditing(r)
-    setForm({ room_number: r.room_number, block_id: r.block_id, capacity: r.capacity, notes: r.notes || '' })
+    setForm({ room_number: r.room_number, block_id: r.block_id, room_type: r.room_type || 'accommodation', capacity: r.capacity, notes: r.notes || '' })
     setModal(true)
   }
 
@@ -72,7 +92,8 @@ export default function CampRooms() {
 
     setSaving(true)
     try {
-      const payload = { ...form, capacity: Math.max(1, parseInt(form.capacity) || 1) }
+      const occupiable = isOccupiableType(form.room_type)
+      const payload = { ...form, capacity: occupiable ? Math.max(1, parseInt(form.capacity) || 1) : 0 }
       if (editing) {
         await updateRoom(editing.id, payload)
         showToast('Room updated', 'green')
@@ -123,11 +144,15 @@ export default function CampRooms() {
     return assignments.filter(a => a.room_id === roomId && a.status === 'active').length
   }
 
-  // Stats
-  const totalRooms    = rooms.length
-  const availableRooms = rooms.filter(r => r.status === 'available').length
-  const occupiedRooms  = rooms.filter(r => r.status === 'occupied').length
-  const maintRooms     = rooms.filter(r => r.status === 'maintenance').length
+  // Stats — store/maintenance room types are excluded from accommodation
+  // stats entirely, the same reasoning applied everywhere else in this
+  // phase: they were never meant to house people.
+  const occupiableRoomsList = rooms.filter(r => isOccupiableType(r.room_type))
+  const totalRooms     = occupiableRoomsList.length
+  const availableRooms = occupiableRoomsList.filter(r => r.status === 'available').length
+  const occupiedRooms  = occupiableRoomsList.filter(r => r.status === 'occupied').length
+  const maintRooms     = occupiableRoomsList.filter(r => r.status === 'maintenance').length
+  const nonOccupiableCount = rooms.length - occupiableRoomsList.length
 
   return (
     <div>
@@ -148,6 +173,7 @@ export default function CampRooms() {
           { label: 'Available',   count: availableRooms, color: THEME.success },
           { label: 'Occupied',    count: occupiedRooms,  color: THEME.error   },
           { label: 'Maintenance', count: maintRooms,     color: THEME.warning },
+          { label: 'Store / Workshop', count: nonOccupiableCount, color: '#7E57C2' },
         ].map(s => (
           <div key={s.label} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
@@ -204,7 +230,7 @@ export default function CampRooms() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: '#fff' }}>
             <thead>
               <tr style={{ background: THEME.primary, color: '#fff' }}>
-                {['Room Number','Block','Capacity','Occupancy','Status','Actions'].map(h => (
+                {['Room Number','Block','Type','Capacity','Occupancy','Status','Actions'].map(h => (
                   <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -212,7 +238,7 @@ export default function CampRooms() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
+                  <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
                     <Icon name="meeting_room" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
                     No rooms found
                   </td>
@@ -221,6 +247,7 @@ export default function CampRooms() {
                 const occ = occupancy(room.id)
                 const pct = room.capacity > 0 ? Math.round(occ / room.capacity * 100) : 0
                 const hasHistory = assignments.some(a => a.room_id === room.id)
+                const occupiable = isOccupiableType(room.room_type)
                 return (
                   <tr
                     key={room.id}
@@ -230,18 +257,29 @@ export default function CampRooms() {
                   >
                     <td style={{ padding: '12px 14px', fontWeight: 600, color: THEME.text }}>{room.room_number}</td>
                     <td style={{ padding: '12px 14px', color: THEME.textMed }}>{room.block?.name || '—'}</td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', color: THEME.text }}>{room.capacity}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: occ > 0 ? THEME.primary : THEME.textLow }}>
-                          {occ}/{room.capacity}
-                        </span>
-                        <div style={{ flex: 1, maxWidth: '60px', height: '6px', background: THEME.outlineVar, borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? THEME.error : THEME.success, borderRadius: '3px' }} />
-                        </div>
-                      </div>
+                      <span style={{
+                        padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                        background: occupiable ? THEME.surfaceVar : '#EDE7F6',
+                        color: occupiable ? THEME.textMed : '#4527A0',
+                      }}>
+                        {ROOM_TYPE_LABELS[room.room_type] || 'Accommodation'}
+                      </span>
                     </td>
-                    <td style={{ padding: '12px 14px' }}><RoomStatusChip status={room.status} /></td>
+                    <td style={{ padding: '12px 14px', textAlign: 'center', color: THEME.text }}>{occupiable ? room.capacity : '—'}</td>
+                    <td style={{ padding: '12px 14px' }}>
+                      {occupiable ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: occ > 0 ? THEME.primary : THEME.textLow }}>
+                            {occ}/{room.capacity}
+                          </span>
+                          <div style={{ flex: 1, maxWidth: '60px', height: '6px', background: THEME.outlineVar, borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? THEME.error : THEME.success, borderRadius: '3px' }} />
+                          </div>
+                        </div>
+                      ) : <span style={{ color: THEME.textLow }}>—</span>}
+                    </td>
+                    <td style={{ padding: '12px 14px' }}><RoomStatusChip status={room.status} roomType={room.room_type} /></td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                         {/* Edit */}
@@ -323,15 +361,37 @@ export default function CampRooms() {
         </div>
 
         <div style={{ marginBottom: '14px' }}>
-          <SectionLabel>Capacity (max occupants)</SectionLabel>
-          <input
-            type="number" min={1} max={20} value={form.capacity}
-            onChange={e => setForm(f => ({ ...f, capacity: e.target.value }))}
-            style={{ width: '110px', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
-            onFocus={e => e.target.style.borderColor = THEME.primary}
-            onBlur={e => e.target.style.borderColor = THEME.outline}
-          />
+          <SectionLabel>Room Type *</SectionLabel>
+          <select
+            value={form.room_type} onChange={e => setForm(f => ({ ...f, room_type: e.target.value }))}
+            style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+          >
+            {ROOM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          {!isOccupiableType(form.room_type) && (
+            <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
+              {form.room_type === 'store' ? 'Store rooms' : 'Maintenance/workshop rooms'} can't have occupants — capacity is fixed at 0 and no beds are created.
+            </div>
+          )}
+          {editing && isOccupiableType(editing.room_type || 'accommodation') !== isOccupiableType(form.room_type) && (
+            <div style={{ marginTop: '6px', padding: '8px 12px', background: '#FFF8E1', borderRadius: '8px', fontSize: '12px', color: '#7D5700' }}>
+              Changing type {isOccupiableType(form.room_type) ? 'back to an occupiable room' : 'away from an occupiable room'} will {isOccupiableType(form.room_type) ? 'create new beds based on the capacity below' : 'remove all beds — blocked if anyone is currently assigned here'}.
+            </div>
+          )}
         </div>
+
+        {isOccupiableType(form.room_type) && (
+          <div style={{ marginBottom: '14px' }}>
+            <SectionLabel>Capacity (max occupants)</SectionLabel>
+            <input
+              type="number" min={1} max={20} value={form.capacity}
+              onChange={e => setForm(f => ({ ...f, capacity: e.target.value }))}
+              style={{ width: '110px', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+              onFocus={e => e.target.style.borderColor = THEME.primary}
+              onBlur={e => e.target.style.borderColor = THEME.outline}
+            />
+          </div>
+        )}
 
         <div>
           <SectionLabel>Notes</SectionLabel>

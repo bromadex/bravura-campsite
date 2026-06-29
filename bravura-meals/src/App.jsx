@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import ErrorBoundary from './components/ErrorBoundary'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
@@ -205,9 +206,11 @@ function ModuleShell() {
       setPage={setPage}
       onHome={goHome}
     >
-      <Suspense fallback={PageLoader}>
-        {content || AccessDenied}
-      </Suspense>
+      <ErrorBoundary level="page">
+        <Suspense fallback={PageLoader}>
+          {content || AccessDenied}
+        </Suspense>
+      </ErrorBoundary>
     </ModuleLayout>
   )
 
@@ -279,16 +282,18 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <SiteProvider>
-            <PermissionsProvider>
-              <AppContent />
-            </PermissionsProvider>
-          </SiteProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <SiteProvider>
+              <PermissionsProvider>
+                <AppContent />
+              </PermissionsProvider>
+            </SiteProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }

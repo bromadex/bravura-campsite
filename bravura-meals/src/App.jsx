@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
@@ -10,33 +11,47 @@ import ModuleLayout from './components/ModuleLayout'
 import { THEME, workforceNav, campsiteNav, mealsNav, adminNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
-import Employees    from './pages/Employees'
-import Contractors  from './pages/Contractors'
-import WorkforceLeave   from './pages/workforce/WorkforceLeave'
-import WorkforceReports from './pages/workforce/WorkforceReports'
+const Employees       = lazy(() => import('./pages/Employees'))
+const Contractors     = lazy(() => import('./pages/Contractors'))
+const WorkforceLeave  = lazy(() => import('./pages/workforce/WorkforceLeave'))
+const WorkforceReports= lazy(() => import('./pages/workforce/WorkforceReports'))
 
 // ── Campsite pages ────────────────────────────────────────────────────────────
-import {
-  CampHeadcount, CampBlocks, CampRooms,
-  CampAssignments, CampSupplies, CampOccupancyReport,
-  CampFloorplan, StockTransfers,
-} from './pages/campsite'
+const CampHeadcount       = lazy(() => import('./pages/campsite/CampHeadcount'))
+const CampBlocks          = lazy(() => import('./pages/campsite/CampBlocks'))
+const CampRooms           = lazy(() => import('./pages/campsite/CampRooms'))
+const CampAssignments     = lazy(() => import('./pages/campsite/CampAssignments'))
+const CampSupplies        = lazy(() => import('./pages/campsite/CampSupplies'))
+const CampOccupancyReport = lazy(() => import('./pages/campsite/CampOccupancyReport'))
+const CampFloorplan       = lazy(() => import('./pages/campsite/CampFloorplan'))
+const StockTransfers      = lazy(() => import('./pages/campsite/StockTransfers'))
 
 // ── Meals pages ───────────────────────────────────────────────────────────────
-import Dashboard      from './pages/Dashboard'
-import DailyEntry     from './pages/DailyEntry'
-import Approvals      from './pages/Approvals'
-import KitchenConfirm from './pages/KitchenConfirm'
-import Flags          from './pages/Flags'
-import DailyReport    from './pages/DailyReport'
-import RangeReport    from './pages/RangeReport'
-import MonthlyReport  from './pages/MonthlyReport'
-import Billing        from './pages/Billing'
-import Pricing        from './pages/Pricing'
-import MealProviders  from './pages/MealProviders'
-import Settings       from './pages/Settings'
-import UserManagement from './pages/admin/UserManagement'
-import AuditLogViewer from './pages/admin/AuditLogViewer'
+const Dashboard      = lazy(() => import('./pages/Dashboard'))
+const DailyEntry     = lazy(() => import('./pages/DailyEntry'))
+const Approvals      = lazy(() => import('./pages/Approvals'))
+const KitchenConfirm = lazy(() => import('./pages/KitchenConfirm'))
+const Flags          = lazy(() => import('./pages/Flags'))
+const DailyReport    = lazy(() => import('./pages/DailyReport'))
+const RangeReport    = lazy(() => import('./pages/RangeReport'))
+const MonthlyReport  = lazy(() => import('./pages/MonthlyReport'))
+const Billing        = lazy(() => import('./pages/Billing'))
+const Pricing        = lazy(() => import('./pages/Pricing'))
+const MealProviders  = lazy(() => import('./pages/MealProviders'))
+const Settings       = lazy(() => import('./pages/Settings'))
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
+const AuditLogViewer = lazy(() => import('./pages/admin/AuditLogViewer'))
+
+const PageLoader = (
+  <div style={{
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    height: '100%', color: THEME.textLow, fontSize: '13px',
+  }}>
+    <span className="material-symbols-rounded" style={{ fontSize: '24px', animation: 'spin 1s linear infinite' }}>
+      progress_activity
+    </span>
+  </div>
+)
 
 // ── Module configs ────────────────────────────────────────────────────────────
 const MODULE_META = {
@@ -190,7 +205,9 @@ function ModuleShell() {
       setPage={setPage}
       onHome={goHome}
     >
-      {content || AccessDenied}
+      <Suspense fallback={PageLoader}>
+        {content || AccessDenied}
+      </Suspense>
     </ModuleLayout>
   )
 

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { useSite } from '../contexts/SiteContext'
 import { Card, Button, StatCard, showToast, fmtDate, today, MONTHS } from '../components/ui'
 import { THEME } from '../utils/permissions'
 
 export default function Billing() {
+  const { currentSiteId } = useSite()
   const [tab,       setTab]       = useState('daily')
   const [dailyDate, setDailyDate] = useState(today())
   const [rangeStart,setRangeStart]= useState(() => { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-01` })
@@ -13,8 +15,8 @@ export default function Billing() {
   const [data,      setData]      = useState(null)
   const [loading,   setLoading]   = useState(false)
 
-  // Auto-load on tab/date change
-  useEffect(() => { loadBilling() }, [tab, dailyDate, rangeStart, rangeEnd, month, year])
+  // Auto-load on tab/date/site change
+  useEffect(() => { if (currentSiteId) loadBilling() }, [tab, dailyDate, rangeStart, rangeEnd, month, year, currentSiteId])
 
   async function loadBilling() {
     setLoading(true)
@@ -26,28 +28,65 @@ export default function Billing() {
       } else if (tab === 'range') {
         start = rangeStart; end = rangeEnd
       } else {
-        // monthly
         const pad = n => String(n).padStart(2,'0')
         start = `${year}-${pad(month+1)}-01`
         end   = `${year}-${pad(month+1)}-31`
       }
 
-      // Fetch from the daily_billing view via RPC or direct query
-      const { data: rows, error } = await supabase
-        .from('daily_billing')
-        .select('*')
-        .gte('date', start)
-        .lte('date', end)
-        .order('date', { ascending: false })
+      // daily_billing view has no site_id — query daily_submissions directly
+      // scoped to the current site, then join meal_logs for counts.
+      const [subsRes, pricesRes] = await Promise.all([
+        supabase
+          .from('daily_submissions')
+          .select('id, date, status, meal_logs(had_breakfast, had_lunch, had_supper)')
+          .eq('site_id', currentSiteId)
+          .gte('date', start)
+          .lte('date', end)
+          .order('date', { ascending: false }),
+        supabase
+          .from('meal_prices')
+          .select('effective_date, breakfast_usd, lunch_usd, supper_usd')
+          .eq('site_id', currentSiteId)
+          .lte('effective_date', end)
+          .order('effective_date', { ascending: false }),
+      ])
 
-      if (error) throw error
+      if (subsRes.error) throw subsRes.error
+      if (pricesRes.error) throw pricesRes.error
 
-      // Compute totals
+      const priceRows = pricesRes.data || []
+
+      function priceFor(date) {
+        const p = priceRows.find(r => r.effective_date <= date)
+        return p || { breakfast_usd: 0, lunch_usd: 0, supper_usd: 0 }
+      }
+
+      const rows = (subsRes.data || []).map(sub => {
+        const logs = sub.meal_logs || []
+        const b = logs.filter(l => l.had_breakfast).length
+        const l = logs.filter(l => l.had_lunch).length
+        const s = logs.filter(l => l.had_supper).length
+        const p = priceFor(sub.date)
+        const cost = b * Number(p.breakfast_usd) + l * Number(p.lunch_usd) + s * Number(p.supper_usd)
+        return {
+          date: sub.date,
+          status: sub.status,
+          breakfast_count: b,
+          lunch_count: l,
+          supper_count: s,
+          total_meals: b + l + s,
+          breakfast_usd: p.breakfast_usd,
+          lunch_usd: p.lunch_usd,
+          supper_usd: p.supper_usd,
+          total_cost_usd: cost.toFixed(2),
+        }
+      })
+
       const totals = rows.reduce((acc, row) => ({
-        b:    acc.b    + (row.breakfast_count || 0),
-        l:    acc.l    + (row.lunch_count     || 0),
-        s:    acc.s    + (row.supper_count    || 0),
-        cost: acc.cost + parseFloat(row.total_cost_usd || 0),
+        b:    acc.b    + row.breakfast_count,
+        l:    acc.l    + row.lunch_count,
+        s:    acc.s    + row.supper_count,
+        cost: acc.cost + parseFloat(row.total_cost_usd),
       }), { b: 0, l: 0, s: 0, cost: 0 })
 
       setData({ rows, totals, start, end })

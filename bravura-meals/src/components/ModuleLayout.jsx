@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { usePermissions } from '../contexts/PermissionsContext'
+import { useSite } from '../contexts/SiteContext'
 import { THEME, ROLE_LABELS, MODULE_COLORS } from '../utils/permissions'
 import { supabase } from '../supabaseClient'
 import SiteSwitcher from './SiteSwitcher'
@@ -43,6 +45,8 @@ const PAGE_TITLES = {
 
 export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navItems, page, setPage, onHome, children }) {
   const { profile, signOut } = useAuth()
+  const { can } = usePermissions()
+  const { currentSiteId } = useSite()
   const role = profile?.role
   const [collapsed,  setCollapsed]  = useState(false)
   const [flagCount,  setFlagCount]  = useState(0)
@@ -57,11 +61,23 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
   })
 
   useEffect(() => {
-    if (moduleId === 'meals' && ['super_admin','approver'].includes(role)) {
-      supabase.from('flags').select('id', { count: 'exact', head: true }).eq('status','open')
-        .then(({ count }) => setFlagCount(count || 0))
-    }
-  }, [moduleId, role])
+    if (moduleId !== 'meals' || !can('meals.approve') || !currentSiteId) return
+    // flags has no site_id — scope through daily_submissions
+    supabase
+      .from('daily_submissions')
+      .select('id')
+      .eq('site_id', currentSiteId)
+      .then(({ data: subs }) => {
+        if (!subs?.length) { setFlagCount(0); return }
+        const subIds = subs.map(s => s.id)
+        supabase
+          .from('flags')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'open')
+          .in('submission_id', subIds)
+          .then(({ count }) => setFlagCount(count || 0))
+      })
+  }, [moduleId, currentSiteId, can])
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif" }}>

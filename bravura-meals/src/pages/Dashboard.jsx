@@ -35,61 +35,57 @@ export default function Dashboard({ setPage }) {
     const now = new Date()
     const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`
 
-    // Employees first — everything else that touches meal_logs depends on
-    // this site-filtered, correctly-cased list.
+    // Employees first — todayLogs and monthLogs depend on employeeIds.
     const { data: employees } = await supabase
       .from('employees').select('id,contractor_id').eq('status', 'active').eq('site_id', currentSiteId)
     const employeeIds = (employees || []).map(e => e.id)
 
-    // Today's totals — scoped to this site's employees. Guarded against
-    // an empty list the same way as everywhere else in this project.
-    let todayLogs = []
-    if (employeeIds.length > 0) {
-      const { data } = await supabase
-        .from('meal_logs').select('had_breakfast,had_lunch,had_supper').eq('date', td).in('employee_id', employeeIds)
-      todayLogs = data || []
-    }
+    // All remaining queries are independent — run in parallel.
+    const [
+      todayLogsRes,
+      monthLogsRes,
+      subsRes,
+      siteSubsRes,
+      provsRes,
+      contractorsRes,
+    ] = await Promise.all([
+      employeeIds.length > 0
+        ? supabase.from('meal_logs').select('had_breakfast,had_lunch,had_supper').eq('date', td).in('employee_id', employeeIds)
+        : Promise.resolve({ data: [] }),
+      employeeIds.length > 0
+        ? supabase.from('meal_logs').select('employee_id,had_breakfast,had_lunch,had_supper').gte('date', monthStart).lte('date', td).in('employee_id', employeeIds)
+        : Promise.resolve({ data: [] }),
+      supabase.from('daily_submissions').select('id,date,status').eq('site_id', currentSiteId).order('date',{ascending:false}).limit(7),
+      supabase.from('daily_submissions').select('id').eq('site_id', currentSiteId),
+      supabase.from('meal_providers').select('*').eq('site_id', currentSiteId).eq('is_active', true).order('name'),
+      supabase.from('contractors').select('*').order('name'),
+    ])
+
+    const todayLogs   = todayLogsRes.data  || []
+    const monthLogsAll = monthLogsRes.data || []
+    const subs        = subsRes.data       || []
+    const siteSubs    = siteSubsRes.data   || []
+    const provs       = provsRes.data      || []
+    const contractors = contractorsRes.data
+
     let b=0,l=0,s=0
     todayLogs.forEach(m => { if(m.had_breakfast)b++; if(m.had_lunch)l++; if(m.had_supper)s++ })
     setTodayData({ b, l, s })
 
-    // Month totals — same scoping.
-    let monthLogsAll = []
-    if (employeeIds.length > 0) {
-      const { data } = await supabase
-        .from('meal_logs').select('employee_id,had_breakfast,had_lunch,had_supper').gte('date', monthStart).lte('date', td).in('employee_id', employeeIds)
-      monthLogsAll = data || []
-    }
     let mb=0,ml=0,ms=0
     monthLogsAll.forEach(m => { if(m.had_breakfast)mb++; if(m.had_lunch)ml++; if(m.had_supper)ms++ })
     setMonthData({ b: mb, l: ml, s: ms })
 
-    // Recent submissions — site_id is direct on daily_submissions. A date
-    // can now have one submission PER SITE, so this matters for real, not
-    // just in theory, once a second site has any real activity.
-    const { data: subs } = await supabase
-      .from('daily_submissions').select('id,date,status').eq('site_id', currentSiteId).order('date',{ascending:false}).limit(7)
-    setRecentSubs(subs || [])
+    setRecentSubs(subs)
+    setProviders(provs)
 
-    // Open flags — flags has no site_id of its own, only reachable through
-    // submission_id. Same safe two-step pattern used in Flags.jsx: fetch
-    // this site's submission ids first, then count within those.
-    const { data: siteSubs } = await supabase.from('daily_submissions').select('id').eq('site_id', currentSiteId)
-    const siteSubIds = (siteSubs || []).map(s => s.id)
+    const siteSubIds = siteSubs.map(s => s.id)
     let flagCount = 0
     if (siteSubIds.length > 0) {
       const { count } = await supabase.from('flags').select('id', { count: 'exact', head: true }).eq('status','open').in('submission_id', siteSubIds)
       flagCount = count || 0
     }
     setOpenFlags(flagCount)
-
-    // Active meal providers for this site — the actual new feature this
-    // pass was built for.
-    const { data: provs } = await supabase.from('meal_providers').select('*').eq('site_id', currentSiteId).eq('is_active', true).order('name')
-    setProviders(provs || [])
-
-    // Monthly consumption by contractor
-    const { data: contractors } = await supabase.from('contractors').select('*').order('name')
 
     if (contractors && employees) {
       const empMap = {}
@@ -160,7 +156,7 @@ export default function Dashboard({ setPage }) {
           style={{
             display: 'flex', alignItems: 'center', gap: '14px',
             padding: '14px 18px', borderRadius: '16px',
-            background: THEME.statusErrorBg, border: `1px solid #F5C6C4`, cursor: 'pointer',
+            background: THEME.statusErrorBg, border: `1px solid ${THEME.statusErrorText}33`, cursor: 'pointer',
           }}
         >
           <Icon name="flag" size={22} style={{ color: THEME.error, flexShrink: 0 }} />

@@ -497,7 +497,7 @@ function MealTick({ on, meal, editable, onClick }) {
         borderRadius: '10px',
         border: `2px solid ${on ? p.active : THEME.outline}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: on ? p.bg : '#fff',
+        background: on ? p.bg : THEME.surface,
         margin: '0 auto',
         transition: 'all .15s cubic-bezier(.4,0,.2,1)',
         boxShadow: on ? `0 2px 8px ${p.active}33` : 'none',

@@ -123,7 +123,7 @@ export default function EmployeeDragList({ employees, contractors, assignments, 
               >
                 <div style={{
                   width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
-                  background: emp.gender === 'female' ? '#F8BBD0' : '#90CAF9',
+                  background: emp.gender === 'female' ? 'var(--gender-female-bg, #AD1457)' : 'var(--gender-male-bg, #1558A6)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '10px', fontWeight: 700, color: '#fff',
                 }}>

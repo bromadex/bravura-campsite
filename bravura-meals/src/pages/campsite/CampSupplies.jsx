@@ -229,8 +229,8 @@ export default function CampSupplies() {
                       <td style={{ padding: '10px 14px', fontWeight: 500 }}>{txn.item?.name || '—'}</td>
                       <td style={{ padding: '10px 14px' }}>
                         <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
-                          background: isReceive ? '#E8F5E9' : '#FDECEA',
-                          color:      isReceive ? '#1B5E20'  : THEME.error }}>
+                          background: isReceive ? THEME.statusSuccessBg : THEME.statusErrorBg,
+                          color:      isReceive ? THEME.statusSuccessText : THEME.error }}>
                           {isReceive ? 'Receive' : 'Issue'}
                         </span>
                       </td>

@@ -113,8 +113,8 @@ export default function Billing() {
             onClick={() => setTab(t.id)}
             style={{
               padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              color: tab === t.id ? '#2F5496' : '#4a5568',
-              borderBottom: `2px solid ${tab === t.id ? '#2F5496' : 'transparent'}`,
+              color: tab === t.id ? THEME.primary : THEME.textMed,
+              borderBottom: `2px solid ${tab === t.id ? THEME.primary : 'transparent'}`,
               marginBottom: '-2px', borderRadius: '8px 8px 0 0',
             }}
           >
@@ -208,8 +208,8 @@ export default function Billing() {
                         <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                           <span style={{
                             padding: '1px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 700,
-                            background: row.status === 'approved' ? '#E2EFDA' : '#FFF2CC',
-                            color: row.status === 'approved' ? '#375623' : '#7B5800',
+                            background: row.status === 'approved' ? THEME.statusSuccessBg : THEME.statusWarningBg,
+                            color: row.status === 'approved' ? THEME.statusSuccessText : THEME.statusWarningText,
                           }}>
                             {row.status}
                           </span>

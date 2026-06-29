@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { Card, Modal, Icon, SectionLabel, fmtDate } from '../../components/ui'
+import { MODULE_COLORS } from '../../utils/permissions'
 
 const TABLE_LABELS = {
   employees:                 'Employees',
@@ -110,13 +111,13 @@ export default function AuditLogViewer() {
 
       {loading ? (
         <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
-          <Icon name="progress_activity" size={24} style={{ color: '#5C6BC0' }} />
+          <Icon name="progress_activity" size={24} style={{ color: MODULE_COLORS.admin }} />
         </div>
       ) : (
         <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
             <thead>
-              <tr style={{ background: '#5C6BC0', color: '#fff' }}>
+              <tr style={{ background: MODULE_COLORS.admin, color: '#fff' }}>
                 {['When','Table','Action','Changed','Actor',''].map(h => (
                   <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px' }}>{h}</th>
                 ))}

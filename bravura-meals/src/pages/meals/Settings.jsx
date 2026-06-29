@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { Card, Button, showToast } from '../components/ui'
-import { THEME } from '../utils/permissions'
+import { supabase } from '../../supabaseClient'
+import { Card, Button, showToast, PageHeader } from '../../components/ui'
+import { THEME } from '../../utils/permissions'
 
 export default function Settings() {
   const [cfg,     setCfg]     = useState({ company_name: '', site_name: '', supervisor_name: '', provider_name: '' })
@@ -42,7 +42,7 @@ export default function Settings() {
 
   return (
     <div style={{ maxWidth: '540px' }}>
-      <h2 style={{ margin: '0 0 20px', fontSize: '17px', fontWeight: 700 }}>Settings</h2>
+      <PageHeader title="Settings" />
 
       <Card style={{ marginBottom: '16px' }}>
         <div style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.06em', color: THEME.textMed, marginBottom: '16px' }}>

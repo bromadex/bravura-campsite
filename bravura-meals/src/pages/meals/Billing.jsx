@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { useSite } from '../contexts/SiteContext'
-import { Card, Button, StatCard, showToast, fmtDate, today, MONTHS } from '../components/ui'
-import { THEME } from '../utils/permissions'
+import { supabase } from '../../supabaseClient'
+import { useSite } from '../../contexts/SiteContext'
+import { Card, Button, StatCard, showToast, fmtDate, today, MONTHS, PageHeader } from '../../components/ui'
+import { THEME } from '../../utils/permissions'
 
 export default function Billing() {
-  const { currentSiteId } = useSite()
+  const { currentSiteId, currentSite } = useSite()
   const [tab,       setTab]       = useState('daily')
   const [dailyDate, setDailyDate] = useState(today())
   const [rangeStart,setRangeStart]= useState(() => { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-01` })
@@ -99,10 +99,10 @@ export default function Billing() {
 
   return (
     <div>
-      <h2 style={{ margin: '0 0 20px', fontSize: '17px', fontWeight: 700 }}>Billing</h2>
+      <PageHeader title="Billing" site={currentSite} />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '2px solid #dde2ea' }}>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: `2px solid ${THEME.outlineVar}` }}>
         {[
           { id: 'daily',   label: 'Daily' },
           { id: 'range',   label: 'Date Range' },

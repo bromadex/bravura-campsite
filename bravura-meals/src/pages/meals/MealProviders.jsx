@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { useSite } from '../contexts/SiteContext'
-import { THEME } from '../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast } from '../components/ui'
+import { supabase } from '../../supabaseClient'
+import { useSite } from '../../contexts/SiteContext'
+import { THEME } from '../../utils/permissions'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, PageHeader } from '../../components/ui'
 
 // Deliberately simple, per the actual requirement: each site can have one
 // or more catering providers, and the Meals module should be able to show
@@ -83,16 +83,7 @@ export default function MealProviders() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
-          Meal Providers
-          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
-            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-            {currentSite?.name || '—'}
-          </span>
-        </h2>
-        <Button onClick={openAdd} variant="filled" icon="add">Add Provider</Button>
-      </div>
+      <PageHeader title="Meal Providers" site={currentSite} actions={<Button onClick={openAdd} variant="filled" icon="add">Add Provider</Button>} />
 
       {!loading && activeProviders.length > 0 && (
         <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px', background: THEME.surfaceVar }}>

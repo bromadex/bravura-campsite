@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { useSite } from '../contexts/SiteContext'
-import { usePermissions } from '../contexts/PermissionsContext'
-import { Card, StatCard, StatusBadge, Icon, fmtDate, today } from '../components/ui'
-import { THEME } from '../utils/permissions'
+import { supabase } from '../../supabaseClient'
+import { useSite } from '../../contexts/SiteContext'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import { Card, StatCard, StatusBadge, Icon, fmtDate, today } from '../../components/ui'
+import { THEME } from '../../utils/permissions'
 
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457','#00838F']
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { Card, Icon, fmtDate } from '../../components/ui'
+import { Card, Icon, fmtDate, PageHeader } from '../../components/ui'
 
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
 
@@ -48,7 +48,7 @@ export default function WorkforceReports() {
 
   return (
     <div>
-      <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: '0 0 20px' }}>Employee Reports</h2>
+      <PageHeader title="Employee Reports" />
 
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, StatusBadge, showToast } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, StatusBadge, showToast, PageHeader } from '../../components/ui'
 
 const EMPTY = { name: '', description: '', is_active: true }
 
@@ -42,10 +42,7 @@ export default function CampBlocks() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Blocks</h2>
-        <Button onClick={openAdd} variant="filled" icon="add">Add Block</Button>
-      </div>
+      <PageHeader title="Blocks" actions={<Button onClick={openAdd} variant="filled" icon="add">Add Block</Button>} />
 
       {loading ? (
         <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>

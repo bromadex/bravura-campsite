@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
-import { Card, Modal, Icon, SectionLabel, fmtDate } from '../../components/ui'
+import { Card, Modal, Icon, SectionLabel, fmtDate, PageHeader } from '../../components/ui'
 import { MODULE_COLORS } from '../../utils/permissions'
 
 const TABLE_LABELS = {
@@ -85,7 +85,7 @@ export default function AuditLogViewer() {
 
   return (
     <div>
-      <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: '0 0 16px' }}>Audit Log</h2>
+      <PageHeader title="Audit Log" />
 
       {/* Filters */}
       <Card style={{ marginBottom: '16px', padding: '12px 16px' }}>

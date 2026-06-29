@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { useAuth } from '../auth/AuthContext'
-import { useSite } from '../contexts/SiteContext'
-import { THEME } from '../utils/permissions'
-import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, today, fmtDate } from '../components/ui'
+import { supabase } from '../../supabaseClient'
+import { useAuth } from '../../auth/AuthContext'
+import { useSite } from '../../contexts/SiteContext'
+import { THEME } from '../../utils/permissions'
+import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, today, fmtDate, PageHeader } from '../../components/ui'
 
 export default function KitchenConfirm() {
   const { profile } = useAuth()
@@ -96,21 +96,18 @@ export default function KitchenConfirm() {
 
   return (
     <div style={{ maxWidth: '600px' }}>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 400, color: THEME.text }}>
-          Kitchen Confirmation
-          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
-            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-            {currentSite?.name || '—'}
-          </span>
-        </h2>
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          style={{ padding: '8px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}
-        />
-      </div>
+      <PageHeader
+        title="Kitchen Confirmation"
+        site={currentSite}
+        actions={
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            style={{ padding: '8px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}
+          />
+        }
+      />
 
       {loading ? (
         <div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>

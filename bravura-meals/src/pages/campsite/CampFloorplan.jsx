@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Icon, showToast } from '../../components/ui'
+import { Card, Icon, showToast, PageHeader } from '../../components/ui'
 import FloorplanCanvas from './floorplan/FloorplanCanvas'
 import FloorplanLegend from './floorplan/FloorplanLegend'
 import RoomTooltip from './floorplan/RoomTooltip'
@@ -30,12 +30,9 @@ export default function CampFloorplan() {
   if (!selectedBlockId) {
     return (
       <div>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: '0 0 6px' }}>
-          Accommodation Layout
-        </h2>
-        <p style={{ fontSize: '13px', color: THEME.textLow, margin: '0 0 24px' }}>
-          Select a block to view its interactive floorplan
-        </p>
+        <PageHeader title="Accommodation Layout">
+          <p style={{ fontSize: '13px', color: THEME.textLow, margin: 0 }}>Select a block to view its interactive floorplan</p>
+        </PageHeader>
 
         {loading ? (
           <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>

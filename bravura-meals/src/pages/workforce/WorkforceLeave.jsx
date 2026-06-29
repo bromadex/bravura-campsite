@@ -4,7 +4,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, Icon, SectionLabel, StatusBadge, showToast, fmtDate } from '../../components/ui'
+import { Card, Button, Modal, Icon, SectionLabel, StatusBadge, showToast, fmtDate, PageHeader } from '../../components/ui'
 
 // Category -> bucket mapping, matching the original design exactly:
 // short categories keep the room assigned, long categories release it
@@ -121,13 +121,7 @@ export default function WorkforceLeave() {
 
   return (
     <div>
-      <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: '0 0 20px' }}>
-        Leave Management
-        <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
-          <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-          {currentSite?.name || '—'}
-        </span>
-      </h2>
+      <PageHeader title="Leave Management" site={currentSite} />
 
       {/* Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '12px', marginBottom: '20px' }}>

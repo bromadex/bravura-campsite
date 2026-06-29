@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, initials } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, initials, PageHeader } from '../../components/ui'
 
 const MODULE_COLOR = '#5C6BC0' // matches MODULE_COLORS.admin in permissions.js
 
@@ -104,14 +104,7 @@ export default function UserManagement() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
-          Users & Roles
-          <span style={{ marginLeft: '10px', padding: '2px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed }}>
-            {profiles.length}
-          </span>
-        </h2>
-      </div>
+      <PageHeader title={<>Users & Roles <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{profiles.length}</span></>} />
 
       {/* Note on creating brand-new accounts */}
       <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: '10px', background: THEME.statusTertiaryBg }}>

@@ -3,7 +3,7 @@ import { useCampsite } from '../../contexts/CampsiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, MONTHS } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, MONTHS, PageHeader } from '../../components/ui'
 
 export default function CampSupplies() {
   const { profile } = useAuth()
@@ -137,14 +137,14 @@ export default function CampSupplies() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Camp Supplies</h2>
-        <div style={{ display: 'flex', gap: '8px' }}>
+      <PageHeader
+        title="Camp Supplies"
+        actions={<>
           <Button onClick={() => openTxn('receive')} variant="filled"   icon="add_box">Receive Stock</Button>
           <Button onClick={() => openTxn('issue')}   variant="tonal"    icon="remove_circle">Issue Stock</Button>
           <Button onClick={() => setItemModal(true)} variant="outlined" icon="add">Add Item</Button>
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', borderBottom: `2px solid ${THEME.outlineVar}` }}>

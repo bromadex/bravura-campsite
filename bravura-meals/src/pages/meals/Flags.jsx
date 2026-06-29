@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { useAuth } from '../auth/AuthContext'
-import { useSite } from '../contexts/SiteContext'
-import { usePermissions } from '../contexts/PermissionsContext'
-import { THEME } from '../utils/permissions'
-import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, fmtDate } from '../components/ui'
+import { supabase } from '../../supabaseClient'
+import { useAuth } from '../../auth/AuthContext'
+import { useSite } from '../../contexts/SiteContext'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import { THEME } from '../../utils/permissions'
+import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
 
 const REASON_LABELS = {
   count_mismatch:     'Count Mismatch',
@@ -93,31 +93,28 @@ export default function Flags() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 400, color: THEME.text }}>
-          Flags & Queries
-          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
-            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-            {currentSite?.name || '—'}
-          </span>
-        </h2>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          {['open','resolved','dismissed','all'].map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              style={{
-                padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                cursor: 'pointer', border: `1px solid ${THEME.outline}`, fontFamily: 'inherit',
-                background: filter === f ? THEME.primary : 'transparent',
-                color: filter === f ? '#fff' : THEME.textMed,
-              }}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHeader
+        title="Flags & Queries"
+        site={currentSite}
+        actions={
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {['open','resolved','dismissed','all'].map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                style={{
+                  padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                  cursor: 'pointer', border: `1px solid ${THEME.outline}`, fontFamily: 'inherit',
+                  background: filter === f ? THEME.primary : 'transparent',
+                  color: filter === f ? '#fff' : THEME.textMed,
+                }}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {loading ? (
         <div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>

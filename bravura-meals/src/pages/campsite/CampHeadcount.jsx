@@ -1,6 +1,6 @@
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Icon } from '../../components/ui'
+import { Card, Icon, PageHeader } from '../../components/ui'
 
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
 
@@ -70,12 +70,14 @@ export default function CampHeadcount() {
         </div>
       </div>
 
-      <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Headcount Dashboard</h2>
-        <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.primary, fontFamily: 'inherit' }}>
-          <Icon name="print" size={16} style={{ color: THEME.primary }} /> Print
-        </button>
-      </div>
+      <PageHeader
+        title="Headcount Dashboard"
+        actions={
+          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.primary, fontFamily: 'inherit' }}>
+            <Icon name="print" size={16} style={{ color: THEME.primary }} /> Print
+          </button>
+        }
+      />
 
       {/* Main KPI grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '14px', marginBottom: '24px' }}>

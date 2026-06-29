@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase } from '../supabaseClient'
-import { Card, StatCard, SortTh, useSortState, sortRows, Icon, Button, fmtDate, today, MONTHS, showToast } from '../components/ui'
-import { THEME } from '../utils/permissions'
-import { usePermissions } from '../contexts/PermissionsContext'
-import { useSite } from '../contexts/SiteContext'
+import { supabase } from '../../supabaseClient'
+import { Card, StatCard, SortTh, useSortState, sortRows, Icon, Button, fmtDate, today, MONTHS, showToast, PageHeader } from '../../components/ui'
+import { THEME } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import { useSite } from '../../contexts/SiteContext'
 
 // ── Contractor colour pool ────────────────────────────────────────────────────
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
@@ -223,20 +223,15 @@ export function DailyReport() {
       />
 
       {/* Screen-only controls */}
-      <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
-          Daily Report
-          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
-            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-            {currentSite?.name || '—'}
-          </span>
-        </h2>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+      <PageHeader
+        title="Daily Report"
+        site={currentSite}
+        actions={<>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             style={{ padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }} />
           <Button onClick={() => window.print()} variant="tonal" icon="print">Print</Button>
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Stat row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
@@ -323,15 +318,10 @@ export function RangeReport() {
         subtitle={`Period: ${fmtDate(start)} — ${fmtDate(end)}`}
       />
 
-      <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
-          Range Report
-          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
-            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-            {currentSite?.name || '—'}
-          </span>
-        </h2>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+      <PageHeader
+        title="Range Report"
+        site={currentSite}
+        actions={<>
           {[['From', start, setStart], ['To', end, setEnd]].map(([label, val, setter]) => (
             <div key={label}>
               <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textMed, marginBottom: '4px' }}>{label}</div>
@@ -340,8 +330,8 @@ export function RangeReport() {
             </div>
           ))}
           <Button onClick={() => window.print()} variant="tonal" icon="print">Print</Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
         <StatCard label="Total Breakfasts" value={totB} color={THEME.breakfastClr} icon="wb_sunny" />
@@ -432,15 +422,10 @@ export function MonthlyReport() {
         subtitle={`${MONTHS[month]} ${year}`}
       />
 
-      <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
-          Monthly Report
-          <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
-            <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-            {currentSite?.name || '—'}
-          </span>
-        </h2>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+      <PageHeader
+        title="Monthly Report"
+        site={currentSite}
+        actions={<>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textMed, marginBottom: '4px' }}>Month</div>
             <select value={month} onChange={e => setMonth(parseInt(e.target.value))}
@@ -454,8 +439,8 @@ export function MonthlyReport() {
               style={{ width: '90px', padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }} />
           </div>
           <Button onClick={() => window.print()} variant="tonal" icon="print">Print</Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
         <StatCard label="Breakfasts"  value={totB} color={THEME.breakfastClr} icon="wb_sunny" sub={`${MONTHS[month]} ${year}`} />

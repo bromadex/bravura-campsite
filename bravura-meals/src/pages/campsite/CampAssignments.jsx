@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
 
 const tabs = ['Active', 'History', 'On Leave']
 
@@ -126,10 +126,7 @@ export default function CampAssignments() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Assignments</h2>
-        <Button onClick={() => setAssignModal(true)} variant="filled" icon="add_home">Assign Room</Button>
-      </div>
+      <PageHeader title="Assignments" actions={<Button onClick={() => setAssignModal(true)} variant="filled" icon="add_home">Assign Room</Button>} />
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', borderBottom: `2px solid ${THEME.outlineVar}` }}>

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { useAuth } from '../auth/AuthContext'
-import { useSite } from '../contexts/SiteContext'
-import { THEME } from '../utils/permissions'
-import { Card, Button, Icon, SectionLabel, showToast, fmtDate } from '../components/ui'
+import { supabase } from '../../supabaseClient'
+import { useAuth } from '../../auth/AuthContext'
+import { useSite } from '../../contexts/SiteContext'
+import { THEME } from '../../utils/permissions'
+import { Card, Button, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
 
 export default function Pricing() {
   const { profile } = useAuth()
@@ -79,13 +79,7 @@ export default function Pricing() {
 
   return (
     <div style={{ maxWidth: '720px' }}>
-      <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: '0 0 20px' }}>
-        Pricing Management
-        <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
-          <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-          {currentSite?.name || '—'}
-        </span>
-      </h2>
+      <PageHeader title="Pricing Management" site={currentSite} />
 
       {/* Current prices */}
       {current ? (

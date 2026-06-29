@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { Card, Icon, fmtDate } from '../../components/ui'
+import { Card, Icon, fmtDate, PageHeader } from '../../components/ui'
 
 export default function CampOccupancyReport() {
   const { blocks, rooms, assignments, loading } = useCampsite()
@@ -46,12 +46,14 @@ export default function CampOccupancyReport() {
         </div>
       </div>
 
-      <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>Occupancy Reports</h2>
-        <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: MODULE_COLORS.campsite, fontFamily: 'inherit' }}>
-          <Icon name="print" size={16} style={{ color: MODULE_COLORS.campsite }} /> Print
-        </button>
-      </div>
+      <PageHeader
+        title="Occupancy Reports"
+        actions={
+          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: MODULE_COLORS.campsite, fontFamily: 'inherit' }}>
+            <Icon name="print" size={16} style={{ color: MODULE_COLORS.campsite }} /> Print
+          </button>
+        }
+      />
 
       {/* Overall stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>

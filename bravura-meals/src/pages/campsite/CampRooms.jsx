@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, PageHeader } from '../../components/ui'
 
 const EMPTY = { room_number: '', block_id: '', room_type: 'accommodation', capacity: 1, notes: '' }
 
@@ -157,15 +157,10 @@ export default function CampRooms() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
-          Rooms
-          <span style={{ marginLeft: '10px', padding: '2px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed }}>
-            {totalRooms}
-          </span>
-        </h2>
-        <Button onClick={openAdd} variant="filled" icon="add">Add Room</Button>
-      </div>
+      <PageHeader
+        title={<>Rooms <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{totalRooms}</span></>}
+        actions={<Button onClick={openAdd} variant="filled" icon="add">Add Room</Button>}
+      />
 
       {/* Summary chips */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>

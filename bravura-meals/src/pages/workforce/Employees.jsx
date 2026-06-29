@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase } from '../supabaseClient'
-import { THEME } from '../utils/permissions'
-import { usePermissions } from '../contexts/PermissionsContext'
-import { useSite } from '../contexts/SiteContext'
-import { Card, Button, Modal, ConfirmModal, StatusBadge, Icon, showToast, initials, SectionLabel } from '../components/ui'
+import { supabase } from '../../supabaseClient'
+import { THEME } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import { useSite } from '../../contexts/SiteContext'
+import { Card, Button, Modal, ConfirmModal, StatusBadge, Icon, showToast, initials, SectionLabel, PageHeader } from '../../components/ui'
 
 const EMPTY_FORM = { name: '', contractor_id: '', status: 'active', gender: '' }
 
@@ -178,29 +178,16 @@ export default function Employees() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
-            Employees
-            <span style={{ marginLeft: '10px', padding: '2px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed }}>
-              {employees.length}
-            </span>
-          </h2>
-          <div style={{ marginTop: '6px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.statusSuccessBg, color: THEME.statusSuccessText }}>
-              {activeCount} active
-            </span>
-            <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed }}>
-              {employees.length - activeCount} terminated
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary }}>
-              <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-              {currentSite?.name || '—'}
-            </span>
-          </div>
+      <PageHeader
+        title={<>Employees <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{employees.length}</span></>}
+        site={currentSite}
+        actions={<Button onClick={openAdd} variant="filled" icon="add">Add Employee</Button>}
+      >
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.statusSuccessBg, color: THEME.statusSuccessText }}>{activeCount} active</span>
+          <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed }}>{employees.length - activeCount} terminated</span>
         </div>
-        <Button onClick={openAdd} variant="filled" icon="add">Add Employee</Button>
-      </div>
+      </PageHeader>
 
       {/* Filters */}
       <Card style={{ marginBottom: '16px', padding: '12px 16px' }}>

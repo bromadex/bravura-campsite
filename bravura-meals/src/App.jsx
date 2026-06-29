@@ -12,8 +12,8 @@ import ModuleLayout from './components/ModuleLayout'
 import { THEME, workforceNav, campsiteNav, mealsNav, adminNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
-const Employees       = lazy(() => import('./pages/Employees'))
-const Contractors     = lazy(() => import('./pages/Contractors'))
+const Employees       = lazy(() => import('./pages/workforce/Employees'))
+const Contractors     = lazy(() => import('./pages/workforce/Contractors'))
 const WorkforceLeave  = lazy(() => import('./pages/workforce/WorkforceLeave'))
 const WorkforceReports= lazy(() => import('./pages/workforce/WorkforceReports'))
 
@@ -28,18 +28,18 @@ const CampFloorplan       = lazy(() => import('./pages/campsite/CampFloorplan'))
 const StockTransfers      = lazy(() => import('./pages/campsite/StockTransfers'))
 
 // ── Meals pages ───────────────────────────────────────────────────────────────
-const Dashboard      = lazy(() => import('./pages/Dashboard'))
-const DailyEntry     = lazy(() => import('./pages/DailyEntry'))
-const Approvals      = lazy(() => import('./pages/Approvals'))
-const KitchenConfirm = lazy(() => import('./pages/KitchenConfirm'))
-const Flags          = lazy(() => import('./pages/Flags'))
-const DailyReport    = lazy(() => import('./pages/DailyReport'))
-const RangeReport    = lazy(() => import('./pages/RangeReport'))
-const MonthlyReport  = lazy(() => import('./pages/MonthlyReport'))
-const Billing        = lazy(() => import('./pages/Billing'))
-const Pricing        = lazy(() => import('./pages/Pricing'))
-const MealProviders  = lazy(() => import('./pages/MealProviders'))
-const Settings       = lazy(() => import('./pages/Settings'))
+const Dashboard      = lazy(() => import('./pages/meals/Dashboard'))
+const DailyEntry     = lazy(() => import('./pages/meals/DailyEntry'))
+const Approvals      = lazy(() => import('./pages/meals/Approvals'))
+const KitchenConfirm = lazy(() => import('./pages/meals/KitchenConfirm'))
+const Flags          = lazy(() => import('./pages/meals/Flags'))
+const DailyReport    = lazy(() => import('./pages/meals/DailyReport'))
+const RangeReport    = lazy(() => import('./pages/meals/RangeReport'))
+const MonthlyReport  = lazy(() => import('./pages/meals/MonthlyReport'))
+const Billing        = lazy(() => import('./pages/meals/Billing'))
+const Pricing        = lazy(() => import('./pages/meals/Pricing'))
+const MealProviders  = lazy(() => import('./pages/meals/MealProviders'))
+const Settings       = lazy(() => import('./pages/meals/Settings'))
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
 const AuditLogViewer = lazy(() => import('./pages/admin/AuditLogViewer'))
 

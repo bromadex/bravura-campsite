@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { supabase } from '../supabaseClient'
-import { useAuth } from '../auth/AuthContext'
-import { THEME } from '../utils/permissions'
-import { usePermissions } from '../contexts/PermissionsContext'
-import { useSite } from '../contexts/SiteContext'
-import { Card, Button, StatCard, StatusBadge, Icon, SortTh, useSortState, showToast, today, fmtDate } from '../components/ui'
+import { supabase } from '../../supabaseClient'
+import { useAuth } from '../../auth/AuthContext'
+import { THEME } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import { useSite } from '../../contexts/SiteContext'
+import { Card, Button, StatCard, StatusBadge, Icon, SortTh, useSortState, showToast, today, fmtDate, PageHeader } from '../../components/ui'
 
 // Contractor colour pool — same as Reports
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457','#00838F']
@@ -217,29 +217,10 @@ export default function DailyEntry() {
   return (
     <div>
       {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
-            Daily Meal Entry
-            <span style={{ marginLeft: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle' }}>
-              <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
-              {currentSite?.name || '—'}
-            </span>
-          </h2>
-          {submission && (
-            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <StatusBadge status={submission.status} />
-              {!editable && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: THEME.error, fontWeight: 500 }}>
-                  <Icon name="lock" size={14} style={{ color: THEME.error }} />
-                  Locked — {submission.status}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <PageHeader
+        title="Daily Meal Entry"
+        site={currentSite}
+        actions={<>
           <input
             type="date"
             value={date}
@@ -260,8 +241,20 @@ export default function DailyEntry() {
               Submit for approval
             </Button>
           )}
-        </div>
-      </div>
+        </>}
+      >
+        {submission && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <StatusBadge status={submission.status} />
+            {!editable && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: THEME.error, fontWeight: 500 }}>
+                <Icon name="lock" size={14} style={{ color: THEME.error }} />
+                Locked — {submission.status}
+              </div>
+            )}
+          </div>
+        )}
+      </PageHeader>
 
       {/* ── Stat cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>

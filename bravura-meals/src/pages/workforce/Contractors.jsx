@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { THEME } from '../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, StatusBadge, Icon, showToast, SectionLabel } from '../components/ui'
+import { supabase } from '../../supabaseClient'
+import { THEME } from '../../utils/permissions'
+import { Card, Button, Modal, ConfirmModal, StatusBadge, Icon, showToast, SectionLabel, PageHeader } from '../../components/ui'
 
 const EMPTY_FORM = { name: '', short_code: '', status: 'Active' }
 
@@ -110,20 +110,12 @@ export default function Contractors() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
-            Contractors
-            <span style={{ marginLeft: '10px', padding: '2px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed }}>
-              {contractors.length}
-            </span>
-          </h2>
-          <div style={{ fontSize: '13px', color: THEME.textLow, marginTop: '4px' }}>
-            Companies whose employees eat on site. Add new contractors as they arrive.
-          </div>
-        </div>
-        <Button onClick={openAdd} variant="filled" icon="add">Add Contractor</Button>
-      </div>
+      <PageHeader
+        title={<>Contractors <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{contractors.length}</span></>}
+        actions={<Button onClick={openAdd} variant="filled" icon="add">Add Contractor</Button>}
+      >
+        <div style={{ fontSize: '13px', color: THEME.textLow }}>Companies whose employees eat on site.</div>
+      </PageHeader>
 
       {/* Cards */}
       {loading ? (

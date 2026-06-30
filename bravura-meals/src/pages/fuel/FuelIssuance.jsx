@@ -112,12 +112,123 @@ function SearchSelect({ items, value, onSelect, placeholder, renderItem, renderS
   )
 }
 
+// ── Printable docket ──────────────────────────────────────────────────────────
+
+function PrintDocket({ result, siteName, tankName, pumpName, assetLabel, operatorName }) {
+  const litres = Number(result.litres).toFixed(1)
+  const now    = new Date()
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const docketNo = result.docket_number || result.transaction_number
+
+  return (
+    <>
+      {/* Print-only stylesheet injected into head via style tag */}
+      <style>{`
+        @media print {
+          body > * { display: none !important; }
+          #fuel-docket-print { display: block !important; }
+        }
+        #fuel-docket-print { display: none; }
+        @media print {
+          #fuel-docket-print {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: white; color: black; font-family: monospace;
+            font-size: 12pt; padding: 20mm;
+          }
+        }
+      `}</style>
+
+      <div id="fuel-docket-print">
+        <div style={{ borderBottom: '2px solid black', paddingBottom: '8px', marginBottom: '10px' }}>
+          <div style={{ fontSize: '16pt', fontWeight: 'bold', textAlign: 'center' }}>FUEL ISSUANCE DOCKET</div>
+          <div style={{ textAlign: 'center', marginTop: '4px' }}>{siteName || 'Bravura Zimbabwe'}</div>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
+          <tbody>
+            {[
+              ['Docket No', docketNo],
+              ['Date', dateStr],
+              ['Time', timeStr],
+            ].map(([k, v]) => (
+              <tr key={k}>
+                <td style={{ padding: '3px 0', fontWeight: 'bold', width: '40%' }}>{k}:</td>
+                <td style={{ padding: '3px 0' }}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ borderTop: '1px solid black', borderBottom: '1px solid black', padding: '8px 0', margin: '8px 0' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+              {[
+                ['Tank',      tankName],
+                ['Pump',      pumpName || '—'],
+                ['Issued To', assetLabel || '—'],
+                ['Operator',  operatorName || '—'],
+              ].map(([k, v]) => (
+                <tr key={k}>
+                  <td style={{ padding: '3px 0', fontWeight: 'bold', width: '40%' }}>{k}:</td>
+                  <td style={{ padding: '3px 0' }}>{v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {(result.meter_reading_start != null || result.meter_reading_end != null) && (
+          <div style={{ borderBottom: '1px solid black', padding: '8px 0', margin: '8px 0' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                {result.meter_reading_start != null && (
+                  <tr>
+                    <td style={{ padding: '3px 0', fontWeight: 'bold', width: '40%' }}>Meter Start:</td>
+                    <td style={{ padding: '3px 0' }}>{Number(result.meter_reading_start).toLocaleString(undefined, { minimumFractionDigits: 1 })} L</td>
+                  </tr>
+                )}
+                {result.meter_reading_end != null && (
+                  <tr>
+                    <td style={{ padding: '3px 0', fontWeight: 'bold', width: '40%' }}>Meter End:</td>
+                    <td style={{ padding: '3px 0' }}>{Number(result.meter_reading_end).toLocaleString(undefined, { minimumFractionDigits: 1 })} L</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div style={{ textAlign: 'center', padding: '10px 0', borderBottom: '2px solid black', marginBottom: '16px' }}>
+          <div style={{ fontSize: '14pt', fontWeight: 'bold' }}>
+            LITRES ISSUED: {Number(litres).toLocaleString(undefined, { minimumFractionDigits: 1 })} L
+          </div>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '16px' }}>
+          <tbody>
+            {[
+              'Authorised By',
+              'Driver Signature',
+            ].map(label => (
+              <tr key={label}>
+                <td style={{ padding: '20px 0 4px', fontWeight: 'bold', fontSize: '10pt' }}>{label}:</td>
+                <td style={{ borderBottom: '1px solid black', padding: '20px 0 4px' }}></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ marginTop: '20px', fontSize: '8pt', textAlign: 'center', color: '#666' }}>
+          Ref: {result.transaction_number} · Printed {dateStr} {timeStr}
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ── Success screen ────────────────────────────────────────────────────────────
 
-function SuccessScreen({ result, onIssueAnother, onViewLedger }) {
+function SuccessScreen({ result, onIssueAnother, onViewLedger, siteName, tankName, pumpName, assetLabel, operatorName }) {
   const litres = Number(result.litres).toFixed(1)
   return (
     <div style={{ maxWidth: '520px', margin: '0 auto', textAlign: 'center', padding: '60px 24px 40px' }}>
+      <PrintDocket result={result} siteName={siteName} tankName={tankName} pumpName={pumpName} assetLabel={assetLabel} operatorName={operatorName} />
+
       <div style={{
         width: '72px', height: '72px', borderRadius: '50%', margin: '0 auto 20px',
         background: THEME.statusSuccessBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -134,7 +245,7 @@ function SuccessScreen({ result, onIssueAnother, onViewLedger }) {
       }}>
         {[
           ['Transaction #', result.transaction_number],
-          ['Docket',         result.docket_number || '—'],
+          ['Docket',         result.docket_number || result.transaction_number],
           ['Quantity',       `${litres} L`],
           ['Date',           result.transaction_date],
         ].map(([k, v]) => (
@@ -145,6 +256,14 @@ function SuccessScreen({ result, onIssueAnother, onViewLedger }) {
         ))}
       </div>
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+        <button onClick={() => window.print()} style={{
+          padding: '10px 24px', borderRadius: '20px', border: `1px solid ${THEME.outline}`,
+          background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+          display: 'flex', alignItems: 'center', gap: '6px',
+        }}>
+          <Icon name="print" size={16} style={{ color: THEME.textMed }} />
+          Print Docket
+        </button>
         <button onClick={onViewLedger} style={{
           padding: '10px 24px', borderRadius: '20px', border: `1px solid ${THEME.outline}`,
           background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
@@ -182,15 +301,16 @@ const BLANK = {
 
 export default function FuelIssuance({ setPage }) {
   const { can }        = usePermissions()
-  const { currentSiteId } = useSite()
+  const { currentSiteId, currentSite } = useSite()
   const {
     tanks, pumps, vehicles, equipment, operators,
     transactions, addTransaction, updatePump,
   } = useFuel()
 
-  const [form,    setFormState] = useState(BLANK)
-  const [saving,  setSaving]    = useState(false)
-  const [result,  setResult]    = useState(null)   // success screen
+  const [form,       setFormState] = useState(BLANK)
+  const [saving,     setSaving]    = useState(false)
+  const [result,     setResult]    = useState(null)    // success screen
+  const [resultMeta, setResultMeta] = useState(null)   // labels for docket
 
   if (!can('fuel.create')) return (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
@@ -307,6 +427,20 @@ export default function FuelIssuance({ setPage }) {
         await updatePump(form.pump_id, { current_meter_reading: Number(form.meter_end) })
       }
 
+      // Capture human-readable labels for the docket
+      const selVehicle   = vehicles.find(v => v.id === form.vehicle_id)
+      const selEquipment = equipment.find(e => e.id === form.equipment_id)
+      const selOperator  = operators.find(o => o.id === form.operator_id)
+      setResultMeta({
+        tankName:     selectedTank?.name || '—',
+        pumpName:     tankPumps.find(p => p.id === form.pump_id)?.name || null,
+        assetLabel:   form.asset_type === 'vehicle'
+          ? (selVehicle ? `Fleet No. ${selVehicle.fleet_number}${selVehicle.registration ? ' (' + selVehicle.registration + ')' : ''}` : null)
+          : form.asset_type === 'equipment'
+          ? (selEquipment ? `${selEquipment.name}${selEquipment.equipment_number ? ' (' + selEquipment.equipment_number + ')' : ''}` : null)
+          : null,
+        operatorName: selOperator?.employees?.name || null,
+      })
       setResult(row)
     } catch (err) {
       showToast(err.message || 'Failed to record issuance', 'red')
@@ -321,7 +455,12 @@ export default function FuelIssuance({ setPage }) {
     return (
       <SuccessScreen
         result={result}
-        onIssueAnother={() => { setResult(null); setFormState(BLANK) }}
+        siteName={currentSite?.name}
+        tankName={resultMeta?.tankName}
+        pumpName={resultMeta?.pumpName}
+        assetLabel={resultMeta?.assetLabel}
+        operatorName={resultMeta?.operatorName}
+        onIssueAnother={() => { setResult(null); setResultMeta(null); setFormState(BLANK) }}
         onViewLedger={() => setPage('fuel_ledger')}
       />
     )

@@ -33,8 +33,8 @@ export default function FuelTanks() {
   const { currentSite } = useSite()
   const { fuelTypes, tanks, addTank, updateTank, archiveTank, tankBalance, loading } = useFuel()
 
-  const canEdit    = can('fuel.manage_tanks')
-  const canView    = can('fuel.view_dashboard')
+  const canEdit    = can('fuel.edit')
+  const canView    = can('fuel.view')
 
   const [modal,      setModal]      = useState(false)
   const [editItem,   setEditItem]   = useState(null)

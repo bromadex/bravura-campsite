@@ -327,21 +327,17 @@ END$$;
 -- ── 12. Permissions ───────────────────────────────────────────────────────────
 
 INSERT INTO permissions (code, module, action, description) VALUES
-  ('fuel.view_dashboard',    'fuel', 'View',   'View fuel dashboard, tank levels, and reports'),
-  ('fuel.manage_tanks',      'fuel', 'Edit',   'Add, edit, and archive fuel tanks'),
-  ('fuel.issue_fuel',        'fuel', 'Create', 'Record fuel issuances (draw from tank)'),
-  ('fuel.receive_delivery',  'fuel', 'Create', 'Record fuel deliveries (add to tank)'),
-  ('fuel.record_dip',        'fuel', 'Create', 'Record dip-stick readings'),
-  ('fuel.run_reconciliation','fuel', 'Approve','Run fuel reconciliation and post adjustments'),
-  ('fuel.view_reports',      'fuel', 'View',   'Access detailed fuel reports')
-ON CONFLICT (code) DO NOTHING;
+  ('fuel.view',   'fuel', 'View',   'View fuel dashboard, tank levels, ledger and reports'),
+  ('fuel.create', 'fuel', 'Create', 'Record fuel issuances, deliveries, and dip readings'),
+  ('fuel.edit',   'fuel', 'Edit',   'Add, edit, and archive fuel tanks'),
+  ('fuel.approve','fuel', 'Approve','Run fuel reconciliation and post adjustments')
+ON CONFLICT (module, action) DO UPDATE SET
+  code        = EXCLUDED.code,
+  description = EXCLUDED.description;
 
 -- Remove old prototype permission codes that no longer exist
-DELETE FROM permissions WHERE code IN (
-  'fuel.create', 'fuel.delete', 'fuel.approve',
-  'fuel.view', 'fuel.tanks.edit', 'fuel.issue',
-  'fuel.delivery.receive', 'fuel.dip.record',
-  'fuel.reconciliation.run', 'fuel.reports.view'
+DELETE FROM permissions WHERE module = 'fuel' AND code NOT IN (
+  'fuel.view', 'fuel.create', 'fuel.edit', 'fuel.approve'
 );
 
 -- Grant all fuel permissions to System Admin and Group Admin

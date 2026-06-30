@@ -41,6 +41,13 @@ const PAGE_TITLES = {
   meals_billing:    'Billing',
   meals_pricing:    'Pricing Management',
   meals_settings:   'Settings',
+  // Fuel
+  fuel_dashboard:   'Dashboard',
+  fuel_receipts:    'Fuel Receipts',
+  fuel_issues:      'Fuel Issues',
+  fuel_dips:        'Dip Stick Readings',
+  fuel_reports:     'Fuel Reports',
+  fuel_tanks:       'Tanks',
 }
 
 export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navItems, page, setPage, onHome, children }) {

@@ -41,6 +41,9 @@ const PAGE_TITLES = {
   meals_billing:    'Billing',
   meals_pricing:    'Pricing Management',
   meals_settings:   'Settings',
+  // Fleet
+  fleet_dashboard:  'Dashboard',
+  fleet_vehicles:   'Vehicles',
   // Fuel
   fuel_dashboard:   'Dashboard',
   fuel_ledger:      'Fuel Ledger',

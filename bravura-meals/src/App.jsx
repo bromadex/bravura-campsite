@@ -10,7 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const Employees       = lazy(() => import('./pages/workforce/Employees'))
@@ -44,6 +44,9 @@ const Settings       = lazy(() => import('./pages/meals/Settings'))
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
 const AuditLogViewer = lazy(() => import('./pages/admin/AuditLogViewer'))
 
+// ── Fleet pages ───────────────────────────────────────────────────────────────
+const FleetDashboard = lazy(() => import('./pages/fleet/FleetDashboard'))
+
 // ── Fuel pages ────────────────────────────────────────────────────────────────
 const FuelDashboard = lazy(() => import('./pages/fuel/FuelDashboard'))
 const FuelLedger    = lazy(() => import('./pages/fuel/FuelLedger'))
@@ -71,11 +74,12 @@ const PageLoader = (
 
 // ── Module configs ────────────────────────────────────────────────────────────
 const MODULE_META = {
-  workforce: { label: 'HR Management',         icon: 'badge',           navFn: workforceNav },
-  campsite:  { label: 'Campsite Management',   icon: 'holiday_village', navFn: campsiteNav  },
-  meals:     { label: 'Meal Management',       icon: 'restaurant',      navFn: mealsNav     },
+  workforce: { label: 'HR Management',         icon: 'badge',            navFn: workforceNav },
+  campsite:  { label: 'Campsite Management',   icon: 'holiday_village',  navFn: campsiteNav  },
+  meals:     { label: 'Meal Management',       icon: 'restaurant',       navFn: mealsNav     },
   admin:     { label: 'Administration',        icon: 'admin_panel_settings', navFn: adminNav },
   fuel:      { label: 'Fuel Management',       icon: 'local_gas_station',    navFn: fuelNav  },
+  fleet:     { label: 'Fleet Management',      icon: 'directions_car',   navFn: fleetNav     },
 }
 
 // ── Route resolvers ───────────────────────────────────────────────────────────
@@ -179,10 +183,17 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports />                     : null
     case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks />                       : null
     case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                       : null
-    case 'fuel_vehicles':  return can('fuel.view')   ? <Vehicles />                        : null
     case 'fuel_equipment': return can('fuel.view')   ? <Equipment />                       : null
     case 'fuel_operators': return can('fuel.view')   ? <Operators />                       : null
     default:               return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
+  }
+}
+
+function getFleetPage(page, setPage) {
+  switch (page) {
+    case 'fleet_dashboard': return <FleetDashboard setPage={setPage} />
+    case 'fleet_vehicles':  return <Vehicles />
+    default:                return <FleetDashboard setPage={setPage} />
   }
 }
 
@@ -193,6 +204,7 @@ const DEFAULT_PAGE = {
   meals:     'meals_dashboard',
   admin:     'admin_users',
   fuel:      'fuel_dashboard',
+  fleet:     'fleet_dashboard',
 }
 
 // ── Module shell — resolves :moduleId/:pageId from the URL ────────────────────
@@ -223,6 +235,7 @@ function ModuleShell() {
   if (moduleId === 'meals')     content = getMealsPage(currentPage, role, setPage, can)
   if (moduleId === 'admin')     content = getAdminPage(currentPage, can)
   if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
+  if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
 
   const AccessDenied = (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
@@ -256,7 +269,7 @@ function ModuleShell() {
   if (moduleId === 'campsite' || moduleId === 'workforce') {
     return <CampsiteProvider>{body}</CampsiteProvider>
   }
-  if (moduleId === 'fuel') {
+  if (moduleId === 'fuel' || moduleId === 'fleet') {
     return <FuelProvider>{body}</FuelProvider>
   }
   return body

@@ -82,6 +82,7 @@ export const MODULE_COLORS = {
   meals:     '#982329',  // maroon       – food/dining, matches the real logo anchor colour
   admin:     '#5C6BC0',  // indigo       – system/administration, distinct from the 3 business modules
   fuel:      '#D97706',  // amber        – petroleum/fuel association
+  fleet:     '#1A6B52',  // green        – fleet/transport
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -111,6 +112,9 @@ export const moduleAccess = {
   admin:     (role, can) => can ? can('users.view') : false,
   // Fuel Management — gated by fuel.view from the start.
   fuel:      (role, can) => can ? can('fuel.view') : false,
+  // Fleet Management — all authenticated users can access; vehicle registry is
+  // not sensitive operational data and is useful across roles.
+  fleet:     r => !!r,
 }
 
 // ─── Per-module nav definitions ───────────────────────────────────────────────
@@ -175,9 +179,15 @@ export function fuelNav(role, can) {
     { id: 'fuel_dips',      label: 'Dip Readings',     section: 'Records',      icon: 'straighten',        show: can('fuel.create') },
     { id: 'fuel_reports',   label: 'Reports',          section: 'Reports',      icon: 'bar_chart',         show: can('fuel.view') },
     { id: 'fuel_tanks',     label: 'Tanks',            section: 'Assets',       icon: 'propane_tank',      show: can('fuel.view') },
-    { id: 'fuel_vehicles',  label: 'Vehicles',         section: 'Assets',       icon: 'directions_car',    show: can('fuel.view') },
     { id: 'fuel_equipment', label: 'Equipment',        section: 'Assets',       icon: 'construction',      show: can('fuel.view') },
     { id: 'fuel_operators', label: 'Operators',        section: 'Assets',       icon: 'badge',             show: can('fuel.view') },
     { id: 'fuel_types',     label: 'Fuel Types',       section: 'Admin',        icon: 'oil_barrel',        show: can('fuel.edit') },
   ].filter(item => item.show !== false)
+}
+
+export function fleetNav(role, can) {
+  return [
+    { id: 'fleet_dashboard', label: 'Dashboard',   section: 'Overview',  icon: 'dashboard' },
+    { id: 'fleet_vehicles',  label: 'Vehicles',    section: 'Registry',  icon: 'directions_car' },
+  ]
 }

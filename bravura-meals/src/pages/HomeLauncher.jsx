@@ -45,6 +45,14 @@ const ALL_MODULES = [
     color:    MODULE_COLORS.fuel,
     access:   moduleAccess.fuel,
   },
+  {
+    id:       'fleet',
+    label:    'Fleet Management',
+    sub:      'Vehicles, assignments & maintenance',
+    icon:     'directions_car',
+    color:    MODULE_COLORS.fleet,
+    access:   moduleAccess.fleet,
+  },
 ]
 
 export default function HomeLauncher({ onEnterModule }) {

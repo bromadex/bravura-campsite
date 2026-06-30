@@ -44,8 +44,8 @@ const PAGE_TITLES = {
   // Fuel
   fuel_dashboard:   'Dashboard',
   fuel_ledger:      'Fuel Ledger',
-  fuel_receipts:    'Fuel Receipts',
-  fuel_issues:      'Fuel Issues',
+  fuel_receipts:    'Fuel Deliveries',
+  fuel_issues:      'Fuel Issuance',
   fuel_dips:        'Dip Stick Readings',
   fuel_reports:     'Fuel Reports',
   fuel_tanks:       'Tanks',

@@ -170,8 +170,8 @@ export function fuelNav(role, can) {
   return [
     { id: 'fuel_dashboard', label: 'Dashboard',        section: 'Overview',     icon: 'dashboard' },
     { id: 'fuel_ledger',    label: 'Fuel Ledger',       section: 'Overview',     icon: 'receipt_long' },
-    { id: 'fuel_receipts',  label: 'Fuel Receipts',    section: 'Records',      icon: 'local_gas_station', show: can('fuel.create') },
-    { id: 'fuel_issues',    label: 'Fuel Issues',      section: 'Records',      icon: 'output',            show: can('fuel.create') },
+    { id: 'fuel_receipts',  label: 'Fuel Deliveries',  section: 'Records',      icon: 'local_gas_station', show: can('fuel.create') },
+    { id: 'fuel_issues',    label: 'Fuel Issuance',    section: 'Records',      icon: 'output',            show: can('fuel.create') },
     { id: 'fuel_dips',      label: 'Dip Readings',     section: 'Records',      icon: 'straighten',        show: can('fuel.create') },
     { id: 'fuel_reports',   label: 'Reports',          section: 'Reports',      icon: 'bar_chart',         show: can('fuel.view') },
     { id: 'fuel_tanks',     label: 'Tanks',            section: 'Admin',        icon: 'propane_tank',      show: can('fuel.edit') },

@@ -331,8 +331,9 @@ INSERT INTO permissions (code, module, action, description) VALUES
   ('fuel.create', 'fuel', 'Create', 'Record fuel issuances, deliveries, and dip readings'),
   ('fuel.edit',   'fuel', 'Edit',   'Add, edit, and archive fuel tanks'),
   ('fuel.approve','fuel', 'Approve','Run fuel reconciliation and post adjustments')
-ON CONFLICT (module, action) DO UPDATE SET
-  code        = EXCLUDED.code,
+ON CONFLICT (code) DO UPDATE SET
+  module      = EXCLUDED.module,
+  action      = EXCLUDED.action,
   description = EXCLUDED.description;
 
 -- Remove old prototype permission codes that no longer exist

@@ -3,13 +3,14 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
+import { FuelProvider } from './contexts/FuelContext'
 import { SiteProvider } from './contexts/SiteContext'
 import { PermissionsProvider, usePermissions } from './contexts/PermissionsContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const Employees       = lazy(() => import('./pages/workforce/Employees'))
@@ -43,6 +44,15 @@ const Settings       = lazy(() => import('./pages/meals/Settings'))
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
 const AuditLogViewer = lazy(() => import('./pages/admin/AuditLogViewer'))
 
+// ── Fuel pages ────────────────────────────────────────────────────────────────
+const FuelDashboard = lazy(() => import('./pages/fuel/FuelDashboard'))
+const FuelLedger    = lazy(() => import('./pages/fuel/FuelLedger'))
+const FuelReceipts  = lazy(() => import('./pages/fuel/FuelReceipts'))
+const FuelIssues    = lazy(() => import('./pages/fuel/FuelIssues'))
+const DipReadings   = lazy(() => import('./pages/fuel/DipReadings'))
+const FuelTanks     = lazy(() => import('./pages/fuel/FuelTanks'))
+const FuelReports   = lazy(() => import('./pages/fuel/FuelReports'))
+
 const PageLoader = (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -60,6 +70,7 @@ const MODULE_META = {
   campsite:  { label: 'Campsite Management',   icon: 'holiday_village', navFn: campsiteNav  },
   meals:     { label: 'Meal Management',       icon: 'restaurant',      navFn: mealsNav     },
   admin:     { label: 'Administration',        icon: 'admin_panel_settings', navFn: adminNav },
+  fuel:      { label: 'Fuel Management',       icon: 'local_gas_station',    navFn: fuelNav  },
 }
 
 // ── Route resolvers ───────────────────────────────────────────────────────────
@@ -153,12 +164,26 @@ function getAdminPage(page, can) {
   }
 }
 
+function getFuelPage(page, setPage, can) {
+  switch (page) {
+    case 'fuel_dashboard': return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
+    case 'fuel_ledger':    return can('fuel.view')   ? <FuelLedger />                      : null
+    case 'fuel_receipts':  return can('fuel.create') ? <FuelReceipts />                    : null
+    case 'fuel_issues':    return can('fuel.create') ? <FuelIssues />                      : null
+    case 'fuel_dips':      return can('fuel.create') ? <DipReadings />                     : null
+    case 'fuel_reports':   return can('fuel.view')   ? <FuelReports />                     : null
+    case 'fuel_tanks':     return can('fuel.delete') ? <FuelTanks />                       : null
+    default:               return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
+  }
+}
+
 // ── Default page per module ───────────────────────────────────────────────────
 const DEFAULT_PAGE = {
   workforce: 'wf_employees',
   campsite:  'camp_headcount',
   meals:     'meals_dashboard',
   admin:     'admin_users',
+  fuel:      'fuel_dashboard',
 }
 
 // ── Module shell — resolves :moduleId/:pageId from the URL ────────────────────
@@ -188,6 +213,7 @@ function ModuleShell() {
   if (moduleId === 'campsite')  content = getCampsitePage(currentPage, role, setPage, can)
   if (moduleId === 'meals')     content = getMealsPage(currentPage, role, setPage, can)
   if (moduleId === 'admin')     content = getAdminPage(currentPage, can)
+  if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
 
   const AccessDenied = (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
@@ -220,6 +246,9 @@ function ModuleShell() {
   // of state.
   if (moduleId === 'campsite' || moduleId === 'workforce') {
     return <CampsiteProvider>{body}</CampsiteProvider>
+  }
+  if (moduleId === 'fuel') {
+    return <FuelProvider>{body}</FuelProvider>
   }
   return body
 }

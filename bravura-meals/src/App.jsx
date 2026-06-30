@@ -183,8 +183,6 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports />                     : null
     case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks />                       : null
     case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                       : null
-    case 'fuel_equipment': return can('fuel.view')   ? <Equipment />                       : null
-    case 'fuel_operators': return can('fuel.view')   ? <Operators />                       : null
     default:               return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
   }
 }
@@ -193,6 +191,8 @@ function getFleetPage(page, setPage) {
   switch (page) {
     case 'fleet_dashboard': return <FleetDashboard setPage={setPage} />
     case 'fleet_vehicles':  return <Vehicles />
+    case 'fleet_equipment': return <Equipment />
+    case 'fleet_operators': return <Operators />
     default:                return <FleetDashboard setPage={setPage} />
   }
 }

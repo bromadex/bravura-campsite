@@ -44,6 +44,8 @@ const PAGE_TITLES = {
   // Fleet
   fleet_dashboard:  'Dashboard',
   fleet_vehicles:   'Vehicles',
+  fleet_equipment:  'Equipment',
+  fleet_operators:  'Operators',
   // Fuel
   fuel_dashboard:   'Dashboard',
   fuel_ledger:      'Fuel Ledger',

@@ -179,8 +179,6 @@ export function fuelNav(role, can) {
     { id: 'fuel_dips',      label: 'Dip Readings',     section: 'Records',      icon: 'straighten',        show: can('fuel.create') },
     { id: 'fuel_reports',   label: 'Reports',          section: 'Reports',      icon: 'bar_chart',         show: can('fuel.view') },
     { id: 'fuel_tanks',     label: 'Tanks',            section: 'Assets',       icon: 'propane_tank',      show: can('fuel.view') },
-    { id: 'fuel_equipment', label: 'Equipment',        section: 'Assets',       icon: 'construction',      show: can('fuel.view') },
-    { id: 'fuel_operators', label: 'Operators',        section: 'Assets',       icon: 'badge',             show: can('fuel.view') },
     { id: 'fuel_types',     label: 'Fuel Types',       section: 'Admin',        icon: 'oil_barrel',        show: can('fuel.edit') },
   ].filter(item => item.show !== false)
 }
@@ -189,5 +187,7 @@ export function fleetNav(role, can) {
   return [
     { id: 'fleet_dashboard', label: 'Dashboard',   section: 'Overview',  icon: 'dashboard' },
     { id: 'fleet_vehicles',  label: 'Vehicles',    section: 'Registry',  icon: 'directions_car' },
+    { id: 'fleet_equipment', label: 'Equipment',   section: 'Registry',  icon: 'construction' },
+    { id: 'fleet_operators', label: 'Operators',   section: 'Registry',  icon: 'badge' },
   ]
 }

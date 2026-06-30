@@ -12,6 +12,8 @@ export function FuelProvider({ children }) {
   const [fuelTypes,    setFuelTypes]    = useState([])
   const [tanks,        setTanks]        = useState([])
   const [pumps,        setPumps]        = useState([])
+  const [vehicles,     setVehicles]     = useState([])
+  const [departments,  setDepartments]  = useState([])
   const [transactions, setTransactions] = useState([])
   const [dipReadings,  setDipReadings]  = useState([])
   const [profiles,     setProfiles]     = useState([])
@@ -21,11 +23,12 @@ export function FuelProvider({ children }) {
     if (!currentSiteId) { setLoading(false); return }
     setTanks([])
     setPumps([])
+    setVehicles([])
     setTransactions([])
     setDipReadings([])
     setLoading(true)
     try {
-      const [ftRes, tRes, pmRes, txRes, dRes, pRes] = await Promise.all([
+      const [ftRes, tRes, pmRes, vRes, deptRes, txRes, dRes, pRes] = await Promise.all([
         supabase
           .from('fuel_types')
           .select('*')
@@ -42,6 +45,16 @@ export function FuelProvider({ children }) {
           .select('*')
           .eq('site_id', currentSiteId)
           .eq('is_archived', false)
+          .order('name'),
+        supabase
+          .from('fuel_vehicles')
+          .select('*, fuel_types(id, name, code, colour)')
+          .eq('site_id', currentSiteId)
+          .eq('is_archived', false)
+          .order('fleet_number'),
+        supabase
+          .from('departments')
+          .select('id, name')
           .order('name'),
         supabase
           .from('fuel_transactions')
@@ -62,6 +75,8 @@ export function FuelProvider({ children }) {
       setFuelTypes(ftRes.data || [])
       setTanks(tRes.data || [])
       setPumps(pmRes.data || [])
+      setVehicles(vRes.data || [])
+      setDepartments(deptRes.data || [])
       setTransactions(txRes.data || [])
       setDipReadings(dRes.data || [])
       setProfiles(pRes.data || [])
@@ -252,6 +267,43 @@ export function FuelProvider({ children }) {
     return row
   }
 
+  // ── Vehicles CRUD ─────────────────────────────────────────────────────────────
+
+  async function addVehicle(data) {
+    const { data: row, error } = await supabase
+      .from('fuel_vehicles')
+      .insert([{ ...data, site_id: currentSiteId }])
+      .select('*, fuel_types(id, name, code, colour)')
+      .single()
+    if (error) throw error
+    setVehicles(prev => [...prev, row].sort((a, b) => a.fleet_number.localeCompare(b.fleet_number)))
+    return row
+  }
+
+  async function updateVehicle(id, data) {
+    const { data: row, error } = await supabase
+      .from('fuel_vehicles')
+      .update(data)
+      .eq('id', id)
+      .select('*, fuel_types(id, name, code, colour)')
+      .single()
+    if (error) throw error
+    setVehicles(prev => prev.map(v => v.id === id ? row : v))
+    return row
+  }
+
+  async function archiveVehicle(id) {
+    const { data: row, error } = await supabase
+      .from('fuel_vehicles')
+      .update({ is_archived: true, archived_at: new Date().toISOString(), status: 'decommissioned' })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    setVehicles(prev => prev.filter(v => v.id !== id))
+    return row
+  }
+
   // ── Fuel Transactions (immutable) ─────────────────────────────────────────────
 
   async function addTransaction(data) {
@@ -308,7 +360,7 @@ export function FuelProvider({ children }) {
 
   return (
     <FuelContext.Provider value={{
-      fuelTypes, tanks, pumps, transactions, dipReadings, profiles, loading,
+      fuelTypes, tanks, pumps, vehicles, departments, transactions, dipReadings, profiles, loading,
       // backward-compat aliases
       receipts, issues,
       // helpers
@@ -319,6 +371,8 @@ export function FuelProvider({ children }) {
       addTank, updateTank, archiveTank,
       // pump ops
       addPump, updatePump, archivePump,
+      // vehicle ops
+      addVehicle, updateVehicle, archiveVehicle,
       // transaction ops (immutable — no update/delete)
       addTransaction,
       // dip ops

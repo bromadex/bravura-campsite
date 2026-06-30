@@ -49,6 +49,7 @@ const PAGE_TITLES = {
   fuel_dips:        'Dip Stick Readings',
   fuel_reports:     'Fuel Reports',
   fuel_tanks:       'Tanks',
+  fuel_vehicles:    'Vehicles',
   fuel_types:       'Fuel Types',
 }
 

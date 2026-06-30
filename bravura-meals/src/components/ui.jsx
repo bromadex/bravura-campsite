@@ -376,6 +376,50 @@ export function PageHeader({ title, site, actions, children }) {
   )
 }
 
+// ── Table helpers — shared across all list/report pages ───────────────────────
+// TableWrap: scrollable outer container + styled table element
+// THead:     thead with a coloured header row (defaults to THEME.primary)
+// Th:        plain header cell
+// TRow:      tbody row with hover highlight + optional click handler
+// Td:        body data cell
+export function TableWrap({ children, style }) {
+  return (
+    <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, ...style }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
+        {children}
+      </table>
+    </div>
+  )
+}
+export function THead({ children, color }) {
+  return (
+    <thead>
+      <tr style={{ background: color || THEME.primary, color: '#fff' }}>
+        {children}
+      </tr>
+    </thead>
+  )
+}
+export function Th({ children, align = 'left', style }) {
+  return <th style={{ padding: '11px 14px', textAlign: align, fontWeight: 500, fontSize: '12px', ...style }}>{children}</th>
+}
+export function TRow({ children, onClick, last, style }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <tr
+      style={{ borderBottom: last ? 'none' : `1px solid ${THEME.outlineVar}`, background: hov ? THEME.surfaceVar : THEME.surface, cursor: onClick ? 'pointer' : undefined, ...style }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+    >
+      {children}
+    </tr>
+  )
+}
+export function Td({ children, align, style }) {
+  return <td style={{ padding: '11px 14px', textAlign: align, ...style }}>{children}</td>
+}
+
 // need useState for useSortState
 import { useState } from 'react'
 import { useTheme } from '../contexts/ThemeContext'

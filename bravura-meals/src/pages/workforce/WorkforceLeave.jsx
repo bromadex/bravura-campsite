@@ -4,7 +4,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, Icon, SectionLabel, StatusBadge, showToast, fmtDate, PageHeader } from '../../components/ui'
+import { Card, Button, Modal, Icon, SectionLabel, StatusBadge, showToast, fmtDate, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 
 // Category -> bucket mapping, matching the original design exactly:
 // short categories keep the room assigned, long categories release it
@@ -164,15 +164,12 @@ export default function WorkforceLeave() {
           <Icon name="progress_activity" size={24} style={{ color: THEME.primary }} />
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
-            <thead>
-              <tr style={{ background: THEME.primary, color: '#fff' }}>
-                {['Employee','Contractor','Status','Leave Type','Start','Expected Return','Actions'].map(h => (
-                  <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
+        <TableWrap>
+            <THead>
+              {['Employee','Contractor','Status','Leave Type','Start','Expected Return','Actions'].map(h => (
+                <Th key={h} style={{ whiteSpace: 'nowrap' }}>{h}</Th>
+              ))}
+            </THead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No employees found at {currentSite?.name || 'this site'}</td></tr>
@@ -180,22 +177,20 @@ export default function WorkforceLeave() {
                 const lc = STATUS_COLORS[emp.status] || STATUS_COLORS.active
                 const recentLeave = recentLeaves[emp.id]
                 return (
-                  <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
-                    onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
-                    <td style={{ padding: '11px 14px', fontWeight: 500 }}>{emp.name}</td>
-                    <td style={{ padding: '11px 14px', color: THEME.textMed }}>{emp.contractor?.name || '—'}</td>
-                    <td style={{ padding: '11px 14px' }}>
+                  <TRow key={emp.id}>
+                    <Td style={{ fontWeight: 500 }}>{emp.name}</Td>
+                    <Td style={{ color: THEME.textMed }}>{emp.contractor?.name || '—'}</Td>
+                    <Td>
                       <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: lc.bg, color: lc.c }}>
                         {STATUS_LABELS[emp.status]}
                       </span>
-                    </td>
-                    <td style={{ padding: '11px 14px', color: THEME.textMed }}>
+                    </Td>
+                    <Td style={{ color: THEME.textMed }}>
                       {emp.status !== 'active' && recentLeave ? CATEGORY_LABELS[recentLeave.leave_category] || '—' : '—'}
-                    </td>
-                    <td style={{ padding: '11px 14px', color: THEME.textMed }}>{recentLeave?.effective_date ? fmtDate(recentLeave.effective_date) : '—'}</td>
-                    <td style={{ padding: '11px 14px', color: THEME.textMed }}>{recentLeave?.expected_return_date ? fmtDate(recentLeave.expected_return_date) : '—'}</td>
-                    <td style={{ padding: '11px 14px' }}>
+                    </Td>
+                    <Td style={{ color: THEME.textMed }}>{recentLeave?.effective_date ? fmtDate(recentLeave.effective_date) : '—'}</Td>
+                    <Td style={{ color: THEME.textMed }}>{recentLeave?.expected_return_date ? fmtDate(recentLeave.expected_return_date) : '—'}</Td>
+                    <Td>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         {emp.status !== 'active' ? (
                           <button onClick={() => doReturn(emp)} style={{ padding: '4px 10px', border: `1px solid ${THEME.success}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.success, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -208,13 +203,12 @@ export default function WorkforceLeave() {
                           </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </Td>
+                  </TRow>
                 )
               })}
             </tbody>
-          </table>
-        </div>
+        </TableWrap>
       )}
 
       {/* Leave Modal */}

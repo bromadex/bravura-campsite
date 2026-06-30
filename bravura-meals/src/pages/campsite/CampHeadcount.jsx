@@ -1,4 +1,5 @@
 import { useCampsite } from '../../contexts/CampsiteContext'
+import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Icon, PageHeader } from '../../components/ui'
 
@@ -33,6 +34,7 @@ function KPICard({ label, value, icon, color, sub }) {
 }
 
 export default function CampHeadcount() {
+  const { currentSite } = useSite()
   const { kpis, employees, contractors, assignments, loading } = useCampsite()
 
   if (loading) return (
@@ -62,7 +64,7 @@ export default function CampHeadcount() {
       {/* Print header */}
       <div className="print-only" style={{ display: 'none', marginBottom: '16px' }}>
         <div style={{ borderBottom: `3px solid ${THEME.primary}`, paddingBottom: '10px', marginBottom: '12px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.primary }}>Bravura Zimbabwe Ltd — Kamativi Mine Site</div>
+          <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.primary }}>{currentSite?.name || 'Bravura Campsite'}</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div style={{ fontSize: '16px', fontWeight: 600 }}>Camp Headcount Report</div>

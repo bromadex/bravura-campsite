@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 
 const tabs = ['Active', 'History', 'On Leave']
 
@@ -163,94 +163,82 @@ export default function CampAssignments() {
 
         /* ── Active / History table ── */
         tab !== 'On Leave' ? (
-          <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
-              <thead>
-                <tr style={{ background: THEME.primary, color: '#fff' }}>
-                  {['Employee','Contractor','Room','Block','Assigned','Released','Status', tab === 'Active' ? 'Actions' : ''].filter(Boolean).map(h => (
-                    <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No records found</td></tr>
-                ) : filtered.map(a => {
-                  const statusMap = { active: { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText, l: 'Active' }, released: { bg: THEME.statusNeutralBg, c: THEME.statusNeutralText, l: 'Released' }, transferred: { bg: THEME.statusInfoBg, c: THEME.info, l: 'Transferred' } }
-                  const s = statusMap[a.status] || statusMap.released
-                  return (
-                    <tr key={a.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
-                      onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                      onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
-                      <td style={{ padding: '11px 14px', fontWeight: 500 }}>{a.employee?.name || '—'}</td>
-                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{a.employee?.contractor?.name || '—'}</td>
-                      <td style={{ padding: '11px 14px', fontWeight: 600 }}>{a.room?.room_number || '—'}</td>
-                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{a.room?.block?.name || '—'}</td>
-                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{fmtDate(a.assigned_date)}</td>
-                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{a.released_date ? fmtDate(a.released_date) : '—'}</td>
-                      <td style={{ padding: '11px 14px' }}>
-                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: s.bg, color: s.c }}>{s.l}</span>
-                      </td>
-                      {tab === 'Active' && (
-                        <td style={{ padding: '11px 14px' }}>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button onClick={() => { setTransferTarget(a); setTransferModal(true) }} title="Transfer room"
-                              style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Icon name="swap_horiz" size={14} style={{ color: THEME.info }} /> Transfer
-                            </button>
-                            <button onClick={() => { setReleaseTarget(a); setReleaseNotes('') }} title="Release room"
-                              style={{ padding: '4px 10px', border: `1px solid #f5b8b8`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Icon name="logout" size={14} style={{ color: THEME.error }} /> Release
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TableWrap>
+            <THead>
+              {['Employee','Contractor','Room','Block','Assigned','Released','Status', tab === 'Active' ? 'Actions' : ''].filter(Boolean).map(h => (
+                <Th key={h} style={{ whiteSpace: 'nowrap' }}>{h}</Th>
+              ))}
+            </THead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No records found</td></tr>
+              ) : filtered.map(a => {
+                const statusMap = { active: { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText, l: 'Active' }, released: { bg: THEME.statusNeutralBg, c: THEME.statusNeutralText, l: 'Released' }, transferred: { bg: THEME.statusInfoBg, c: THEME.info, l: 'Transferred' } }
+                const s = statusMap[a.status] || statusMap.released
+                return (
+                  <TRow key={a.id}>
+                    <Td style={{ fontWeight: 500 }}>{a.employee?.name || '—'}</Td>
+                    <Td style={{ color: THEME.textMed }}>{a.employee?.contractor?.name || '—'}</Td>
+                    <Td style={{ fontWeight: 600 }}>{a.room?.room_number || '—'}</Td>
+                    <Td style={{ color: THEME.textMed }}>{a.room?.block?.name || '—'}</Td>
+                    <Td style={{ color: THEME.textMed }}>{fmtDate(a.assigned_date)}</Td>
+                    <Td style={{ color: THEME.textMed }}>{a.released_date ? fmtDate(a.released_date) : '—'}</Td>
+                    <Td>
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: s.bg, color: s.c }}>{s.l}</span>
+                    </Td>
+                    {tab === 'Active' && (
+                      <Td>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={() => { setTransferTarget(a); setTransferModal(true) }} title="Transfer room"
+                            style={{ padding: '4px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Icon name="swap_horiz" size={14} style={{ color: THEME.info }} /> Transfer
+                          </button>
+                          <button onClick={() => { setReleaseTarget(a); setReleaseNotes('') }} title="Release room"
+                            style={{ padding: '4px 10px', border: `1px solid #f5b8b8`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '11px', fontWeight: 500, color: THEME.error, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Icon name="logout" size={14} style={{ color: THEME.error }} /> Release
+                          </button>
+                        </div>
+                      </Td>
+                    )}
+                  </TRow>
+                )
+              })}
+            </tbody>
+          </TableWrap>
         ) : (
 
           /* ── On Leave table ── */
-          <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
-              <thead>
-                <tr style={{ background: THEME.primary, color: '#fff' }}>
-                  {['Employee','Contractor','Status','Actions'].map(h => (
-                    <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No employees on leave</td></tr>
-                ) : filtered.map(emp => {
-                  const typeColor = emp.status === 'on_leave' ? { bg: THEME.statusWarningBg, c: THEME.statusWarningText } : { bg: THEME.statusTertiaryBg, c: THEME.statusTertiaryText }
-                  return (
-                    <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
-                      onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                      onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
-                      <td style={{ padding: '11px 14px', fontWeight: 500 }}>{emp.name}</td>
-                      <td style={{ padding: '11px 14px', color: THEME.textMed }}>{emp.contractor?.name || '—'}</td>
-                      <td style={{ padding: '11px 14px' }}>
-                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: typeColor.bg, color: typeColor.c }}>
-                          {leaveLabel[emp.status]}
-                        </span>
-                      </td>
-                      <td style={{ padding: '11px 14px' }}>
-                        <button onClick={() => doReturnFromLeave(emp)}
-                          style={{ padding: '5px 12px', border: `1px solid ${THEME.success}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '12px', fontWeight: 500, color: THEME.success, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Icon name="login" size={14} style={{ color: THEME.success }} /> Return
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TableWrap>
+            <THead>
+              {['Employee','Contractor','Status','Actions'].map(h => (
+                <Th key={h}>{h}</Th>
+              ))}
+            </THead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No employees on leave</td></tr>
+              ) : filtered.map(emp => {
+                const typeColor = emp.status === 'on_leave' ? { bg: THEME.statusWarningBg, c: THEME.statusWarningText } : { bg: THEME.statusTertiaryBg, c: THEME.statusTertiaryText }
+                return (
+                  <TRow key={emp.id}>
+                    <Td style={{ fontWeight: 500 }}>{emp.name}</Td>
+                    <Td style={{ color: THEME.textMed }}>{emp.contractor?.name || '—'}</Td>
+                    <Td>
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: typeColor.bg, color: typeColor.c }}>
+                        {leaveLabel[emp.status]}
+                      </span>
+                    </Td>
+                    <Td>
+                      <button onClick={() => doReturnFromLeave(emp)}
+                        style={{ padding: '5px 12px', border: `1px solid ${THEME.success}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', fontSize: '12px', fontWeight: 500, color: THEME.success, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Icon name="login" size={14} style={{ color: THEME.success }} /> Return
+                      </button>
+                    </Td>
+                  </TRow>
+                )
+              })}
+            </tbody>
+          </TableWrap>
         )
       )}
 

@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { Card, Icon, fmtDate, PageHeader } from '../../components/ui'
+import { Card, Icon, fmtDate, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import { useSite } from '../../contexts/SiteContext'
 
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
 
 export default function WorkforceReports() {
+  const { currentSiteId } = useSite()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!currentSiteId) return
     async function load() {
       const { supabase } = await import('../../supabaseClient')
       const [empRes, coRes] = await Promise.all([
-        supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').order('name'),
+        supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('site_id', currentSiteId).order('name'),
         supabase.from('contractors').select('*').order('name'),
       ])
       const employees   = empRes.data || []
@@ -21,7 +24,7 @@ export default function WorkforceReports() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [currentSiteId])
 
   if (loading) return (
     <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
@@ -117,40 +120,34 @@ export default function WorkforceReports() {
         <div style={{ padding: '16px 18px 12px', fontWeight: 500, fontSize: '14px', borderBottom: `1px solid ${THEME.outlineVar}` }}>
           All Employees
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ background: THEME.primary, color: '#fff' }}>
-                {['#','Name','Contractor','Status','Leave Status'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
+        <TableWrap style={{ borderRadius: 0, border: 'none' }}>
+            <THead>
+              {['#','Name','Contractor','Status','Leave Status'].map(h => (
+                <Th key={h}>{h}</Th>
+              ))}
+            </THead>
             <tbody>
               {employees.map((emp, i) => {
                 const lc = { active: { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText }, on_leave: { bg: THEME.statusWarningBg, c: THEME.statusWarningText }, long_leave: { bg: THEME.statusTertiaryBg, c: THEME.statusTertiaryText } }[emp.status] || { bg: THEME.statusNeutralBg, c: THEME.statusNeutralText }
                 const sc = emp.status === 'active' ? { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText } : { bg: THEME.statusNeutralBg, c: THEME.statusNeutralText }
                 return (
-                  <tr key={emp.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
-                    onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
-                    <td style={{ padding: '10px 14px', color: THEME.textLow, fontSize: '11px' }}>{i+1}</td>
-                    <td style={{ padding: '10px 14px', fontWeight: 500 }}>{emp.name}</td>
-                    <td style={{ padding: '10px 14px', color: THEME.textMed }}>{emp.contractor?.name || '—'}</td>
-                    <td style={{ padding: '10px 14px' }}>
+                  <TRow key={emp.id} last={i === employees.length - 1}>
+                    <Td style={{ color: THEME.textLow, fontSize: '11px' }}>{i+1}</Td>
+                    <Td style={{ fontWeight: 500 }}>{emp.name}</Td>
+                    <Td style={{ color: THEME.textMed }}>{emp.contractor?.name || '—'}</Td>
+                    <Td>
                       <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: sc.bg, color: sc.c }}>{emp.status}</span>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
+                    </Td>
+                    <Td>
                       <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: lc.bg, color: lc.c }}>
                         {{ active: 'Active', on_leave: 'On Leave', long_leave: 'Long Leave', temporary_assignment: 'Temporary Assignment', transferred: 'Transferred', terminated: 'Terminated' }[emp.status] || emp.status}
                       </span>
-                    </td>
-                  </tr>
+                    </Td>
+                  </TRow>
                 )
               })}
             </tbody>
-          </table>
-        </div>
+        </TableWrap>
       </Card>
     </div>
   )

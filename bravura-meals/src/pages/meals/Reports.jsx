@@ -13,12 +13,12 @@ function coColor(contractors, id) {
 }
 
 // ── Print header — shown only when printing ───────────────────────────────────
-function PrintHeader({ title, subtitle }) {
+function PrintHeader({ title, subtitle, site }) {
   return (
     <div className="print-only" style={{ display: 'none', marginBottom: '16px' }}>
       <div style={{ borderBottom: `3px solid ${THEME.primary}`, paddingBottom: '10px', marginBottom: '12px' }}>
         <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.primary }}>
-          Bravura Zimbabwe Ltd — Kamativi Mine Site
+          {site?.name || 'Bravura Campsite'}
         </div>
         <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '2px' }}>Meal Management System</div>
       </div>
@@ -220,6 +220,7 @@ export function DailyReport() {
       <PrintHeader
         title="Daily Meal Report"
         subtitle={`Date: ${fmtDate(date)}`}
+        site={currentSite}
       />
 
       {/* Screen-only controls */}
@@ -316,6 +317,7 @@ export function RangeReport() {
       <PrintHeader
         title="Date Range Meal Report"
         subtitle={`Period: ${fmtDate(start)} — ${fmtDate(end)}`}
+        site={currentSite}
       />
 
       <PageHeader
@@ -420,6 +422,7 @@ export function MonthlyReport() {
       <PrintHeader
         title="Monthly Meal Report"
         subtitle={`${MONTHS[month]} ${year}`}
+        site={currentSite}
       />
 
       <PageHeader

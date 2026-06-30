@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
-import { Card, Button, Modal, ConfirmModal, StatusBadge, Icon, showToast, initials, SectionLabel, PageHeader } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, StatusBadge, Icon, showToast, initials, SectionLabel, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 
 const EMPTY_FORM = { name: '', contractor_id: '', status: 'active', gender: '' }
 
@@ -227,15 +227,12 @@ export default function Employees() {
           <Icon name="progress_activity" size={24} style={{ color: THEME.primary }} />
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
-            <thead>
-              <tr style={{ background: THEME.primary, color: '#fff' }}>
-                {['Employee','Contractor','Gender','Status','Actions'].map(h => (
-                  <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
+        <TableWrap>
+            <THead>
+              {['Employee','Contractor','Gender','Status','Actions'].map(h => (
+                <Th key={h} style={{ whiteSpace: 'nowrap' }}>{h}</Th>
+              ))}
+            </THead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
@@ -249,13 +246,11 @@ export default function Employees() {
               ) : filtered.map(emp => {
                 const coColor = coColorMap[emp.contractor_id] || THEME.primary
                 return (
-                  <tr
+                  <TRow
                     key={emp.id}
-                    style={{ borderBottom: `1px solid ${THEME.outlineVar}`, opacity: emp.status === 'terminated' ? 0.6 : 1 }}
-                    onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}
+                    style={{ opacity: emp.status === 'terminated' ? 0.6 : 1 }}
                   >
-                    <td style={{ padding: '10px 14px' }}>
+                    <Td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
@@ -266,26 +261,24 @@ export default function Employees() {
                         </div>
                         <span style={{ fontWeight: 500, color: THEME.text }}>{emp.name}</span>
                       </div>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
+                    </Td>
+                    <Td>
                       {emp.contractor ? (
                         <span style={{ background: coColor + '18', color: coColor, padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 600 }}>
                           {emp.contractor.short_code || emp.contractor.name}
                         </span>
                       ) : <span style={{ color: THEME.textLow }}>—</span>}
-                    </td>
-                    <td style={{ padding: '10px 14px', color: THEME.textMed }}>
+                    </Td>
+                    <Td style={{ color: THEME.textMed }}>
                       {emp.gender ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                           <Icon name={emp.gender === 'female' ? 'woman' : 'man'} size={15} style={{ color: THEME.textLow }} />
                           {emp.gender === 'female' ? 'Female' : 'Male'}
                         </span>
                       ) : <span style={{ color: THEME.textLow }}>—</span>}
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <StatusBadge status={emp.status} />
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
+                    </Td>
+                    <Td><StatusBadge status={emp.status} /></Td>
+                    <Td>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button onClick={() => openEdit(emp)} title="Edit"
                           style={{ width: '30px', height: '30px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -306,13 +299,12 @@ export default function Employees() {
                           </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </Td>
+                  </TRow>
                 )
               })}
             </tbody>
-          </table>
-        </div>
+        </TableWrap>
       )}
 
       {/* Add / Edit Modal */}

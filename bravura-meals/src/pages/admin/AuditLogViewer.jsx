@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
-import { Card, Modal, Icon, SectionLabel, fmtDate, PageHeader } from '../../components/ui'
+import { Card, Modal, Icon, SectionLabel, fmtDate, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import { MODULE_COLORS } from '../../utils/permissions'
 
 const TABLE_LABELS = {
@@ -114,51 +114,44 @@ export default function AuditLogViewer() {
           <Icon name="progress_activity" size={24} style={{ color: MODULE_COLORS.admin }} />
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
-            <thead>
-              <tr style={{ background: MODULE_COLORS.admin, color: '#fff' }}>
-                {['When','Table','Action','Changed','Actor',''].map(h => (
-                  <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {entries.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No matching audit entries</td></tr>
-              ) : entries.map(entry => {
-                const changes = diffFields(entry.old_value, entry.new_value)
-                const ac = ACTION_COLORS[entry.action] || ACTION_COLORS.update
-                const actor = profiles[entry.user_id]
-                return (
-                  <tr key={entry.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer' }}
-                    onClick={() => setSelected(entry)}
-                    onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
-                    <td style={{ padding: '10px 14px', color: THEME.textMed, whiteSpace: 'nowrap' }}>
-                      {new Date(entry.created_at).toLocaleString()}
-                    </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 500 }}>{TABLE_LABELS[entry.table_name] || entry.table_name}</td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: ac.bg, color: ac.c }}>
-                        {entry.action}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 14px', color: THEME.textMed }}>
-                      {entry.action === 'update' ? `${changes.length} field${changes.length === 1 ? '' : 's'}` : '—'}
-                    </td>
-                    <td style={{ padding: '10px 14px', color: THEME.textMed }}>
-                      {actor?.full_name || actor?.username || (entry.user_id ? entry.user_id.slice(0,8) : 'Unknown')}
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <Icon name="chevron_right" size={16} style={{ color: THEME.textLow }} />
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <TableWrap>
+          <THead color={MODULE_COLORS.admin}>
+            {['When','Table','Action','Changed','Actor',''].map(h => (
+              <Th key={h}>{h}</Th>
+            ))}
+          </THead>
+          <tbody>
+            {entries.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No matching audit entries</td></tr>
+            ) : entries.map(entry => {
+              const changes = diffFields(entry.old_value, entry.new_value)
+              const ac = ACTION_COLORS[entry.action] || ACTION_COLORS.update
+              const actor = profiles[entry.user_id]
+              return (
+                <TRow key={entry.id} onClick={() => setSelected(entry)}>
+                  <Td style={{ color: THEME.textMed, whiteSpace: 'nowrap' }}>
+                    {new Date(entry.created_at).toLocaleString()}
+                  </Td>
+                  <Td style={{ fontWeight: 500 }}>{TABLE_LABELS[entry.table_name] || entry.table_name}</Td>
+                  <Td>
+                    <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: ac.bg, color: ac.c }}>
+                      {entry.action}
+                    </span>
+                  </Td>
+                  <Td style={{ color: THEME.textMed }}>
+                    {entry.action === 'update' ? `${changes.length} field${changes.length === 1 ? '' : 's'}` : '—'}
+                  </Td>
+                  <Td style={{ color: THEME.textMed }}>
+                    {actor?.full_name || actor?.username || (entry.user_id ? entry.user_id.slice(0,8) : 'Unknown')}
+                  </Td>
+                  <Td>
+                    <Icon name="chevron_right" size={16} style={{ color: THEME.textLow }} />
+                  </Td>
+                </TRow>
+              )
+            })}
+          </tbody>
+        </TableWrap>
       )}
 
       {/* Detail modal */}

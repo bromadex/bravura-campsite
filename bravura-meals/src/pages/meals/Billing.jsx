@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
-import { Card, Button, StatCard, showToast, fmtDate, today, MONTHS, PageHeader } from '../../components/ui'
+import { Card, Button, StatCard, showToast, fmtDate, today, MONTHS, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 
 export default function Billing() {
@@ -188,55 +188,50 @@ export default function Billing() {
               <div style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.06em', color: THEME.textMed, marginBottom: '12px' }}>
                 Daily Breakdown
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ background: THEME.primary, color: THEME.onPrimary }}>
-                      <th style={{ padding: '8px 12px', textAlign: 'left' }}>Date</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'center' }}>Breakfast</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'center' }}>Lunch</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'center' }}>Supper</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'center' }}>Total Meals</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'right' }}>Cost (USD)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.rows.map(row => (
-                      <tr key={row.date} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>{fmtDate(row.date)}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                          <span style={{
-                            padding: '1px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 700,
-                            background: row.status === 'approved' ? THEME.statusSuccessBg : THEME.statusWarningBg,
-                            color: row.status === 'approved' ? THEME.statusSuccessText : THEME.statusWarningText,
-                          }}>
-                            {row.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '8px 12px', textAlign: 'center' }}>{row.breakfast_count}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'center' }}>{row.lunch_count}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'center' }}>{row.supper_count}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700 }}>{row.total_meals}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: THEME.primary }}>
-                          ${parseFloat(row.total_cost_usd || 0).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                    {/* Grand total row */}
-                    <tr style={{ background: THEME.primary, color: THEME.onPrimary, fontWeight: 700 }}>
-                      <td colSpan={2} style={{ padding: '10px 12px' }}>Grand Total</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.b}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.l}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.s}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.b+data.totals.l+data.totals.s}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '16px' }}>
-                        ${data.totals.cost.toFixed(2)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <TableWrap>
+                <THead>
+                  <Th>Date</Th>
+                  <Th align="center">Status</Th>
+                  <Th align="center">Breakfast</Th>
+                  <Th align="center">Lunch</Th>
+                  <Th align="center">Supper</Th>
+                  <Th align="center">Total Meals</Th>
+                  <Th align="right">Cost (USD)</Th>
+                </THead>
+                <tbody>
+                  {data.rows.map(row => (
+                    <TRow key={row.date}>
+                      <Td style={{ fontWeight: 600 }}>{fmtDate(row.date)}</Td>
+                      <Td align="center">
+                        <span style={{
+                          padding: '1px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 700,
+                          background: row.status === 'approved' ? THEME.statusSuccessBg : THEME.statusWarningBg,
+                          color: row.status === 'approved' ? THEME.statusSuccessText : THEME.statusWarningText,
+                        }}>
+                          {row.status}
+                        </span>
+                      </Td>
+                      <Td align="center">{row.breakfast_count}</Td>
+                      <Td align="center">{row.lunch_count}</Td>
+                      <Td align="center">{row.supper_count}</Td>
+                      <Td align="center" style={{ fontWeight: 700 }}>{row.total_meals}</Td>
+                      <Td align="right" style={{ fontWeight: 700, color: THEME.primary }}>
+                        ${parseFloat(row.total_cost_usd || 0).toFixed(2)}
+                      </Td>
+                    </TRow>
+                  ))}
+                  <tr style={{ background: THEME.primary, color: THEME.onPrimary, fontWeight: 700 }}>
+                    <td colSpan={2} style={{ padding: '10px 12px' }}>Grand Total</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.b}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.l}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.s}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.b+data.totals.l+data.totals.s}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '16px' }}>
+                      ${data.totals.cost.toFixed(2)}
+                    </td>
+                  </tr>
+                </tbody>
+              </TableWrap>
             </Card>
           )}
 

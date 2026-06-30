@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, initials, PageHeader } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, initials, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 
 const MODULE_COLOR = '#5C6BC0' // matches MODULE_COLORS.admin in permissions.js
 
@@ -121,68 +121,62 @@ export default function UserManagement() {
           <Icon name="progress_activity" size={24} style={{ color: MODULE_COLOR }} />
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
-            <thead>
-              <tr style={{ background: MODULE_COLOR, color: '#fff' }}>
-                {['User','Roles & Site Access','Actions'].map(h => (
-                  <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {profiles.map(p => {
-                const assignments = rolesByUser[p.id] || []
-                return (
-                  <tr key={p.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
-                    onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{
-                          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '12px', fontWeight: 700, color: '#fff', background: MODULE_COLOR,
-                        }}>
-                          {initials(p.full_name || p.username)}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 600, color: THEME.text }}>{p.full_name || p.username}</div>
-                          <div style={{ fontSize: '11px', color: THEME.textLow }}>@{p.username}</div>
-                        </div>
+        <TableWrap>
+          <THead color={MODULE_COLOR}>
+            {['User','Roles & Site Access','Actions'].map(h => (
+              <Th key={h}>{h}</Th>
+            ))}
+          </THead>
+          <tbody>
+            {profiles.map(p => {
+              const assignments = rolesByUser[p.id] || []
+              return (
+                <TRow key={p.id}>
+                  <Td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '12px', fontWeight: 700, color: '#fff', background: MODULE_COLOR,
+                      }}>
+                        {initials(p.full_name || p.username)}
                       </div>
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      {assignments.length === 0 ? (
-                        <span style={{ color: THEME.textLow, fontSize: '12px' }}>No roles assigned</span>
-                      ) : (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                          {assignments.map(ur => (
-                            <span key={ur.id} style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '5px',
-                              padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
-                              background: THEME.surfaceVar, color: THEME.primary,
-                            }}>
-                              {ur.role?.name || '—'}
-                              <span style={{ color: THEME.textLow, fontWeight: 400 }}>
-                                · {ur.site?.name || 'All Sites'}
-                              </span>
+                      <div>
+                        <div style={{ fontWeight: 600, color: THEME.text }}>{p.full_name || p.username}</div>
+                        <div style={{ fontSize: '11px', color: THEME.textLow }}>@{p.username}</div>
+                      </div>
+                    </div>
+                  </Td>
+                  <Td>
+                    {assignments.length === 0 ? (
+                      <span style={{ color: THEME.textLow, fontSize: '12px' }}>No roles assigned</span>
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {assignments.map(ur => (
+                          <span key={ur.id} style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '5px',
+                            padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                            background: THEME.surfaceVar, color: THEME.primary,
+                          }}>
+                            {ur.role?.name || '—'}
+                            <span style={{ color: THEME.textLow, fontWeight: 400 }}>
+                              · {ur.site?.name || 'All Sites'}
                             </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <Button onClick={() => setManageTarget(p)} variant="outlined" size="sm" icon="manage_accounts" disabled={!canEdit}>
-                        Manage
-                      </Button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </Td>
+                  <Td>
+                    <Button onClick={() => setManageTarget(p)} variant="outlined" size="sm" icon="manage_accounts" disabled={!canEdit}>
+                      Manage
+                    </Button>
+                  </Td>
+                </TRow>
+              )
+            })}
+          </tbody>
+        </TableWrap>
       )}
 
       {/* Manage Access Modal */}

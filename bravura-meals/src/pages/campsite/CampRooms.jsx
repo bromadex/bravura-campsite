@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, PageHeader } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 
 const EMPTY = { room_number: '', block_id: '', room_type: 'accommodation', capacity: 1, notes: '' }
 
@@ -221,38 +221,30 @@ export default function CampRooms() {
           <Icon name="progress_activity" size={24} style={{ color: THEME.primary }} />
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
-            <thead>
-              <tr style={{ background: THEME.primary, color: '#fff' }}>
-                {['Room Number','Block','Type','Capacity','Occupancy','Status','Actions'].map(h => (
-                  <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
+        <TableWrap>
+          <THead>
+            {['Room Number','Block','Type','Capacity','Occupancy','Status','Actions'].map(h => (
+              <Th key={h} style={{ whiteSpace: 'nowrap' }}>{h}</Th>
+            ))}
+          </THead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
+                  <Icon name="meeting_room" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
+                  No rooms found
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
-                    <Icon name="meeting_room" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
-                    No rooms found
-                  </td>
-                </tr>
-              ) : filtered.map(room => {
-                const occ = occupancy(room.id)
-                const pct = room.capacity > 0 ? Math.round(occ / room.capacity * 100) : 0
-                const hasHistory = assignments.some(a => a.room_id === room.id)
-                const occupiable = isOccupiableType(room.room_type)
-                return (
-                  <tr
-                    key={room.id}
-                    style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
-                    onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                    onMouseLeave={e => e.currentTarget.style.background = THEME.surface}
-                  >
-                    <td style={{ padding: '12px 14px', fontWeight: 600, color: THEME.text }}>{room.room_number}</td>
-                    <td style={{ padding: '12px 14px', color: THEME.textMed }}>{room.block?.name || '—'}</td>
-                    <td style={{ padding: '12px 14px' }}>
+            ) : filtered.map(room => {
+              const occ = occupancy(room.id)
+              const pct = room.capacity > 0 ? Math.round(occ / room.capacity * 100) : 0
+              const hasHistory = assignments.some(a => a.room_id === room.id)
+              const occupiable = isOccupiableType(room.room_type)
+              return (
+                <TRow key={room.id}>
+                  <Td style={{ fontWeight: 600, color: THEME.text }}>{room.room_number}</Td>
+                  <Td style={{ color: THEME.textMed }}>{room.block?.name || '—'}</Td>
+                  <Td>
                       <span style={{
                         padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
                         background: occupiable ? THEME.surfaceVar : '#EDE7F6',
@@ -260,23 +252,23 @@ export default function CampRooms() {
                       }}>
                         {ROOM_TYPE_LABELS[room.room_type] || 'Accommodation'}
                       </span>
-                    </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', color: THEME.text }}>{occupiable ? room.capacity : '—'}</td>
-                    <td style={{ padding: '12px 14px' }}>
-                      {occupiable ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: occ > 0 ? THEME.primary : THEME.textLow }}>
-                            {occ}/{room.capacity}
-                          </span>
-                          <div style={{ flex: 1, maxWidth: '60px', height: '6px', background: THEME.outlineVar, borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? THEME.error : THEME.success, borderRadius: '3px' }} />
-                          </div>
+                  </Td>
+                  <Td align="center" style={{ color: THEME.text }}>{occupiable ? room.capacity : '—'}</Td>
+                  <Td>
+                    {occupiable ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: occ > 0 ? THEME.primary : THEME.textLow }}>
+                          {occ}/{room.capacity}
+                        </span>
+                        <div style={{ flex: 1, maxWidth: '60px', height: '6px', background: THEME.outlineVar, borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? THEME.error : THEME.success, borderRadius: '3px' }} />
                         </div>
-                      ) : <span style={{ color: THEME.textLow }}>—</span>}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}><RoomStatusChip status={room.status} roomType={room.room_type} /></td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      </div>
+                    ) : <span style={{ color: THEME.textLow }}>—</span>}
+                  </Td>
+                  <Td><RoomStatusChip status={room.status} roomType={room.room_type} /></Td>
+                  <Td>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                         {/* Edit */}
                         <button
                           onClick={() => openEdit(room)} title="Edit room"
@@ -308,14 +300,13 @@ export default function CampRooms() {
                         >
                           <Icon name="delete" size={14} style={{ color: hasHistory ? THEME.textLow : THEME.error }} />
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </Td>
+                </TRow>
+              )
+            })}
+          </tbody>
+        </TableWrap>
       )}
 
       {/* ── Add / Edit Modal ── */}

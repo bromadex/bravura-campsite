@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
+import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { Card, Icon, fmtDate, PageHeader } from '../../components/ui'
+import { Card, Icon, fmtDate, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 
 export default function CampOccupancyReport() {
+  const { currentSite } = useSite()
   const { blocks, rooms, assignments, loading } = useCampsite()
 
   const blockStats = useMemo(() => blocks.map(block => {
@@ -38,7 +40,7 @@ export default function CampOccupancyReport() {
       {/* Print header */}
       <div className="print-only" style={{ display: 'none', marginBottom: '16px' }}>
         <div style={{ borderBottom: `3px solid ${MODULE_COLORS.campsite}`, paddingBottom: '10px', marginBottom: '12px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 700 }}>Bravura Zimbabwe Ltd — Kamativi Mine Site</div>
+          <div style={{ fontSize: '18px', fontWeight: 700 }}>{currentSite?.name || 'Bravura Campsite'}</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div style={{ fontSize: '16px', fontWeight: 600 }}>Campsite Occupancy Report</div>
@@ -99,41 +101,35 @@ export default function CampOccupancyReport() {
       </Card>
 
       {/* Per-block table */}
-      <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
-          <thead>
-            <tr style={{ background: MODULE_COLORS.campsite, color: '#fff' }}>
-              {['Block','Total Rooms','Occupied','Available','Maintenance','Residents','Occ %'].map(h => (
-                <th key={h} style={{ padding: '11px 14px', textAlign: h === 'Block' ? 'left' : 'center', fontWeight: 500, fontSize: '12px' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {blockStats.map(b => (
-              <tr key={b.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
-                onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
-                <td style={{ padding: '11px 14px', fontWeight: 600 }}>{b.name}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'center' }}>{b.total}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.error, fontWeight: 600 }}>{b.occupied}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.success, fontWeight: 600 }}>{b.available}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.warning }}>{b.maintenance}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'center', color: THEME.info, fontWeight: 600 }}>{b.totalResidents}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'center', fontWeight: 700, color: b.pct > 90 ? THEME.error : b.pct > 70 ? THEME.warning : THEME.success }}>{b.pct}%</td>
-              </tr>
-            ))}
-            <tr style={{ background: MODULE_COLORS.campsite, color: '#fff', fontWeight: 600 }}>
-              <td style={{ padding: '11px 14px' }}>Grand Total</td>
-              <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.total}</td>
-              <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.occupied}</td>
-              <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.available}</td>
-              <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.maintenance}</td>
-              <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.residents}</td>
-              <td style={{ padding: '11px 14px', textAlign: 'center' }}>{overallPct}%</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <TableWrap>
+        <THead color={MODULE_COLORS.campsite}>
+          {['Block','Total Rooms','Occupied','Available','Maintenance','Residents','Occ %'].map((h, i) => (
+            <Th key={h} align={i === 0 ? 'left' : 'center'}>{h}</Th>
+          ))}
+        </THead>
+        <tbody>
+          {blockStats.map(b => (
+            <TRow key={b.id}>
+              <Td style={{ fontWeight: 600 }}>{b.name}</Td>
+              <Td align="center">{b.total}</Td>
+              <Td align="center" style={{ color: THEME.error, fontWeight: 600 }}>{b.occupied}</Td>
+              <Td align="center" style={{ color: THEME.success, fontWeight: 600 }}>{b.available}</Td>
+              <Td align="center" style={{ color: THEME.warning }}>{b.maintenance}</Td>
+              <Td align="center" style={{ color: THEME.info, fontWeight: 600 }}>{b.totalResidents}</Td>
+              <Td align="center" style={{ fontWeight: 700, color: b.pct > 90 ? THEME.error : b.pct > 70 ? THEME.warning : THEME.success }}>{b.pct}%</Td>
+            </TRow>
+          ))}
+          <tr style={{ background: MODULE_COLORS.campsite, color: '#fff', fontWeight: 600 }}>
+            <td style={{ padding: '11px 14px' }}>Grand Total</td>
+            <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.total}</td>
+            <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.occupied}</td>
+            <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.available}</td>
+            <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.maintenance}</td>
+            <td style={{ padding: '11px 14px', textAlign: 'center' }}>{grandTotals.residents}</td>
+            <td style={{ padding: '11px 14px', textAlign: 'center' }}>{overallPct}%</td>
+          </tr>
+        </tbody>
+      </TableWrap>
     </div>
   )
 }

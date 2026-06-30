@@ -3,7 +3,7 @@ import { useCampsite } from '../../contexts/CampsiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME } from '../../utils/permissions'
-import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, MONTHS, PageHeader } from '../../components/ui'
+import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, MONTHS, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 
 export default function CampSupplies() {
   const { profile } = useAuth()
@@ -206,65 +206,59 @@ export default function CampSupplies() {
         ) : tab === 'movement' ? (
 
           /* ── Movement History ── */
-          <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
-              <thead>
-                <tr style={{ background: THEME.primary, color: '#fff' }}>
-                  {['Date','Item','Type','Quantity','Unit','Issued To','Reference','Notes','Recorded By','Actions'].map(h => (
-                    <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {supplyTxns.length === 0 ? (
-                  <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No transactions yet</td></tr>
-                ) : supplyTxns.map(txn => {
-                  const isReceive = txn.txn_type === 'receive'
-                  const issuedToLabel = txn.issued_to_employee?.name || txn.issued_to_text || (isReceive ? '—' : '—')
-                  return (
-                    <tr key={txn.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
-                      onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                      onMouseLeave={e => e.currentTarget.style.background = THEME.surface}>
-                      <td style={{ padding: '10px 14px', color: THEME.textMed }}>{fmtDate(txn.txn_date)}</td>
-                      <td style={{ padding: '10px 14px', fontWeight: 500 }}>{txn.item?.name || '—'}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
-                          background: isReceive ? THEME.statusSuccessBg : THEME.statusErrorBg,
-                          color:      isReceive ? THEME.statusSuccessText : THEME.error }}>
-                          {isReceive ? 'Receive' : 'Issue'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 14px', fontWeight: 700, color: isReceive ? THEME.success : THEME.error }}>
-                        {isReceive ? '+' : '−'}{parseFloat(txn.quantity).toFixed(txn.item?.unit === 'Kg' ? 1 : 0)}
-                      </td>
-                      <td style={{ padding: '10px 14px', color: THEME.textLow }}>{txn.item?.unit}</td>
-                      <td style={{ padding: '10px 14px', color: THEME.textMed }}>{issuedToLabel}</td>
-                      <td style={{ padding: '10px 14px', color: THEME.textMed }}>{txn.reference || '—'}</td>
-                      <td style={{ padding: '10px 14px', color: THEME.textLow }}>{txn.notes || '—'}</td>
-                      <td style={{ padding: '10px 14px', color: THEME.textMed }}>
-                        {txn.recorded_by_profile?.full_name || '—'}
-                        {txn.updated_at && (
-                          <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '1px' }}>edited</div>
-                        )}
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button onClick={() => openEditTxn(txn)} title="Edit" disabled={!canEdit}
-                            style={{ width: '28px', height: '28px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon name="edit" size={13} style={{ color: THEME.textMed }} />
-                          </button>
-                          <button onClick={() => setDeleteTxn(txn)} title="Delete" disabled={!canDelete}
-                            style={{ width: '28px', height: '28px', border: '1px solid #f5b8b8', borderRadius: '8px', background: THEME.surface, cursor: canDelete ? 'pointer' : 'not-allowed', opacity: canDelete ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon name="delete" size={13} style={{ color: THEME.error }} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TableWrap>
+            <THead>
+              {['Date','Item','Type','Quantity','Unit','Issued To','Reference','Notes','Recorded By','Actions'].map(h => (
+                <Th key={h} style={{ whiteSpace: 'nowrap' }}>{h}</Th>
+              ))}
+            </THead>
+            <tbody>
+              {supplyTxns.length === 0 ? (
+                <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No transactions yet</td></tr>
+              ) : supplyTxns.map(txn => {
+                const isReceive = txn.txn_type === 'receive'
+                const issuedToLabel = txn.issued_to_employee?.name || txn.issued_to_text || (isReceive ? '—' : '—')
+                return (
+                  <TRow key={txn.id}>
+                    <Td style={{ color: THEME.textMed }}>{fmtDate(txn.txn_date)}</Td>
+                    <Td style={{ fontWeight: 500 }}>{txn.item?.name || '—'}</Td>
+                    <Td>
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                        background: isReceive ? THEME.statusSuccessBg : THEME.statusErrorBg,
+                        color:      isReceive ? THEME.statusSuccessText : THEME.error }}>
+                        {isReceive ? 'Receive' : 'Issue'}
+                      </span>
+                    </Td>
+                    <Td style={{ fontWeight: 700, color: isReceive ? THEME.success : THEME.error }}>
+                      {isReceive ? '+' : '−'}{parseFloat(txn.quantity).toFixed(txn.item?.unit === 'Kg' ? 1 : 0)}
+                    </Td>
+                    <Td style={{ color: THEME.textLow }}>{txn.item?.unit}</Td>
+                    <Td style={{ color: THEME.textMed }}>{issuedToLabel}</Td>
+                    <Td style={{ color: THEME.textMed }}>{txn.reference || '—'}</Td>
+                    <Td style={{ color: THEME.textLow }}>{txn.notes || '—'}</Td>
+                    <Td style={{ color: THEME.textMed }}>
+                      {txn.recorded_by_profile?.full_name || '—'}
+                      {txn.updated_at && (
+                        <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '1px' }}>edited</div>
+                      )}
+                    </Td>
+                    <Td>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={() => openEditTxn(txn)} title="Edit" disabled={!canEdit}
+                          style={{ width: '28px', height: '28px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon name="edit" size={13} style={{ color: THEME.textMed }} />
+                        </button>
+                        <button onClick={() => setDeleteTxn(txn)} title="Delete" disabled={!canDelete}
+                          style={{ width: '28px', height: '28px', border: '1px solid #f5b8b8', borderRadius: '8px', background: THEME.surface, cursor: canDelete ? 'pointer' : 'not-allowed', opacity: canDelete ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon name="delete" size={13} style={{ color: THEME.error }} />
+                        </button>
+                      </div>
+                    </Td>
+                  </TRow>
+                )
+              })}
+            </tbody>
+          </TableWrap>
         ) : (
 
           /* ── Monthly Report ── */

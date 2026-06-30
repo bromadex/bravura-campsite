@@ -56,7 +56,7 @@ const PageLoader = (
 
 // ── Module configs ────────────────────────────────────────────────────────────
 const MODULE_META = {
-  workforce: { label: 'Workforce Management',  icon: 'badge',           navFn: workforceNav },
+  workforce: { label: 'HR Management',         icon: 'badge',           navFn: workforceNav },
   campsite:  { label: 'Campsite Management',   icon: 'holiday_village', navFn: campsiteNav  },
   meals:     { label: 'Meal Management',       icon: 'restaurant',      navFn: mealsNav     },
   admin:     { label: 'Administration',        icon: 'admin_panel_settings', navFn: adminNav },

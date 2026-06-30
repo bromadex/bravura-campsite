@@ -7,7 +7,7 @@ import { useTheme } from '../contexts/ThemeContext'
 const ALL_MODULES = [
   {
     id:       'workforce',
-    label:    'Workforce Management',
+    label:    'HR Management',
     sub:      'Employees, contractors & leave',
     icon:     'badge',
     color:    MODULE_COLORS.workforce,

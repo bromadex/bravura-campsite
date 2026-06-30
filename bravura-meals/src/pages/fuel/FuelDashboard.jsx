@@ -265,7 +265,7 @@ export default function FuelDashboard({ setPage }) {
               </button>
             )}
             {can('fuel.create') && (
-              <button onClick={() => setPage('fuel_issues')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer' }}>
+              <button onClick={() => setPage('fuel_issuance')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer' }}>
                 <Icon name="output" size={16} style={{ color: '#fff' }} /> Issue Fuel
               </button>
             )}

@@ -25,7 +25,7 @@ const BLANK_FORM = {
   notes:            '',
 }
 
-export default function FuelIssues() {
+export default function FuelIssues({ setPage }) {
   const { can } = usePermissions()
   const { currentSite } = useSite()
   const { tanks, issues, addTransaction, loading } = useFuel()
@@ -116,7 +116,7 @@ export default function FuelIssues() {
         title="Fuel Issuances"
         site={currentSite}
         actions={canIssue && (
-          <Button onClick={openAdd} icon="output">Record Issuance</Button>
+          <Button onClick={() => setPage('fuel_issuance')} icon="output">New Issuance</Button>
         )}
       />
 

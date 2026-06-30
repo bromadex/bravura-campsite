@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -38,9 +39,12 @@ const BLANK_FORM = {
 }
 
 export default function FuelTanks() {
+  const navigate = useNavigate()
   const { can } = usePermissions()
   const { currentSite } = useSite()
   const { fuelTypes, tanks, addTank, updateTank, archiveTank, tankBalance, loading } = useFuel()
+
+  const openDetail = id => navigate(`/fuel/tanks/${id}`)
 
   const canEdit = can('fuel.edit')
   const canView = can('fuel.view')
@@ -239,6 +243,7 @@ export default function FuelTanks() {
           tanks={displayed}
           tankBalance={tankBalance}
           canEdit={canEdit}
+          onOpen={openDetail}
           onEdit={openEdit}
           onStatus={setStatus}
           onDecommission={t => setArchiving(t)}
@@ -248,7 +253,7 @@ export default function FuelTanks() {
           tanks={displayed}
           tankBalance={tankBalance}
           canEdit={canEdit}
-          onEdit={openEdit}
+          onOpen={openDetail}
           onDecommission={t => setArchiving(t)}
         />
       )}
@@ -383,7 +388,7 @@ export default function FuelTanks() {
 
 // ── Card Grid ──────────────────────────────────────────────────────────────────
 
-function TankCardGrid({ tanks, tankBalance, canEdit, onEdit, onStatus, onDecommission }) {
+function TankCardGrid({ tanks, tankBalance, canEdit, onOpen, onEdit, onStatus, onDecommission }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '14px' }}>
       {tanks.map(tank => (
@@ -392,6 +397,7 @@ function TankCardGrid({ tanks, tankBalance, canEdit, onEdit, onStatus, onDecommi
           tank={tank}
           balance={tankBalance(tank.id)}
           canEdit={canEdit}
+          onOpen={() => onOpen(tank.id)}
           onEdit={() => onEdit(tank)}
           onStatus={s => onStatus(tank, s)}
           onDecommission={() => onDecommission(tank)}
@@ -401,7 +407,7 @@ function TankCardGrid({ tanks, tankBalance, canEdit, onEdit, onStatus, onDecommi
   )
 }
 
-function TankCard({ tank, balance, canEdit, onEdit, onStatus, onDecommission }) {
+function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommission }) {
   const capacity = Number(tank.capacity_litres) || 0
   const pct      = capacity ? Math.min(100, Math.max(0, (balance / capacity) * 100)) : 0
   const minPct   = Number(tank.min_threshold_percent) || 20
@@ -413,12 +419,18 @@ function TankCard({ tank, balance, canEdit, onEdit, onStatus, onDecommission }) 
   const isDecom  = tank.status === 'decommissioned'
 
   return (
-    <div style={{
-      background: THEME.surface, border: `1px solid ${isLow ? THEME.error + '55' : THEME.outlineVar}`,
-      borderRadius: '16px', padding: '16px', boxShadow: THEME.shadow1,
-      display: 'flex', flexDirection: 'column', gap: '12px',
-      opacity: isDecom ? 0.6 : 1,
-    }}>
+    <div
+      onClick={onOpen}
+      style={{
+        background: THEME.surface, border: `1px solid ${isLow ? THEME.error + '55' : THEME.outlineVar}`,
+        borderRadius: '16px', padding: '16px', boxShadow: THEME.shadow1,
+        display: 'flex', flexDirection: 'column', gap: '12px',
+        opacity: isDecom ? 0.6 : 1,
+        cursor: 'pointer', transition: 'transform .12s, box-shadow .12s',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = THEME.shadow2 }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)';   e.currentTarget.style.boxShadow = THEME.shadow1 }}
+    >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
         <div>
@@ -490,19 +502,19 @@ function TankCard({ tank, balance, canEdit, onEdit, onStatus, onDecommission }) 
       {/* Actions */}
       {canEdit && !isDecom && (
         <div style={{ display: 'flex', gap: '6px', marginTop: 'auto', paddingTop: '4px' }}>
-          <button onClick={onEdit} style={cardBtn(false)}>
+          <button onClick={e => { e.stopPropagation(); onEdit() }} style={cardBtn(false)}>
             <Icon name="edit" size={13} /> Edit
           </button>
           {tank.status === 'active' ? (
-            <button onClick={() => onStatus('maintenance')} style={cardBtn(false)}>
+            <button onClick={e => { e.stopPropagation(); onStatus('maintenance') }} style={cardBtn(false)}>
               <Icon name="build" size={13} /> Maintenance
             </button>
           ) : (
-            <button onClick={() => onStatus('active')} style={cardBtn(false)}>
+            <button onClick={e => { e.stopPropagation(); onStatus('active') }} style={cardBtn(false)}>
               <Icon name="play_arrow" size={13} /> Reactivate
             </button>
           )}
-          <button onClick={onDecommission} style={cardBtn(true)} title="Decommission">
+          <button onClick={e => { e.stopPropagation(); onDecommission() }} style={cardBtn(true)} title="Decommission">
             <Icon name="archive" size={13} />
           </button>
         </div>
@@ -513,7 +525,7 @@ function TankCard({ tank, balance, canEdit, onEdit, onStatus, onDecommission }) 
 
 // ── Table view ─────────────────────────────────────────────────────────────────
 
-function TankTable({ tanks, tankBalance, canEdit, onEdit, onDecommission }) {
+function TankTable({ tanks, tankBalance, canEdit, onOpen, onDecommission }) {
   return (
     <Card style={{ padding: 0 }}>
       <TableWrap>
@@ -544,7 +556,7 @@ function TankTable({ tanks, tankBalance, canEdit, onEdit, onDecommission }) {
               <TRow
                 key={tank.id}
                 last={idx === tanks.length - 1}
-                onClick={canEdit ? () => onEdit(tank) : undefined}
+                onClick={() => onOpen(tank.id)}
               >
                 <Td><span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 600, color: THEME.textMed }}>{tank.code}</span></Td>
                 <Td><span style={{ fontWeight: 500 }}>{tank.name}</span></Td>

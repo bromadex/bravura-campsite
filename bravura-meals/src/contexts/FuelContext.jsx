@@ -11,6 +11,7 @@ export function FuelProvider({ children }) {
 
   const [fuelTypes,    setFuelTypes]    = useState([])
   const [tanks,        setTanks]        = useState([])
+  const [pumps,        setPumps]        = useState([])
   const [transactions, setTransactions] = useState([])
   const [dipReadings,  setDipReadings]  = useState([])
   const [profiles,     setProfiles]     = useState([])
@@ -19,11 +20,12 @@ export function FuelProvider({ children }) {
   const fetchAll = useCallback(async () => {
     if (!currentSiteId) { setLoading(false); return }
     setTanks([])
+    setPumps([])
     setTransactions([])
     setDipReadings([])
     setLoading(true)
     try {
-      const [ftRes, tRes, txRes, dRes, pRes] = await Promise.all([
+      const [ftRes, tRes, pmRes, txRes, dRes, pRes] = await Promise.all([
         supabase
           .from('fuel_types')
           .select('*')
@@ -32,6 +34,12 @@ export function FuelProvider({ children }) {
         supabase
           .from('fuel_tanks')
           .select('*, fuel_types(id, name, code, colour)')
+          .eq('site_id', currentSiteId)
+          .eq('is_archived', false)
+          .order('name'),
+        supabase
+          .from('fuel_pumps')
+          .select('*')
           .eq('site_id', currentSiteId)
           .eq('is_archived', false)
           .order('name'),
@@ -53,6 +61,7 @@ export function FuelProvider({ children }) {
       ])
       setFuelTypes(ftRes.data || [])
       setTanks(tRes.data || [])
+      setPumps(pmRes.data || [])
       setTransactions(txRes.data || [])
       setDipReadings(dRes.data || [])
       setProfiles(pRes.data || [])
@@ -206,6 +215,43 @@ export function FuelProvider({ children }) {
     return row
   }
 
+  // ── Pumps CRUD ────────────────────────────────────────────────────────────────
+
+  async function addPump(data) {
+    const { data: row, error } = await supabase
+      .from('fuel_pumps')
+      .insert([{ ...data, site_id: currentSiteId }])
+      .select()
+      .single()
+    if (error) throw error
+    setPumps(prev => [...prev, row].sort((a, b) => a.name.localeCompare(b.name)))
+    return row
+  }
+
+  async function updatePump(id, data) {
+    const { data: row, error } = await supabase
+      .from('fuel_pumps')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    setPumps(prev => prev.map(p => p.id === id ? row : p))
+    return row
+  }
+
+  async function archivePump(id) {
+    const { data: row, error } = await supabase
+      .from('fuel_pumps')
+      .update({ is_archived: true, status: 'decommissioned' })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    setPumps(prev => prev.filter(p => p.id !== id))
+    return row
+  }
+
   // ── Fuel Transactions (immutable) ─────────────────────────────────────────────
 
   async function addTransaction(data) {
@@ -262,7 +308,7 @@ export function FuelProvider({ children }) {
 
   return (
     <FuelContext.Provider value={{
-      fuelTypes, tanks, transactions, dipReadings, profiles, loading,
+      fuelTypes, tanks, pumps, transactions, dipReadings, profiles, loading,
       // backward-compat aliases
       receipts, issues,
       // helpers
@@ -271,6 +317,8 @@ export function FuelProvider({ children }) {
       addFuelType, updateFuelType, deactivateFuelType,
       // tank ops
       addTank, updateTank, archiveTank,
+      // pump ops
+      addPump, updatePump, archivePump,
       // transaction ops (immutable — no update/delete)
       addTransaction,
       // dip ops

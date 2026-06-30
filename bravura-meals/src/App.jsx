@@ -53,6 +53,7 @@ const DipReadings   = lazy(() => import('./pages/fuel/DipReadings'))
 const FuelTanks     = lazy(() => import('./pages/fuel/FuelTanks'))
 const FuelReports   = lazy(() => import('./pages/fuel/FuelReports'))
 const FuelTypes     = lazy(() => import('./pages/fuel/FuelTypes'))
+const TankDetail    = lazy(() => import('./pages/fuel/TankDetail'))
 
 const PageLoader = (
   <div style={{
@@ -255,6 +256,45 @@ function ModuleShell() {
   return body
 }
 
+// Shell for fuel sub-routes that aren't top-level pages (e.g. /fuel/tanks/:id).
+// Mirrors ModuleShell's wrapping (FuelProvider + ModuleLayout) but lets the
+// child element render directly instead of going through getFuelPage.
+function FuelDetailShell({ page, children }) {
+  const navigate = useNavigate()
+  const { profile } = useAuth()
+  const { can } = usePermissions()
+  const meta = MODULE_META.fuel
+  const navItems = meta.navFn(profile.role, can)
+
+  function setPage(p) { navigate(`/fuel/${p}`) }
+  function goHome() { navigate('/') }
+
+  return (
+    <FuelProvider>
+      <ModuleLayout
+        moduleId="fuel"
+        moduleLabel={meta.label}
+        moduleIcon={meta.icon}
+        navItems={navItems}
+        page={page}
+        setPage={setPage}
+        onHome={goHome}
+      >
+        <ErrorBoundary level="page">
+          <Suspense fallback={PageLoader}>
+            {can('fuel.view') ? children : (
+              <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '56px', color: THEME.outline, display: 'block', marginBottom: '14px' }}>lock</span>
+                <p style={{ fontSize: '15px' }}>You don't have access to this section.</p>
+              </div>
+            )}
+          </Suspense>
+        </ErrorBoundary>
+      </ModuleLayout>
+    </FuelProvider>
+  )
+}
+
 // A bare module URL (e.g. /workforce, with no page segment) redirects to
 // that module's default page, rather than falling through to the
 // catch-all and bouncing all the way back to the home launcher.
@@ -304,6 +344,7 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/" element={<HomeLauncherPage />} />
+      <Route path="/fuel/tanks/:tankId" element={<FuelDetailShell page="fuel_tank_detail"><TankDetail /></FuelDetailShell>} />
       <Route path="/:moduleId" element={<ModuleDefaultRedirect />} />
       <Route path="/:moduleId/:pageId" element={<ModuleShell />} />
       <Route path="*" element={<Navigate to="/" replace />} />

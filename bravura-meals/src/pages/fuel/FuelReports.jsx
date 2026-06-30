@@ -20,10 +20,10 @@ export default function FuelReports() {
   const monthlyRows = useMemo(() => {
     const month = `${repYear}-${String(repMonth + 1).padStart(2, '0')}`
     return tanks.map(tank => {
-      const monthReceipts = receipts.filter(r => r.tank_id === tank.id && r.receipt_date?.startsWith(month))
-      const monthIssues   = issues.filter(i => i.tank_id === tank.id && i.issue_date?.startsWith(month))
-      const received = monthReceipts.reduce((s, r) => s + Number(r.quantity_litres), 0)
-      const issued   = monthIssues.reduce((s, i) => s + Number(i.quantity_litres), 0)
+      const monthReceipts = receipts.filter(r => r.tank_id === tank.id && r.transaction_date?.startsWith(month))
+      const monthIssues   = issues.filter(i => i.tank_id === tank.id && i.transaction_date?.startsWith(month))
+      const received = monthReceipts.reduce((s, r) => s + Number(r.litres), 0)
+      const issued   = monthIssues.reduce((s, i) => s + Number(i.litres), 0)
       const net      = received - issued
       const currentBalance = tankBalance(tank.id)
       return { tank, received, issued, net, txnCount: monthReceipts.length + monthIssues.length, currentBalance }
@@ -40,7 +40,7 @@ export default function FuelReports() {
 
   // ── Variance / dip report ─────────────────────────────────────────────────────
   const varianceRows = useMemo(() => {
-    return tanks.filter(t => t.is_active).map(tank => {
+    return tanks.filter(t => t.status === 'active' && !t.is_archived).map(tank => {
       const calc    = tankBalance(tank.id)
       const dip     = latestDip(tank.id)
       const actual  = dip ? Number(dip.reading_litres) : null
@@ -57,9 +57,9 @@ export default function FuelReports() {
       const key = `${i.asset_type}::${i.asset_name}::${i.asset_reg || ''}`
       if (!map.has(key)) map.set(key, { asset_type: i.asset_type, asset_name: i.asset_name, asset_reg: i.asset_reg, total: 0, count: 0, last: null })
       const row = map.get(key)
-      row.total += Number(i.quantity_litres)
+      row.total += Number(i.litres)
       row.count += 1
-      if (!row.last || i.issue_date > row.last) row.last = i.issue_date
+      if (!row.last || i.transaction_date > row.last) row.last = i.transaction_date
     })
     return [...map.values()].sort((a, b) => b.total - a.total)
   }, [issues])
@@ -128,7 +128,7 @@ export default function FuelReports() {
                 {monthlyRows.map((row, idx) => (
                   <TRow key={row.tank.id} last={idx === monthlyRows.length - 1}>
                     <Td><span style={{ fontWeight: 500 }}>{row.tank.name}</span></Td>
-                    <Td style={{ color: THEME.textMed }}>{row.tank.fuel_type}</Td>
+                    <Td style={{ color: THEME.textMed }}>{row.tank.fuel_types?.name || 'Diesel'}</Td>
                     <Td align="right" style={{ color: row.received > 0 ? THEME.success : THEME.textMed, fontWeight: row.received > 0 ? 600 : 400 }}>
                       {row.received > 0 ? `+${row.received.toFixed(1)}` : '—'}
                     </Td>

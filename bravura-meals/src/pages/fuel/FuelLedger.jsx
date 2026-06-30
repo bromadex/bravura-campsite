@@ -10,7 +10,7 @@ export default function FuelLedger() {
   const { currentSite } = useSite()
   const { tanks, receipts, issues, loading } = useFuel()
 
-  const activeTanks = tanks.filter(t => t.is_active)
+  const activeTanks = tanks.filter(t => t.status === 'active' && !t.is_archived)
 
   const [tankId,    setTankId]    = useState('')
   const [dateFrom,  setDateFrom]  = useState('')
@@ -26,23 +26,23 @@ export default function FuelLedger() {
         .filter(r => r.tank_id === tankId)
         .map(r => ({
           id:          r.id,
-          date:        r.receipt_date,
+          date:        r.transaction_date,
           type:        'receipt',
-          description: [r.supplier, r.delivery_note_ref].filter(Boolean).join(' · ') || 'Fuel delivery',
-          inQty:       Number(r.quantity_litres),
+          description: [r.supplier, r.docket_number].filter(Boolean).join(' · ') || 'Fuel delivery',
+          inQty:       Number(r.litres),
           outQty:      0,
-          meta:        r.recorded_by_name || null,
+          meta:        r.supplier || null,
         })),
       ...issues
         .filter(i => i.tank_id === tankId)
         .map(i => ({
           id:          i.id,
-          date:        i.issue_date,
+          date:        i.transaction_date,
           type:        'issue',
-          description: `${i.asset_name}${i.asset_reg ? ` (${i.asset_reg})` : ''}${i.purpose ? ` — ${i.purpose}` : ''}`,
+          description: `${i.asset_name}${i.asset_reg ? ` (${i.asset_reg})` : ''}${i.notes ? ` — ${i.notes}` : ''}`,
           inQty:       0,
-          outQty:      Number(i.quantity_litres),
-          meta:        [i.approved_by_name && `Approved: ${i.approved_by_name}`, i.received_by && `Rcvd: ${i.received_by}`].filter(Boolean).join(' · ') || null,
+          outQty:      Number(i.litres),
+          meta:        i.approved_by_name ? `Approved: ${i.approved_by_name}` : null,
         })),
     ]
 
@@ -99,7 +99,7 @@ export default function FuelLedger() {
           >
             <option value="">— Select a tank —</option>
             {activeTanks.map(t => (
-              <option key={t.id} value={t.id}>{t.name} ({t.fuel_type})</option>
+              <option key={t.id} value={t.id}>{t.name} ({t.fuel_types?.name || 'Diesel'})</option>
             ))}
           </select>
         </div>

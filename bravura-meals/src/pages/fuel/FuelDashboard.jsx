@@ -80,7 +80,7 @@ function TankCard({ tank, balance, dip, daysRemaining }) {
             </span>
           )}
           <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: FUEL_CLR + '18', color: FUEL_CLR }}>
-            {tank.fuel_type}
+            {tank.fuel_types?.name || 'Diesel'}
           </span>
         </div>
       </div>
@@ -155,14 +155,14 @@ export default function FuelDashboard({ setPage }) {
 
   const now = new Date()
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const monthReceipts = receipts.filter(r => r.receipt_date?.startsWith(thisMonth))
-  const monthIssues   = issues.filter(i => i.issue_date?.startsWith(thisMonth))
+  const monthReceipts = receipts.filter(r => r.transaction_date?.startsWith(thisMonth))
+  const monthIssues   = issues.filter(i => i.transaction_date?.startsWith(thisMonth))
   const totalReceived = monthReceipts.reduce((s, r) => s + Number(r.quantity_litres), 0)
   const totalIssued   = monthIssues.reduce((s, i) => s + Number(i.quantity_litres), 0)
   const totalStock    = tanks.filter(t => t.is_active).reduce((s, t) => s + Math.max(0, tankBalance(t.id)), 0)
 
   const lowTanks = useMemo(() => (
-    tanks.filter(t => t.is_active && t.capacity_litres).filter(t => {
+    tanks.filter(t => t.status === 'active' && !t.is_archived && t.capacity_litres).filter(t => {
       const pct = Math.min(100, Math.max(0, (tankBalance(t.id) / Number(t.capacity_litres)) * 100))
       return pct <= LOW_PCT
     })
@@ -170,13 +170,13 @@ export default function FuelDashboard({ setPage }) {
 
   const recent = useMemo(() => {
     const items = [
-      ...receipts.slice(0, 15).map(r => ({ ...r, _type: 'receipt', _date: r.receipt_date })),
-      ...issues.slice(0, 15).map(i => ({ ...i, _type: 'issue', _date: i.issue_date })),
+      ...receipts.slice(0, 15).map(r => ({ ...r, _type: 'receipt', _date: r.transaction_date })),
+      ...issues.slice(0, 15).map(i => ({ ...i, _type: 'issue', _date: i.transaction_date })),
     ]
     return items.sort((a, b) => b._date.localeCompare(a._date)).slice(0, 8)
   }, [receipts, issues])
 
-  const activeTanks = tanks.filter(t => t.is_active)
+  const activeTanks = tanks.filter(t => t.status === 'active' && !t.is_archived)
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: THEME.textLow }}>
@@ -312,12 +312,12 @@ export default function FuelDashboard({ setPage }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '13px', color: THEME.text, fontWeight: 500 }}>
-                    {isReceipt ? `Received ${Number(item.quantity_litres).toFixed(0)} L` : `Issued ${Number(item.quantity_litres).toFixed(0)} L to ${item.asset_name}`}
+                    {isReceipt ? `Received ${Number(item.litres).toFixed(0)} L` : `Issued ${Number(item.litres).toFixed(0)} L to ${item.asset_name}`}
                   </div>
                   <div style={{ fontSize: '11px', color: THEME.textLow }}>{tankName} \u00b7 {fmtDate(item._date)}</div>
                 </div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: isReceipt ? THEME.statusSuccessText : THEME.statusWarningText, flexShrink: 0 }}>
-                  {isReceipt ? '+' : '-'}{Number(item.quantity_litres).toFixed(0)} L
+                  {isReceipt ? '+' : '-'}{Number(item.litres).toFixed(0)} L
                 </div>
               </div>
             )

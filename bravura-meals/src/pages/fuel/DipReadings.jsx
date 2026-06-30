@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
-import { useAuth } from '../../auth/AuthContext'
-import { usePermissions } from '../../contexts/PermissionsContext'
+import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import {
-  PageHeader, Card, Button, Modal, ConfirmModal, Icon, SectionLabel,
+  PageHeader, Card, Button, Modal, Icon, SectionLabel,
   showToast, fmtDate, TableWrap, THead, Th, TRow, Td,
 } from '../../components/ui'
 
@@ -17,18 +16,15 @@ const BLANK_FORM = {
 }
 
 export default function DipReadings() {
-  const { profile } = useAuth()
   const { can } = usePermissions()
   const { currentSite } = useSite()
-  const { tanks, dipReadings, tankBalance, addDipReading, deleteDipReading, loading } = useFuel()
+  const { tanks, dipReadings, tankBalance, addDipReading, loading } = useFuel()
 
-  const canCreate = can('fuel.create')
-  const canDelete = can('fuel.delete')
+  const canCreate = can('fuel.dip.record')
 
   const [modal,    setModal]    = useState(false)
   const [form,     setForm]     = useState(BLANK_FORM)
   const [saving,   setSaving]   = useState(false)
-  const [deleting, setDeleting] = useState(null)
   const [tankFilter, setTankFilter] = useState('all')
 
   function openAdd() {
@@ -46,12 +42,10 @@ export default function DipReadings() {
     setSaving(true)
     try {
       await addDipReading({
-        tank_id:          form.tank_id,
-        reading_date:     form.reading_date,
-        reading_litres:   Number(form.reading_litres),
-        notes:            form.notes.trim() || null,
-        recorded_by:      profile?.id,
-        recorded_by_name: profile?.full_name || null,
+        tank_id:        form.tank_id,
+        reading_date:   form.reading_date,
+        reading_litres: Number(form.reading_litres),
+        notes:          form.notes.trim() || null,
       })
       showToast('Dip reading recorded', 'green')
       setModal(false)
@@ -59,17 +53,6 @@ export default function DipReadings() {
       showToast(err.message || 'Failed to save', 'red')
     } finally {
       setSaving(false)
-    }
-  }
-
-  async function confirmDelete() {
-    try {
-      await deleteDipReading(deleting.id)
-      showToast('Reading deleted', 'green')
-    } catch (err) {
-      showToast(err.message || 'Failed to delete', 'red')
-    } finally {
-      setDeleting(null)
     }
   }
 
@@ -97,7 +80,7 @@ export default function DipReadings() {
           >
             All Tanks
           </button>
-          {tanks.filter(t => t.is_active).map(t => (
+          {tanks.filter(t => t.status === 'active' && !t.is_archived).map(t => (
             <button key={t.id} onClick={() => setTankFilter(t.id)} style={chipStyle(tankFilter === t.id)}>
               {t.name}
             </button>
@@ -154,7 +137,6 @@ export default function DipReadings() {
               <Th align="right">Variance (L)</Th>
               <Th>Recorded By</Th>
               <Th>Notes</Th>
-              {canDelete && <Th />}
             </THead>
             <tbody>
               {filtered.map((d, idx) => {
@@ -176,16 +158,6 @@ export default function DipReadings() {
                     </Td>
                     <Td style={{ color: THEME.textMed }}>{d.recorded_by_name || '—'}</Td>
                     <Td style={{ color: THEME.textMed }}>{d.notes || '—'}</Td>
-                    {canDelete && (
-                      <Td>
-                        <button
-                          onClick={() => setDeleting(d)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: THEME.error, opacity: .7 }}
-                        >
-                          <Icon name="delete" size={16} style={{ color: 'inherit' }} />
-                        </button>
-                      </Td>
-                    )}
                   </TRow>
                 )
               })}
@@ -215,7 +187,7 @@ export default function DipReadings() {
             <SectionLabel>Tank *</SectionLabel>
             <select value={form.tank_id} onChange={e => set('tank_id', e.target.value)} style={inputStyle}>
               <option value="">— Select tank —</option>
-              {tanks.filter(t => t.is_active).map(t => (
+              {tanks.filter(t => t.status === 'active' && !t.is_archived).map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
@@ -255,13 +227,6 @@ export default function DipReadings() {
         </div>
       </Modal>
 
-      <ConfirmModal
-        open={!!deleting}
-        onClose={() => setDeleting(null)}
-        onConfirm={confirmDelete}
-        title="Delete Dip Reading"
-        message={deleting ? `Delete the ${Number(deleting.reading_litres).toFixed(1)} L dip reading from ${fmtDate(deleting.reading_date)}?` : ''}
-      />
     </div>
   )
 }

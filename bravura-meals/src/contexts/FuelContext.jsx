@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { useSite } from './SiteContext'
 import SiteRequired from '../components/SiteRequired'
@@ -9,33 +9,51 @@ const FuelContext = createContext(null)
 export function FuelProvider({ children }) {
   const { currentSiteId } = useSite()
 
-  const [tanks,       setTanks]       = useState([])
-  const [receipts,    setReceipts]    = useState([])
-  const [issues,      setIssues]      = useState([])
-  const [dipReadings, setDipReadings] = useState([])
-  const [profiles,    setProfiles]    = useState([])
-  const [loading,     setLoading]     = useState(true)
+  const [fuelTypes,    setFuelTypes]    = useState([])
+  const [tanks,        setTanks]        = useState([])
+  const [transactions, setTransactions] = useState([])
+  const [dipReadings,  setDipReadings]  = useState([])
+  const [profiles,     setProfiles]     = useState([])
+  const [loading,      setLoading]      = useState(true)
 
   const fetchAll = useCallback(async () => {
     if (!currentSiteId) { setLoading(false); return }
-    // Clear stale data from the previous site immediately so pages never
-    // show data belonging to a different site while the new fetch is in-flight.
     setTanks([])
-    setReceipts([])
-    setIssues([])
+    setTransactions([])
     setDipReadings([])
     setLoading(true)
     try {
-      const [tRes, rRes, iRes, dRes, pRes] = await Promise.all([
-        supabase.from('fuel_tanks').select('*').eq('site_id', currentSiteId).order('name'),
-        supabase.from('fuel_receipts').select('*').eq('site_id', currentSiteId).order('receipt_date', { ascending: false }),
-        supabase.from('fuel_issues').select('*').eq('site_id', currentSiteId).order('issue_date', { ascending: false }),
-        supabase.from('fuel_dip_readings').select('*').eq('site_id', currentSiteId).order('reading_date', { ascending: false }),
-        supabase.from('profiles').select('id, full_name').order('full_name'),
+      const [ftRes, tRes, txRes, dRes, pRes] = await Promise.all([
+        supabase
+          .from('fuel_types')
+          .select('*')
+          .eq('is_active', true)
+          .order('name'),
+        supabase
+          .from('fuel_tanks')
+          .select('*, fuel_types(id, name, code, colour)')
+          .eq('site_id', currentSiteId)
+          .eq('is_archived', false)
+          .order('name'),
+        supabase
+          .from('fuel_transactions')
+          .select('*, fuel_vehicles(id, fleet_number, registration), fuel_equipment(id, name, equipment_number), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
+          .eq('site_id', currentSiteId)
+          .order('transaction_date', { ascending: false })
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('fuel_dip_readings')
+          .select('*')
+          .eq('site_id', currentSiteId)
+          .order('reading_date', { ascending: false }),
+        supabase
+          .from('profiles')
+          .select('id, full_name')
+          .order('full_name'),
       ])
+      setFuelTypes(ftRes.data || [])
       setTanks(tRes.data || [])
-      setReceipts(rRes.data || [])
-      setIssues(iRes.data || [])
+      setTransactions(txRes.data || [])
       setDipReadings(dRes.data || [])
       setProfiles(pRes.data || [])
     } catch (err) {
@@ -47,11 +65,47 @@ export function FuelProvider({ children }) {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
+  // ── Backward-compatible aliases for existing pages ────────────────────────────
+  // Pages that used the old fuel_receipts / fuel_issues tables get shaped data
+  // so they don't all need simultaneous rewrites.
+
+  const receipts = useMemo(() =>
+    transactions
+      .filter(t => t.transaction_type === 'delivery')
+      .map(t => ({
+        ...t,
+        quantity_litres:   t.litres,
+        receipt_date:      t.transaction_date,
+        delivery_note_ref: t.docket_number,
+        recorded_by_name:  null,  // populated via created_by join when needed
+      })),
+    [transactions]
+  )
+
+  const issues = useMemo(() =>
+    transactions
+      .filter(t => t.transaction_type === 'issuance')
+      .map(t => ({
+        ...t,
+        quantity_litres:  t.litres,
+        issue_date:       t.transaction_date,
+        asset_type:       t.vehicle_id ? 'vehicle' : t.equipment_id ? 'equipment' : 'other',
+        asset_name:       t.fuel_vehicles?.fleet_number || t.fuel_equipment?.name || t.asset_description || 'Unknown',
+        asset_reg:        t.fuel_vehicles?.registration || t.fuel_equipment?.equipment_number || '',
+        purpose:          t.notes || '',
+        issued_by_name:   null,
+        approved_by_name: t.approved_by_profile?.full_name || null,
+        received_by:      null,
+      })),
+    [transactions]
+  )
+
   // ── Computed helpers ──────────────────────────────────────────────────────────
+
+  // Authoritative tank balance from the DB (updated by trigger after each transaction)
   function tankBalance(tankId) {
-    const received = receipts.filter(r => r.tank_id === tankId).reduce((s, r) => s + Number(r.quantity_litres), 0)
-    const issued   = issues.filter(i => i.tank_id === tankId).reduce((s, i) => s + Number(i.quantity_litres), 0)
-    return received - issued
+    const tank = tanks.find(t => t.id === tankId)
+    return tank ? Number(tank.current_level_litres) : 0
   }
 
   function latestDip(tankId) {
@@ -60,22 +114,32 @@ export function FuelProvider({ children }) {
     return readings.reduce((best, d) => (!best || d.reading_date > best.reading_date) ? d : best, null)
   }
 
-  // Average daily consumption over the last 30 days for a tank.
-  // Returns litres/day, or null if no issues in that window.
   function avgDailyConsumption(tankId, days = 30) {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
     const cutoffStr = cutoff.toISOString().slice(0, 10)
-    const recent = issues.filter(i => i.tank_id === tankId && i.issue_date >= cutoffStr)
+    const recent = transactions.filter(
+      t => t.tank_id === tankId && t.transaction_type === 'issuance' && t.transaction_date >= cutoffStr
+    )
     if (!recent.length) return null
-    const total = recent.reduce((s, i) => s + Number(i.quantity_litres), 0)
+    const total = recent.reduce((s, t) => s + Number(t.litres), 0)
     return total / days
   }
 
+  // ── Transaction number generator ──────────────────────────────────────────────
+  function nextTransactionNumber(type) {
+    const prefix = type === 'delivery' ? 'DEL' : type === 'issuance' ? 'ISS' : 'ADJ'
+    return `${prefix}-${Date.now()}`
+  }
+
   // ── Tanks CRUD ────────────────────────────────────────────────────────────────
+
   async function addTank(data) {
     const { data: row, error } = await supabase
-      .from('fuel_tanks').insert([{ ...data, site_id: currentSiteId }]).select().single()
+      .from('fuel_tanks')
+      .insert([{ ...data, site_id: currentSiteId }])
+      .select('*, fuel_types(id, name, code, colour)')
+      .single()
     if (error) throw error
     setTanks(prev => [...prev, row].sort((a, b) => a.name.localeCompare(b.name)))
     return row
@@ -83,87 +147,95 @@ export function FuelProvider({ children }) {
 
   async function updateTank(id, data) {
     const { data: row, error } = await supabase
-      .from('fuel_tanks').update(data).eq('id', id).select().single()
+      .from('fuel_tanks')
+      .update(data)
+      .eq('id', id)
+      .select('*, fuel_types(id, name, code, colour)')
+      .single()
     if (error) throw error
     setTanks(prev => prev.map(t => t.id === id ? row : t))
     return row
   }
 
-  async function deleteTank(id) {
-    const { error } = await supabase.from('fuel_tanks').delete().eq('id', id)
+  async function archiveTank(id) {
+    const { data: row, error } = await supabase
+      .from('fuel_tanks')
+      .update({ is_archived: true, archived_at: new Date().toISOString(), status: 'decommissioned' })
+      .eq('id', id)
+      .select()
+      .single()
     if (error) throw error
     setTanks(prev => prev.filter(t => t.id !== id))
-  }
-
-  // ── Receipts CRUD ─────────────────────────────────────────────────────────────
-  async function addReceipt(data) {
-    const { data: row, error } = await supabase
-      .from('fuel_receipts').insert([{ ...data, site_id: currentSiteId }]).select().single()
-    if (error) throw error
-    setReceipts(prev => [row, ...prev])
     return row
   }
 
-  async function updateReceipt(id, data) {
+  // ── Fuel Transactions (immutable) ─────────────────────────────────────────────
+
+  async function addTransaction(data) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const levelBefore = tankBalance(data.tank_id)
+
+    const payload = {
+      ...data,
+      site_id:            currentSiteId,
+      transaction_number: nextTransactionNumber(data.transaction_type),
+      tank_level_before:  levelBefore,
+      created_by:         user?.id || null,
+    }
+
     const { data: row, error } = await supabase
-      .from('fuel_receipts').update(data).eq('id', id).select().single()
+      .from('fuel_transactions')
+      .insert([payload])
+      .select('*, fuel_vehicles(id, fleet_number, registration), fuel_equipment(id, name, equipment_number), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
+      .single()
     if (error) throw error
-    setReceipts(prev => prev.map(r => r.id === id ? row : r))
+
+    // Optimistically update tank level (trigger will also update DB)
+    const delta = data.transaction_type === 'issuance'
+      ? -Number(data.litres)
+      : Number(data.litres)
+    setTanks(prev => prev.map(t =>
+      t.id === data.tank_id
+        ? { ...t, current_level_litres: Math.max(0, Number(t.current_level_litres) + delta) }
+        : t
+    ))
+
+    setTransactions(prev => [row, ...prev])
     return row
   }
 
-  async function deleteReceipt(id) {
-    const { error } = await supabase.from('fuel_receipts').delete().eq('id', id)
-    if (error) throw error
-    setReceipts(prev => prev.filter(r => r.id !== id))
-  }
+  // ── Dip Readings ──────────────────────────────────────────────────────────────
 
-  // ── Issues CRUD ───────────────────────────────────────────────────────────────
-  async function addIssue(data) {
-    const { data: row, error } = await supabase
-      .from('fuel_issues').insert([{ ...data, site_id: currentSiteId }]).select().single()
-    if (error) throw error
-    setIssues(prev => [row, ...prev])
-    return row
-  }
-
-  async function updateIssue(id, data) {
-    const { data: row, error } = await supabase
-      .from('fuel_issues').update(data).eq('id', id).select().single()
-    if (error) throw error
-    setIssues(prev => prev.map(i => i.id === id ? row : i))
-    return row
-  }
-
-  async function deleteIssue(id) {
-    const { error } = await supabase.from('fuel_issues').delete().eq('id', id)
-    if (error) throw error
-    setIssues(prev => prev.filter(i => i.id !== id))
-  }
-
-  // ── Dip Readings CRUD ─────────────────────────────────────────────────────────
   async function addDipReading(data) {
     const { data: row, error } = await supabase
-      .from('fuel_dip_readings').insert([{ ...data, site_id: currentSiteId }]).select().single()
+      .from('fuel_dip_readings')
+      .insert([{ ...data, site_id: currentSiteId }])
+      .select()
+      .single()
     if (error) throw error
     setDipReadings(prev => [row, ...prev])
+    // Update tank snapshot (trigger does it in DB too)
+    setTanks(prev => prev.map(t =>
+      t.id === data.tank_id && (!t.last_dip_date || data.reading_date >= t.last_dip_date)
+        ? { ...t, last_dip_date: data.reading_date, last_dip_reading: data.reading_litres }
+        : t
+    ))
     return row
-  }
-
-  async function deleteDipReading(id) {
-    const { error } = await supabase.from('fuel_dip_readings').delete().eq('id', id)
-    if (error) throw error
-    setDipReadings(prev => prev.filter(d => d.id !== id))
   }
 
   return (
     <FuelContext.Provider value={{
-      tanks, receipts, issues, dipReadings, profiles, loading,
+      fuelTypes, tanks, transactions, dipReadings, profiles, loading,
+      // backward-compat aliases
+      receipts, issues,
+      // helpers
       tankBalance, latestDip, avgDailyConsumption,
-      addTank, updateTank, deleteTank,
-      addReceipt, updateReceipt, deleteReceipt,
-      addIssue, updateIssue, deleteIssue,
-      addDipReading, deleteDipReading,
+      // tank ops
+      addTank, updateTank, archiveTank,
+      // transaction ops (immutable — no update/delete)
+      addTransaction,
+      // dip ops
+      addDipReading,
       refresh: fetchAll,
     }}>
       <SiteRequired moduleColor={MODULE_COLORS.fuel}>

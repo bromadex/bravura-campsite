@@ -1,1332 +1,1213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Bravura ERP — Development Roadmap 2026</title>
+<meta charset="UTF-8">
+<title>Bravura ERP — Development Roadmap</title>
 <style>
-  /* ── Reset ── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  /* ── Tokens ── */
-  :root {
-    --primary:   #982329;
-    --primary-dk:#66181C;
-    --accent:    #FF7175;
-    --text:      #1C0A0A;
-    --text-med:  #5C3C3C;
-    --text-low:  #9E8080;
-    --surface:   #FFFFFF;
-    --bg:        #F5F5F5;
-    --outline:   #CEB9BA;
-    --hr-color:  #E07B39;
-    --fuel-color:#2A9D8F;
-    --success:   #386A20;
-    --warning:   #7D5700;
-    --info:      #1558A6;
-  }
-
-  body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    font-size: 11pt;
-    color: var(--text);
-    background: var(--bg);
-    line-height: 1.6;
-  }
-
-  /* ── Page wrapper ── */
-  .page { max-width: 900px; margin: 0 auto; background: var(--surface); }
-
-  /* ── Cover ── */
-  .cover {
-    background: var(--primary-dk);
-    color: #fff;
-    padding: 80px 60px 60px;
-    page-break-after: always;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  .cover-logo { font-size: 13pt; font-weight: 700; letter-spacing: .12em; color: rgba(255,255,255,.55); margin-bottom: 8px; }
-  .cover-title { font-size: 36pt; font-weight: 300; line-height: 1.15; margin-bottom: 16px; }
-  .cover-title span { color: var(--accent); font-weight: 700; }
-  .cover-sub { font-size: 13pt; color: rgba(255,255,255,.7); margin-bottom: 40px; }
-  .cover-modules { display: flex; gap: 24px; margin-top: 32px; }
-  .cover-module {
-    flex: 1; padding: 20px 24px;
-    border-radius: 12px;
-    border-top: 4px solid;
-  }
-  .cover-module.hr   { background: rgba(224,123,57,.15); border-color: var(--hr-color); }
-  .cover-module.fuel { background: rgba(42,157,143,.15); border-color: var(--fuel-color); }
-  .cover-module h3   { font-size: 10pt; font-weight: 700; letter-spacing: .1em; margin-bottom: 6px; }
-  .cover-module.hr   h3 { color: var(--hr-color); }
-  .cover-module.fuel h3 { color: var(--fuel-color); }
-  .cover-module p    { font-size: 10pt; color: rgba(255,255,255,.7); line-height: 1.5; }
-  .cover-meta { font-size: 9pt; color: rgba(255,255,255,.45); margin-top: 60px; }
-  .cover-devs { display: flex; gap: 20px; margin-top: 24px; }
-  .dev-chip {
-    padding: 8px 16px; border-radius: 20px; font-size: 9pt; font-weight: 600;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .dev-chip.tafara { background: rgba(224,123,57,.25); color: #FFBA80; }
-  .dev-chip.clement { background: rgba(42,157,143,.25); color: #80DDD4; }
-
-  /* ── Section pages ── */
-  .section { padding: 48px 60px; page-break-before: always; }
-  .section:first-of-type { page-break-before: avoid; }
-  .section-tag {
-    font-size: 8pt; font-weight: 700; letter-spacing: .18em;
-    text-transform: uppercase; color: var(--primary); margin-bottom: 8px;
-  }
-  .section-tag.hr   { color: var(--hr-color); }
-  .section-tag.fuel { color: var(--fuel-color); }
-  h1 { font-size: 24pt; font-weight: 300; color: var(--primary-dk); margin-bottom: 8px; }
-  h1 span { font-weight: 700; }
-  h2 { font-size: 15pt; font-weight: 600; color: var(--primary-dk); margin: 32px 0 10px; }
-  h2.hr   { color: var(--hr-color); }
-  h2.fuel { color: var(--fuel-color); }
-  h3 { font-size: 11pt; font-weight: 700; color: var(--text); margin: 20px 0 6px; }
-  p  { margin-bottom: 10px; color: var(--text-med); }
-  ul, ol { padding-left: 20px; margin-bottom: 10px; }
-  li { margin-bottom: 4px; color: var(--text-med); }
-  li strong { color: var(--text); }
-  hr { border: none; border-top: 1px solid var(--outline); margin: 24px 0; }
-
-  /* ── Info callout ── */
-  .callout {
-    padding: 14px 18px; border-radius: 10px; margin: 16px 0;
-    border-left: 4px solid;
-  }
-  .callout.info    { background: #E3F2FD; border-color: var(--info);    color: #0D3966; }
-  .callout.warn    { background: #FFF8E1; border-color: var(--warning);  color: #4A3300; }
-  .callout.success { background: #E8F5E9; border-color: var(--success);  color: #1B4D10; }
-  .callout.hr      { background: #FFF4EE; border-color: var(--hr-color); color: #4A2000; }
-  .callout.fuel    { background: #E0F5F3; border-color: var(--fuel-color); color: #0A3530; }
-  .callout strong  { font-weight: 700; }
-
-  /* ── Phase cards ── */
-  .phases { display: flex; flex-direction: column; gap: 16px; margin: 16px 0; }
-  .phase {
-    border: 1px solid var(--outline); border-radius: 12px; overflow: hidden;
-    page-break-inside: avoid;
-  }
-  .phase-header {
-    padding: 12px 18px; display: flex; align-items: center; gap: 12px;
-    border-bottom: 1px solid var(--outline);
-  }
-  .phase-header.p1 { background: #FFF4EE; }
-  .phase-header.p2 { background: #E8F5E9; }
-  .phase-header.p3 { background: #E3F2FD; }
-  .phase-header.p4 { background: #EDE7F6; }
-  .phase-num {
-    width: 32px; height: 32px; border-radius: 50%; display: flex;
-    align-items: center; justify-content: center; font-weight: 700; font-size: 12pt; color: #fff;
-    flex-shrink: 0;
-  }
-  .p1 .phase-num { background: var(--hr-color); }
-  .p2 .phase-num { background: var(--success); }
-  .p3 .phase-num { background: var(--info); }
-  .p4 .phase-num { background: #7B4F9C; }
-  .fuel-phase .p1 .phase-num { background: var(--fuel-color); }
-  .fuel-phase .p2 .phase-num { background: #1A6B52; }
-  .fuel-phase .p3 .phase-num { background: var(--info); }
-  .fuel-phase .p4 .phase-num { background: #7B4F9C; }
-  .phase-title { flex: 1; }
-  .phase-title h4 { font-size: 12pt; font-weight: 700; margin: 0; }
-  .phase-title span { font-size: 9pt; color: var(--text-low); }
-  .phase-tag {
-    padding: 3px 10px; border-radius: 20px; font-size: 8pt; font-weight: 700;
-    letter-spacing: .06em;
-  }
-  .tag-foundation { background: #FDE8DC; color: #8B3000; }
-  .tag-core       { background: #DCEDC8; color: #2E5900; }
-  .tag-advanced   { background: #E3F2FD; color: #0D3966; }
-  .tag-scale      { background: #EDE7F6; color: #3D1A6A; }
-  .phase-body { padding: 16px 18px; }
-  .phase-body ul { margin-bottom: 0; }
-
-  /* ── Permission matrix ── */
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 9pt; }
-  th {
-    background: var(--primary); color: #fff;
-    padding: 8px 10px; text-align: left; font-weight: 600;
-  }
-  th.hr-th   { background: var(--hr-color); }
-  th.fuel-th { background: var(--fuel-color); }
-  td { padding: 7px 10px; border-bottom: 1px solid var(--outline); vertical-align: top; }
-  tr:nth-child(even) td { background: #FAFAFA; }
-  .perm-y { color: var(--success); font-weight: 700; }
-  .perm-n { color: #CCC; }
-  .perm-c { color: var(--warning); font-weight: 600; font-size: 8pt; }
-
-  /* ── Timeline ── */
-  .timeline { margin: 16px 0; }
-  .tl-row {
-    display: grid; grid-template-columns: 100px 20px 1fr;
-    gap: 0 12px; align-items: start; margin-bottom: 4px;
-  }
-  .tl-date { font-size: 8pt; font-weight: 700; color: var(--text-low); padding-top: 3px; text-align: right; }
-  .tl-line { display: flex; flex-direction: column; align-items: center; }
-  .tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
-  .tl-vline { width: 2px; background: var(--outline); flex: 1; min-height: 32px; }
-  .tl-content { padding: 2px 0 20px; }
-  .tl-content h4 { font-size: 10pt; font-weight: 700; margin-bottom: 3px; }
-  .tl-content p  { font-size: 9pt; margin: 0; }
-  .dot-hr   { background: var(--hr-color); }
-  .dot-fuel { background: var(--fuel-color); }
-  .dot-both { background: var(--primary); }
-
-  /* ── Schema blocks ── */
-  .schema { background: #1C1414; color: #F2E8E8; border-radius: 10px; padding: 16px 18px; margin: 10px 0; font-family: 'Courier New', monospace; font-size: 8.5pt; line-height: 1.7; overflow-x: auto; }
-  .schema .kw  { color: #FF7175; }
-  .schema .col { color: #80DDD4; }
-  .schema .typ { color: #FFBA80; }
-  .schema .cmt { color: #9E8080; }
-
-  /* ── Integration map ── */
-  .int-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
-  .int-card {
-    border: 1px solid var(--outline); border-radius: 10px; padding: 14px 16px;
-    page-break-inside: avoid;
-  }
-  .int-card h4 { font-size: 9pt; font-weight: 700; margin-bottom: 6px; }
-  .int-card ul { margin: 0; }
-  .int-card li { font-size: 9pt; }
-
-  /* ── Dev ownership ── */
-  .dev-table { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
-  .dev-col { border: 1px solid var(--outline); border-radius: 10px; overflow: hidden; }
-  .dev-col-header { padding: 12px 16px; color: #fff; font-weight: 700; font-size: 10pt; }
-  .dev-col-header.tafara  { background: var(--hr-color); }
-  .dev-col-header.clement { background: var(--fuel-color); }
-  .dev-col-body { padding: 12px 16px; }
-  .dev-col-body li { font-size: 9pt; margin-bottom: 4px; }
-
-  /* ── Footer ── */
-  .doc-footer {
-    padding: 24px 60px; border-top: 2px solid var(--primary);
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 8pt; color: var(--text-low);
-  }
-
-  /* ── Print ── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 32px; font-weight: 300; margin-bottom: 8px; }
+  h2 { font-size: 22px; font-weight: 600; margin: 40px 0 12px; border-bottom: 3px solid #982329; padding-bottom: 6px; color: #982329; }
+  h3 { font-size: 17px; font-weight: 600; margin: 24px 0 8px; color: #222; }
+  h4 { font-size: 14px; font-weight: 600; margin: 16px 0 6px; color: #444; }
+  p { margin-bottom: 10px; }
+  ul, ol { margin: 8px 0 12px 24px; }
+  li { margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
+  th { background: #982329; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e5e5e5; vertical-align: top; }
+  tr:nth-child(even) td { background: #f9f9f9; }
+  .cover { text-align: center; padding: 80px 0 60px; border-bottom: 2px solid #982329; margin-bottom: 48px; }
+  .cover .subtitle { font-size: 18px; color: #666; margin-top: 10px; }
+  .cover .meta { font-size: 13px; color: #999; margin-top: 24px; }
+  .toc { background: #f5f5f5; border-left: 4px solid #982329; padding: 20px 28px; margin-bottom: 40px; }
+  .toc h3 { margin-top: 0; color: #982329; }
+  .toc ol { margin: 8px 0 0 16px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a { color: #982329; text-decoration: none; }
+  .note { background: #fff8e1; border-left: 4px solid #f9a825; padding: 12px 16px; margin: 14px 0; font-size: 13px; }
+  .phase-box { border: 1px solid #ddd; border-radius: 6px; padding: 16px 20px; margin: 14px 0; }
+  .phase-box.tafara { border-left: 5px solid #1558A6; }
+  .phase-box.clement { border-left: 5px solid #1A6B52; }
+  .phase-box.shared { border-left: 5px solid #982329; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+  .tag.tafara { background: #e3f0ff; color: #1558A6; }
+  .tag.clement { background: #e0f2ee; color: #1A6B52; }
+  .tag.shared { background: #fdecea; color: #982329; }
+  .master-prompt { background: #1a1a2e; color: #e0e0e0; padding: 24px 28px; border-radius: 6px; font-family: monospace; font-size: 12px; line-height: 1.7; margin: 20px 0; white-space: pre-wrap; }
+  .master-prompt strong { color: #FFD700; }
   @media print {
-    @page { margin: 14mm 12mm; size: A4 portrait; }
-    body   { background: #fff; }
-    .cover { min-height: 270mm; }
-    .section { padding: 32px 48px; }
-    .page { max-width: 100%; }
-    .phase, .int-card, .dev-col { page-break-inside: avoid; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { padding: 0; max-width: none; }
+    h2 { page-break-before: always; }
+    h2:first-of-type { page-break-before: avoid; }
+    .cover { page-break-after: always; }
   }
+  code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+  pre { background: #f5f5f5; padding: 14px; font-size: 12px; border-radius: 4px; overflow-x: auto; margin: 12px 0; }
 </style>
 </head>
 <body>
-<div class="page">
 
-<!-- ════════════════════════════════════════════════════════════ COVER -->
 <div class="cover">
-  <div>
-    <div class="cover-logo">BRAVURA ZIMBABWE · ERP PLATFORM</div>
-    <div class="cover-title">Development<br/><span>Roadmap 2026</span></div>
-    <div class="cover-sub">HR Management Module &amp; Fuel Management Module<br/>Multi-Site Architecture · Granular RBAC · Full Cross-Module Integration</div>
-    <div class="cover-modules">
-      <div class="cover-module hr">
-        <h3>MODULE 1 — HR MANAGEMENT</h3>
-        <p>Employee accounts, document management, leave tracking, onboarding &amp; offboarding, granular per-page per-button permissions, and multi-site workforce visibility.</p>
-      </div>
-      <div class="cover-module fuel">
-        <h3>MODULE 2 — FUEL MANAGEMENT</h3>
-        <p>Per-site fuel tanks, vehicle &amp; equipment tracking, dispensing records, delivery receipts, inter-site transfers, cost reporting, and approval workflows.</p>
-      </div>
-    </div>
-    <div class="cover-devs">
-      <div class="dev-chip tafara">⬤ Tafara — HR Module Lead</div>
-      <div class="dev-chip clement">⬤ Clement — Fuel Module Lead</div>
-    </div>
-  </div>
-  <div class="cover-meta">
-    Bravura Campsite Management ERP · bromadex/bravura-campsite · Branch: main · Generated 30 June 2026<br/>
-    Note: Both developers may modify any module. All cross-module changes require integration review before merge.
+  <div style="font-size:13px;color:#982329;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;">Bravura Resources</div>
+  <h1>Enterprise Resource Planning Platform</h1>
+  <h1 style="font-size:24px;font-weight:400;margin-top:6px;">Software Development Roadmap &amp; Technical Implementation Plan</h1>
+  <div class="subtitle">HR Module · Fuel Management Module · Campsite · Meals · Multi-Site Architecture</div>
+  <div class="meta">
+    Version 2.0 &nbsp;|&nbsp; June 2026 &nbsp;|&nbsp; Confidential<br>
+    Module Leads: <strong>Tafara</strong> (HR) &amp; <strong>Clement</strong> (Fuel)<br>
+    Repository: bromadex/bravura-campsite
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════════ TABLE OF CONTENTS -->
-<div class="section">
-  <div class="section-tag">DOCUMENT OVERVIEW</div>
-  <h1>Table of <span>Contents</span></h1>
-  <hr/>
-  <table>
-    <tr><th style="width:40px">#</th><th>Section</th><th style="width:80px">Page</th></tr>
-    <tr><td>1</td><td>Executive Summary &amp; Current State</td><td>—</td></tr>
-    <tr><td>2</td><td>Architecture Principles &amp; Multi-Site Design</td><td>—</td></tr>
-    <tr><td>3</td><td>Permission System Design (Granular RBAC)</td><td>—</td></tr>
-    <tr><td>4</td><td>Module 1: HR Management — Full Roadmap</td><td>—</td></tr>
-    <tr><td>  4.1</td><td style="padding-left:20px">Phase 1: Employee Accounts &amp; RBAC Foundation</td><td>—</td></tr>
-    <tr><td>  4.2</td><td style="padding-left:20px">Phase 2: Core HR Features</td><td>—</td></tr>
-    <tr><td>  4.3</td><td style="padding-left:20px">Phase 3: Advanced HR Features</td><td>—</td></tr>
-    <tr><td>  4.4</td><td style="padding-left:20px">Phase 4: Analytics &amp; Automation</td><td>—</td></tr>
-    <tr><td>5</td><td>Module 2: Fuel Management — Full Roadmap</td><td>—</td></tr>
-    <tr><td>  5.1</td><td style="padding-left:20px">Phase 1: Infrastructure &amp; Inventory Foundation</td><td>—</td></tr>
-    <tr><td>  5.2</td><td style="padding-left:20px">Phase 2: Core Fuel Operations</td><td>—</td></tr>
-    <tr><td>  5.3</td><td style="padding-left:20px">Phase 3: Reporting &amp; Approvals</td><td>—</td></tr>
-    <tr><td>  5.4</td><td style="padding-left:20px">Phase 4: Automation &amp; Intelligence</td><td>—</td></tr>
-    <tr><td>6</td><td>Cross-Module Integration Map</td><td>—</td></tr>
-    <tr><td>7</td><td>Database Schema (HR &amp; Fuel)</td><td>—</td></tr>
-    <tr><td>8</td><td>Developer Ownership &amp; Collaboration Rules</td><td>—</td></tr>
-    <tr><td>9</td><td>Master Timeline</td><td>—</td></tr>
-    <tr><td>10</td><td>What Has Been Done So Far</td><td>—</td></tr>
-  </table>
-</div>
-
-<!-- ════════════════════════════════════════════════════ EXECUTIVE SUMMARY -->
-<div class="section">
-  <div class="section-tag">SECTION 1</div>
-  <h1>Executive <span>Summary</span></h1>
-  <hr/>
-
-  <p>Bravura ERP is a multi-site management platform serving mining and camp operations across Zimbabwe. The current platform (<strong>bravura-campsite</strong>) already handles Campsite Management, Meal Management, and basic Workforce tracking. This roadmap defines the expansion into two new full-scale modules: <strong>HR Management</strong> and <strong>Fuel Management</strong>, while preserving and deepening the existing architecture.</p>
-
-  <div class="callout info">
-    <strong>Multi-Site is Non-Negotiable.</strong> Every feature in both modules must be designed for N sites from day one. No single-site assumptions, no global queries without a <code>site_id</code> filter, no hardcoded site names. All data, reports, permissions, and workflows are scoped to <code>site_id</code>, and super-admins can switch between sites at any time.
-  </div>
-
-  <h2>Current System State</h2>
-  <p>The following is already live and deployed on <code>main</code>:</p>
-
-  <table>
-    <tr><th>Module</th><th>Status</th><th>Key Features Live</th></tr>
-    <tr><td><strong>Campsite Management</strong></td><td><span style="color:var(--success);font-weight:700">✓ Live</span></td><td>Room assignments, blocks, headcount, occupancy reports, supplies (with stock transfers), floor plan</td></tr>
-    <tr><td><strong>Meal Management</strong></td><td><span style="color:var(--success);font-weight:700">✓ Live</span></td><td>Daily entry, kitchen confirmation, approvals, flags, billing, pricing, reports (daily/range/monthly), meal providers</td></tr>
-    <tr><td><strong>Workforce (Basic)</strong></td><td><span style="color:var(--success);font-weight:700">✓ Live</span></td><td>Employee list, contractor list, leave management, workforce reports (site-scoped)</td></tr>
-    <tr><td><strong>Administration</strong></td><td><span style="color:var(--success);font-weight:700">✓ Live</span></td><td>User management, audit log viewer, data-driven RBAC via <code>can('module.action')</code></td></tr>
-    <tr><td><strong>HR Management (Full)</strong></td><td><span style="color:var(--warning);font-weight:700">⚒ Building</span></td><td>Employee accounts, documents, onboarding, performance — this roadmap</td></tr>
-    <tr><td><strong>Fuel Management</strong></td><td><span style="color:var(--warning);font-weight:700">⚒ Building</span></td><td>Fuel tanks, vehicles, dispensing, deliveries, transfers — this roadmap</td></tr>
-  </table>
-
-  <h2>Guiding Principles</h2>
-  <ul>
-    <li><strong>Site-first data model</strong> — every table has <code>site_id</code>; every query filters by it.</li>
-    <li><strong>Data-driven RBAC</strong> — never hardcode role names in UI; always use <code>can('module.action')</code> from <code>usePermissions()</code>.</li>
-    <li><strong>No deletion, only archiving</strong> — employees are terminated, fuel records are voided, never deleted.</li>
-    <li><strong>Audit trail on everything</strong> — all sensitive mutations go to <code>audit_logs</code> with actor, timestamp, before/after.</li>
-    <li><strong>Email-first account delivery</strong> — credentials delivered only by email; no plaintext passwords in the UI.</li>
-    <li><strong>Progressive disclosure</strong> — start with the most important features; add complexity phase by phase.</li>
-    <li><strong>Integration before isolation</strong> — before coding any feature, map every table it touches across ALL modules.</li>
-  </ul>
-</div>
-
-<!-- ════════════════════════════════════════════ ARCHITECTURE & MULTI-SITE -->
-<div class="section">
-  <div class="section-tag">SECTION 2</div>
-  <h1>Architecture &amp; <span>Multi-Site Design</span></h1>
-  <hr/>
-
-  <h2>Site Switching</h2>
-  <p>The <code>SiteContext</code> (already live) exposes <code>currentSiteId</code> and <code>currentSite</code> to every component. <strong>Every</strong> Supabase query in both new modules must include <code>.eq('site_id', currentSiteId)</code> unless it is explicitly a cross-site admin view.</p>
-
-  <div class="callout warn">
-    <strong>Rule:</strong> Any developer who writes a query without a <code>site_id</code> filter must add a comment explaining why. Cross-site queries are only permitted in admin-level reports and must use RLS policies to enforce it server-side.
-  </div>
-
-  <h2>Row-Level Security (RLS) Strategy</h2>
-  <p>All new tables must have RLS enabled. Policy templates:</p>
-  <div class="schema">
-    <span class="cmt">-- Standard site-scoped read policy</span><br/>
-    <span class="kw">CREATE POLICY</span> <span class="col">"site_read"</span> <span class="kw">ON</span> fuel_tanks<br/>
-    &nbsp;&nbsp;<span class="kw">FOR SELECT USING</span> (<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;site_id <span class="kw">IN</span> (<span class="kw">SELECT</span> site_id <span class="kw">FROM</span> user_site_access <span class="kw">WHERE</span> user_id = auth.uid())<br/>
-    &nbsp;&nbsp;);<br/><br/>
-    <span class="cmt">-- Write requires explicit permission grant</span><br/>
-    <span class="kw">CREATE POLICY</span> <span class="col">"site_write"</span> <span class="kw">ON</span> fuel_dispensing<br/>
-    &nbsp;&nbsp;<span class="kw">FOR INSERT WITH CHECK</span> (<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;site_id = (current_setting(<span class="col">'request.jwt.claims'</span>, <span class="kw">true</span>)::json->><span class="col">'site_id'</span>)<br/>
-    &nbsp;&nbsp;);
-  </div>
-
-  <h2>Cross-Site Features (Admin Only)</h2>
-  <ul>
-    <li><strong>Fleet-wide fuel dashboard</strong> — total consumption across all sites, ranked by site.</li>
-    <li><strong>HR headcount summary</strong> — total employees per site, per contractor, across the group.</li>
-    <li><strong>Inter-site stock &amp; fuel transfers</strong> — initiated at site A, accepted at site B.</li>
-    <li><strong>Employee transfers</strong> — HR action that changes <code>employees.site_id</code> and creates a movement record.</li>
-  </ul>
-
-  <h2>Shared Infrastructure (Used by Both New Modules)</h2>
-  <table>
-    <tr><th>Resource</th><th>Used By</th><th>Notes</th></tr>
-    <tr><td><code>sites</code> table</td><td>HR, Fuel, all modules</td><td>Already exists; drives site switcher</td></tr>
-    <tr><td><code>employees</code> table</td><td>HR (primary), Fuel (fuel requestor link)</td><td>Fuel records link employee_id for who requested/dispensed</td></tr>
-    <tr><td><code>contractors</code> table</td><td>HR (already), Fuel (vehicle ownership)</td><td>Some vehicles belong to contractor, not Bravura</td></tr>
-    <tr><td><code>audit_logs</code> table</td><td>HR, Fuel, admin</td><td>Every module writes mutations here</td></tr>
-    <tr><td><code>user_permissions</code></td><td>HR (new granular), Fuel, all modules</td><td>Replaces the current role-based can() with per-action grants</td></tr>
-    <tr><td>Email (Supabase Auth)</td><td>HR (account creation), notifications</td><td>Supabase Auth handles email delivery for invites</td></tr>
-  </table>
-</div>
-
-<!-- ════════════════════════════════════════════════════ PERMISSION SYSTEM -->
-<div class="section">
-  <div class="section-tag">SECTION 3</div>
-  <h1>Granular <span>Permission System</span></h1>
-  <hr/>
-
-  <p>The current system uses <code>can('module.action')</code> with broad actions like <code>employees.view</code>. The new modules require <strong>per-page, per-button</strong> granularity: the same user can view a fuel dispensing list but not create a new record, or can read HR documents but not delete them.</p>
-
-  <h2>Permission Levels</h2>
-  <table>
-    <tr><th>Level</th><th>What it controls</th><th>Example</th></tr>
-    <tr><td><strong>VIEW</strong></td><td>Whether the nav item / page is visible at all</td><td>Can the user see "Fuel Dispensing" in the sidebar?</td></tr>
-    <tr><td><strong>READ</strong></td><td>Whether data loads and is displayed</td><td>Can the user see the list of fuel records? Individual record detail?</td></tr>
-    <tr><td><strong>WRITE</strong></td><td>Create and edit operations</td><td>Can the user add a new dispensing record or edit an existing one?</td></tr>
-    <tr><td><strong>DELETE</strong></td><td>Archive/void/terminate operations</td><td>Can the user void a fuel record or terminate an employee?</td></tr>
-    <tr><td><strong>APPROVE</strong></td><td>Workflow approval actions</td><td>Can the user approve a fuel request or a leave application?</td></tr>
-    <tr><td><strong>EXPORT</strong></td><td>Print/download/report access</td><td>Can the user export the fuel consumption report to PDF?</td></tr>
-  </table>
-
-  <h2>New Permission Data Model</h2>
-  <div class="schema">
-    <span class="cmt">-- Replaces / extends the current roles table</span><br/>
-    <span class="kw">CREATE TABLE</span> <span class="col">role_permission_grants</span> (<br/>
-    &nbsp;&nbsp;<span class="col">id</span>          <span class="typ">uuid</span> <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),<br/>
-    &nbsp;&nbsp;<span class="col">role_id</span>     <span class="typ">uuid</span> <span class="kw">REFERENCES</span> roles(id),<br/>
-    &nbsp;&nbsp;<span class="col">resource</span>    <span class="typ">text</span> <span class="kw">NOT NULL</span>, <span class="cmt">-- e.g. 'fuel.dispensing', 'hr.documents'</span><br/>
-    &nbsp;&nbsp;<span class="col">action</span>      <span class="typ">text</span> <span class="kw">NOT NULL</span>, <span class="cmt">-- 'view'|'read'|'write'|'delete'|'approve'|'export'</span><br/>
-    &nbsp;&nbsp;<span class="col">granted</span>     <span class="typ">boolean</span> <span class="kw">NOT NULL DEFAULT false</span>,<br/>
-    &nbsp;&nbsp;<span class="col">site_id</span>     <span class="typ">uuid</span> <span class="kw">REFERENCES</span> sites(id), <span class="cmt">-- null = all sites</span><br/>
-    &nbsp;&nbsp;<span class="kw">UNIQUE</span>(role_id, resource, action, site_id)<br/>
-    );<br/><br/>
-    <span class="cmt">-- Per-user overrides (override role defaults for specific users)</span><br/>
-    <span class="kw">CREATE TABLE</span> <span class="col">user_permission_overrides</span> (<br/>
-    &nbsp;&nbsp;<span class="col">id</span>          <span class="typ">uuid</span> <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),<br/>
-    &nbsp;&nbsp;<span class="col">user_id</span>     <span class="typ">uuid</span> <span class="kw">REFERENCES</span> auth.users(id),<br/>
-    &nbsp;&nbsp;<span class="col">resource</span>    <span class="typ">text</span> <span class="kw">NOT NULL</span>,<br/>
-    &nbsp;&nbsp;<span class="col">action</span>      <span class="typ">text</span> <span class="kw">NOT NULL</span>,<br/>
-    &nbsp;&nbsp;<span class="col">granted</span>     <span class="typ">boolean</span> <span class="kw">NOT NULL</span>, <span class="cmt">-- can grant OR revoke</span><br/>
-    &nbsp;&nbsp;<span class="col">site_id</span>     <span class="typ">uuid</span> <span class="kw">REFERENCES</span> sites(id),<br/>
-    &nbsp;&nbsp;<span class="col">granted_by</span>  <span class="typ">uuid</span> <span class="kw">REFERENCES</span> auth.users(id),<br/>
-    &nbsp;&nbsp;<span class="col">created_at</span>  <span class="typ">timestamptz</span> <span class="kw">DEFAULT</span> now()<br/>
-    );
-  </div>
-
-  <h2>UI Hook: <code>can(resource, action)</code></h2>
-  <p>The existing <code>usePermissions()</code> context will be extended to load both role grants and user overrides, resolved server-side into a flat permission map cached in React context. Components use it identically to today:</p>
-  <div class="schema">
-    <span class="cmt">// In any component</span><br/>
-    <span class="kw">const</span> { can } = usePermissions()<br/><br/>
-    <span class="cmt">// Page visibility (nav)</span><br/>
-    can(<span class="col">'fuel.dispensing'</span>, <span class="col">'view'</span>)<br/><br/>
-    <span class="cmt">// Button visibility</span><br/>
-    can(<span class="col">'fuel.dispensing'</span>, <span class="col">'write'</span>)  <span class="cmt">// show Add button</span><br/>
-    can(<span class="col">'fuel.dispensing'</span>, <span class="col">'delete'</span>) <span class="cmt">// show Void button</span><br/>
-    can(<span class="col">'fuel.dispensing'</span>, <span class="col">'approve'</span>)<span class="cmt">// show Approve button</span><br/>
-    can(<span class="col">'hr.documents'</span>,    <span class="col">'read'</span>)   <span class="cmt">// load document list</span><br/>
-    can(<span class="col">'hr.accounts'</span>,     <span class="col">'write'</span>)  <span class="cmt">// show Create Account button</span>
-  </div>
-
-  <h2>Permission Matrix — HR Module</h2>
-  <table>
-    <tr>
-      <th class="hr-th">Resource</th>
-      <th class="hr-th">System Admin</th><th class="hr-th">HR Manager</th>
-      <th class="hr-th">HR Officer</th><th class="hr-th">Camp Supervisor</th>
-      <th class="hr-th">Employee</th>
-    </tr>
-    <tr><td>hr.employees — view</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td></tr>
-    <tr><td>hr.employees — write</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>hr.employees — delete</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>hr.accounts — write</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>hr.leave — approve</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-c">Site only</td><td class="perm-c">Own team</td><td class="perm-n">—</td></tr>
-    <tr><td>hr.documents — read</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-c">Own only</td></tr>
-    <tr><td>hr.documents — write</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>hr.reports — export</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-c">Site only</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>hr.performance — write</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-c">Own team</td><td class="perm-c">Own team</td><td class="perm-n">—</td></tr>
-  </table>
-
-  <h2>Permission Matrix — Fuel Module</h2>
-  <table>
-    <tr>
-      <th class="fuel-th">Resource</th>
-      <th class="fuel-th">System Admin</th><th class="fuel-th">Fuel Manager</th>
-      <th class="fuel-th">Fuel Operator</th><th class="fuel-th">Driver/Requester</th>
-      <th class="fuel-th">Finance</th>
-    </tr>
-    <tr><td>fuel.tanks — view</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-y">✓</td></tr>
-    <tr><td>fuel.tanks — write</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>fuel.dispensing — write</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>fuel.requests — write</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td></tr>
-    <tr><td>fuel.requests — approve</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>fuel.deliveries — write</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>fuel.transfers — approve</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-    <tr><td>fuel.reports — export</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-c">Site only</td><td class="perm-n">—</td><td class="perm-y">✓</td></tr>
-    <tr><td>fuel.costs — read</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td><td class="perm-y">✓</td></tr>
-    <tr><td>fuel.void — delete</td><td class="perm-y">✓</td><td class="perm-y">✓</td><td class="perm-n">—</td><td class="perm-n">—</td><td class="perm-n">—</td></tr>
-  </table>
-</div>
-
-<!-- ═══════════════════════════════════════════════════ HR MODULE ROADMAP -->
-<div class="section">
-  <div class="section-tag hr">SECTION 4 — MODULE 1</div>
-  <h1 style="color:var(--hr-color)">HR <span style="color:var(--primary-dk)">Management Module</span></h1>
-  <hr/>
-
-  <p>The HR Management module expands the current basic workforce tracking into a full employee lifecycle system. It is the backbone that other modules (Fuel, Meals, Campsite) rely on for employee data.</p>
-
-  <div class="callout hr">
-    <strong>Adoption from Legacy ERP (bravura-erp):</strong> Features from the Kamativi-specific ERP will be generalised for multi-site use. Key adoptions: employee document vault, leave request workflow with line-manager approval, performance review forms, and payroll preparation exports.
-  </div>
-
-  <div class="phases">
-
-    <div class="phase">
-      <div class="phase-header p1">
-        <div class="phase-num">1</div>
-        <div class="phase-title">
-          <h4>Foundation — Employee Accounts &amp; Granular Permissions</h4>
-          <span>Weeks 1–3 · Tafara (primary), Clement (permissions integration)</span>
-        </div>
-        <span class="phase-tag tag-foundation">FOUNDATION</span>
-      </div>
-      <div class="phase-body">
-        <h3>1.1 — Employee Account Creation (Optional)</h3>
-        <ul>
-          <li><strong>Per-employee flag:</strong> <code>employees.has_account boolean DEFAULT false</code>. Creating an account is an explicit HR action, never automatic.</li>
-          <li><strong>Account creation flow:</strong> HR clicks "Create Account" on an employee record → enters email address → system calls <code>supabase.auth.admin.inviteUserByEmail()</code> → Supabase sends a magic-link / temp-password email automatically.</li>
-          <li><strong>Initial password:</strong> Supabase generates a secure temporary password. On first login, the user is forced to change it via a <code>password_change_required</code> flag in their profile.</li>
-          <li><strong>Email delivery:</strong> Supabase Auth handles all credential emails. No plaintext passwords are ever shown in the UI.</li>
-          <li><strong>Account states:</strong> Invited (email sent, not yet logged in) → Active → Suspended → Disabled. HR can suspend or disable without deleting.</li>
-          <li><strong>Linking:</strong> <code>employees.auth_user_id uuid REFERENCES auth.users(id)</code> links the employee record to their Supabase Auth account.</li>
-          <li><strong>Role assignment:</strong> After account creation, HR assigns a role from the role list. The role determines base permissions; user-level overrides can be added per resource.</li>
-        </ul>
-
-        <h3>1.2 — New Granular Permission System</h3>
-        <ul>
-          <li>Implement <code>role_permission_grants</code> and <code>user_permission_overrides</code> tables (schema in Section 3).</li>
-          <li>Extend <code>usePermissions()</code> to resolve <code>can(resource, action)</code> from the database, not from hardcoded role lists.</li>
-          <li>Seed default permission grants for all existing roles (System Admin, Camp Supervisor, HR Officer, Meal Officer, Kitchen Staff) against all existing resources.</li>
-          <li>Build a <strong>Permission Manager</strong> UI page (Admin module) where an admin can toggle individual grants per role per resource per action — a full matrix grid with checkboxes.</li>
-          <li>Every new page in HR and Fuel must register its resource keys in a central <code>PERMISSION_RESOURCES</code> manifest so the Permission Manager auto-discovers them.</li>
-        </ul>
-
-        <h3>1.3 — Site-Scoped Account Access</h3>
-        <ul>
-          <li>A user account can have access to one or multiple sites. Table: <code>user_site_access(user_id, site_id, role_id)</code>.</li>
-          <li>When a user logs in, their site access list is loaded into <code>SiteContext</code> — the site switcher only shows sites they have access to.</li>
-          <li>System Admins automatically get access to all sites.</li>
-        </ul>
-
-        <h3>Database Changes in Phase 1</h3>
-        <ul>
-          <li>Add <code>auth_user_id</code>, <code>has_account</code>, <code>account_status</code>, <code>work_email</code> to <code>employees</code>.</li>
-          <li>Create <code>role_permission_grants</code>, <code>user_permission_overrides</code>, <code>user_site_access</code>.</li>
-          <li>Create new roles: <code>hr_manager</code>, <code>hr_officer</code>, <code>fuel_manager</code>, <code>fuel_operator</code>.</li>
-          <li>Migrate existing <code>profiles.role</code> data into <code>user_site_access</code>.</li>
-        </ul>
-
-        <h3>Integration Impact (check before coding)</h3>
-        <ul>
-          <li><code>usePermissions()</code> change affects EVERY page in the app — must be backward-compatible during migration.</li>
-          <li>Fuel module (Clement) must wait for the new <code>can(resource, action)</code> API to be merged before gating Fuel pages.</li>
-          <li><code>employees.auth_user_id</code> is referenced by Fuel module for "who dispensed fuel" linking.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="phase">
-      <div class="phase-header p2">
-        <div class="phase-num">2</div>
-        <div class="phase-title">
-          <h4>Core HR Features</h4>
-          <span>Weeks 4–7 · Tafara (primary)</span>
-        </div>
-        <span class="phase-tag tag-core">CORE</span>
-      </div>
-      <div class="phase-body">
-        <h3>2.1 — Enhanced Employee Profiles</h3>
-        <ul>
-          <li><strong>Personal details:</strong> Full name, ID number, date of birth, gender, nationality, marital status, physical address.</li>
-          <li><strong>Emergency contacts:</strong> Name, relationship, phone — at least 2 required.</li>
-          <li><strong>Employment details:</strong> Job title, department, employment type (permanent/contract/casual), start date, contract end date, probation end date, notice period.</li>
-          <li><strong>Banking:</strong> Bank name, account number, branch code — for payroll export (not for actual payroll processing).</li>
-          <li><strong>Skills &amp; qualifications:</strong> Free-form tags for skills, certifications with expiry dates.</li>
-          <li><strong>Profile photo</strong> — uploaded to Supabase Storage, displayed in employee list and profile page.</li>
-        </ul>
-
-        <h3>2.2 — Document Vault</h3>
-        <ul>
-          <li>Categories: National ID, Passport, Employment Contract, Medical Certificate, Driving License, Mine Safety Certificate, Training Certificate, Disciplinary Letter, Other.</li>
-          <li>Upload to Supabase Storage under <code>employee-docs/{employee_id}/{doc_type}/</code>.</li>
-          <li>Expiry tracking — documents with expiry dates show a warning badge 30 days before expiry.</li>
-          <li>Access control: <code>hr.documents.read</code> required to view; <code>hr.documents.write</code> to upload; <code>hr.documents.delete</code> to archive.</li>
-          <li>Employees with their own account can view their own documents under "My Documents" — gated by <code>hr.documents.read.self</code>.</li>
-        </ul>
-
-        <h3>2.3 — Leave Management (Enhanced)</h3>
-        <ul>
-          <li>Extend existing leave system with: leave balance tracking per category, leave request workflow (employee requests → supervisor approves → HR finalises).</li>
-          <li><strong>Leave balances:</strong> Accrual rules per category (e.g. Annual: 2.5 days/month), carried-over balance, used balance, remaining balance.</li>
-          <li><strong>Leave calendar:</strong> Site-level calendar showing who is on leave each day — blocks that could affect operations are highlighted.</li>
-          <li><strong>Leave request:</strong> Employees with accounts submit leave requests through the portal; supervisors are notified (in-app notification + email if configured).</li>
-          <li><strong>Approval chain:</strong> Line manager → HR Officer → auto-approved if no response within N days (configurable).</li>
-          <li><strong>Clash detection:</strong> System warns if leave request overlaps with another team member's approved leave (configurable per team size threshold).</li>
-        </ul>
-
-        <h3>2.4 — Onboarding Checklist</h3>
-        <ul>
-          <li>When a new employee is added, an onboarding checklist is auto-generated: collect ID, sign contract, issue PPE, complete induction, create system account, assign room.</li>
-          <li>HR tracks completion of each step. Incomplete onboarding shows a warning on the employee record.</li>
-          <li>Checklist templates are configurable per site and per employment type.</li>
-          <li><strong>Integration:</strong> "Assign room" step links directly to Campsite → Room Assignments. Completing that step marks the checklist item done.</li>
-        </ul>
-
-        <h3>2.5 — Offboarding / Termination Workflow</h3>
-        <ul>
-          <li>HR initiates termination → system generates offboarding checklist: return PPE, clearance from finance, room release, system account suspension, final leave balance calculation.</li>
-          <li><strong>Integration:</strong> Termination automatically suspends the linked Supabase Auth account, releases any active room assignment, clears active fuel access.</li>
-          <li><strong>Never delete</strong> — employee record is set to <code>status = 'terminated'</code>, all history preserved.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="phase">
-      <div class="phase-header p3">
-        <div class="phase-num">3</div>
-        <div class="phase-title">
-          <h4>Advanced HR Features</h4>
-          <span>Weeks 8–11 · Tafara (primary)</span>
-        </div>
-        <span class="phase-tag tag-advanced">ADVANCED</span>
-      </div>
-      <div class="phase-body">
-        <h3>3.1 — Disciplinary Management</h3>
-        <ul>
-          <li>Record disciplinary incidents: verbal warning, written warning, final written warning, suspension, dismissal.</li>
-          <li>Each incident: date, description, outcome, HR officer who handled it, employee acknowledgement flag.</li>
-          <li>Disciplinary history visible on employee profile (gated by <code>hr.disciplinary.read</code>).</li>
-          <li>Letters auto-generated from templates, stored in Document Vault.</li>
-        </ul>
-
-        <h3>3.2 — Performance Reviews</h3>
-        <ul>
-          <li>Configurable review cycles (monthly, quarterly, annual) per employment type or site.</li>
-          <li>Review form: KPIs rated 1–5, free-text comments, overall rating, development plan.</li>
-          <li>Employee self-review + manager review — final rating is an average or manager override.</li>
-          <li>Review history on employee profile.</li>
-        </ul>
-
-        <h3>3.3 — Training &amp; Certification Tracker</h3>
-        <ul>
-          <li>Training records: course name, provider, date completed, expiry date, certificate uploaded.</li>
-          <li>Compliance view: show all employees whose mandatory certifications are expired or expiring within 30 days.</li>
-          <li><strong>Integration with Fuel Module:</strong> Drivers must have a valid Driving License and Vehicle Competency certificate. Fuel dispensing to a driver whose license is expired shows a warning.</li>
-        </ul>
-
-        <h3>3.4 — HR Reports &amp; Analytics</h3>
-        <ul>
-          <li>Headcount report: by site, by contractor, by department, by employment type.</li>
-          <li>Leave report: days taken per category per employee, leave trends by month.</li>
-          <li>Turnover report: new hires vs. terminations per month per site.</li>
-          <li>Certification compliance: % of workforce with valid mandatory certs.</li>
-          <li>All reports: printable (uses existing print-only CSS), exportable to CSV.</li>
-          <li>Cross-site reports available to System Admin only.</li>
-        </ul>
-
-        <h3>3.5 — Notifications Centre</h3>
-        <ul>
-          <li>In-app notification bell in the top bar (shared with Fuel module).</li>
-          <li>HR events that trigger notifications: leave request submitted, leave approved/rejected, document expiring, contract ending within 30 days, probation ending, review due.</li>
-          <li>Notification table: <code>notifications(id, user_id, type, message, entity_type, entity_id, read, created_at)</code>.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="phase">
-      <div class="phase-header p4">
-        <div class="phase-num">4</div>
-        <div class="phase-title">
-          <h4>Analytics &amp; Automation</h4>
-          <span>Weeks 12+ · Tafara + Clement (cross-module analytics)</span>
-        </div>
-        <span class="phase-tag tag-scale">SCALE</span>
-      </div>
-      <div class="phase-body">
-        <h3>4.1 — Payroll Export</h3>
-        <ul>
-          <li>Generate payroll-ready export: employee name, ID, bank details, days worked, leave days, deductions — CSV format for import into payroll software.</li>
-          <li>Not a payroll system — preparation only. Actual salary processing is external.</li>
-        </ul>
-        <h3>4.2 — Self-Service Portal (Employee View)</h3>
-        <ul>
-          <li>Employees with accounts see their own profile, leave balance, payslips (if uploaded), documents, pending requests.</li>
-          <li>Can submit leave requests, update emergency contacts, view training records.</li>
-          <li>Cannot see other employees' data. All queries use <code>WHERE auth.uid() = auth_user_id</code>.</li>
-        </ul>
-        <h3>4.3 — Multi-Site HR Dashboard (System Admin)</h3>
-        <ul>
-          <li>Aggregate view: total headcount per site on a map/list, active leave count, upcoming contract renewals, certification compliance score per site.</li>
-          <li>Filter by site, by contractor, by date range.</li>
-        </ul>
-      </div>
-    </div>
-
-  </div><!-- /phases -->
-</div>
-
-<!-- ══════════════════════════════════════════════════ FUEL MODULE ROADMAP -->
-<div class="section">
-  <div class="section-tag fuel">SECTION 5 — MODULE 2</div>
-  <h1 style="color:var(--fuel-color)">Fuel <span style="color:var(--primary-dk)">Management Module</span></h1>
-  <hr/>
-
-  <p>The Fuel Management module tracks every litre of diesel/petrol that enters and leaves each site — from delivery receipt to vehicle dispensing. It integrates with HR (employee-linked dispensing), Finance (cost reporting), and the Camp module (generator fuel as a supply category).</p>
-
-  <div class="callout fuel">
-    <strong>Adoption from Legacy ERP:</strong> The Kamativi-site ERP had a vehicle log and basic fuel dispensing register. We generalise this for N sites, add multi-fuel-type support, inter-site transfer capability, and approval workflows for large fuel requests.
-  </div>
-
-  <div class="phases fuel-phase">
-
-    <div class="phase">
-      <div class="phase-header p1">
-        <div class="phase-num">1</div>
-        <div class="phase-title">
-          <h4>Infrastructure — Tanks, Vehicles &amp; Fuel Types</h4>
-          <span>Weeks 1–3 · Clement (primary)</span>
-        </div>
-        <span class="phase-tag tag-foundation">FOUNDATION</span>
-      </div>
-      <div class="phase-body">
-        <h3>1.1 — Fuel Types</h3>
-        <ul>
-          <li>Types: Diesel, Petrol, Paraffin, Aviation (extensible). Managed in a <code>fuel_types</code> lookup table.</li>
-          <li>Each tank holds one fuel type. Dispensing records reference the fuel type.</li>
-        </ul>
-
-        <h3>1.2 — Tank / Storage Management (Per Site)</h3>
-        <ul>
-          <li>Each site has one or more tanks: tank name, fuel type, capacity (litres), current level, location description, status (active/maintenance/decommissioned).</li>
-          <li>Tank level is derived: starting level + deliveries − dispensed = current level. Never stored as a single editable number (audit trail).</li>
-          <li>Low-stock alert threshold configurable per tank (e.g. warn when below 20%).</li>
-          <li><strong>Integration:</strong> Camp Supplies module has a "fuel" category for generator fuel — Phase 1 must decide whether generator fuel routes through Fuel module or stays in Supplies. Decision: <strong>generator fuel goes through Fuel module, linked to a dedicated "Generator" vehicle record</strong>. Supplies module is updated to remove its fuel category.</li>
-        </ul>
-
-        <h3>1.3 — Vehicle &amp; Equipment Registry (Per Site)</h3>
-        <ul>
-          <li>Vehicles: registration number, make/model, year, type (light vehicle, heavy equipment, generator, water pump, compressor, other), assigned site, ownership (Bravura / contractor), assigned contractor (if contractor-owned), current driver/operator (links to <code>employees</code>).</li>
-          <li>Equipment: asset tag, description, type, site, fuel type used, average consumption rate (litres/hour).</li>
-          <li>Status: active, grounded (maintenance), decommissioned — never deleted.</li>
-          <li><strong>Integration with HR:</strong> <code>vehicles.primary_driver_id → employees.id</code>. The vehicle record is updated when an employee is terminated.</li>
-        </ul>
-
-        <h3>1.4 — Supplier Management</h3>
-        <ul>
-          <li>Fuel suppliers: name, contact person, phone, email, typical lead time, contracted price per litre per fuel type.</li>
-          <li>Supplier records are global (not site-scoped) since the same supplier can deliver to multiple sites.</li>
-        </ul>
-
-        <h3>Database Changes in Phase 1</h3>
-        <div class="schema">
-          <span class="kw">CREATE TABLE</span> <span class="col">fuel_types</span> (id, name, unit <span class="typ">text DEFAULT 'litres'</span>);<br/>
-          <span class="kw">CREATE TABLE</span> <span class="col">fuel_tanks</span> (id, site_id, name, fuel_type_id, capacity_litres, low_alert_threshold, status);<br/>
-          <span class="kw">CREATE TABLE</span> <span class="col">vehicles</span> (id, site_id, registration, make, model, type, ownership, contractor_id, primary_driver_id, fuel_type_id, status);<br/>
-          <span class="kw">CREATE TABLE</span> <span class="col">fuel_suppliers</span> (id, name, contact_name, phone, email);
-        </div>
-      </div>
-    </div>
-
-    <div class="phase">
-      <div class="phase-header p2">
-        <div class="phase-num">2</div>
-        <div class="phase-title">
-          <h4>Core Fuel Operations</h4>
-          <span>Weeks 4–7 · Clement (primary)</span>
-        </div>
-        <span class="phase-tag tag-core">CORE</span>
-      </div>
-      <div class="phase-body">
-        <h3>2.1 — Fuel Deliveries (Receipts)</h3>
-        <ul>
-          <li>Record incoming fuel delivery: date, supplier, tank, litres received, price per litre, total cost, delivery note number, received by (employee), notes.</li>
-          <li>On save: tank level increases by delivered litres. An <code>audit_logs</code> entry is written.</li>
-          <li>Attachments: photo of delivery note / GRN uploadable to Supabase Storage.</li>
-          <li>Deliveries can be edited within 24 hours (write permission required); after that, corrections must use a Void + Re-enter workflow.</li>
-        </ul>
-
-        <h3>2.2 — Fuel Requests</h3>
-        <ul>
-          <li>Any user with <code>fuel.requests.write</code> can raise a fuel request: vehicle/equipment, fuel type, quantity requested, purpose, requested date.</li>
-          <li><strong>Approval workflow:</strong> Request → Pending → Approved / Rejected. Users with <code>fuel.requests.approve</code> see a pending queue.</li>
-          <li>Approved requests generate a "fuel chit" — a reference number that the fuel operator uses when recording actual dispensing.</li>
-          <li>Requests with quantity above a configurable threshold (e.g. 500 litres) require dual approval.</li>
-        </ul>
-
-        <h3>2.3 — Fuel Dispensing</h3>
-        <ul>
-          <li>Operator records dispensing: date/time, tank, vehicle/equipment, fuel chit reference (optional — can dispense without pre-request for small operational top-ups), odometer/hours reading, litres dispensed, dispensed by (operator employee), driver/operator (employee).</li>
-          <li>On save: tank level decreases. If this would take the tank below the low-alert threshold, a warning is shown (but not blocked — operator can override).</li>
-          <li><strong>Validation:</strong> Cannot dispense more than tank current level. Cannot dispense to a vehicle that is grounded. Cannot dispense to a driver whose driving license is expired (warning, not hard block — operator must acknowledge).</li>
-          <li><strong>Integration with HR:</strong> Driver employee ID looked up; certification check runs against <code>employee_training_records</code>.</li>
-        </ul>
-
-        <h3>2.4 — Inter-Site Fuel Transfers</h3>
-        <ul>
-          <li>Site A initiates transfer: from tank, to site, to tank (at destination), litres, reason, date.</li>
-          <li>Status: Pending → In Transit → Received / Rejected.</li>
-          <li>Site A's tank level decreases on initiation. Site B's tank level increases on receipt confirmation.</li>
-          <li>Requires <code>fuel.transfers.approve</code> at both sites.</li>
-          <li>Transfer record preserved on both sites' audit trails.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="phase">
-      <div class="phase-header p3">
-        <div class="phase-num">3</div>
-        <div class="phase-title">
-          <h4>Reporting &amp; Cost Control</h4>
-          <span>Weeks 8–10 · Clement (primary), Tafara (cross-module reports)</span>
-        </div>
-        <span class="phase-tag tag-advanced">ADVANCED</span>
-      </div>
-      <div class="phase-body">
-        <h3>3.1 — Fuel Consumption Reports</h3>
-        <ul>
-          <li>By vehicle: litres consumed per period, cost, km/litres or litres/hour efficiency trend.</li>
-          <li>By department/contractor: total fuel consumed by contractor employees, cost allocation.</li>
-          <li>By tank: running balance chart, delivery vs. dispensing over time.</li>
-          <li>By fuel type: totals across all tanks at a site.</li>
-          <li>All reports are site-scoped; cross-site summary available to System Admin.</li>
-          <li>Print-ready (uses existing <code>print-only</code> CSS) and CSV export.</li>
-        </ul>
-
-        <h3>3.2 — Cost Reporting &amp; Budget Tracking</h3>
-        <ul>
-          <li>Total fuel cost per month per site, variance against budget (if budget is set).</li>
-          <li>Cost per vehicle — identify high-consumption or inefficient vehicles.</li>
-          <li>Price trend chart — cost per litre over time per supplier.</li>
-          <li>Finance role can see cost data; operators cannot (gated by <code>fuel.costs.read</code>).</li>
-        </ul>
-
-        <h3>3.3 — Anomaly &amp; Leakage Detection</h3>
-        <ul>
-          <li>Tank reconciliation: (opening balance + deliveries) − dispensed = expected closing balance. Variance flags potential leakage or meter inaccuracy.</li>
-          <li>Unusual consumption alert: if a vehicle's litres/km ratio spikes &gt;30% above its 30-day average, flag it for review.</li>
-          <li>Orphan dispensing: dispensing records without a fuel chit above a configurable threshold are flagged.</li>
-        </ul>
-
-        <h3>3.4 — Fuel Module Dashboard</h3>
-        <ul>
-          <li>Site dashboard: tank levels (visual gauge), today's dispensing total, pending requests, recent deliveries, low-stock alerts.</li>
-          <li>Quick actions: New Dispensing, New Delivery, New Request — gated by respective permissions.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="phase">
-      <div class="phase-header p4">
-        <div class="phase-num">4</div>
-        <div class="phase-title">
-          <h4>Automation &amp; Fleet Intelligence</h4>
-          <span>Weeks 11+ · Clement + Tafara</span>
-        </div>
-        <span class="phase-tag tag-scale">SCALE</span>
-      </div>
-      <div class="phase-body">
-        <h3>4.1 — Automated Reorder Alerts</h3>
-        <ul>
-          <li>When a tank drops below its reorder threshold, a fuel request is auto-drafted and the Fuel Manager is notified.</li>
-          <li>Reorder quantities and preferred supplier pre-configured per tank.</li>
-        </ul>
-        <h3>4.2 — Vehicle Service Integration</h3>
-        <ul>
-          <li>Track service intervals by odometer or hours. When a vehicle is due for service (calculated from last service + interval), show a warning on dispensing and in the vehicle list.</li>
-          <li>Service records: date, type (oil change, tyres, full service), provider, cost, next due date.</li>
-        </ul>
-        <h3>4.3 — Multi-Site Fleet View (System Admin)</h3>
-        <ul>
-          <li>All vehicles across all sites in one table. Filter by site, by type, by status.</li>
-          <li>Fleet-wide fuel cost YTD, consumption by site comparison chart.</li>
-        </ul>
-        <h3>4.4 — Mobile-Friendly Dispensing Entry</h3>
-        <ul>
-          <li>Fuel operators in the field often use phones. The dispensing entry form must be fully usable on mobile — large inputs, minimal scrolling, offline-capable (queue locally, sync when connected).</li>
-        </ul>
-      </div>
-    </div>
-
-  </div><!-- /fuel phases -->
-</div>
-
-<!-- ═══════════════════════════════════════════ CROSS-MODULE INTEGRATION -->
-<div class="section">
-  <div class="section-tag">SECTION 6</div>
-  <h1>Cross-Module <span>Integration Map</span></h1>
-  <hr/>
-
-  <div class="callout warn">
-    <strong>Rule for both developers:</strong> Before coding any feature that reads or writes a table owned by another module, open a discussion (GitHub issue or direct communication). Any PR that modifies a shared table must be reviewed by both developers before merge.
-  </div>
-
-  <div class="int-grid">
-    <div class="int-card">
-      <h4 style="color:var(--hr-color)">HR → Fuel</h4>
-      <ul>
-        <li>Employee termination suspends fuel access (via <code>employees.status</code> trigger)</li>
-        <li>Driver certification check on dispensing (<code>employee_training_records</code>)</li>
-        <li>Vehicle primary driver linked to <code>employees.id</code></li>
-        <li>Fuel dispensing records reference <code>employee_id</code> (operator + driver)</li>
-        <li>Employee transfer changes <code>vehicle.site_id</code> for assigned vehicles</li>
-      </ul>
-    </div>
-    <div class="int-card">
-      <h4 style="color:var(--fuel-color)">Fuel → HR</h4>
-      <ul>
-        <li>Fuel cost report can be broken down by contractor (links to <code>contractors</code>)</li>
-        <li>Fuel requests show requester name from <code>employees</code></li>
-        <li>Vehicle service cost can be allocated to a department</li>
-        <li>Fuel anomaly alerts notify the HR/Operations manager</li>
-      </ul>
-    </div>
-    <div class="int-card">
-      <h4 style="color:var(--primary)">HR → Campsite</h4>
-      <ul>
-        <li>Onboarding checklist → "Assign Room" step deep-links to CampAssignments</li>
-        <li>Offboarding → room release (already implemented via DB trigger)</li>
-        <li>Long leave → room auto-release (trigger created this session)</li>
-        <li>Campsite headcount links to <code>employees.site_id</code></li>
-      </ul>
-    </div>
-    <div class="int-card">
-      <h4 style="color:var(--primary)">HR → Meals</h4>
-      <ul>
-        <li>Meal headcount derived from active employees at a site</li>
-        <li>Employee termination/transfer affects meal count for that site</li>
-        <li>Billing report links meal count to employee's contractor for cost allocation</li>
-      </ul>
-    </div>
-    <div class="int-card">
-      <h4 style="color:var(--fuel-color)">Fuel → Campsite / Supplies</h4>
-      <ul>
-        <li>Generator fuel removed from Supplies module — migrated to Fuel module</li>
-        <li>Generator is registered as a vehicle/equipment in Fuel module</li>
-        <li>Fuel tank location maps to camp block location</li>
-      </ul>
-    </div>
-    <div class="int-card">
-      <h4 style="color:var(--info)">Both → Admin / Audit</h4>
-      <ul>
-        <li>Every mutation in HR and Fuel writes to <code>audit_logs</code></li>
-        <li>Permission Manager (Admin module) controls all HR and Fuel grants</li>
-        <li>AuditLogViewer (already live) shows HR and Fuel events with correct entity labels</li>
-        <li>Notification centre (new, shared) serves both modules</li>
-      </ul>
-    </div>
-  </div>
-
-  <h2>Shared Tables — Ownership &amp; Write Rules</h2>
-  <table>
-    <tr><th>Table</th><th>Primary Owner</th><th>Who Else Writes</th><th>Rule</th></tr>
-    <tr><td><code>employees</code></td><td>HR (Tafara)</td><td>Fuel (driver link updates)</td><td>Fuel only writes <code>primary_driver_id</code> on vehicles, reads employees</td></tr>
-    <tr><td><code>contractors</code></td><td>HR (Tafara)</td><td>Fuel (vehicle ownership)</td><td>Fuel reads contractor; HR owns write</td></tr>
-    <tr><td><code>audit_logs</code></td><td>Admin (shared)</td><td>HR, Fuel, all modules</td><td>Insert-only; no module updates or deletes</td></tr>
-    <tr><td><code>notifications</code></td><td>Shared</td><td>HR, Fuel, Campsite</td><td>Each module inserts its own notifications; users clear their own</td></tr>
-    <tr><td><code>role_permission_grants</code></td><td>Admin (shared)</td><td>HR sets HR grants, Fuel sets Fuel grants at seed time</td><td>Admin UI manages runtime; seeds via migration</td></tr>
-    <tr><td><code>sites</code></td><td>Admin (shared)</td><td>Read-only by all modules</td><td>New sites added by System Admin only</td></tr>
-  </table>
-</div>
-
-<!-- ══════════════════════════════════════════════════════ DATABASE SCHEMA -->
-<div class="section">
-  <div class="section-tag">SECTION 7</div>
-  <h1>Database <span>Schema</span></h1>
-  <hr/>
-
-  <h2 class="hr">HR Module — New Tables</h2>
-  <div class="schema">
-    <span class="cmt">-- Employee extended fields (ALTER TABLE employees ADD COLUMN ...)</span><br/>
-    <span class="col">auth_user_id</span>       <span class="typ">uuid REFERENCES auth.users(id)</span><br/>
-    <span class="col">has_account</span>        <span class="typ">boolean DEFAULT false</span><br/>
-    <span class="col">account_status</span>     <span class="typ">text DEFAULT 'none'</span> <span class="cmt">-- none|invited|active|suspended|disabled</span><br/>
-    <span class="col">work_email</span>         <span class="typ">text</span><br/>
-    <span class="col">personal_email</span>     <span class="typ">text</span><br/>
-    <span class="col">date_of_birth</span>      <span class="typ">date</span><br/>
-    <span class="col">id_number</span>          <span class="typ">text</span><br/>
-    <span class="col">job_title</span>          <span class="typ">text</span><br/>
-    <span class="col">department</span>         <span class="typ">text</span><br/>
-    <span class="col">employment_type</span>    <span class="typ">text</span> <span class="cmt">-- permanent|contract|casual</span><br/>
-    <span class="col">contract_end_date</span>  <span class="typ">date</span><br/>
-    <span class="col">probation_end_date</span> <span class="typ">date</span><br/>
-    <span class="col">bank_name</span>          <span class="typ">text</span><br/>
-    <span class="col">bank_account</span>       <span class="typ">text</span><br/>
-    <span class="col">photo_url</span>          <span class="typ">text</span><br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">employee_emergency_contacts</span> (<br/>
-    &nbsp;&nbsp;id, employee_id <span class="kw">REFERENCES</span> employees(id),<br/>
-    &nbsp;&nbsp;name <span class="typ">text</span>, relationship <span class="typ">text</span>, phone <span class="typ">text</span>, is_primary <span class="typ">boolean</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">employee_documents</span> (<br/>
-    &nbsp;&nbsp;id, employee_id, site_id, category <span class="typ">text</span>, name <span class="typ">text</span>,<br/>
-    &nbsp;&nbsp;storage_path <span class="typ">text</span>, expiry_date <span class="typ">date</span>,<br/>
-    &nbsp;&nbsp;uploaded_by <span class="kw">REFERENCES</span> auth.users(id), uploaded_at <span class="typ">timestamptz</span>,<br/>
-    &nbsp;&nbsp;archived <span class="typ">boolean DEFAULT false</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">employee_training_records</span> (<br/>
-    &nbsp;&nbsp;id, employee_id, site_id, course_name <span class="typ">text</span>, provider <span class="typ">text</span>,<br/>
-    &nbsp;&nbsp;completed_date <span class="typ">date</span>, expiry_date <span class="typ">date</span>,<br/>
-    &nbsp;&nbsp;certificate_path <span class="typ">text</span>, is_mandatory <span class="typ">boolean</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">leave_balances</span> (<br/>
-    &nbsp;&nbsp;id, employee_id, site_id, category <span class="typ">text</span>, year <span class="typ">int</span>,<br/>
-    &nbsp;&nbsp;accrued <span class="typ">numeric</span>, used <span class="typ">numeric</span>, carried_over <span class="typ">numeric</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">leave_requests</span> (<br/>
-    &nbsp;&nbsp;id, employee_id, site_id, category <span class="typ">text</span>,<br/>
-    &nbsp;&nbsp;start_date <span class="typ">date</span>, end_date <span class="typ">date</span>, days <span class="typ">numeric</span>,<br/>
-    &nbsp;&nbsp;reason <span class="typ">text</span>, status <span class="typ">text</span> <span class="cmt">-- pending|approved|rejected|cancelled</span>,<br/>
-    &nbsp;&nbsp;approved_by <span class="kw">REFERENCES</span> auth.users(id), approved_at <span class="typ">timestamptz</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">onboarding_checklists</span> (<br/>
-    &nbsp;&nbsp;id, employee_id, site_id, template_id, created_at <span class="typ">timestamptz</span><br/>
-    );<br/>
-    <span class="kw">CREATE TABLE</span> <span class="col">onboarding_checklist_items</span> (<br/>
-    &nbsp;&nbsp;id, checklist_id, step_name <span class="typ">text</span>, completed <span class="typ">boolean</span>,<br/>
-    &nbsp;&nbsp;completed_by <span class="kw">REFERENCES</span> auth.users(id), completed_at <span class="typ">timestamptz</span>,<br/>
-    &nbsp;&nbsp;link_module <span class="typ">text</span>, link_page <span class="typ">text</span> <span class="cmt">-- for deep-link to e.g. campsite/assignments</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">disciplinary_records</span> (<br/>
-    &nbsp;&nbsp;id, employee_id, site_id, incident_date <span class="typ">date</span>,<br/>
-    &nbsp;&nbsp;type <span class="typ">text</span> <span class="cmt">-- verbal_warning|written_warning|final_warning|suspension|dismissal</span>,<br/>
-    &nbsp;&nbsp;description <span class="typ">text</span>, outcome <span class="typ">text</span>,<br/>
-    &nbsp;&nbsp;handled_by <span class="kw">REFERENCES</span> auth.users(id), employee_acknowledged <span class="typ">boolean</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">notifications</span> (<br/>
-    &nbsp;&nbsp;id, user_id <span class="kw">REFERENCES</span> auth.users(id),<br/>
-    &nbsp;&nbsp;type <span class="typ">text</span>, title <span class="typ">text</span>, message <span class="typ">text</span>,<br/>
-    &nbsp;&nbsp;entity_type <span class="typ">text</span>, entity_id <span class="typ">uuid</span>,<br/>
-    &nbsp;&nbsp;read <span class="typ">boolean DEFAULT false</span>, created_at <span class="typ">timestamptz DEFAULT now()</span><br/>
-    );
-  </div>
-
-  <h2 class="fuel">Fuel Module — New Tables</h2>
-  <div class="schema">
-    <span class="kw">CREATE TABLE</span> <span class="col">fuel_types</span> (id, name <span class="typ">text</span>, unit <span class="typ">text DEFAULT 'litres'</span>);<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">fuel_tanks</span> (<br/>
-    &nbsp;&nbsp;id, site_id, name <span class="typ">text</span>, fuel_type_id, capacity_litres <span class="typ">numeric</span>,<br/>
-    &nbsp;&nbsp;low_alert_threshold_pct <span class="typ">numeric DEFAULT 20</span>,<br/>
-    &nbsp;&nbsp;reorder_qty_litres <span class="typ">numeric</span>, preferred_supplier_id,<br/>
-    &nbsp;&nbsp;status <span class="typ">text DEFAULT 'active'</span> <span class="cmt">-- active|maintenance|decommissioned</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">vehicles</span> (<br/>
-    &nbsp;&nbsp;id, site_id, registration <span class="typ">text</span>, make <span class="typ">text</span>, model <span class="typ">text</span>, year <span class="typ">int</span>,<br/>
-    &nbsp;&nbsp;type <span class="typ">text</span> <span class="cmt">-- light_vehicle|heavy_equipment|generator|water_pump|other</span>,<br/>
-    &nbsp;&nbsp;ownership <span class="typ">text</span> <span class="cmt">-- bravura|contractor</span>,<br/>
-    &nbsp;&nbsp;contractor_id <span class="kw">REFERENCES</span> contractors(id),<br/>
-    &nbsp;&nbsp;primary_driver_id <span class="kw">REFERENCES</span> employees(id),<br/>
-    &nbsp;&nbsp;fuel_type_id <span class="kw">REFERENCES</span> fuel_types(id),<br/>
-    &nbsp;&nbsp;avg_consumption_rate <span class="typ">numeric</span>, <span class="cmt">-- litres/100km or litres/hour</span><br/>
-    &nbsp;&nbsp;status <span class="typ">text DEFAULT 'active'</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">fuel_suppliers</span> (id, name, contact_name, phone, email);<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">fuel_deliveries</span> (<br/>
-    &nbsp;&nbsp;id, site_id, tank_id, supplier_id,<br/>
-    &nbsp;&nbsp;delivery_date <span class="typ">date</span>, litres_received <span class="typ">numeric</span>,<br/>
-    &nbsp;&nbsp;price_per_litre <span class="typ">numeric</span>, total_cost <span class="typ">numeric</span>,<br/>
-    &nbsp;&nbsp;delivery_note_number <span class="typ">text</span>, received_by <span class="kw">REFERENCES</span> employees(id),<br/>
-    &nbsp;&nbsp;attachment_path <span class="typ">text</span>, notes <span class="typ">text</span>,<br/>
-    &nbsp;&nbsp;voided <span class="typ">boolean DEFAULT false</span>, voided_by, voided_at<br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">fuel_requests</span> (<br/>
-    &nbsp;&nbsp;id, site_id, vehicle_id, fuel_type_id, tank_id,<br/>
-    &nbsp;&nbsp;qty_requested <span class="typ">numeric</span>, purpose <span class="typ">text</span>, requested_date <span class="typ">date</span>,<br/>
-    &nbsp;&nbsp;requested_by <span class="kw">REFERENCES</span> employees(id),<br/>
-    &nbsp;&nbsp;status <span class="typ">text DEFAULT 'pending'</span> <span class="cmt">-- pending|approved|rejected|fulfilled|cancelled</span>,<br/>
-    &nbsp;&nbsp;approved_by, approved_at, chit_number <span class="typ">text UNIQUE</span><br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">fuel_dispensing</span> (<br/>
-    &nbsp;&nbsp;id, site_id, tank_id, vehicle_id, request_id <span class="kw">REFERENCES</span> fuel_requests(id),<br/>
-    &nbsp;&nbsp;dispensed_at <span class="typ">timestamptz</span>, litres_dispensed <span class="typ">numeric</span>,<br/>
-    &nbsp;&nbsp;odometer_reading <span class="typ">numeric</span>, hours_reading <span class="typ">numeric</span>,<br/>
-    &nbsp;&nbsp;dispensed_by <span class="kw">REFERENCES</span> employees(id),<br/>
-    &nbsp;&nbsp;driver_id <span class="kw">REFERENCES</span> employees(id),<br/>
-    &nbsp;&nbsp;notes <span class="typ">text</span>, voided <span class="typ">boolean DEFAULT false</span>, voided_by, voided_at<br/>
-    );<br/><br/>
-
-    <span class="kw">CREATE TABLE</span> <span class="col">fuel_transfers</span> (<br/>
-    &nbsp;&nbsp;id, from_site_id, from_tank_id, to_site_id, to_tank_id,<br/>
-    &nbsp;&nbsp;litres <span class="typ">numeric</span>, initiated_by <span class="kw">REFERENCES</span> employees(id),<br/>
-    &nbsp;&nbsp;status <span class="typ">text DEFAULT 'pending'</span> <span class="cmt">-- pending|in_transit|received|rejected</span>,<br/>
-    &nbsp;&nbsp;received_by, received_at <span class="typ">timestamptz</span>, notes <span class="typ">text</span><br/>
-    );<br/><br/>
-
-    <span class="cmt">-- DB function: derived tank level</span><br/>
-    <span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="col">get_tank_current_level</span>(p_tank_id <span class="typ">uuid</span>)<br/>
-    <span class="kw">RETURNS numeric AS</span> $$ <span class="kw">SELECT</span><br/>
-    &nbsp;&nbsp;COALESCE((<span class="kw">SELECT</span> SUM(litres_received) <span class="kw">FROM</span> fuel_deliveries <span class="kw">WHERE</span> tank_id=p_tank_id <span class="kw">AND NOT</span> voided), 0) -<br/>
-    &nbsp;&nbsp;COALESCE((<span class="kw">SELECT</span> SUM(litres_dispensed) <span class="kw">FROM</span> fuel_dispensing <span class="kw">WHERE</span> tank_id=p_tank_id <span class="kw">AND NOT</span> voided), 0) +<br/>
-    &nbsp;&nbsp;COALESCE((<span class="kw">SELECT</span> SUM(litres) <span class="kw">FROM</span> fuel_transfers <span class="kw">WHERE</span> to_tank_id=p_tank_id <span class="kw">AND</span> status=<span class="col">'received'</span>), 0) -<br/>
-    &nbsp;&nbsp;COALESCE((<span class="kw">SELECT</span> SUM(litres) <span class="kw">FROM</span> fuel_transfers <span class="kw">WHERE</span> from_tank_id=p_tank_id <span class="kw">AND</span> status<span class="kw">!=</span><span class="col">'rejected'</span>), 0)<br/>
-    $$ <span class="kw">LANGUAGE SQL STABLE</span>;
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════ DEVELOPER OWNERSHIP -->
-<div class="section">
-  <div class="section-tag">SECTION 8</div>
-  <h1>Developer <span>Ownership &amp; Collaboration</span></h1>
-  <hr/>
-
-  <div class="callout info">
-    <strong>Both developers can modify any module.</strong> Ownership means primary responsibility for delivery and review, not exclusive access. When either developer touches a file outside their primary module, they must note the change in the commit message and flag it if it affects shared tables or contexts.
-  </div>
-
-  <div class="dev-table">
-    <div class="dev-col">
-      <div class="dev-col-header tafara">Tafara — HR Module Lead</div>
-      <div class="dev-col-body">
-        <strong>Primary Files:</strong>
-        <ul>
-          <li><code>src/pages/workforce/*</code></li>
-          <li><code>src/pages/admin/UserManagement.jsx</code></li>
-          <li><code>src/pages/admin/PermissionManager.jsx</code> (new)</li>
-          <li><code>src/contexts/PermissionsContext.jsx</code></li>
-          <li><code>src/contexts/AuthContext.jsx</code></li>
-          <li>All HR Supabase migrations</li>
-        </ul>
-        <strong>Shared Responsibility:</strong>
-        <ul>
-          <li><code>src/components/ui.jsx</code> — coordinate with Clement</li>
-          <li><code>src/utils/permissions.js</code> — coordinate with Clement</li>
-          <li><code>src/contexts/SiteContext.jsx</code> — shared</li>
-          <li>Notification centre (both benefit)</li>
-        </ul>
-        <strong>Must Review Before Merge:</strong>
-        <ul>
-          <li>Any Fuel PR that touches <code>employees</code> table schema</li>
-          <li>Any PR that changes <code>usePermissions()</code> API</li>
-        </ul>
-      </div>
-    </div>
-    <div class="dev-col">
-      <div class="dev-col-header clement">Clement — Fuel Module Lead</div>
-      <div class="dev-col-body">
-        <strong>Primary Files:</strong>
-        <ul>
-          <li><code>src/pages/fuel/*</code> (new module folder)</li>
-          <li><code>src/pages/campsite/CampSupplies.jsx</code> (generator fuel migration)</li>
-          <li>All Fuel Supabase migrations</li>
-          <li><code>src/contexts/FuelContext.jsx</code> (new)</li>
-        </ul>
-        <strong>Shared Responsibility:</strong>
-        <ul>
-          <li><code>src/components/ui.jsx</code> — coordinate with Tafara</li>
-          <li><code>src/App.jsx</code> — add fuel routes</li>
-          <li><code>src/utils/permissions.js</code> — add fuel resource keys</li>
-          <li>Notification centre (shared with HR)</li>
-        </ul>
-        <strong>Must Review Before Merge:</strong>
-        <ul>
-          <li>Any HR PR that modifies <code>contractors</code> schema (Fuel uses it)</li>
-          <li>Any PR that changes <code>SiteContext</code> API</li>
-          <li>Any changes to shared table RLS policies</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <h2>Git Workflow</h2>
-  <ul>
-    <li><strong>Branches:</strong> <code>feature/hr-phase1-accounts</code>, <code>feature/fuel-phase1-tanks</code>, etc.</li>
-    <li><strong>Never push directly to main</strong> — all work goes through feature branches; merge via PR after self-review.</li>
-    <li><strong>Cross-module changes</strong> — if Clement's PR touches <code>employees</code>, Tafara must be tagged for review.</li>
-    <li><strong>Migration files</strong> — go in <code>supabase/migrations/</code>, named <code>YYYYMMDD_HHMMSS_description.sql</code>. Never run migrations directly in the dashboard without also committing the SQL file.</li>
-    <li><strong>Shared context changes</strong> — changes to <code>PermissionsContext</code>, <code>SiteContext</code>, or <code>CampsiteContext</code> must be agreed by both developers before implementation.</li>
-  </ul>
-
-  <h2>Before Writing Any New Page — Checklist</h2>
+<div class="toc">
+  <h3>Table of Contents</h3>
   <ol>
-    <li>Identify every table the page reads from or writes to.</li>
-    <li>For each table: who owns it? Does it need a new column? Does the RLS policy allow this user's access pattern?</li>
-    <li>Identify every other page or module that reads the same table — will this change break them?</li>
-    <li>Map the permission resource key: <code>module.page.action</code> — is it in the permissions manifest?</li>
-    <li>Does this page need to fire a notification? Add it to the notification type list.</li>
-    <li>Does this page need an audit log entry? Add it to the audit event list.</li>
-    <li>Is the page printable? Add <code>print-only</code> header and <code>no-print</code> controls.</li>
-    <li>Is the page correctly filtering by <code>currentSiteId</code> for all queries?</li>
+    <li><a href="#s1">Executive Summary</a></li>
+    <li><a href="#s2">Master Prompt — AI Session Context</a></li>
+    <li><a href="#s3">Project Vision &amp; ERP Philosophy</a></li>
+    <li><a href="#s4">Existing ERP Assessment (bravura-erp)</a></li>
+    <li><a href="#s5">Technology Stack</a></li>
+    <li><a href="#s6">System Architecture</a></li>
+    <li><a href="#s7">Multi-Site Architecture</a></li>
+    <li><a href="#s8">Authentication &amp; Authorization Design</a></li>
+    <li><a href="#s9">Permission System — Granular RBAC</a></li>
+    <li><a href="#s10">UI/UX Standards (Material Design 3)</a></li>
+    <li><a href="#s11">AI-First User Experience</a></li>
+    <li><a href="#s12">Module Settings Philosophy</a></li>
+    <li><a href="#s13">Dashboard Philosophy</a></li>
+    <li><a href="#s14">HR Module — Full Roadmap (Tafara)</a></li>
+    <li><a href="#s15">Fuel Module — Full Roadmap (Clement)</a></li>
+    <li><a href="#s16">Cross-Module Integration Strategy</a></li>
+    <li><a href="#s17">Database Design &amp; Conventions</a></li>
+    <li><a href="#s18">API Design Standards</a></li>
+    <li><a href="#s19">Development Standards &amp; Coding Conventions</a></li>
+    <li><a href="#s20">Git Workflow &amp; Branching Strategy</a></li>
+    <li><a href="#s21">Phased Timeline &amp; Milestones</a></li>
+    <li><a href="#s22">Testing Strategy</a></li>
+    <li><a href="#s23">Deployment &amp; DevOps</a></li>
+    <li><a href="#s24">Security Strategy</a></li>
+    <li><a href="#s25">Future Modules &amp; Long-Term Expansion</a></li>
+    <li><a href="#s26">Risk Assessment &amp; Mitigations</a></li>
+    <li><a href="#s27">Recommendations &amp; Immediate Next Steps</a></li>
   </ol>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════ TIMELINE -->
-<div class="section">
-  <div class="section-tag">SECTION 9</div>
-  <h1>Master <span>Timeline</span></h1>
-  <hr/>
+<h2 id="s1">1. Executive Summary</h2>
 
-  <p>Both modules develop in parallel. The foundation phases must complete before core phases start, as the granular permissions system (HR Phase 1) is a dependency for all Fuel page gates.</p>
+<p>Bravura Resources is building a complete Enterprise Resource Planning platform to manage every business operation across multiple company sites — mines, processing plants, workshops, fuel stations, warehouses, and offices. The ERP is not a rewrite of any prior system; it is an evolution. The previous ERP (bravura-erp, built for Kamativi Mine) is the foundation from which concepts, workflows, database patterns, and reusable logic will be adopted and generalised.</p>
 
-  <div class="timeline">
-    <div class="tl-row">
-      <div class="tl-date">Week 1–2</div>
-      <div class="tl-line"><div class="tl-dot dot-both"></div><div class="tl-vline"></div></div>
-      <div class="tl-content">
-        <h4>Both — Permission System Foundation</h4>
-        <p>New <code>role_permission_grants</code> + <code>user_permission_overrides</code> tables. Extend <code>usePermissions()</code>. Seed existing roles. <em>Tafara leads; Clement reviews and integrates Fuel resource keys.</em></p>
-      </div>
-    </div>
-    <div class="tl-row">
-      <div class="tl-date">Week 1–3</div>
-      <div class="tl-line"><div class="tl-dot dot-fuel"></div><div class="tl-vline"></div></div>
-      <div class="tl-content">
-        <h4>Clement — Fuel Phase 1: Infrastructure</h4>
-        <p>Fuel types, tanks, vehicles, supplier tables + pages. Site-scoped. No dispensing yet.</p>
-      </div>
-    </div>
-    <div class="tl-row">
-      <div class="tl-date">Week 2–4</div>
-      <div class="tl-line"><div class="tl-dot dot-hr"></div><div class="tl-vline"></div></div>
-      <div class="tl-content">
-        <h4>Tafara — HR Phase 1: Employee Accounts</h4>
-        <p>Account creation flow, email invite, password change on first login, account status management, site access table.</p>
-      </div>
-    </div>
-    <div class="tl-row">
-      <div class="tl-date">Week 4–7</div>
-      <div class="tl-line"><div class="tl-dot dot-fuel"></div><div class="tl-vline"></div></div>
-      <div class="tl-content">
-        <h4>Clement — Fuel Phase 2: Core Operations</h4>
-        <p>Deliveries, requests + approval workflow, dispensing (with HR cert check), inter-site transfers.</p>
-      </div>
-    </div>
-    <div class="tl-row">
-      <div class="tl-date">Week 4–7</div>
-      <div class="tl-line"><div class="tl-dot dot-hr"></div><div class="tl-vline"></div></div>
-      <div class="tl-content">
-        <h4>Tafara — HR Phase 2: Core HR</h4>
-        <p>Enhanced profiles, document vault, leave balances + request workflow, onboarding checklist, offboarding workflow.</p>
-      </div>
-    </div>
-    <div class="tl-row">
-      <div class="tl-date">Week 7–8</div>
-      <div class="tl-line"><div class="tl-dot dot-both"></div><div class="tl-vline"></div></div>
-      <div class="tl-content">
-        <h4>Both — Integration Sprint</h4>
-        <p>Generator fuel migration (Supplies → Fuel), driver cert check in dispensing, termination cascade (suspends auth + clears fuel access + releases room). Shared notification centre.</p>
-      </div>
-    </div>
-    <div class="tl-row">
-      <div class="tl-date">Week 8–11</div>
-      <div class="tl-line"><div class="tl-dot dot-hr"></div><div class="tl-vline"></div></div>
-      <div class="tl-content">
-        <h4>Tafara — HR Phase 3: Advanced</h4>
-        <p>Disciplinary records, performance reviews, training/cert tracker, HR analytics, permission manager UI.</p>
-      </div>
-    </div>
-    <div class="tl-row">
-      <div class="tl-date">Week 8–10</div>
-      <div class="tl-line"><div class="tl-dot dot-fuel"></div><div class="tl-vline"></div></div>
-      <div class="tl-content">
-        <h4>Clement — Fuel Phase 3: Reporting</h4>
-        <p>Consumption reports, cost tracking, anomaly detection, fuel dashboard KPIs.</p>
-      </div>
-    </div>
-    <div class="tl-row">
-      <div class="tl-date">Week 11+</div>
-      <div class="tl-line"><div class="tl-dot dot-both"></div><div class="tl-vline"></div></div>
-      <div class="tl-content">
-        <h4>Both — Phase 4: Scale &amp; Automation</h4>
-        <p>Payroll export, self-service employee portal, multi-site HR dashboard, automated fuel reorder, fleet intelligence, mobile dispensing.</p>
-      </div>
-    </div>
-  </div>
+<p>The current platform (bravura-campsite) already ships three live modules: Workforce (employee tracking), Campsite (room management), and Meals (catering management). Two new modules are now being added simultaneously: <strong>Human Resources Management</strong> (led by Tafara) and <strong>Fuel Management</strong> (led by Clement). Both modules must integrate completely from the first day of development.</p>
+
+<p>The target quality bar is SAP S/4HANA, Microsoft Dynamics 365, Oracle Fusion, ERPNext, and Odoo — but built for the modern web, following Google Material Design 3 principles, with an AI-first user experience.</p>
+
+<p>Every decision documented here prioritises: <strong>scalability</strong> (unlimited sites, unlimited growth), <strong>integration</strong> (no isolated modules), <strong>maintainability</strong> (clean code, no shortcuts), and <strong>security</strong> (enterprise-grade RBAC at every level).</p>
+
+<h2 id="s2">2. Master Prompt — AI Session Context</h2>
+
+<p>The block below is the standing instruction set that any AI assistant must internalize before beginning development work on this codebase. Keep this in a <code>CLAUDE.md</code> file in the repository root, or paste it at the start of every new session.</p>
+
+<div class="master-prompt"><strong>═══════════════════════════════════════════════════════════════
+BRAVURA ERP — MANDATORY AI DEVELOPER CONTEXT
+Read this fully before writing a single line of code.
+═══════════════════════════════════════════════════════════════</strong>
+
+<strong>REPOSITORY:</strong> bromadex/bravura-campsite
+<strong>APP DIR:</strong>    bravura-meals/src/
+<strong>STACK:</strong>      React 19 + Vite · Supabase (PostgREST + RLS) · React Router
+
+<strong>── ABSOLUTE RULES ─────────────────────────────────────────────</strong>
+
+1.  PUSH TO MAIN DIRECTLY. No pull requests unless user explicitly asks.
+    Always push to BOTH origin/main AND origin/claude/code-review-re5zt3.
+    Command: git push --force-with-lease origin HEAD:main
+             git push --force-with-lease origin HEAD:claude/code-review-re5zt3
+
+2.  NEVER READ OR WRITE profiles.meals_pin — it is fully purged.
+
+3.  RBAC: NEVER hardcode role name checks (no: if role === 'approver').
+    ALWAYS use can('module.action') from usePermissions() hook.
+    The 'approver' role is RETIRED — never reference it.
+    Storekeeper deliberately does NOT have supplies.approve — do not add it.
+
+4.  NEVER DELETE RECORDS. Always terminate / archive / release / soft-delete.
+    employees: set status = 'terminated'
+    rooms: set status = 'released'
+    Any other entity: add is_archived = true or equivalent.
+
+5.  EVERY QUERY must include .eq('site_id', currentSiteId).
+    Import useSite() to get currentSiteId.
+
+6.  INLINE STYLES ONLY. No CSS files, no CSS modules, no Tailwind.
+    Use THEME tokens from utils/permissions.js for all colours.
+
+7.  COMMIT AUTHOR: git config user.email noreply@anthropic.com
+                   git config user.name Claude
+    Verify before every commit.
+
+<strong>── THEME TOKENS ────────────────────────────────────────────────</strong>
+
+import { THEME, MODULE_COLORS, SPACING, RADIUS, TYPE } from '../../utils/permissions'
+
+MODULE_COLORS: workforce=#E07B39, campsite=#2A9D8F, meals=#982329, admin=#5C6BC0
+               hr=#1558A6 (blue), fuel=#1A6B52 (green)
+
+<strong>── DATA CONVENTIONS ────────────────────────────────────────────</strong>
+
+employees.status:    'active' | 'on_leave' | 'long_leave' | 'temporary_assignment' | 'transferred' | 'terminated'
+contractors.status:  'Active' | 'Inactive'  (capitalised — intentional)
+All timestamps:      timestamptz, stored UTC
+All money:           NUMERIC(15,2) — never FLOAT
+Soft deletes:        is_archived BOOLEAN DEFAULT false, archived_at timestamptz
+
+<strong>── UI COMPONENT IMPORTS ────────────────────────────────────────</strong>
+
+import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import { useSite } from '../../contexts/SiteContext'
+import { usePermissions } from '../../hooks/usePermissions'
+
+<strong>── PERMISSION PATTERN ──────────────────────────────────────────</strong>
+
+const { can, role } = usePermissions()
+if (!can('hr.view')) return &lt;AccessDenied /&gt;
+{can('hr.create') &amp;&amp; &lt;button&gt;Add Employee&lt;/button&gt;}
+
+Permission codes: module.action
+Actions: view, create, edit, delete, approve, reject, export, import, print
+
+<strong>── MODULES CURRENTLY LIVE ─────────────────────────────────────</strong>
+
+workforce  — Employees, Contractors, Leave, Reports
+campsite   — Headcount, Rooms, Blocks, Assignments, Supplies, Transfers, Reports
+meals      — Dashboard, Entry, Approvals, Kitchen, Flags, Reports, Billing, Settings
+admin      — Users and Roles, Audit Log
+
+<strong>── MODULES BEING BUILT (PRIORITY) ─────────────────────────────</strong>
+
+hr    — Full HR suite (Tafara) — see ROADMAP.html HR section
+fuel  — Fuel Management (Clement) — see ROADMAP.html Fuel section
+
+<strong>── DESIGN PRINCIPLES ───────────────────────────────────────────</strong>
+
+Material Design 3 (Material You) — the target visual standard
+AI-first UX: smart suggestions, predictive search, contextual recommendations,
+  command palette (Ctrl+K), natural language search, recently used records
+Every page: Header > Breadcrumb > Title > Quick Actions > Search > Filters > Content
+Every table: global search, column visibility, sort, filter, pagination, export, bulk actions
+Every form: grouped sections, progressive disclosure, auto-save drafts, AI suggestions
+Every module: its own dashboard, settings page, reports section
+
+<strong>── MULTI-SITE RULE ─────────────────────────────────────────────</strong>
+
+No feature may assume a single site. Everything is scoped to site_id.
+useSite() returns { currentSiteId, currentSite, sites[] }
+Data never bleeds across sites without explicit permission.
+
+<strong>── INTEGRATION RULE ────────────────────────────────────────────</strong>
+
+No isolated modules. HR feeds into Fuel (employee = operator).
+Fuel feeds into Finance (cost allocation). HR feeds into Payroll.
+Every cross-module link must be a real foreign key, not a string.
+
+<strong>═══════════════════════════════════════════════════════════════
+END OF MASTER CONTEXT
+═══════════════════════════════════════════════════════════════</strong></div>
+
+<h2 id="s3">3. Project Vision &amp; ERP Philosophy</h2>
+
+<h3>3.1 Vision Statement</h3>
+<p>Build a complete, integrated Enterprise Resource Planning platform for Bravura Resources that manages every business operation across all company sites. The platform should feel like software built in the AI era — intelligent, responsive, and designed to assist rather than overwhelm. The quality bar is set by SAP S/4HANA, Microsoft Dynamics 365, and Oracle Fusion Cloud.</p>
+
+<h3>3.2 Core Principles</h3>
+<ul>
+  <li><strong>One ERP, Not Many Apps.</strong> All modules share one database, one authentication system, one permission model, one notification engine, one audit trail, one search index.</li>
+  <li><strong>Multi-Site From Day One.</strong> Every table, every query, every report, every dashboard is site-aware. No data leaks across sites.</li>
+  <li><strong>No Shortcuts That Break Future Integration.</strong> Every architectural decision must be compatible with future modules: Finance, Payroll, Procurement, Inventory, Fleet, Projects, Safety, Analytics, IoT.</li>
+  <li><strong>Permission-Driven Everything.</strong> No page, no button, no action operates without a permission check. No hardcoded role names.</li>
+  <li><strong>Soft Deletes Only.</strong> Records are never deleted. They are terminated, archived, released, or inactivated.</li>
+  <li><strong>AI-First.</strong> Every module should feel intelligent. Users are assisted, not overwhelmed.</li>
+</ul>
+
+<h3>3.3 What We Are Building vs What Exists</h3>
+<table>
+  <tr><th>Layer</th><th>bravura-erp (old)</th><th>bravura-campsite (new)</th></tr>
+  <tr><td>Sites</td><td>Single site (Kamativi)</td><td>Unlimited sites</td></tr>
+  <tr><td>Permissions</td><td>Hardcoded role strings</td><td>Data-driven RBAC (role_permission_grants)</td></tr>
+  <tr><td>Auth</td><td>Custom auth</td><td>Supabase Auth (JWT, invite-by-email)</td></tr>
+  <tr><td>HR</td><td>Full suite (100+ pages)</td><td>Being built — adopt patterns</td></tr>
+  <tr><td>Fuel</td><td>11 pages, single site</td><td>Being built — adopt &amp; generalise</td></tr>
+  <tr><td>Fleet</td><td>25+ pages</td><td>Future module — adopt later</td></tr>
+  <tr><td>Finance</td><td>Full accounting engine</td><td>Future module</td></tr>
+  <tr><td>UI</td><td>Mixed patterns</td><td>Material Design 3, consistent system</td></tr>
+</table>
+
+<h2 id="s4">4. Existing ERP Assessment (bravura-erp)</h2>
+
+<p>The existing ERP at bromadex/bravura-erp was built for Kamativi Mine (single-site). It is a mature system. This section evaluates every module for adoption in the new ERP.</p>
+
+<h3>4.1 Fuel Pages — 11 Found</h3>
+<table>
+  <tr><th>Page</th><th>Description</th><th>Adopt?</th><th>Changes Required</th></tr>
+  <tr><td>FuelTanks</td><td>Tank registry, capacity, current level</td><td>Yes — Phase 1</td><td>Add site_id; support underground, above-ground, bowser types; ATG hook</td></tr>
+  <tr><td>FuelIssuance</td><td>Issue fuel to vehicles/equipment</td><td>Yes — Phase 1</td><td>Link operator to HR employee; add approval workflow toggle</td></tr>
+  <tr><td>FuelDeliveries</td><td>Record supplier deliveries</td><td>Yes — Phase 2</td><td>Multi-site; link to procurement later</td></tr>
+  <tr><td>FuelRequests</td><td>Pre-issuance approval flow</td><td>Yes — Phase 2</td><td>Configurable approval levels via settings</td></tr>
+  <tr><td>FuelShifts</td><td>Operator shift logs</td><td>Yes — Phase 2</td><td>Link to HR employee; multi-site</td></tr>
+  <tr><td>DipstickLog</td><td>Manual tank level readings</td><td>Yes — Phase 2</td><td>Keep for sites without ATG; add ATG integration hook</td></tr>
+  <tr><td>BowserDispatch</td><td>Mobile fuel bowser tracking</td><td>Yes — Phase 2</td><td>GPS hook; multi-site dispatch</td></tr>
+  <tr><td>TankReconciliation</td><td>Period-end stock reconciliation</td><td>Yes — Phase 2</td><td>Multi-site; configurable periods; approval required</td></tr>
+  <tr><td>VehicleConsumption</td><td>Consumption analysis per vehicle</td><td>Yes — Phase 3</td><td>Link to Fleet module later</td></tr>
+  <tr><td>FuelReports</td><td>Analytics reports</td><td>Yes — Phase 3</td><td>Multi-site, exportable, date-range filters</td></tr>
+  <tr><td>FuelForecasting</td><td>Demand forecasting</td><td>Phase 3</td><td>Requires historical data first</td></tr>
+</table>
+
+<h3>4.2 HR Pages — 100+ Found</h3>
+<table>
+  <tr><th>Feature Area</th><th>Key Pages</th><th>Adopt Phase</th></tr>
+  <tr><td>Core Employee Management</td><td>Employees, Departments, Designations, Employment Types, Contracts</td><td>HR Phase 1</td></tr>
+  <tr><td>Leave Management</td><td>LeaveTypes, LeaveAllocations, LeaveRequests, LeaveApprovals, LeaveCalendar, LeaveBalance</td><td>HR Phase 2</td></tr>
+  <tr><td>Attendance</td><td>AttendanceLog, AttendanceSummary, ShiftManagement, OvertimeRequests</td><td>HR Phase 2</td></tr>
+  <tr><td>Documents</td><td>EmployeeDocuments, DocumentTypes, ExpiryAlerts</td><td>HR Phase 2</td></tr>
+  <tr><td>Org Chart</td><td>OrgChart (tree view, reporting lines)</td><td>HR Phase 2</td></tr>
+  <tr><td>Transfers</td><td>InterSiteTransfers, TemporaryAssignments</td><td>HR Phase 2</td></tr>
+  <tr><td>Medical</td><td>MedicalRecords, EmergencyContacts</td><td>HR Phase 2</td></tr>
+  <tr><td>Recruitment</td><td>JobPostings, Applicants, Interviews, Onboarding</td><td>HR Phase 3</td></tr>
+  <tr><td>Training</td><td>TrainingPrograms, Enrollments, Certifications, SkillsMatrix</td><td>HR Phase 3</td></tr>
+  <tr><td>ESS (Self-Service)</td><td>MyProfile, MyLeave, MyPayslips, MyDocuments</td><td>HR Phase 3</td></tr>
+  <tr><td>Payroll</td><td>SalaryStructures, PayrollRun, SalarySlips, Deductions, Tax</td><td>HR Phase 4</td></tr>
+  <tr><td>Performance</td><td>Appraisals, KPIs, KRAs, GoalSetting</td><td>HR Phase 4</td></tr>
+  <tr><td>Disciplinary</td><td>Grievances, DisciplinaryActions, ExitInterviews</td><td>HR Phase 4</td></tr>
+  <tr><td>HR Analytics</td><td>HRDashboard, TurnoverReports, HeadcountTrends</td><td>HR Phase 3</td></tr>
+</table>
+
+<h3>4.3 Fleet Module — 25+ Pages (Future)</h3>
+<p>The existing ERP has a comprehensive Fleet module: Vehicles, DriverManagement, PreventiveMaintenance, WorkshopJobs, TripManagement, FleetDashboard, Inspections, Generators, HeavyEquipment, FleetAnalytics. This will be adopted as a separate module after Fuel Phase 2. The Fuel module must leave FK hooks for vehicles and equipment from day one.</p>
+
+<h3>4.4 Shared Engines in Existing ERP</h3>
+<table>
+  <tr><th>Engine</th><th>Action</th></tr>
+  <tr><td>workflowEngine.js</td><td>Adopt patterns — implement as approval_workflows table + configurable steps</td></tr>
+  <tr><td>notificationEngine.js</td><td>Adopt patterns — implement via Supabase Edge Functions + Resend</td></tr>
+  <tr><td>auditEngine.js</td><td>Adopt — implement as Supabase triggers + audit_logs table</td></tr>
+  <tr><td>searchEngine.js</td><td>Adopt patterns — implement with Supabase full-text search + pg_trgm</td></tr>
+  <tr><td>leaveEngine.js</td><td>Adopt fully — complex business logic, don't reinvent</td></tr>
+  <tr><td>shiftEngine.js</td><td>Adopt in HR Phase 2</td></tr>
+  <tr><td>accountingEngine.js</td><td>Future — Finance module only</td></tr>
+</table>
+
+<h3>4.5 What Must Be Generalised From the Old ERP</h3>
+<ul>
+  <li>Add <code>site_id</code> to every entity — the old ERP assumed Kamativi as the only site</li>
+  <li>Approval workflows must be multi-level and configurable per site in settings</li>
+  <li>Permission model must be data-driven (not hardcoded role strings)</li>
+  <li>Document numbering (employee numbers, request numbers) needs site-specific prefixes</li>
+  <li>All reports need site filter and cross-site aggregation for HQ-level views</li>
+</ul>
+
+<h2 id="s5">5. Technology Stack</h2>
+
+<table>
+  <tr><th>Layer</th><th>Technology</th><th>Rationale</th></tr>
+  <tr><td>Frontend</td><td>React 19 + Vite</td><td>Fast HMR, modern React features, proven for large SPAs</td></tr>
+  <tr><td>Routing</td><td>React Router v6</td><td>Client-side SPA; vercel.json catch-all for all routes</td></tr>
+  <tr><td>Database</td><td>PostgreSQL via Supabase</td><td>ACID compliant, RLS for multi-tenant security, rich query</td></tr>
+  <tr><td>Auth</td><td>Supabase Auth</td><td>JWT-based, invite-by-email, password reset built-in</td></tr>
+  <tr><td>API</td><td>Supabase PostgREST</td><td>Auto-generated REST API from schema; no manual CRUD endpoints</td></tr>
+  <tr><td>Real-Time</td><td>Supabase Realtime</td><td>Live tank levels, live notifications, live dashboard KPIs</td></tr>
+  <tr><td>Background Jobs</td><td>Supabase Edge Functions (Deno)</td><td>Scheduled jobs, email dispatch, report generation</td></tr>
+  <tr><td>File Storage</td><td>Supabase Storage</td><td>Employee documents, delivery notes, exported reports</td></tr>
+  <tr><td>Email</td><td>Resend via Edge Function</td><td>Reliable transactional email; template-based</td></tr>
+  <tr><td>Hosting</td><td>Vercel</td><td>Git-based deploys, preview URLs per branch, edge CDN</td></tr>
+  <tr><td>Icons</td><td>Material Symbols (Google)</td><td>Comprehensive; matches Material Design 3</td></tr>
+  <tr><td>Charts</td><td>Recharts</td><td>React-compatible; responsive; sufficient for ERP dashboards</td></tr>
+  <tr><td>Future IoT</td><td>MQTT to Supabase Edge Function to Realtime</td><td>ATG data, PLC readings, flow meters — ingested via Edge Functions</td></tr>
+</table>
+
+<h2 id="s6">6. System Architecture</h2>
+
+<h3>6.1 Folder Structure</h3>
+<pre>bravura-meals/src/
+├── components/
+│   ├── ui.jsx                    # Shared UI primitives
+│   ├── CommandPalette.jsx        # Ctrl+K global search
+│   ├── NotificationPanel.jsx
+│   ├── SiteSelector.jsx
+│   └── ApprovalPanel.jsx
+├── contexts/
+│   ├── SiteContext.jsx           # currentSiteId, currentSite, sites[]
+│   ├── AuthContext.jsx           # session, user, signOut
+│   └── NotificationContext.jsx
+├── hooks/
+│   ├── usePermissions.js         # can(code), role
+│   ├── useAudit.js               # logAction(entity, id, action, diff)
+│   ├── useSearch.js              # global search, debounced
+│   ├── useRecentPages.js
+│   └── useSettings.js           # read module settings from db
+├── pages/
+│   ├── hr/                       # HR module (Tafara)
+│   │   ├── HRDashboard.jsx
+│   │   ├── Employees.jsx
+│   │   ├── EmployeeForm.jsx
+│   │   ├── EmployeeDetail.jsx
+│   │   ├── Departments.jsx
+│   │   ├── Designations.jsx
+│   │   ├── leave/
+│   │   ├── attendance/
+│   │   ├── documents/
+│   │   ├── OrgChart.jsx
+│   │   └── HRSettings.jsx
+│   ├── fuel/                     # Fuel module (Clement)
+│   │   ├── FuelDashboard.jsx
+│   │   ├── Tanks.jsx
+│   │   ├── TankDetail.jsx
+│   │   ├── FuelIssuance.jsx
+│   │   ├── FuelDeliveries.jsx
+│   │   ├── FuelRequests.jsx
+│   │   ├── Operators.jsx
+│   │   ├── Vehicles.jsx
+│   │   ├── Equipment.jsx
+│   │   ├── Reconciliation.jsx
+│   │   ├── FuelReports.jsx
+│   │   └── FuelSettings.jsx
+│   ├── workforce/                # Existing
+│   ├── campsite/                 # Existing
+│   ├── meals/                    # Existing
+│   └── admin/                    # Existing
+├── utils/
+│   ├── permissions.js            # THEME, MODULE_COLORS, SPACING, nav functions
+│   ├── format.js                 # formatDate, formatNumber, formatCurrency
+│   └── validate.js
+└── supabaseClient.js</pre>
+
+<h3>6.2 Naming Conventions</h3>
+<table>
+  <tr><th>Entity</th><th>Convention</th><th>Example</th></tr>
+  <tr><td>React Components</td><td>PascalCase</td><td>EmployeeForm.jsx</td></tr>
+  <tr><td>Hooks</td><td>camelCase, use prefix</td><td>usePermissions.js</td></tr>
+  <tr><td>Database tables</td><td>snake_case, plural</td><td>fuel_transactions</td></tr>
+  <tr><td>Database columns</td><td>snake_case</td><td>employee_id, site_id</td></tr>
+  <tr><td>Permission codes</td><td>module.action</td><td>hr.approve, fuel.issue</td></tr>
+  <tr><td>CSS variables</td><td>--color-kebab-case</td><td>--color-primary</td></tr>
+</table>
+
+<h2 id="s7">7. Multi-Site Architecture</h2>
+
+<h3>7.1 Site Hierarchy</h3>
+<pre>
+Company (Bravura Resources)
+  └── Site (e.g. Kamativi Mine)
+        ├── Departments
+        ├── Employees
+        ├── Fuel Tanks / Pumps / Bowsers
+        ├── Rooms / Blocks
+        ├── Kitchen / Meal Providers
+        ├── Vehicles / Equipment
+        └── Cost Centres
+</pre>
+
+<h3>7.2 Database Pattern</h3>
+<p>Every table that holds site-scoped data includes <code>site_id UUID NOT NULL REFERENCES sites(id)</code>. Row Level Security policies ensure users only access rows belonging to their site(s). Super-admins have a global role that bypasses site scoping for reporting purposes.</p>
+
+<table>
+  <tr><th>Table Type</th><th>site_id?</th><th>Examples</th></tr>
+  <tr><td>Master data</td><td>Yes</td><td>employees, fuel_tanks, vehicles, rooms</td></tr>
+  <tr><td>Transactions</td><td>Yes</td><td>fuel_transactions, leave_requests, meal_entries</td></tr>
+  <tr><td>Reference / lookup</td><td>No (shared globally)</td><td>leave_types, fuel_types, currencies</td></tr>
+  <tr><td>System / auth</td><td>No</td><td>profiles, roles, permissions, audit_logs</td></tr>
+  <tr><td>Settings</td><td>Yes (site-specific config)</td><td>module_settings</td></tr>
+</table>
+
+<h3>7.3 Cross-Site Features</h3>
+<ul>
+  <li><strong>Inter-site transfers</strong> — employees, fuel bowsers, stock between sites</li>
+  <li><strong>HQ reporting</strong> — super-admins run reports across all sites</li>
+  <li><strong>Consolidated dashboards</strong> — fleet-level KPIs aggregated from all sites</li>
+  <li><strong>Shared lookups</strong> — fuel types, leave types, designations are global but can be overridden per site</li>
+</ul>
+
+<h2 id="s8">8. Authentication &amp; Authorization Design</h2>
+
+<h3>8.1 Authentication Flow</h3>
+<ol>
+  <li>All authentication handled by Supabase Auth (JWT)</li>
+  <li>Users log in with email + password</li>
+  <li>Session persisted in localStorage; refreshed automatically by Supabase client</li>
+  <li>On login, profiles row fetched to determine role, site(s), and permission overrides</li>
+  <li>Session context available via AuthContext</li>
+</ol>
+
+<h3>8.2 Employee Account Creation Flow</h3>
+<ol>
+  <li>Toggle "Create System Account" on the employee form (optional — not all employees need access)</li>
+  <li>On save, Edge Function calls supabase.auth.admin.inviteUserByEmail(email)</li>
+  <li>Supabase sends invitation email with secure link</li>
+  <li>Employee sets their own password on first login</li>
+  <li>force_password_reset flag on profiles enforces password change</li>
+  <li>profiles row auto-created by Supabase trigger; linked to employees.id</li>
+</ol>
+
+<div class="note">Employee accounts are OPTIONAL. Many employees (e.g. mine workers) will never log into the ERP. Their records still exist for reporting and fuel issuance tracking.</div>
+
+<h3>8.3 Password Policy</h3>
+<ul>
+  <li>Minimum 10 characters, mixed case, 1 number, 1 special character</li>
+  <li>Temporary passwords expire after 72 hours</li>
+  <li>Force reset on first login (profiles.force_password_reset)</li>
+  <li>Password reset via Supabase magic link</li>
+</ul>
+
+<h2 id="s9">9. Permission System — Granular RBAC</h2>
+
+<h3>9.1 Permission Hierarchy</h3>
+<pre>
+ERP Level           → super_admin: full access everywhere
+  ↓
+Module Level        → can access HR? can access Fuel?
+  ↓
+Feature Level       → within HR: can access Leave? can access Payroll?
+  ↓
+Page Level          → can VIEW the Employees page?
+  ↓
+Action Level        → can CREATE? can EDIT? can DELETE? can EXPORT?
+  ↓
+Button Level        → can click "Approve"? can click "Issue Fuel"?
+  ↓
+Workflow Level      → can initiate approval workflow? can be an approver?
+  ↓
+Report Level        → can view Payroll Report? can export Fuel Report?
+  ↓
+API Level           → enforced at database level via RLS
+  ↓
+Field Level         → can see salary fields? can see medical records?
+</pre>
+
+<h3>9.2 Database Schema</h3>
+<pre>
+roles(id, name, description, is_system)
+
+permissions(id, code, module, action, description)
+  -- e.g. code='hr.approve_leave', module='hr', action='approve_leave'
+
+role_permission_grants(role_id, permission_id)
+
+user_roles(user_id, role_id, site_id)
+  -- site_id NULL = global role
+
+user_permission_overrides(user_id, permission_id, granted BOOLEAN, site_id)
+  -- grant or deny a specific permission for one user</pre>
+
+<h3>9.3 Permission Codes — HR Module</h3>
+<table>
+  <tr><th>Code</th><th>Description</th></tr>
+  <tr><td>hr.view</td><td>Access HR module</td></tr>
+  <tr><td>hr.employees.view</td><td>View employee list and profiles</td></tr>
+  <tr><td>hr.employees.create</td><td>Add new employees</td></tr>
+  <tr><td>hr.employees.edit</td><td>Edit employee details</td></tr>
+  <tr><td>hr.employees.terminate</td><td>Terminate an employee</td></tr>
+  <tr><td>hr.employees.create_account</td><td>Create system login for employee</td></tr>
+  <tr><td>hr.employees.view_salary</td><td>View salary/compensation fields (field-level)</td></tr>
+  <tr><td>hr.employees.view_medical</td><td>View medical records (field-level)</td></tr>
+  <tr><td>hr.leave.view</td><td>View leave records</td></tr>
+  <tr><td>hr.leave.create</td><td>Submit leave requests</td></tr>
+  <tr><td>hr.leave.approve</td><td>Approve or reject leave requests</td></tr>
+  <tr><td>hr.leave.cancel</td><td>Cancel approved leave</td></tr>
+  <tr><td>hr.reports.view</td><td>View HR reports</td></tr>
+  <tr><td>hr.reports.export</td><td>Export HR reports</td></tr>
+  <tr><td>hr.settings.view</td><td>View HR settings</td></tr>
+  <tr><td>hr.settings.edit</td><td>Modify HR settings</td></tr>
+</table>
+
+<h3>9.4 Permission Codes — Fuel Module</h3>
+<table>
+  <tr><th>Code</th><th>Description</th></tr>
+  <tr><td>fuel.view</td><td>Access Fuel module</td></tr>
+  <tr><td>fuel.tanks.view</td><td>View tanks and current levels</td></tr>
+  <tr><td>fuel.tanks.edit</td><td>Edit tank details and capacity</td></tr>
+  <tr><td>fuel.issue</td><td>Issue fuel to vehicles or equipment</td></tr>
+  <tr><td>fuel.issue.approve</td><td>Approve fuel issuance requests</td></tr>
+  <tr><td>fuel.delivery.create</td><td>Record a fuel delivery</td></tr>
+  <tr><td>fuel.delivery.approve</td><td>Approve and confirm a delivery</td></tr>
+  <tr><td>fuel.reconciliation.run</td><td>Run tank reconciliation</td></tr>
+  <tr><td>fuel.reconciliation.approve</td><td>Approve reconciliation report</td></tr>
+  <tr><td>fuel.reports.view</td><td>View fuel reports</td></tr>
+  <tr><td>fuel.reports.export</td><td>Export fuel reports</td></tr>
+  <tr><td>fuel.settings.edit</td><td>Modify fuel module settings</td></tr>
+</table>
+
+<h3>9.5 usePermissions Hook Pattern</h3>
+<pre>
+// hooks/usePermissions.js
+export function usePermissions() {
+  const { profile } = useAuth()
+  const { currentSiteId } = useSite()
+
+  const can = useCallback((code) => {
+    if (profile?.role === 'super_admin') return true
+    // Check user_permission_overrides first (most specific)
+    // Then check role_permission_grants for all user roles
+    return checkPermission(profile, code, currentSiteId)
+  }, [profile, currentSiteId])
+
+  return { can, role: profile?.role }
+}
+
+// Usage in any component:
+const { can } = usePermissions()
+if (!can('hr.view')) return &lt;AccessDenied /&gt;
+{can('hr.employees.terminate') &amp;&amp; &lt;button&gt;Terminate&lt;/button&gt;}</pre>
+
+<h2 id="s10">10. UI/UX Standards (Material Design 3)</h2>
+
+<h3>10.1 Page Layout Standard</h3>
+<p>Every page in the ERP follows this structure without exception:</p>
+<pre>
+┌──────────────────────────────────────────────────────┐
+│  [Icon] Module  ›  Feature  (breadcrumb)             │
+│  Page Title                          [Quick Actions] │
+│  Optional description                                │
+├──────────────────────────────────────────────────────┤
+│  [Search...]  [Filter]  [Date Range]  [Site]         │
+├──────────────────────────────────────────────────────┤
+│  MAIN CONTENT (table / cards / form / chart)         │
+└──────────────────────────────────────────────────────┘
+</pre>
+
+<h3>10.2 Table Standards</h3>
+<p>Every data table must support: global search, column search, sortable columns, column visibility toggle, saved views, pagination (25/50/100), export (CSV/Excel/PDF), print view, bulk actions, responsive scroll, and row click to open detail.</p>
+
+<h3>10.3 Form Standards</h3>
+<ul>
+  <li>Group related fields into named sections</li>
+  <li>Progressive disclosure — show advanced fields only when relevant</li>
+  <li>Auto-save drafts every 30 seconds</li>
+  <li>Inline validation on blur, not only on submit</li>
+  <li>Smart defaults from context (site, department, today's date)</li>
+  <li>Searchable lookup dialogs, not raw select elements</li>
+  <li>Recently used records in dropdowns</li>
+  <li>AI suggestions — detect duplicates, suggest departments</li>
+</ul>
+
+<h3>10.4 Colour System</h3>
+<table>
+  <tr><th>Token</th><th>Hex</th><th>Use</th></tr>
+  <tr><td>THEME.primary</td><td>#982329</td><td>Primary actions, active states, brand</td></tr>
+  <tr><td>THEME.success</td><td>green</td><td>Active, confirmed, approved</td></tr>
+  <tr><td>THEME.warning</td><td>amber</td><td>On leave, pending, low stock</td></tr>
+  <tr><td>THEME.error</td><td>red</td><td>Terminated, rejected, critical</td></tr>
+  <tr><td>MODULE_COLORS.hr</td><td>#1558A6</td><td>HR module accent — blue</td></tr>
+  <tr><td>MODULE_COLORS.fuel</td><td>#1A6B52</td><td>Fuel module accent — green</td></tr>
+  <tr><td>MODULE_COLORS.workforce</td><td>#E07B39</td><td>Workforce accent — orange</td></tr>
+  <tr><td>MODULE_COLORS.campsite</td><td>#2A9D8F</td><td>Campsite accent — teal</td></tr>
+  <tr><td>MODULE_COLORS.meals</td><td>#982329</td><td>Meals accent — maroon</td></tr>
+</table>
+
+<h3>10.5 Navigation Standards</h3>
+<ul>
+  <li><strong>Primary Sidebar</strong> — module nav, collapsible, section headers, icon + label</li>
+  <li><strong>Top Bar</strong> — site selector, global search, notifications bell, user avatar</li>
+  <li><strong>Breadcrumbs</strong> — always present: Module › Feature › Record Name</li>
+  <li><strong>Command Palette (Ctrl+K)</strong> — search any page, record, or action</li>
+  <li><strong>Recent Pages</strong> — last 10 visited pages</li>
+  <li><strong>Quick Create</strong> — "+" button in top bar, one-click to create common records</li>
+</ul>
+
+<h3>10.6 Status Badge Conventions</h3>
+<table>
+  <tr><th>Status</th><th>Colour Pair</th></tr>
+  <tr><td>Active / Approved / Confirmed</td><td>statusSuccessBg / statusSuccessText</td></tr>
+  <tr><td>Pending / On Leave / Low Stock</td><td>statusWarningBg / statusWarningText</td></tr>
+  <tr><td>Rejected / Terminated / Critical</td><td>statusErrorBg / statusErrorText</td></tr>
+  <tr><td>Draft / Inactive / Archived</td><td>statusNeutralBg / statusNeutralText</td></tr>
+  <tr><td>In Progress / Assigned</td><td>statusInfoBg / statusInfoText</td></tr>
+  <tr><td>Long Leave / Transferred</td><td>statusTertiaryBg / statusTertiaryText</td></tr>
+</table>
+
+<h2 id="s11">11. AI-First User Experience</h2>
+
+<table>
+  <tr><th>Feature</th><th>Description</th><th>Implementation</th></tr>
+  <tr><td>Natural Language Search</td><td>"Show diesel transactions from Kamativi this month"</td><td>Parse intent → translate to filters → execute query</td></tr>
+  <tr><td>Smart Suggestions</td><td>Suggest department when typing employee name</td><td>Pattern matching on recent records</td></tr>
+  <tr><td>Predictive Search</td><td>Results before user finishes typing</td><td>Debounced full-text search with pg_trgm</td></tr>
+  <tr><td>AI Summaries</td><td>"3 tanks below 20%, 5 leave requests pending"</td><td>Computed from live data on dashboard load</td></tr>
+  <tr><td>Proactive Alerts</td><td>Alert before tank runs dry, before leave clash</td><td>Scheduled Edge Function + notifications table</td></tr>
+  <tr><td>Duplicate Detection</td><td>Warn when employee name or ID matches existing</td><td>Query on form blur</td></tr>
+  <tr><td>Command Palette</td><td>Ctrl+K → type any action, jump anywhere</td><td>Static route index + dynamic record search</td></tr>
+  <tr><td>Recently Used</td><td>Last 5 accessed records in dropdowns</td><td>localStorage + useRecentPages hook</td></tr>
+  <tr><td>Workflow Recommendations</td><td>"This employee has 3 pending approvals"</td><td>Aggregated on dashboard load</td></tr>
+</table>
+
+<h2 id="s12">12. Module Settings Philosophy</h2>
+
+<p>Every module has a dedicated Settings page. No business rule is hardcoded. Every configurable option lives in settings.</p>
+
+<table>
+  <tr><th>Category</th><th>Examples</th></tr>
+  <tr><td>General</td><td>Module display name, default site, default currency</td></tr>
+  <tr><td>Document Numbering</td><td>Employee number prefix (EMP-), fuel request prefix (FR-), auto-increment or manual</td></tr>
+  <tr><td>Approval Workflows</td><td>Who approves leave? How many levels? Auto-approve below X days?</td></tr>
+  <tr><td>Email Notifications</td><td>Enable/disable per event, template overrides, CC lists</td></tr>
+  <tr><td>Business Rules</td><td>Max leave days per year, minimum tank threshold, fuel request daily limit</td></tr>
+  <tr><td>Automation</td><td>Auto-release room on long leave, auto-alert when tank &lt; 20%, auto-accrue leave</td></tr>
+  <tr><td>Validation Rules</td><td>Require medical exam before activation, require document before transfer</td></tr>
+  <tr><td>Retention</td><td>How long to keep audit logs, how long to keep archived records</td></tr>
+  <tr><td>AI Features</td><td>Enable/disable smart suggestions, duplicate detection</td></tr>
+  <tr><td>Integration</td><td>ATG connection strings, SCADA endpoint, email server</td></tr>
+</table>
+
+<h3>Settings Database Pattern</h3>
+<pre>
+module_settings(
+  id          UUID PRIMARY KEY,
+  site_id     UUID REFERENCES sites(id),  -- NULL = global default
+  module      TEXT,                        -- 'hr', 'fuel', 'meals'
+  key         TEXT,                        -- 'employee_number_prefix'
+  value       JSONB,                       -- "EMP-" or {levels: 2, ...}
+  updated_by  UUID REFERENCES profiles(id),
+  updated_at  TIMESTAMPTZ
+)</pre>
+
+<h2 id="s13">13. Dashboard Philosophy</h2>
+
+<p>Every module has its own dashboard. The dashboard answers one question: <em>"What does this user need to know right now?"</em></p>
+
+<p>Dashboards contain only: KPIs, Charts, Recent Activity, Pending Approvals, Alerts, Quick Actions, Upcoming Events. No clutter. No duplicate information. No unnecessary tables.</p>
+
+<h3>HR Dashboard KPIs</h3>
+<ul>
+  <li>Total Active Employees | On Leave Today | On Long Leave | New This Month | Terminations This Month</li>
+  <li>Leave Requests Pending | Documents Expiring in 30 Days | Open Positions</li>
+  <li>Chart: Headcount by Department | Chart: Leave Trend 12 months</li>
+</ul>
+
+<h3>Fuel Dashboard KPIs</h3>
+<ul>
+  <li>Total Fuel Issued Today | Pending Requests | Tanks Below 20% | Deliveries This Week</li>
+  <li>Chart: Daily Consumption 7 days | Visual: Stock Level Per Tank</li>
+  <li>Alerts: Tank X at 15% — order required | Reconciliation overdue</li>
+</ul>
+
+<h2 id="s14">14. HR Module — Full Roadmap</h2>
+
+<p><span class="tag tafara">TAFARA — Lead Developer</span> Clement may contribute when Fuel and HR intersect (e.g. fuel operators must be active HR employees).</p>
+
+<h3>HR Phase 1 — Core Foundation (Month 1–2)</h3>
+<div class="phase-box tafara">
+  <strong>Goal:</strong> A working employee registry with proper RBAC, multi-site support, and account management.<br><br>
+  <strong>Deliverables:</strong>
+  <ol>
+    <li><strong>HR Dashboard</strong> — KPIs, pending approvals widget, quick actions (Add Employee, View Reports)</li>
+    <li><strong>Departments</strong> — CRUD, site-scoped, parent/child departments, department head</li>
+    <li><strong>Designations / Job Titles</strong> — CRUD, linked to departments, grade/level</li>
+    <li><strong>Employment Types</strong> — permanent, contract, casual, fixed-term; configurable</li>
+    <li><strong>Employee List</strong> — table with search, filter (department, status, site, contractor), export, bulk actions</li>
+    <li><strong>Employee Create Form</strong>
+      <ul>
+        <li>Personal: name, DOB, gender, national ID, passport, phone</li>
+        <li>Employment: employee number, start date, department, designation, employment type</li>
+        <li>Site assignment</li>
+        <li>Contractor linkage (optional)</li>
+        <li>System account creation toggle → email invite</li>
+        <li>Emergency contacts (minimum 1)</li>
+      </ul>
+    </li>
+    <li><strong>Employee Detail Page</strong> — tabs: Overview | Employment | Documents | Leave | History</li>
+    <li><strong>Status Management</strong> — activate, place on leave, long leave, transfer, terminate (with reason + date)</li>
+    <li><strong>HR Settings</strong> — employee number prefix, approval config, account creation defaults</li>
+    <li><strong>Audit trail</strong> — every field change logged</li>
+  </ol>
+  <br>
+  <strong>New Tables:</strong> departments, designations, employment_types, emergency_contacts, employee_status_history
 </div>
 
-<!-- ══════════════════════════════════════════════════════ DONE SO FAR -->
-<div class="section">
-  <div class="section-tag">SECTION 10</div>
-  <h1>What Has Been <span>Done So Far</span></h1>
-  <hr/>
-
-  <p>The following work was completed in the current development session (30 June 2026) and is live on <code>main</code>:</p>
-
-  <table>
-    <tr><th>#</th><th>Item</th><th>Detail</th><th>Status</th></tr>
-    <tr>
-      <td>1</td>
-      <td>Shared Table Components</td>
-      <td><code>TableWrap, THead, Th, TRow, Td</code> added to <code>ui.jsx</code>. Applied across 9 pages: AuditLogViewer, UserManagement, CampAssignments, CampRooms, CampSupplies, CampOccupancyReport, WorkforceLeave, Billing, Employees.</td>
-      <td><span style="color:var(--success);font-weight:700">✓ Done</span></td>
-    </tr>
-    <tr>
-      <td>2</td>
-      <td>Dynamic Print Headers</td>
-      <td>Replaced hardcoded "Bravura Campsite" with <code>currentSite?.name</code> in Reports.jsx, CampHeadcount.jsx, CampOccupancyReport.jsx.</td>
-      <td><span style="color:var(--success);font-weight:700">✓ Done</span></td>
-    </tr>
-    <tr>
-      <td>3</td>
-      <td>Workforce Reports — Site Filter</td>
-      <td>Added <code>.eq('site_id', currentSiteId)</code> to employee query in WorkforceReports.jsx. KPI "Contractors" count fixed to show site-local count.</td>
-      <td><span style="color:var(--success);font-weight:700">✓ Done</span></td>
-    </tr>
-    <tr>
-      <td>4</td>
-      <td>daily_submissions UNIQUE Constraint</td>
-      <td>Changed from <code>UNIQUE(date)</code> to <code>UNIQUE(date, site_id)</code> on Supabase. Multiple sites can now submit for the same date.</td>
-      <td><span style="color:var(--success);font-weight:700">✓ Done</span></td>
-    </tr>
-    <tr>
-      <td>5</td>
-      <td>Removed Dead Legacy Permission Code</td>
-      <td>Deleted unused <code>ROLES</code> constant and old <code>can</code> export from <code>permissions.js</code> (contained retired <code>approver</code> role references). Zero callers confirmed before removal.</td>
-      <td><span style="color:var(--success);font-weight:700">✓ Done</span></td>
-    </tr>
-    <tr>
-      <td>6</td>
-      <td>Room Auto-Release DB Trigger</td>
-      <td>Confirmed no trigger existed. Provided SQL for <code>trg_release_room_on_long_leave</code> — fires AFTER UPDATE on employees when status → long_leave, auto-releases active room_assignments.</td>
-      <td><span style="color:var(--warning);font-weight:700">⚒ Pending — run SQL in dashboard</span></td>
-    </tr>
-    <tr>
-      <td>7</td>
-      <td>Meal Pin Purge Verified</td>
-      <td>Confirmed zero references to <code>profiles.meals_pin</code> in the entire codebase.</td>
-      <td><span style="color:var(--success);font-weight:700">✓ Clean</span></td>
-    </tr>
-    <tr>
-      <td>8</td>
-      <td>Print CSS Verified</td>
-      <td>Confirmed <code>.print-only</code> and <code>@media print</code> rules in <code>index.html</code> cover all report pages correctly.</td>
-      <td><span style="color:var(--success);font-weight:700">✓ Clean</span></td>
-    </tr>
-  </table>
-
-  <div class="callout success">
-    <strong>One pending item:</strong> The room auto-release trigger SQL (Section 6, Item 6 above) needs to be pasted into the Supabase SQL Editor and executed. Once run, confirm with the development team.
-  </div>
-
-  <h2>Immediate Next Step</h2>
-  <p>Before writing any new module code, both developers should agree on the <strong>Permission System schema</strong> (Section 3 of this document) and the <strong>HR Phase 1 database migrations</strong>. These are foundational — everything else builds on top of them. Start with the migrations, seed the data, and extend <code>usePermissions()</code> before any new page is created.</p>
+<h3>HR Phase 2 — Leave, Documents &amp; Org (Month 3–4)</h3>
+<div class="phase-box tafara">
+  <strong>Goal:</strong> Full leave management, document management, org chart, inter-site transfers.<br><br>
+  <ol>
+    <li><strong>Leave Types</strong> — annual, sick, maternity, compassionate, unpaid; accrual rules; carry-over rules</li>
+    <li><strong>Leave Allocations</strong> — annual allocation per employee per leave type</li>
+    <li><strong>Leave Requests</strong> — employee or HR submits; multi-level approval; balance check; clash detection</li>
+    <li><strong>Leave Calendar</strong> — visual: who is on leave per day per department</li>
+    <li><strong>Leave Balance Report</strong> — per employee, department, site</li>
+    <li><strong>Employee Documents</strong> — upload to Supabase Storage; expiry dates; expiry alerts</li>
+    <li><strong>Medical Records</strong> — medical exams, fitness certificates, blood group (permission-gated)</li>
+    <li><strong>Org Chart</strong> — visual tree by department and reporting line; collapsible; site filter</li>
+    <li><strong>Inter-Site Transfers</strong> — transfer from Site A to Site B; approval required; status changes automatically</li>
+    <li><strong>Temporary Assignments</strong> — assign to different site/department temporarily with return date</li>
+  </ol>
+  <br>
+  <strong>New Tables:</strong> leave_types, leave_allocations, leave_requests, leave_approvals, employee_documents, document_types, medical_records, site_transfers
 </div>
 
-<!-- Footer -->
-<div class="doc-footer">
-  <div>Bravura Zimbabwe ERP · Development Roadmap · 30 June 2026</div>
-  <div>bromadex/bravura-campsite · branch: main · Confidential</div>
+<h3>HR Phase 3 — Attendance, Training &amp; ESS (Month 5–6)</h3>
+<div class="phase-box tafara">
+  <ol>
+    <li><strong>Shift Management</strong> — define shifts (day, night, rotating), assign to employees</li>
+    <li><strong>Attendance Log</strong> — clock-in/clock-out, manual corrections, overtime detection</li>
+    <li><strong>Attendance Summary</strong> — monthly per employee: absent days, late days</li>
+    <li><strong>Overtime Requests</strong> — employee requests; supervisor approves</li>
+    <li><strong>Training Programs</strong> — catalogue, schedule, enrolment, completion</li>
+    <li><strong>Skills Matrix</strong> — employee skills, certifications, training history</li>
+    <li><strong>ESS</strong> — My Profile, My Leave, My Documents, My Attendance</li>
+    <li><strong>Recruitment</strong> — job postings, applicant tracking, interview scheduling, onboarding checklist</li>
+    <li><strong>HR Analytics</strong> — headcount trends, turnover rate, leave utilisation</li>
+  </ol>
 </div>
 
-</div><!-- /page -->
+<h3>HR Phase 4 — Payroll, Performance &amp; Advanced (Month 7–9)</h3>
+<div class="phase-box tafara">
+  <ol>
+    <li><strong>Salary Structures</strong> — grade-based structures, allowances, deductions</li>
+    <li><strong>Payroll Run</strong> — monthly calculation, deductions (tax, NSSA, pension), salary slips</li>
+    <li><strong>Performance Appraisals</strong> — KPIs, KRAs, self + manager assessment, final rating</li>
+    <li><strong>Goal Setting</strong> — annual goals, quarterly reviews</li>
+    <li><strong>Disciplinary</strong> — grievances, disciplinary actions, hearing records, warning letters</li>
+    <li><strong>Exit Management</strong> — resignation workflow, exit interview, clearance, final payslip</li>
+    <li><strong>HR Reports Suite</strong> — payroll summary, headcount, leave, turnover, training reports</li>
+  </ol>
+  <br>
+  <strong>Integration:</strong> Payroll → Finance (journal entries); Attendance → Payroll (deductions); Certifications → Fuel (only certified operators can issue)
+</div>
+
+<h2 id="s15">15. Fuel Module — Full Roadmap</h2>
+
+<p><span class="tag clement">CLEMENT — Lead Developer</span> Tafara may contribute where HR and Fuel intersect.</p>
+
+<h3>Fuel Phase 1 — Core Infrastructure (Month 1–2)</h3>
+<div class="phase-box clement">
+  <strong>Goal:</strong> Tank registry, vehicle/equipment registry, operators, basic fuel issuance.<br><br>
+  <ol>
+    <li><strong>Fuel Dashboard</strong> — tank level bars, today's issuance total, pending requests, alerts</li>
+    <li><strong>Fuel Types</strong> — diesel, petrol, paraffin, aviation; configurable per site</li>
+    <li><strong>Tank Registry</strong>
+      <ul>
+        <li>Name, site, location, type (underground / above-ground / bowser)</li>
+        <li>Fuel type, capacity, current level, minimum threshold</li>
+        <li>ATG device ID hook (for future IoT integration)</li>
+        <li>Status: active, maintenance, decommissioned</li>
+      </ul>
+    </li>
+    <li><strong>Pump / Dispenser Registry</strong> — linked to tank, pump number, meter reading tracking</li>
+    <li><strong>Vehicles Registry</strong> — fleet number, registration, make, model, department, assigned driver (FK to employees), fuel type, expected consumption</li>
+    <li><strong>Equipment Registry</strong> — equipment number, type, department, fuel type</li>
+    <li><strong>Operator Management</strong> — fuel operators must be active HR employees; role assigned; shift</li>
+    <li><strong>Fuel Issuance (Basic)</strong> — select tank → vehicle/equipment → operator → enter litres → meter readings → auto-deduct from tank → print docket</li>
+    <li><strong>Fuel Settings</strong> — approval required toggle, tank alert threshold %, document numbering prefix</li>
+  </ol>
+  <br>
+  <strong>New Tables:</strong> fuel_types, fuel_tanks, fuel_pumps, vehicles, equipment, fuel_operators, fuel_transactions
+</div>
+
+<h3>Fuel Phase 2 — Requests, Deliveries &amp; Reconciliation (Month 3–4)</h3>
+<div class="phase-box clement">
+  <ol>
+    <li><strong>Fuel Requests</strong> — pre-authorisation: requester → supervisor → fuel manager → issue; configurable levels</li>
+    <li><strong>Fuel Deliveries</strong> — supplier, delivery note, quantity, price per litre, receiving tank, dip before/after; approval to confirm</li>
+    <li><strong>Dip Stick Log</strong> — manual dip per tank per shift; mm → litres via calibration table</li>
+    <li><strong>Tank Calibration</strong> — calibration table (mm → litres) per tank</li>
+    <li><strong>Bowser Management</strong> — track mobile bowser separately; bowser dispatch; bowser-to-vehicle issuance</li>
+    <li><strong>Shift Reports</strong> — per-shift summary: operator, transactions, opening/closing levels, variances</li>
+    <li><strong>Tank Reconciliation</strong> — opening + deliveries − issuances = expected closing; compare vs dip; variance; approval to close period</li>
+    <li><strong>Variance Analysis</strong> — flag variances exceeding configurable tolerance; drill to transactions</li>
+  </ol>
+  <br>
+  <strong>New Tables:</strong> fuel_requests, fuel_deliveries, dip_readings, tank_calibrations, bowser_dispatches, fuel_reconciliations
+</div>
+
+<h3>Fuel Phase 3 — Analytics, Alerts &amp; IoT Readiness (Month 5–6)</h3>
+<div class="phase-box clement">
+  <ol>
+    <li><strong>Vehicle Consumption Analysis</strong> — litres/hr, litres/km, expected vs actual; anomaly detection</li>
+    <li><strong>Department Cost Allocation</strong> — fuel cost per department per period; export to Finance</li>
+    <li><strong>Fuel Forecasting</strong> — predict when tanks will run out based on historical consumption; recommended order date</li>
+    <li><strong>Proactive Alerts</strong> — tank below threshold, no dip reading in 24h, reconciliation overdue, excessive vehicle consumption</li>
+    <li><strong>ATG Integration Hook</strong> — Edge Function listener for ATG data (Veeder-Root, OPW, Gilbarco); auto-update tank levels</li>
+    <li><strong>Flow Meter Integration</strong> — compare flow meter vs manual dip; detect leaks</li>
+    <li><strong>Fuel Reports Suite</strong> — daily transaction, monthly consumption, delivery, variance, cost allocation reports; all exportable; multi-site</li>
+  </ol>
+</div>
+
+<h3>Fuel Phase 4 — Fleet &amp; Advanced Automation (Month 7–9)</h3>
+<div class="phase-box clement">
+  <ol>
+    <li><strong>Fleet Module Integration</strong> — maintenance records link to fuel consumption; service alerts on fuel dashboard</li>
+    <li><strong>Driver RFID Authentication</strong> — RFID card at pump → verify against HR employee → authorise issuance</li>
+    <li><strong>GPS Integration</strong> — bowser GPS; geofenced issuance rules</li>
+    <li><strong>SCADA / PLC Integration</strong> — receive tank level from SCADA; compare vs dip; real-time dashboard</li>
+    <li><strong>Procurement Integration</strong> — low stock auto-creates purchase requisition</li>
+    <li><strong>Finance Integration</strong> — delivery creates payable; period close posts stock valuation journal</li>
+    <li><strong>Mobile API</strong> — endpoints for mobile fuel issuance app for remote operators</li>
+  </ol>
+</div>
+
+<h2 id="s16">16. Cross-Module Integration Strategy</h2>
+
+<table>
+  <tr><th>From</th><th>To</th><th>Data / Event</th><th>Phase</th></tr>
+  <tr><td>HR</td><td>Fuel</td><td>Employee record → fuel operator; only active employees can be operators</td><td>Fuel Phase 1</td></tr>
+  <tr><td>HR</td><td>Fuel</td><td>Employee certification → operator authorisation</td><td>HR Phase 3 / Fuel Phase 3</td></tr>
+  <tr><td>HR</td><td>Campsite</td><td>Employee on long_leave → auto-release room (DB trigger)</td><td>Now (trigger pending)</td></tr>
+  <tr><td>HR</td><td>Meals</td><td>Active employees eligible for meals</td><td>Live (via site_id)</td></tr>
+  <tr><td>HR</td><td>Payroll</td><td>Attendance + leave → deductions; salary structure → payslip</td><td>HR Phase 4</td></tr>
+  <tr><td>Fuel</td><td>Fleet</td><td>Consumption per vehicle → fleet fuel cost; link to maintenance</td><td>Fuel Phase 4</td></tr>
+  <tr><td>Fuel</td><td>Finance</td><td>Deliveries → accounts payable; period close → stock journal</td><td>Fuel Phase 4</td></tr>
+  <tr><td>Fuel</td><td>Procurement</td><td>Low tank → purchase requisition; delivery → GRN</td><td>Fuel Phase 4</td></tr>
+  <tr><td>All</td><td>Audit Log</td><td>Every create/update/soft-delete → audit_logs</td><td>Phase 1 of each module</td></tr>
+  <tr><td>All</td><td>Notifications</td><td>Approval events, alerts, system messages</td><td>Phase 2 of each module</td></tr>
+</table>
+
+<h3>Shared Infrastructure Tables</h3>
+<pre>
+audit_logs(
+  id, site_id, module, entity, entity_id,
+  action, actor_id,
+  before_data JSONB, after_data JSONB,
+  created_at
+)
+
+notifications(
+  id, site_id, recipient_id,
+  type, title, body, read,
+  action_url, created_at
+)
+
+approval_workflows(
+  id, module, entity, entity_id,
+  step, status, assignee_id,
+  comment, acted_at
+)
+
+background_jobs(
+  id, type, status,
+  payload JSONB, result JSONB, error,
+  started_at, completed_at
+)</pre>
+
+<h2 id="s17">17. Database Design &amp; Conventions</h2>
+
+<h3>17.1 Column Standards</h3>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Rule</th></tr>
+  <tr><td>id</td><td>UUID</td><td>DEFAULT gen_random_uuid(), PRIMARY KEY on every table</td></tr>
+  <tr><td>site_id</td><td>UUID</td><td>NOT NULL REFERENCES sites(id) on all site-scoped tables</td></tr>
+  <tr><td>created_at</td><td>TIMESTAMPTZ</td><td>DEFAULT now() on every table</td></tr>
+  <tr><td>updated_at</td><td>TIMESTAMPTZ</td><td>Updated by trigger on every write</td></tr>
+  <tr><td>created_by</td><td>UUID</td><td>REFERENCES profiles(id)</td></tr>
+  <tr><td>is_archived</td><td>BOOLEAN</td><td>DEFAULT false — soft delete flag</td></tr>
+  <tr><td>archived_at</td><td>TIMESTAMPTZ</td><td>Set when is_archived flips to true</td></tr>
+  <tr><td>Money columns</td><td>NUMERIC(15,2)</td><td>NEVER float or integer for money</td></tr>
+  <tr><td>Fuel quantities</td><td>NUMERIC(12,3)</td><td>3dp for litres</td></tr>
+</table>
+
+<h3>17.2 Key Tables — HR</h3>
+<pre>
+employees(
+  id, site_id, employee_number, name, date_of_birth, gender,
+  national_id, passport_number, phone, email,
+  department_id, designation_id, employment_type_id,
+  contractor_id, manager_id,
+  start_date, end_date, status,
+  has_system_account, user_id,
+  is_archived, created_at, updated_at, created_by
+)
+
+leave_requests(
+  id, site_id, employee_id, leave_type_id,
+  start_date, end_date, days_requested,
+  reason, status, approved_by, approved_at, created_at
+)
+
+employee_documents(
+  id, employee_id, site_id, document_type_id,
+  file_path, file_name, expiry_date,
+  is_verified, verified_by, verified_at, created_at
+)</pre>
+
+<h3>17.3 Key Tables — Fuel</h3>
+<pre>
+fuel_tanks(
+  id, site_id, name, code, tank_type, fuel_type_id,
+  capacity_litres, current_level_litres, min_threshold_litres,
+  location_description, gps_lat, gps_lng,
+  atg_device_id,   -- hook for future ATG
+  status, created_at
+)
+
+fuel_transactions(
+  id, site_id, tank_id, pump_id,
+  transaction_type,   -- 'issuance' | 'delivery' | 'adjustment'
+  vehicle_id, equipment_id,
+  operator_id,        -- FK to employees.id
+  litres, meter_start, meter_end,
+  fuel_request_id,    -- FK if pre-authorised
+  approved_by, approved_at,
+  docket_number, notes,
+  created_at, created_by
+)
+
+fuel_reconciliations(
+  id, site_id, tank_id,
+  period_start, period_end,
+  opening_level, closing_level_expected, closing_level_actual,
+  total_delivered, total_issued,
+  variance_litres, variance_percent,
+  status, approved_by, approved_at, created_at
+)</pre>
+
+<h2 id="s18">18. API Design Standards</h2>
+
+<ul>
+  <li>All reads: <code>supabase.from('table').select('*').eq('site_id', currentSiteId)</code></li>
+  <li>Always check for <code>.error</code> after every call</li>
+  <li>Use <code>.select('*, relation(id,name)')</code> for FK joins</li>
+  <li>Default sort: <code>.order('created_at', { ascending: false })</code></li>
+  <li>Paginate all list queries with <code>.range(from, to)</code></li>
+  <li>Never bypass RLS from client — sensitive operations go through Edge Functions with service role</li>
+</ul>
+
+<h3>Edge Functions</h3>
+<table>
+  <tr><th>Function</th><th>Trigger</th><th>Purpose</th></tr>
+  <tr><td>invite-employee</td><td>HR creates account</td><td>Call supabase.auth.admin.inviteUserByEmail</td></tr>
+  <tr><td>send-notification</td><td>Any approval event</td><td>Email via Resend; insert into notifications table</td></tr>
+  <tr><td>run-payroll</td><td>HR triggers monthly payroll</td><td>Calculate deductions, generate salary slips</td></tr>
+  <tr><td>tank-alert-check</td><td>Scheduled hourly</td><td>Check tank levels; fire alerts for tanks below threshold</td></tr>
+  <tr><td>leave-accrual</td><td>Scheduled monthly</td><td>Accrue leave balances for active employees</td></tr>
+  <tr><td>document-expiry-alert</td><td>Scheduled daily</td><td>Alert for documents expiring in 30 / 7 / 1 days</td></tr>
+  <tr><td>atg-ingest</td><td>IoT push (future)</td><td>Receive ATG readings; update fuel_tanks.current_level_litres</td></tr>
+</table>
+
+<h2 id="s19">19. Development Standards &amp; Coding Conventions</h2>
+
+<h3>Standard Page Component</h3>
+<pre>
+import { useState, useEffect } from 'react'
+import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import { useSite } from '../../contexts/SiteContext'
+import { usePermissions } from '../../hooks/usePermissions'
+
+export default function PageName() {
+  const { currentSiteId } = useSite()
+  const { can } = usePermissions()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  if (!can('module.view')) return &lt;AccessDenied /&gt;
+
+  useEffect(() => {
+    if (!currentSiteId) return
+    async function load() {
+      const { supabase } = await import('../../supabaseClient')
+      const { data, error } = await supabase
+        .from('table')
+        .select('*')
+        .eq('site_id', currentSiteId)
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false })
+      if (error) { console.error(error); return }
+      setData(data)
+      setLoading(false)
+    }
+    load()
+  }, [currentSiteId])
+
+  if (loading) return &lt;LoadingSpinner /&gt;
+  return ( ... )
+}</pre>
+
+<h3>What Never To Do</h3>
+<ul>
+  <li>Never hardcode role names in permission checks</li>
+  <li>Never delete rows from the database</li>
+  <li>Never assume a single site — always scope to site_id</li>
+  <li>Never store money as FLOAT</li>
+  <li>Never bypass RLS from the client</li>
+  <li>Never write to profiles.meals_pin</li>
+  <li>Never use CSS files — inline styles only</li>
+  <li>Never skip the site_id filter on any query</li>
+  <li>Never reference the 'approver' role anywhere</li>
+</ul>
+
+<h2 id="s20">20. Git Workflow &amp; Branching Strategy</h2>
+
+<h3>Branch Structure</h3>
+<table>
+  <tr><th>Branch</th><th>Purpose</th></tr>
+  <tr><td>main</td><td>Production. Always deployable. Claude pushes directly here.</td></tr>
+  <tr><td>claude/code-review-re5zt3</td><td>AI working branch — always kept in sync with main.</td></tr>
+  <tr><td>feature/hr-phase1</td><td>Tafara's HR Phase 1 work</td></tr>
+  <tr><td>feature/fuel-phase1</td><td>Clement's Fuel Phase 1 work</td></tr>
+</table>
+
+<h3>Push Protocol (Claude / AI Developer)</h3>
+<pre>
+git config user.email noreply@anthropic.com
+git config user.name Claude
+git add &lt;specific files&gt;
+git commit -m "feat(module): description"
+git push --force-with-lease origin HEAD:main
+git push --force-with-lease origin HEAD:claude/code-review-re5zt3</pre>
+
+<h3>Commit Message Convention</h3>
+<pre>
+feat(hr): add employee create form with account toggle
+fix(fuel): correct tank level calculation on delivery confirm
+refactor(ui): extract TableWrap to shared component
+chore(db): add site_id index on fuel_transactions</pre>
+
+<h2 id="s21">21. Phased Timeline &amp; Milestones</h2>
+
+<h3>Current State (Baseline)</h3>
+<div class="phase-box shared">
+  <strong>Modules Live:</strong> Workforce, Campsite, Meals, Admin<br>
+  <strong>Auth:</strong> Supabase Auth with data-driven RBAC (role_permission_grants, user_permission_overrides)<br>
+  <strong>Multi-site:</strong> site_id on all tables, SiteContext live<br>
+  <strong>Status:</strong> Production-ready, live on Vercel
+</div>
+
+<h3>Phase Timeline</h3>
+<table>
+  <tr><th>Phase</th><th>Module</th><th>Lead</th><th>Target</th><th>Key Deliverables</th></tr>
+  <tr><td>HR-1</td><td>HR Core</td><td><span class="tag tafara">Tafara</span></td><td>Month 1–2</td><td>Dashboard, Departments, Designations, Employee CRUD, Account creation, Settings</td></tr>
+  <tr><td>FUEL-1</td><td>Fuel Core</td><td><span class="tag clement">Clement</span></td><td>Month 1–2</td><td>Dashboard, Tanks, Pumps, Vehicles, Equipment, Basic Issuance, Settings</td></tr>
+  <tr><td>HR-2</td><td>HR Leave &amp; Docs</td><td><span class="tag tafara">Tafara</span></td><td>Month 3–4</td><td>Leave management, Documents, Org Chart, Transfers, Medical records</td></tr>
+  <tr><td>FUEL-2</td><td>Fuel Workflow</td><td><span class="tag clement">Clement</span></td><td>Month 3–4</td><td>Fuel Requests, Deliveries, Dip logs, Bowsers, Reconciliation</td></tr>
+  <tr><td>INT-1</td><td>Integration</td><td><span class="tag shared">Both</span></td><td>Month 4</td><td>HR-Fuel operator link, Notifications, Shared audit log, Cross-module search</td></tr>
+  <tr><td>HR-3</td><td>HR Attendance</td><td><span class="tag tafara">Tafara</span></td><td>Month 5–6</td><td>Shifts, Attendance, Training, Skills, ESS, Recruitment, HR Analytics</td></tr>
+  <tr><td>FUEL-3</td><td>Fuel Analytics</td><td><span class="tag clement">Clement</span></td><td>Month 5–6</td><td>Consumption analysis, Forecasting, Alerts, ATG hooks, Reports suite</td></tr>
+  <tr><td>HR-4</td><td>HR Payroll</td><td><span class="tag tafara">Tafara</span></td><td>Month 7–9</td><td>Salary structures, Payroll run, Payslips, Performance, Disciplinary</td></tr>
+  <tr><td>FUEL-4</td><td>Fuel Advanced</td><td><span class="tag clement">Clement</span></td><td>Month 7–9</td><td>Fleet integration, RFID, GPS, SCADA, Procurement integration, Finance</td></tr>
+  <tr><td>FIN-1</td><td>Finance Core</td><td>TBD</td><td>Month 10+</td><td>Chart of accounts, Journal entries, AP/AR, Cost centres</td></tr>
+  <tr><td>FLEET-1</td><td>Fleet Core</td><td>TBD</td><td>Month 10+</td><td>Vehicle maintenance, Workshop jobs, Trip management (adopt from bravura-erp)</td></tr>
+</table>
+
+<h3>Integration Checkpoint (End of Month 2 — Both Developers)</h3>
+<ul>
+  <li>fuel_operators correctly references employees table (FK)</li>
+  <li>site_id correctly scoped on all new tables (test cross-site isolation)</li>
+  <li>audit_logs receiving entries from both modules</li>
+  <li>No permission code collisions between modules</li>
+  <li>Cross-browser test: Chrome, Firefox, Safari, Edge</li>
+</ul>
+
+<h2 id="s22">22. Testing Strategy</h2>
+
+<table>
+  <tr><th>Level</th><th>Tool</th><th>Focus</th></tr>
+  <tr><td>Unit</td><td>Vitest</td><td>Utility functions, permission logic, date calculations, fuel quantity calculations</td></tr>
+  <tr><td>Component</td><td>React Testing Library</td><td>Form validation, permission gates (hidden buttons), status badge rendering</td></tr>
+  <tr><td>Integration</td><td>Playwright</td><td>Create employee → account invite; issue fuel → tank level decreases; leave approval workflow end-to-end</td></tr>
+  <tr><td>Manual QA</td><td>Checklist per page</td><td>Cross-site data isolation, permission boundaries, mobile responsiveness, print output</td></tr>
+  <tr><td>Data Integrity</td><td>SQL assertions</td><td>No negative tank stock, no orphaned records, site_id always present, FK integrity</td></tr>
+</table>
+
+<div class="note">Priority: Integration tests for approval workflows and cross-module data flows are more valuable than unit tests for simple UI. Test what would break silently.</div>
+
+<h2 id="s23">23. Deployment &amp; DevOps</h2>
+
+<table>
+  <tr><th>Environment</th><th>Purpose</th><th>Supabase Project</th></tr>
+  <tr><td>Development</td><td>Local development, feature branches</td><td>bravura-dev</td></tr>
+  <tr><td>Staging</td><td>Pre-production, Vercel preview URLs</td><td>bravura-staging</td></tr>
+  <tr><td>Production</td><td>Live system, main branch</td><td>bravura-prod</td></tr>
+</table>
+
+<h3>Database Migration Rules</h3>
+<ul>
+  <li>All schema changes as numbered SQL files: <code>migrations/0001_add_fuel_tables.sql</code></li>
+  <li>Never edit applied migrations — always add a new file</li>
+  <li>Test migrations on dev before applying to production</li>
+  <li>Every migration file includes a rollback comment (DOWN migration)</li>
+</ul>
+
+<h2 id="s24">24. Security Strategy</h2>
+
+<table>
+  <tr><th>Layer</th><th>Control</th></tr>
+  <tr><td>Network</td><td>Supabase API protected by JWT; all traffic HTTPS</td></tr>
+  <tr><td>Authentication</td><td>Supabase Auth JWT; token expiry 1 hour; refresh tokens rotated</td></tr>
+  <tr><td>Database (RLS)</td><td>Row Level Security on all tables; users see only their site's data</td></tr>
+  <tr><td>Application</td><td>Permission check on every page load and every button action</td></tr>
+  <tr><td>API</td><td>PostgREST permissions mirror application RBAC; Edge Functions use service role with explicit checks</td></tr>
+  <tr><td>Audit</td><td>Every data change logged: actor, before-state, after-state, timestamp</td></tr>
+  <tr><td>Secrets</td><td>All keys in Vercel environment variables; never in code</td></tr>
+</table>
+
+<h3>Sensitive Data Controls</h3>
+<ul>
+  <li>Salary fields — gated by <code>hr.employees.view_salary</code></li>
+  <li>Medical records — gated by <code>hr.employees.view_medical</code></li>
+  <li>National ID / Passport — visible only to HR managers and above</li>
+  <li>Fuel prices and costs — gated by finance-level permission</li>
+</ul>
+
+<h2 id="s25">25. Future Modules &amp; Long-Term Expansion</h2>
+
+<p>The architecture supports unlimited module growth. Adding a new module requires only: a new folder under <code>pages/</code>, nav registration in <code>permissions.js</code>, permission codes in the <code>permissions</code> table, and router wiring in <code>App.jsx</code>. No redesign of shared infrastructure.</p>
+
+<table>
+  <tr><th>Module</th><th>Dependencies</th><th>Priority</th></tr>
+  <tr><td>Finance / Accounting</td><td>HR (cost centres), Fuel (purchases), Payroll</td><td>High — Month 10+</td></tr>
+  <tr><td>Procurement</td><td>Finance, Inventory, Fuel (supplier deliveries)</td><td>High</td></tr>
+  <tr><td>Fleet / Workshop</td><td>HR (drivers), Fuel (consumption), Assets</td><td>High — adopt from bravura-erp</td></tr>
+  <tr><td>Inventory / Stores</td><td>Procurement, Finance</td><td>Medium</td></tr>
+  <tr><td>Assets</td><td>Procurement, Finance, Fleet</td><td>Medium</td></tr>
+  <tr><td>Safety / HSE</td><td>HR (incidents linked to employees)</td><td>Medium — mining-critical</td></tr>
+  <tr><td>Projects</td><td>HR, Finance</td><td>Medium</td></tr>
+  <tr><td>Production / Mining</td><td>Fleet, Safety, HR, Finance</td><td>Long-term</td></tr>
+  <tr><td>IoT / SCADA</td><td>Fuel (ATG), Fleet (GPS), Production</td><td>Progressive — hooks designed now</td></tr>
+  <tr><td>Business Intelligence</td><td>All modules</td><td>After 3+ modules live</td></tr>
+  <tr><td>Mobile App</td><td>All modules — key actions</td><td>After core ERP stable</td></tr>
+</table>
+
+<h2 id="s26">26. Risk Assessment &amp; Mitigations</h2>
+
+<table>
+  <tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr>
+  <tr><td>Multi-site data bleed (wrong site_id)</td><td>Critical</td><td>RLS as second layer; automated tests verify cross-site isolation</td></tr>
+  <tr><td>Permission bypass via direct API call</td><td>High</td><td>RLS enforced at database level — even direct PostgREST calls blocked</td></tr>
+  <tr><td>Two developers conflicting on shared files</td><td>Medium</td><td>Tafara owns hr/, Clement owns fuel/; shared components via PR review</td></tr>
+  <tr><td>Scope creep delaying Phase 1</td><td>Medium</td><td>Strict phase gates — Phase 1 must ship before Phase 2 starts</td></tr>
+  <tr><td>RLS policy gaps on new tables</td><td>High</td><td>RLS policy template applied to every new table; reviewed in PR</td></tr>
+  <tr><td>ATG/SCADA complexity</td><td>Low (deferred)</td><td>Integration hooks designed now; implementation deferred to Phase 3/4</td></tr>
+  <tr><td>Email delivery failures for account invites</td><td>Medium</td><td>Resend with delivery tracking; manual resend button in admin panel</td></tr>
+  <tr><td>Negative tank stock from reconciliation errors</td><td>High</td><td>DB constraint: CHECK(current_level_litres >= 0); reconciliation requires approval</td></tr>
+</table>
+
+<h2 id="s27">27. Recommendations &amp; Immediate Next Steps</h2>
+
+<h3>Before Writing Any Module Code</h3>
+<ol>
+  <li><strong>Apply room auto-release trigger</strong> — run the SQL in Supabase dashboard to auto-release rooms when employees.status = 'long_leave' (SQL provided in SESSION_NOTES.md)</li>
+  <li><strong>Add MODULE_COLORS for hr and fuel</strong> in permissions.js: <code>hr: '#1558A6', fuel: '#1A6B52'</code></li>
+  <li><strong>Create shared database foundation</strong> — migration: permissions table, role_permission_grants, user_permission_overrides, audit_logs full schema, notifications table, module_settings table, sites table (if not present)</li>
+  <li><strong>Wire HR and Fuel module routes into App.jsx</strong> — nav registration, permission gate, page router</li>
+</ol>
+
+<h3>HR Phase 1 — Tafara starts here</h3>
+<ol>
+  <li>Create <code>migrations/0010_hr_foundation.sql</code> — departments, designations, employment_types, employee_status_history; FK additions to employees table</li>
+  <li>Build <code>pages/hr/HRDashboard.jsx</code></li>
+  <li>Build <code>pages/hr/Departments.jsx</code> and <code>Designations.jsx</code></li>
+  <li>Build <code>pages/hr/EmployeeForm.jsx</code> with account creation toggle</li>
+  <li>Build <code>pages/hr/EmployeeDetail.jsx</code> with tabbed layout</li>
+</ol>
+
+<h3>Fuel Phase 1 — Clement starts here</h3>
+<ol>
+  <li>Create <code>migrations/0020_fuel_foundation.sql</code> — fuel_types, fuel_tanks, fuel_pumps, vehicles, equipment, fuel_operators, fuel_transactions</li>
+  <li>Build <code>pages/fuel/FuelDashboard.jsx</code></li>
+  <li>Build <code>pages/fuel/Tanks.jsx</code> and <code>TankDetail.jsx</code></li>
+  <li>Build <code>pages/fuel/Vehicles.jsx</code> and <code>Equipment.jsx</code></li>
+  <li>Build <code>pages/fuel/FuelIssuance.jsx</code> — basic version, no approval workflow yet</li>
+</ol>
+
+<hr style="margin:40px 0 20px;border:none;border-top:2px solid #e5e5e5">
+<div style="text-align:center;font-size:12px;color:#999;padding-bottom:40px">
+  Bravura ERP Development Roadmap &nbsp;|&nbsp; Version 2.0 &nbsp;|&nbsp; June 2026<br>
+  Prepared for Bravura Resources &nbsp;|&nbsp; This document is a living plan — update it as phases complete.
+</div>
+
 </body>
 </html>

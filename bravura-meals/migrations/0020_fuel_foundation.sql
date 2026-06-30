@@ -292,12 +292,15 @@ CREATE POLICY "fuel_types: auth write"
   ON fuel_types FOR ALL
   USING (auth.role() = 'authenticated');
 
--- Site-scoped helper: true when the requesting user belongs to the row's site
+-- Site-scoped helper: true when the requesting user has access to the row's site.
+-- A user_roles row with site_id = NULL means the role grants access to ALL sites
+-- (Group Admin / System Admin behaviour — matches SiteContext logic).
 CREATE OR REPLACE FUNCTION user_in_site(row_site_id UUID)
 RETURNS BOOLEAN AS $$
   SELECT EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid() AND site_id = row_site_id
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+      AND (site_id = row_site_id OR site_id IS NULL)
   );
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 

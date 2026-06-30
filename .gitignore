@@ -4,3 +4,4 @@ package-lock.json
 *.local
 .env
 .env.*
+!.env.example

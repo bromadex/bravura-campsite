@@ -40,13 +40,16 @@ Confirmed already applied on Supabase (constraint `daily_submissions_date_site_k
 
 ---
 
+## Verified — No Action Needed
+
+1. **Meal pin removal** — Zero references to `profiles.meals_pin` anywhere in the codebase. Already fully purged.
+2. **`daily_submissions` multi-site integrity** — Constraint `daily_submissions_date_site_key` (`UNIQUE(date, site_id)`) already exists on Supabase. Clean.
+3. **Print styles** — `index.html` global `<style>` block has `.print-only { display: none }` and `@media print { .print-only { display: block !important } }` covering all report pages. No CSS file needed.
+
+---
+
 ## What's Next (Suggested)
 
-These are areas that may need attention based on the codebase explored:
-
-1. **Meal pin removal** — `profiles.meals_pin` references should be fully purged from any remaining UI or logic.
-2. **`daily_submissions` multi-site data integrity** — now that the constraint is site-scoped, verify any existing duplicate `date` rows (same date, different sites) are clean.
-3. **Print styles** — the `print-only` class relies on a global CSS rule (`display: none` toggled on print). Confirm this rule exists in `index.css` or `App.css` for all report pages.
-4. **`WorkforceReports.jsx` — further filters** — check if contractor filter also needs a site scope.
-5. **Room auto-release on long leave** — the DB trigger that releases a room when `employees.status` flips to `long_leave` should be tested end-to-end.
-6. **Role/permission audit** — confirm `storekeeper` still does NOT have `supplies.approve` and `approver` role is not referenced anywhere in code.
+1. **`WorkforceReports.jsx` — contractor filter site scope** — check if contractor filter also needs `.eq('site_id', currentSiteId)`.
+2. **Room auto-release on long leave** — the DB trigger that releases a room when `employees.status` flips to `long_leave` should be tested end-to-end.
+3. **Role/permission audit** — confirm `storekeeper` still does NOT have `supplies.approve` and `approver` role is not referenced anywhere in code.

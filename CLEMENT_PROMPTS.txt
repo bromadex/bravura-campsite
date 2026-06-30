@@ -1,0 +1,1562 @@
+═══════════════════════════════════════════════════════════════════════════════
+CLEMENT — FUEL MODULE DEVELOPER PROMPTS
+Bravura ERP · bromadex/bravura-campsite
+═══════════════════════════════════════════════════════════════════════════════
+
+HOW TO USE THESE PROMPTS
+─────────────────────────
+Each section below is a prompt you paste at the start of a Claude session.
+Paste the MASTER CONTEXT first, then paste the SESSION PROMPT for the phase
+you are working on. You do not need to explain anything else — the prompt
+tells Claude everything it needs to know.
+
+Always open a new session with the Master Context block first.
+Then paste the specific session prompt below it.
+
+═══════════════════════════════════════════════════════════════════════════════
+MASTER CONTEXT — PASTE THIS AT THE START OF EVERY SESSION
+═══════════════════════════════════════════════════════════════════════════════
+
+You are developing the Bravura ERP platform. Read everything below before
+writing a single line of code.
+
+REPOSITORY:   bromadex/bravura-campsite
+APP DIR:      bravura-meals/src/
+STACK:        React 19 + Vite · Supabase (PostgREST + RLS) · React Router
+HOSTING:      Vercel (auto-deploys from main branch)
+MY ROLE:      Clement — Fuel Module Lead Developer
+
+── ABSOLUTE RULES ─────────────────────────────────────────────────────────────
+
+1.  PUSH TO MAIN DIRECTLY. No pull requests unless I explicitly ask.
+    Always push to BOTH branches after every commit:
+      git push --force-with-lease origin HEAD:main
+      git push --force-with-lease origin HEAD:claude/code-review-re5zt3
+
+2.  COMMIT AUTHOR must always be:
+      git config user.email noreply@anthropic.com
+      git config user.name Claude
+
+3.  NEVER READ OR WRITE profiles.meals_pin — it is purged from the system.
+
+4.  RBAC: NEVER hardcode role name checks. NEVER write: if role === 'anything'
+    ALWAYS use: const { can } = usePermissions()  then  can('module.action')
+    The 'approver' role is RETIRED — never reference it anywhere.
+
+5.  NEVER DELETE RECORDS. Use soft deletes only:
+      tanks: set status = 'decommissioned'
+      any entity: set is_archived = true, archived_at = now()
+      fuel_transactions: NEVER delete or modify — append corrections only
+
+6.  EVERY SUPABASE QUERY must include .eq('site_id', currentSiteId)
+    Get currentSiteId from: const { currentSiteId } = useSite()
+
+7.  INLINE STYLES ONLY. No CSS files, no Tailwind, no CSS modules.
+    Use THEME tokens: import { THEME, MODULE_COLORS } from '../../utils/permissions'
+    Fuel module colour: MODULE_COLORS.fuel = '#1A6B52' (green)
+
+── EXISTING MODULES (DO NOT BREAK THESE) ──────────────────────────────────────
+
+workforce  — Employees, Contractors, Leave, Reports (already live)
+campsite   — Rooms, Blocks, Assignments, Supplies, Transfers (already live)
+meals      — Dashboard, Entry, Approvals, Kitchen, Reports, Billing (already live)
+admin      — Users and Roles, Audit Log (already live)
+
+── CRITICAL INTEGRATION CONSTRAINT ────────────────────────────────────────────
+
+Fuel operators MUST be active employees in the HR module.
+fuel_operators.employee_id is a FOREIGN KEY to employees.id.
+When selecting an operator, always query from employees table:
+  .eq('site_id', currentSiteId)
+  .eq('status', 'active')
+Never create a separate operator registry. Use HR data.
+
+Vehicles will eventually link to the Fleet module.
+Keep vehicle records in fuel_vehicles for now with a future_fleet_id column
+so they can be linked when Fleet is built.
+
+── SHARED COMPONENT IMPORTS ───────────────────────────────────────────────────
+
+import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td }
+  from '../../components/ui'
+import { useSite } from '../../contexts/SiteContext'
+import { usePermissions } from '../../hooks/usePermissions'
+import { THEME, MODULE_COLORS } from '../../utils/permissions'
+
+── PERMISSION PATTERN ──────────────────────────────────────────────────────────
+
+const { can } = usePermissions()
+if (!can('fuel.view')) return <AccessDenied />
+{can('fuel.issue') && <button>Issue Fuel</button>}
+{can('fuel.tanks.edit') && <button>Edit Tank</button>}
+
+── STANDARD PAGE STRUCTURE ─────────────────────────────────────────────────────
+
+export default function PageName() {
+  const { currentSiteId } = useSite()
+  const { can } = usePermissions()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  if (!can('fuel.view')) return <AccessDenied />
+
+  useEffect(() => {
+    if (!currentSiteId) return
+    async function load() {
+      const { supabase } = await import('../../supabaseClient')
+      const { data, error } = await supabase
+        .from('table_name')
+        .select('*')
+        .eq('site_id', currentSiteId)
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false })
+      if (error) { console.error(error); return }
+      setData(data)
+      setLoading(false)
+    }
+    load()
+  }, [currentSiteId])
+
+  if (loading) return <LoadingSpinner />
+  return ( ... )
+}
+
+── MULTI-SITE RULE ─────────────────────────────────────────────────────────────
+
+No feature may assume a single site.
+All data is scoped by site_id.
+Tanks, vehicles, equipment, operators — all site-scoped.
+
+── FUEL TRANSACTION RULES ──────────────────────────────────────────────────────
+
+Fuel transactions are IMMUTABLE after creation.
+Never update or delete a fuel_transaction row.
+If a correction is needed, create a new transaction with type='adjustment'
+referencing the original transaction.
+
+Tank levels are updated by trigger, not by application code directly:
+  - Each INSERT into fuel_transactions triggers an update to fuel_tanks.current_level_litres
+  - issuance: current_level -= litres
+  - delivery: current_level += litres
+  - adjustment: current_level += adjustment_litres (can be negative)
+
+═══════════════════════════════════════════════════════════════════════════════
+END OF MASTER CONTEXT
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 1 — SESSION 1
+FOUNDATION: DATABASE + FUEL TYPES + TANK REGISTRY
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, the Fuel module lead developer on Bravura ERP.
+
+We are starting Fuel Phase 1. This session covers the database foundation,
+fuel types, and the tank registry.
+
+── TASK 1: DATABASE MIGRATION ──────────────────────────────────────────────
+
+Create: bravura-meals/migrations/0020_fuel_foundation.sql
+
+fuel_types(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,           -- 'Diesel', 'Petrol', 'Paraffin', 'Aviation'
+  code TEXT NOT NULL UNIQUE,
+  colour TEXT,                  -- display colour for charts/badges
+  density NUMERIC(6,4),         -- kg/litre, for mass conversions (future)
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+fuel_tanks(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  name TEXT NOT NULL,
+  code TEXT NOT NULL,
+  tank_type TEXT NOT NULL,       -- 'underground', 'above_ground', 'bowser', 'mobile'
+  fuel_type_id UUID NOT NULL REFERENCES fuel_types(id),
+  capacity_litres NUMERIC(12,3) NOT NULL,
+  current_level_litres NUMERIC(12,3) NOT NULL DEFAULT 0,
+  min_threshold_litres NUMERIC(12,3) DEFAULT 0,
+  min_threshold_percent NUMERIC(5,2) DEFAULT 20,
+  location_description TEXT,
+  gps_lat NUMERIC(10,7),
+  gps_lng NUMERIC(10,7),
+  atg_device_id TEXT,            -- future IoT integration hook
+  last_dip_date DATE,
+  last_dip_reading NUMERIC(12,3),
+  status TEXT DEFAULT 'active',  -- 'active', 'maintenance', 'decommissioned'
+  is_archived BOOLEAN DEFAULT false,
+  archived_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, code),
+  CONSTRAINT positive_level CHECK (current_level_litres >= 0),
+  CONSTRAINT level_within_capacity CHECK (current_level_litres <= capacity_litres)
+)
+
+fuel_pumps(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  tank_id UUID NOT NULL REFERENCES fuel_tanks(id),
+  name TEXT NOT NULL,
+  code TEXT,
+  current_meter_reading NUMERIC(12,3) DEFAULT 0,
+  status TEXT DEFAULT 'active',   -- 'active', 'maintenance', 'decommissioned'
+  is_archived BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(site_id, code)
+)
+
+fuel_vehicles(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  fleet_number TEXT NOT NULL,
+  registration TEXT,
+  make TEXT,
+  model TEXT,
+  year INTEGER,
+  department_id UUID,               -- FK to departments (HR module)
+  fuel_type_id UUID NOT NULL REFERENCES fuel_types(id),
+  tank_capacity_litres NUMERIC(8,3),
+  expected_consumption_lph NUMERIC(6,3),   -- litres per hour (for equipment)
+  expected_consumption_lpkm NUMERIC(6,3),  -- litres per km (for vehicles)
+  status TEXT DEFAULT 'active',     -- 'active', 'maintenance', 'decommissioned'
+  future_fleet_id UUID,             -- link to Fleet module when it is built
+  is_archived BOOLEAN DEFAULT false,
+  archived_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, fleet_number)
+)
+
+fuel_equipment(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  equipment_number TEXT NOT NULL,
+  name TEXT NOT NULL,
+  equipment_type TEXT,              -- 'Generator', 'Compressor', 'Drill', 'Pump', 'Other'
+  department_id UUID,
+  fuel_type_id UUID NOT NULL REFERENCES fuel_types(id),
+  expected_consumption_lph NUMERIC(6,3),
+  status TEXT DEFAULT 'active',
+  is_archived BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(site_id, equipment_number)
+)
+
+fuel_operators(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  licence_number TEXT,
+  licence_expiry DATE,
+  is_active BOOLEAN DEFAULT true,
+  activated_at TIMESTAMPTZ DEFAULT now(),
+  deactivated_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, employee_id)
+)
+
+fuel_transactions(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  transaction_number TEXT NOT NULL,
+  tank_id UUID NOT NULL REFERENCES fuel_tanks(id),
+  pump_id UUID REFERENCES fuel_pumps(id),
+  transaction_type TEXT NOT NULL,     -- 'issuance', 'delivery', 'adjustment', 'dip_correction'
+  vehicle_id UUID REFERENCES fuel_vehicles(id),
+  equipment_id UUID REFERENCES fuel_equipment(id),
+  operator_id UUID REFERENCES fuel_operators(id),
+  litres NUMERIC(12,3) NOT NULL,
+  meter_start NUMERIC(12,3),
+  meter_end NUMERIC(12,3),
+  tank_level_before NUMERIC(12,3),
+  tank_level_after NUMERIC(12,3),
+  unit_price NUMERIC(10,4),
+  total_cost NUMERIC(15,2),
+  fuel_request_id UUID,               -- FK to fuel_requests (Phase 2)
+  original_transaction_id UUID,       -- FK to self, for adjustments
+  approved_by UUID REFERENCES profiles(id),
+  approved_at TIMESTAMPTZ,
+  docket_number TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, transaction_number)
+)
+
+TRIGGER: After INSERT on fuel_transactions, update fuel_tanks.current_level_litres:
+  - If type = 'issuance': SET current_level_litres = current_level_litres - NEW.litres
+  - If type = 'delivery': SET current_level_litres = current_level_litres + NEW.litres
+  - If type = 'adjustment': SET current_level_litres = current_level_litres + NEW.litres
+    (adjustment litres can be negative for downward corrections)
+  - Also update fuel_tanks.updated_at
+
+Enable RLS on all tables. Users see only their site's data.
+Add updated_at triggers on fuel_tanks and fuel_pumps.
+
+Seed fuel_types: Diesel (#FF8C00), Petrol (#DC143C), Paraffin (#4169E1), Aviation Fuel (#8B008B)
+
+── TASK 2: REGISTER FUEL MODULE IN THE APP ──────────────────────────────────
+
+In bravura-meals/src/utils/permissions.js:
+  - Add to MODULE_COLORS: fuel: '#1A6B52'
+  - Add fuelNav function returning the Fuel sidebar navigation items
+
+In App.jsx:
+  - Register the Fuel module route
+  - Wire up FuelDashboard as the default Fuel page
+  - Add Fuel to the module selector / home launcher
+
+── TASK 3: FUEL TYPES MANAGEMENT PAGE ───────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FuelTypes.jsx
+(accessible from Fuel Settings, not main nav)
+
+Simple CRUD for fuel types. Add/edit/deactivate. Show colour picker.
+This is an admin page — only if can('fuel.settings.edit').
+
+── TASK 4: TANKS PAGE ───────────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/Tanks.jsx
+
+Permission gate: if (!can('fuel.tanks.view')) return <AccessDenied />
+
+Show all tanks at current site in two views:
+  - CARD VIEW (default): one card per tank showing:
+      Tank name and code
+      Fuel type badge (coloured)
+      Level bar: visual bar showing current_level_litres vs capacity_litres
+      Percentage: (current / capacity * 100)%
+      Alert indicator: if below min_threshold_percent, show red warning badge
+      Status badge
+  - TABLE VIEW: standard table with all fields
+
+Filters: fuel type, tank type, status.
+
+ADD TANK BUTTON (if can('fuel.tanks.edit')):
+  Form fields: name, code, tank type (dropdown), fuel type, capacity, minimum threshold,
+  location description, optional GPS coordinates, ATG device ID (text, optional).
+
+EDIT button per tank (if can('fuel.tanks.edit')):
+  Same form pre-populated. Cannot reduce capacity below current level.
+
+CHANGE STATUS button:
+  Decommission (is_archived = true, status = 'decommissioned') with confirmation.
+  Put in Maintenance (status = 'maintenance') — does not archive.
+
+Click on a tank → navigate to TankDetail page.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Migration applied. Trigger for tank level updates works.
+Fuel module appears in app navigation.
+Tanks page loads cards with level bars and alert indicators.
+Add/edit tank works. Status changes work.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 1 — SESSION 2
+TANK DETAIL + VEHICLES + EQUIPMENT + OPERATORS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Fuel Phase 1 Session 2.
+
+Tanks page and foundation are done. Now build:
+- Tank Detail page
+- Vehicles registry
+- Equipment registry
+- Operators management
+
+── TASK 1: TANK DETAIL PAGE ─────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/TankDetail.jsx
+
+Route: /fuel/tanks/:id
+
+HEADER:
+  Tank name, code, type, fuel type badge, status badge, site name
+  Large level display: current litres / capacity litres and percentage
+  Level bar (colour: green if >50%, amber if 20–50%, red if <20%)
+
+TABS:
+
+Tab 1 — Overview:
+  Capacity, min threshold, location, GPS, ATG device ID
+  Last dip date and reading
+  Current variance (dip reading vs system level)
+
+Tab 2 — Pumps:
+  List of pumps linked to this tank
+  Add pump button (name, code, current meter reading)
+  Edit/deactivate per pump
+
+Tab 3 — Transactions (last 50):
+  Table: Date, Type, Litres, Vehicle/Equipment, Operator, Before/After levels, Docket
+  Transaction type colour-coded:
+    issuance = red (level goes down)
+    delivery = green (level goes up)
+    adjustment = amber
+
+Tab 4 — Dip Readings:
+  Table of all dip_readings for this tank (from Phase 2)
+  Placeholder message if no dip readings yet
+
+Tab 5 — Reconciliations:
+  Placeholder: "Reconciliation available in Fuel Phase 2"
+
+── TASK 2: VEHICLES REGISTRY PAGE ──────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/Vehicles.jsx
+
+Permission gate: if (!can('fuel.view')) return <AccessDenied />
+
+Table of vehicles at current site.
+Columns: Fleet Number, Registration, Make/Model, Department, Fuel Type, Status.
+Filters: fuel type, department, status.
+Search: fleet number, registration.
+
+ADD VEHICLE (if can('fuel.tanks.edit') — reuse this permission for asset management):
+  Form: fleet number (required), registration, make, model, year,
+  department (dropdown from HR departments table),
+  fuel type (dropdown), tank capacity, expected consumption.
+
+EDIT per vehicle. Archive (soft delete) per vehicle.
+
+Click vehicle → show recent fuel transactions for that vehicle (last 30 days).
+
+── TASK 3: EQUIPMENT REGISTRY PAGE ─────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/Equipment.jsx
+
+Same pattern as Vehicles.
+Columns: Equipment Number, Name, Type, Department, Fuel Type, Status.
+Form: equipment number, name, equipment type (Generator, Compressor, Drill, Pump, Other),
+department, fuel type, expected consumption (litres/hour).
+
+── TASK 4: OPERATORS PAGE ───────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/Operators.jsx
+
+Permission gate: if (!can('fuel.view')) return <AccessDenied />
+
+This page manages which employees are authorised as fuel operators.
+Operators MUST be active employees from the HR module.
+
+Table columns: Employee Name, Employee Number, Department, Licence Number,
+Licence Expiry, Active Status, Actions.
+
+ADD OPERATOR (if can('fuel.settings.edit')):
+  - Employee lookup (searchable dropdown from employees table where status='active' and site_id matches)
+  - Licence number (optional)
+  - Licence expiry date (optional — but alert when expiring within 30 days)
+
+DEACTIVATE per operator (soft: is_active = false, deactivated_at = now()).
+Never delete.
+
+LICENCE EXPIRY ALERT:
+  Highlight rows where licence_expiry is within 30 days (amber) or past (red).
+
+── TASK 5: FUEL DASHBOARD (INITIAL VERSION) ─────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FuelDashboard.jsx
+
+Permission gate: if (!can('fuel.view')) return <AccessDenied />
+
+KPI ROW:
+  - Total Tanks at Site
+  - Tanks Below Threshold (red alert)
+  - Total Fuel Issued Today (litres)
+  - Total Fuel Delivered This Month (litres)
+  - Active Operators
+
+TANK LEVEL OVERVIEW:
+  Visual cards (one per tank) showing name, fuel type, level percentage bar.
+  Red border on tanks below threshold.
+
+RECENT TRANSACTIONS:
+  Last 10 fuel_transactions at this site.
+  Show: time, type, vehicle/equipment, litres, operator, tank.
+
+QUICK ACTIONS:
+  - Issue Fuel (if can('fuel.issue'))
+  - Record Delivery (will link to Phase 2)
+  - View All Transactions
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Tank detail page works with all tabs.
+Vehicles and Equipment registries work.
+Operators page works — only active HR employees selectable.
+Fuel Dashboard loads real KPIs.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 1 — SESSION 3
+FUEL ISSUANCE — BASIC VERSION
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Fuel Phase 1 Session 3.
+
+This is the most important page in the Fuel module — the issuance form.
+Build the basic version first (no approval workflow — that comes in Phase 2).
+
+── TASK 1: FUEL ISSUANCE FORM ───────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FuelIssuance.jsx
+
+Permission gate: if (!can('fuel.issue')) return <AccessDenied />
+
+This is an operational form — it should feel fast and simple.
+Operators use it many times a day. Keep it clean.
+
+FORM FIELDS (in this order):
+
+1.  Tank (dropdown — only active tanks at this site)
+    When selected: show current level, capacity, fuel type
+    Show alert if tank below threshold
+
+2.  Pump (dropdown — only pumps linked to the selected tank)
+    Show current meter reading when selected
+
+3.  Issue To: VEHICLE or EQUIPMENT (toggle/radio)
+    If Vehicle: vehicle dropdown (fleet number + registration)
+    If Equipment: equipment dropdown (equipment number + name)
+    Search-as-you-type on both dropdowns
+
+4.  Operator (dropdown — only active fuel operators at this site)
+    Show their licence expiry date (amber/red if expiring/expired)
+
+5.  Meter Reading Start (pre-filled from pump.current_meter_reading)
+    Meter Reading End (user enters this)
+    Litres Dispensed: auto-calculated = meter_end - meter_start
+    Also allow: manual override of litres (if no pump meter available)
+
+6.  Docket Number (auto-generated or manual — based on settings)
+
+7.  Notes (optional)
+
+CALCULATED DISPLAYS (update in real-time as user types):
+  Litres dispensed (large font, visible)
+  Estimated cost (litres × last delivery price per litre from settings or last delivery)
+  Tank level after this issuance: current_level - litres
+
+SUBMIT BUTTON TEXT: "Issue Fuel"
+
+VALIDATION:
+  - Litres > 0
+  - Litres does not exceed current tank level (block with error)
+  - Either vehicle or equipment selected (not both, not neither)
+  - Operator selected
+  - Meter end > meter start (if using meter)
+
+ON SUBMIT:
+  - Auto-generate transaction_number (prefix from settings + sequence)
+  - Insert fuel_transactions row (type = 'issuance')
+  - The DB trigger updates fuel_tanks.current_level_litres automatically
+  - Also update fuel_pumps.current_meter_reading = meter_end
+  - Log to audit_logs
+  - Show success with docket number
+  - Offer: "Print Docket" or "Issue Another"
+
+── TASK 2: DOCKET PRINT VIEW ────────────────────────────────────────────────
+
+After successful issuance, show a printable docket:
+
+  ┌─────────────────────────────────────┐
+  │  FUEL ISSUANCE DOCKET               │
+  │  [Site Name]                        │
+  │  Docket No: FR-0042                 │
+  │  Date: 30 June 2026  Time: 14:23   │
+  ├─────────────────────────────────────┤
+  │  Tank:     T-01 (Diesel)            │
+  │  Pump:     P-01                     │
+  │  Issued To: Fleet No. 15 (Toyota)   │
+  │  Operator: John Banda               │
+  ├─────────────────────────────────────┤
+  │  Meter Start: 12,450.5 L            │
+  │  Meter End:   12,550.5 L            │
+  │  LITRES ISSUED: 100.0 L             │
+  ├─────────────────────────────────────┤
+  │  Authorised By: _________________   │
+  │  Driver Signature: ______________   │
+  └─────────────────────────────────────┘
+
+Print via window.print() with @media print styles.
+
+── TASK 3: FUEL ISSUANCE LIST ───────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FuelTransactions.jsx
+
+Permission gate: if (!can('fuel.view')) return <AccessDenied />
+
+Table of all issuance transactions at current site.
+Default filter: today's date.
+Columns: Docket No, Date/Time, Tank, Fuel Type, Vehicle/Equipment, Operator, Litres, Cost.
+Filters: date range, tank, vehicle, fuel type, transaction type.
+Search: docket number, vehicle fleet number.
+
+Click row → show transaction detail panel (all fields, no edit allowed).
+Export to CSV (if can('fuel.reports.export')).
+
+── TASK 4: FUEL SETTINGS PAGE ───────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FuelSettings.jsx
+
+Permission gate: if (!can('fuel.settings.edit')) return <AccessDenied />
+
+Settings to store in module_settings (module='fuel'):
+  Docket Number Prefix           (text, default 'FD-')
+  Docket Number Padding          (number, default 4 → FD-0001)
+  Require Approval for Issuance  (toggle, default OFF — Phase 2 will use this)
+  Tank Alert Threshold           (%, default 20)
+  Default Fuel Price (per litre) (numeric — used for estimated cost display)
+  Allow Manual Litres Entry      (toggle — override pump meter reading)
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Issuance form works: validates, submits, updates tank level via trigger.
+Docket prints correctly.
+Transactions list loads with correct data and filters.
+Fuel Settings page saves and loads from module_settings table.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 2 — SESSION 1
+FUEL REQUESTS + APPROVAL WORKFLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Starting Fuel Phase 2.
+
+Phase 1 is complete (Tanks, Vehicles, Equipment, Operators, Basic Issuance).
+Phase 2 adds: Fuel Requests, Deliveries, Dip Readings, Reconciliation.
+
+── TASK 1: DATABASE — FUEL REQUESTS ─────────────────────────────────────────
+
+Create: migrations/0022_fuel_requests.sql
+
+fuel_requests(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  request_number TEXT NOT NULL,
+  requested_by UUID NOT NULL REFERENCES profiles(id),
+  vehicle_id UUID REFERENCES fuel_vehicles(id),
+  equipment_id UUID REFERENCES fuel_equipment(id),
+  fuel_type_id UUID NOT NULL REFERENCES fuel_types(id),
+  quantity_requested NUMERIC(12,3) NOT NULL,
+  intended_use TEXT,
+  priority TEXT DEFAULT 'normal',   -- 'normal', 'urgent', 'emergency'
+  status TEXT DEFAULT 'pending',    -- 'pending', 'approved', 'rejected', 'issued', 'cancelled'
+  approved_by UUID REFERENCES profiles(id),
+  approved_at TIMESTAMPTZ,
+  rejected_reason TEXT,
+  issued_transaction_id UUID REFERENCES fuel_transactions(id),
+  issued_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, request_number)
+)
+
+Enable RLS.
+
+── TASK 2: FUEL REQUEST FORM ────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FuelRequestForm.jsx
+
+Permission gate: if (!can('fuel.view')) return <AccessDenied />
+(any user can submit a request — approval is the restricted action)
+
+Form fields:
+  Vehicle or Equipment (toggle — same as issuance form)
+  Fuel Type (auto-determined from vehicle/equipment selection)
+  Quantity Requested (litres)
+  Intended Use (text)
+  Priority (Normal, Urgent, Emergency)
+  Notes
+
+On submit:
+  - Auto-generate request_number (prefix from settings, e.g. FR-0001)
+  - Insert fuel_requests with status = 'pending'
+  - Insert notification to fuel approvers
+
+── TASK 3: FUEL REQUESTS LIST ───────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FuelRequests.jsx
+
+Permission gate: if (!can('fuel.view')) return <AccessDenied />
+
+Table columns: Request No, Date, Requested By, Vehicle/Equipment, Fuel Type, Quantity, Priority, Status, Actions.
+Filters: status, date range, priority.
+
+For pending requests, if can('fuel.issue.approve'):
+  - APPROVE button → opens modal: select tank, confirm quantity (can reduce), add note
+  - REJECT button → opens modal: reason required
+
+On Approve:
+  - Update fuel_requests.status = 'approved', approved_by, approved_at
+  - Insert notification to requester
+
+On Issue (after approval, separate step):
+  - The FuelIssuance form accepts a fuel_request_id parameter
+  - When coming from a request: pre-fill vehicle/equipment/quantity
+  - After successful issuance: update fuel_requests.status = 'issued', issued_transaction_id
+
+── TASK 4: UPDATE ISSUANCE FORM FOR APPROVAL WORKFLOW ──────────────────────
+
+Update FuelIssuance.jsx:
+
+If Fuel Settings → "Require Approval" = true:
+  Add a field at the top: "Request Reference" — search/select an approved fuel request
+  Pre-fill vehicle/equipment and quantity from the request
+  On submit: link transaction to the request, mark request as 'issued'
+
+If "Require Approval" = false (default):
+  Issuance form works as before (direct issue, no request needed)
+
+This makes approval optional — configurable per site in Fuel Settings.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Fuel Requests can be submitted, approved, rejected.
+Notifications sent on each status change.
+Issuance form linked to approved requests when approval required.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 2 — SESSION 2
+FUEL DELIVERIES + DIP STICK LOG
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Fuel Phase 2 Session 2.
+
+── TASK 1: DATABASE — DELIVERIES AND DIPS ──────────────────────────────────
+
+Create: migrations/0023_fuel_deliveries.sql
+
+fuel_deliveries(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  delivery_number TEXT NOT NULL,
+  tank_id UUID NOT NULL REFERENCES fuel_tanks(id),
+  supplier_name TEXT NOT NULL,
+  delivery_note_number TEXT,
+  delivery_date DATE NOT NULL,
+  quantity_ordered NUMERIC(12,3),
+  quantity_delivered NUMERIC(12,3) NOT NULL,
+  unit_price NUMERIC(10,4),
+  total_cost NUMERIC(15,2),
+  dip_before NUMERIC(12,3),
+  dip_after NUMERIC(12,3),
+  delivery_note_path TEXT,            -- Supabase Storage path
+  status TEXT DEFAULT 'pending',      -- 'pending', 'confirmed', 'queried'
+  confirmed_by UUID REFERENCES profiles(id),
+  confirmed_at TIMESTAMPTZ,
+  query_notes TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, delivery_number)
+)
+
+dip_readings(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  tank_id UUID NOT NULL REFERENCES fuel_tanks(id),
+  reading_date DATE NOT NULL,
+  reading_time TIME,
+  shift TEXT,                         -- 'morning', 'afternoon', 'night'
+  dip_mm NUMERIC(8,1),               -- raw dip in millimetres
+  level_litres NUMERIC(12,3) NOT NULL, -- calculated from calibration table
+  system_level_litres NUMERIC(12,3),  -- system's calculated level at this time
+  variance_litres NUMERIC(12,3),      -- dip - system
+  variance_percent NUMERIC(6,2),
+  read_by UUID REFERENCES fuel_operators(id),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+tank_calibrations(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tank_id UUID NOT NULL REFERENCES fuel_tanks(id),
+  dip_mm NUMERIC(8,1) NOT NULL,
+  level_litres NUMERIC(12,3) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(tank_id, dip_mm)
+)
+
+── TASK 2: FUEL DELIVERIES PAGE ─────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FuelDeliveries.jsx
+
+Permission gate: if (!can('fuel.view')) return <AccessDenied />
+
+Table: Delivery No, Date, Tank, Supplier, Ordered, Delivered, Unit Price, Total Cost, Status.
+Filters: date range, tank, supplier, status.
+
+RECORD DELIVERY (if can('fuel.delivery.create')):
+  Form:
+    Tank (dropdown)
+    Supplier name
+    Delivery note number
+    Delivery date
+    Quantity ordered (optional — for comparison)
+    Quantity delivered (required)
+    Unit price per litre (optional)
+    Dip before delivery (litres — from dip reading done before pumping started)
+    Dip after delivery (litres — from dip reading done after delivery complete)
+    Upload delivery note (PDF/image → Supabase Storage)
+    Notes
+
+  On submit:
+    - Auto-generate delivery_number
+    - Insert fuel_deliveries with status = 'pending'
+    - Insert a fuel_transactions row with type = 'delivery', litres = quantity_delivered
+      (This triggers the tank level update automatically)
+    - The dip_before and dip_after are recorded for reconciliation purposes
+
+CONFIRM DELIVERY (if can('fuel.delivery.approve')):
+  Sets status = 'confirmed', confirmed_by, confirmed_at.
+  Only pending deliveries can be confirmed.
+
+VIEW DELIVERY: shows all details, delivery note attachment download.
+
+── TASK 3: DIP STICK LOG PAGE ───────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/DipReadings.jsx
+
+Permission gate: if (!can('fuel.view')) return <AccessDenied />
+
+This is the manual dip reading log — used at sites without an ATG (auto tank gauge).
+
+Table: Tank, Date, Time, Shift, Dip (mm), Level (litres), System Level, Variance, Read By.
+Filter: tank, date range, shift.
+
+RECORD DIP (if can('fuel.issue')):
+  Form:
+    Tank (dropdown)
+    Date (default today)
+    Time (default now)
+    Shift (Morning, Afternoon, Night)
+    Dip Reading (mm)
+    If tank has calibration table: auto-calculate litres from mm input
+    If no calibration: enter litres directly
+    Read By (dropdown from fuel_operators — defaults to current user's operator record)
+    Notes
+
+  On submit:
+    - Calculate variance = level_litres - current system level
+    - If variance exceeds ±5%: show warning, require notes explaining the variance
+    - Insert dip_readings row
+    - Update fuel_tanks.last_dip_date and last_dip_reading
+
+CALIBRATION TABLE (accessible from Tank Detail → Dip Readings tab):
+  Upload calibration table as CSV (mm, litres columns).
+  Or enter rows manually.
+  Stored in tank_calibrations.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Fuel Deliveries page: record, confirm, view attachment.
+Delivery inserts transaction, updates tank level via trigger.
+Dip Readings page: record readings, auto-calculate from calibration.
+Variance warning shows when reading deviates >5% from system.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 2 — SESSION 3
+BOWSER MANAGEMENT + TANK RECONCILIATION
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Fuel Phase 2 Session 3.
+
+── TASK 1: BOWSER MANAGEMENT ────────────────────────────────────────────────
+
+Bowsers are already in the fuel_tanks table (tank_type = 'bowser').
+This session adds bowser-specific dispatch tracking.
+
+Migration: add to 0023 or create 0024_fuel_bowsers.sql
+
+bowser_dispatches(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  bowser_id UUID NOT NULL REFERENCES fuel_tanks(id),  -- tank_type = 'bowser'
+  dispatch_number TEXT NOT NULL,
+  dispatched_to TEXT NOT NULL,        -- location name or description
+  dispatched_to_gps_lat NUMERIC(10,7),
+  dispatched_to_gps_lng NUMERIC(10,7),
+  driver_id UUID REFERENCES employees(id),
+  dispatch_date DATE NOT NULL,
+  dispatch_time TIME,
+  return_date DATE,
+  return_time TIME,
+  litres_at_dispatch NUMERIC(12,3),
+  litres_at_return NUMERIC(12,3),
+  litres_issued_onsite NUMERIC(12,3),
+  status TEXT DEFAULT 'dispatched',   -- 'dispatched', 'returned', 'cancelled'
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, dispatch_number)
+)
+
+Create: bravura-meals/src/pages/fuel/BowserDispatches.jsx
+
+Show all dispatches for bowser tanks at current site.
+Filter: by bowser, by status, by date range.
+DISPATCH button: select bowser, destination, driver (from HR employees), date.
+RETURN button: enter return litres reading, auto-calculate litres issued onsite.
+View dispatches on a per-bowser basis from TankDetail → new Dispatch tab.
+
+── TASK 2: TANK RECONCILIATION ──────────────────────────────────────────────
+
+Migration: add to 0024 or create 0025_fuel_reconciliation.sql
+
+fuel_reconciliations(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  reconciliation_number TEXT NOT NULL,
+  tank_id UUID NOT NULL REFERENCES fuel_tanks(id),
+  period_start DATE NOT NULL,
+  period_end DATE NOT NULL,
+  opening_level_litres NUMERIC(12,3) NOT NULL,
+  total_delivered_litres NUMERIC(12,3) NOT NULL,
+  total_issued_litres NUMERIC(12,3) NOT NULL,
+  total_adjustments_litres NUMERIC(12,3) DEFAULT 0,
+  closing_level_expected NUMERIC(12,3) NOT NULL,  -- calculated: opening + deliveries - issuances
+  closing_level_actual NUMERIC(12,3) NOT NULL,    -- from dip reading at period end
+  variance_litres NUMERIC(12,3),                  -- actual - expected
+  variance_percent NUMERIC(6,2),
+  variance_notes TEXT,
+  status TEXT DEFAULT 'draft',    -- 'draft', 'submitted', 'approved', 'queried'
+  submitted_by UUID REFERENCES profiles(id),
+  submitted_at TIMESTAMPTZ,
+  approved_by UUID REFERENCES profiles(id),
+  approved_at TIMESTAMPTZ,
+  query_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, reconciliation_number),
+  UNIQUE(tank_id, period_start, period_end)
+)
+
+Create: bravura-meals/src/pages/fuel/Reconciliation.jsx
+
+Permission gate: if (!can('fuel.reconciliation.run')) return <AccessDenied />
+
+NEW RECONCILIATION FORM:
+  Select tank
+  Period start date (auto-suggests: day after last reconciliation end date)
+  Period end date (defaults to yesterday)
+
+  On clicking "Calculate":
+    - opening_level = closing_level of previous reconciliation OR earliest dip reading in period
+    - total_delivered = SUM of fuel_transactions where type='delivery' and tank_id in period
+    - total_issued = SUM of fuel_transactions where type='issuance' and tank_id in period
+    - total_adjustments = SUM of type='adjustment' in period
+    - closing_level_expected = opening + delivered - issued + adjustments
+    - closing_level_actual = latest dip reading in period (user selects or enters manually)
+    - variance_litres = actual - expected
+    - variance_percent = (variance / opening) * 100
+
+  Show a summary panel with all these calculated values.
+  Variance coloured: green if within ±2%, amber if within ±5%, red if >±5%.
+  If variance > tolerance: require variance_notes explaining the difference.
+
+  SAVE DRAFT: saves as status='draft'
+  SUBMIT: changes status to 'submitted', notifies approver
+
+APPROVE RECONCILIATION (if can('fuel.reconciliation.approve')):
+  Only for submitted reconciliations.
+  Show full calculation, approve or query (add query_notes, send back to submitter).
+
+RECONCILIATION LIST:
+  Table: Reconciliation No, Tank, Period, Expected Close, Actual Close, Variance, Status.
+  Filter by tank, status, date range.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Bowser dispatches work — dispatch, return, calculate issued onsite.
+Reconciliation calculates correctly from real transaction data.
+Submit, approve, query workflow works.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 2 — SESSION 4
+SHIFT REPORTS + FUEL REPORTS SUITE (BASIC)
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Fuel Phase 2 Session 4 — final Phase 2 session.
+
+── TASK 1: SHIFT REPORT ────────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/ShiftReport.jsx
+
+A shift report summarises everything that happened in one shift:
+  - Operator name and shift details
+  - Opening tank levels (from dip reading at shift start)
+  - Closing tank levels (from dip reading at shift end)
+  - All issuances during the shift (list with vehicle, litres, docket)
+  - All deliveries during the shift
+  - Expected vs actual closing level per tank
+  - Any variances
+
+Form:
+  Select operator
+  Select date
+  Select shift (Morning, Afternoon, Night)
+  Opening dip readings (per tank — link to dip_readings entered at shift start)
+  Closing dip readings (per tank — link to dip_readings entered at shift end)
+
+System auto-fills: all transactions created by this operator during this shift period.
+
+Print-optimised view for handover purposes.
+
+── TASK 2: FUEL REPORTS — INITIAL SUITE ─────────────────────────────────────
+
+Create these pages under bravura-meals/src/pages/fuel/reports/
+
+All reports:
+  Permission gate: if (!can('fuel.reports.view')) return <AccessDenied />
+  Export CSV: if can('fuel.reports.export')
+  Default to current site. Date range picker.
+
+REPORT 1: DailyTransactionReport.jsx
+  All transactions for a selected date.
+  Group by tank. Show totals per tank.
+  Grand total litres issued, delivered, net change per tank.
+
+REPORT 2: MonthlyConsumptionReport.jsx
+  For a selected month:
+  - Total issued per fuel type
+  - Total issued per vehicle (vehicle consumption table)
+  - Total issued per department
+  - Total delivered per tank
+  - Opening and closing levels per tank
+
+REPORT 3: DeliveryReport.jsx
+  All deliveries in selected date range.
+  Columns: date, tank, supplier, quantity, unit price, total cost, status.
+  Total cost footer.
+
+REPORT 4: VarianceReport.jsx
+  All reconciliations in selected period.
+  Columns: tank, period, expected close, actual close, variance litres, variance %, status.
+  Highlight variances above 5% in red.
+
+── TASK 3: UPDATE FUEL DASHBOARD ────────────────────────────────────────────
+
+Update FuelDashboard.jsx to add:
+  - Pending fuel requests count (new KPI)
+  - Deliveries this month total litres and cost
+  - Simple bar chart: daily issuance for last 7 days (per day total)
+  - Quick links: Pending Requests, Today's Shift Report, Reconciliations Due
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Shift Report generates from real data, prints correctly.
+All 4 report pages load with real data.
+Fuel Dashboard updated.
+Fuel Phase 2 complete. All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 3 — SESSION 1
+VEHICLE CONSUMPTION ANALYSIS + ANOMALY DETECTION
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Starting Fuel Phase 3.
+
+Phase 2 complete. Phase 3 covers analytics, alerts, and IoT readiness.
+
+── TASK 1: VEHICLE CONSUMPTION ANALYSIS PAGE ────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/VehicleConsumption.jsx
+
+Permission gate: if (!can('fuel.reports.view')) return <AccessDenied />
+
+For each vehicle at current site, for a selected period:
+  - Total litres issued
+  - Number of issues
+  - Average litres per issue
+  - Expected consumption (from fuel_vehicles.expected_consumption_lph or lpkm)
+  - Actual vs expected ratio
+  - Over/under flag: >120% of expected = RED (excessive), 80-120% = GREEN (normal), <80% = AMBER (low use)
+
+TABLE VIEW: one row per vehicle, sortable by actual consumption, ratio, total litres.
+CHART VIEW: bar chart of top 10 consumers (by litres).
+
+Click vehicle row → show transaction history for that vehicle in the period.
+
+EXPORT: full vehicle consumption report as CSV.
+
+── TASK 2: ANOMALY DETECTION ────────────────────────────────────────────────
+
+Add an "Anomalies" section to FuelDashboard.jsx:
+
+Compute on dashboard load:
+  1. Vehicles consuming more than 120% of expected rate in the last 7 days → flag
+  2. Tanks with no dip reading in the last 24 hours → flag
+  3. Tanks where dip variance exceeded 5% on last reading → flag
+  4. Operators with more than X issuances per day (X from settings) → flag
+  5. Deliveries recorded but not yet confirmed (older than 48 hours) → flag
+
+Show each anomaly as an alert card with: description, affected entity, value, date.
+Click alert → navigate to the relevant record.
+
+── TASK 3: DEPARTMENT COST ALLOCATION ───────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/CostAllocation.jsx
+
+Permission gate: if (!can('fuel.reports.view')) return <AccessDenied />
+
+For a selected period:
+  - Group all issuances by department (via vehicle.department_id or equipment.department_id)
+  - Calculate cost per department: litres × last known unit price from last delivery
+  - Show total cost per department
+  - Show breakdown per fuel type per department
+
+Export to CSV (suitable for Finance import when Finance module is built).
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Vehicle Consumption Analysis loads with correct anomaly flagging.
+Dashboard anomaly alerts show and link to correct pages.
+Cost Allocation report loads with correct department grouping.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 3 — SESSION 2
+FUEL FORECASTING + PROACTIVE ALERTS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Fuel Phase 3 Session 2.
+
+── TASK 1: FUEL FORECASTING PAGE ────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FuelForecasting.jsx
+
+Permission gate: if (!can('fuel.reports.view')) return <AccessDenied />
+
+For each active tank at the current site:
+
+  AVERAGE DAILY CONSUMPTION:
+    Take total litres issued from fuel_transactions for last 30 days.
+    Divide by 30 to get average daily consumption (ADC).
+
+  DAYS TO EMPTY:
+    current_level_litres / ADC = estimated days remaining.
+
+  RECOMMENDED ORDER DATE:
+    Based on: days_to_empty - configured_lead_time_days (from fuel settings, default 7 days).
+    If recommended order date is in the past or within 3 days: show RED alert.
+
+  RECOMMENDED ORDER QUANTITY:
+    Calculate: capacity - (ADC × lead_time_days) to determine how much to order
+    to reach full capacity by the expected delivery date.
+
+TABLE: Tank | Current Level | Capacity | ADC | Days to Empty | Order Date | Recommended Qty | Status.
+Status: Critical (red), Order Soon (amber), OK (green).
+
+CHART (optional): Line chart showing projected depletion over next 30 days per tank.
+
+── TASK 2: SCHEDULED ALERT SYSTEM (EDGE FUNCTION) ───────────────────────────
+
+Create: supabase/functions/fuel-alerts/index.ts
+
+This Edge Function runs on a schedule (Supabase cron: every hour).
+
+It checks:
+  1. Tanks below min_threshold_percent
+     → Insert notification for fuel managers at that site
+
+  2. Tanks with no dip reading in last 24 hours
+     → Insert notification for site fuel supervisor
+
+  3. Reconciliation overdue (last reconciliation period_end > 7 days ago)
+     → Insert notification for fuel manager
+
+  4. Vehicles consuming > 150% of expected rate (last 7 days)
+     → Insert notification for fleet manager / fuel manager
+
+  5. Operator licence expiring within 14 days
+     → Insert notification for fuel manager and HR manager
+
+For each alert:
+  INSERT into notifications(site_id, recipient_id, type, title, body, action_url)
+  Use type: 'fuel_alert', 'fuel_warning', 'fuel_info'
+
+Also send email via Resend for critical alerts (tanks below threshold).
+
+Register the cron in supabase/functions/fuel-alerts/schedule.sql:
+  SELECT cron.schedule('fuel-alerts-hourly', '0 * * * *', ...)
+
+── TASK 3: NOTIFICATION PANEL INTEGRATION ───────────────────────────────────
+
+If notifications table does not yet exist: create migration for it.
+If it exists: verify the schema matches what the Edge Function inserts.
+
+In the top navigation bar (shared layout component):
+  - Show unread notification count badge
+  - Click bell icon → open NotificationPanel drawer
+  - Show last 20 notifications
+  - Mark as read on click
+  - Clear all button
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Forecasting page shows correct predictions from real transaction data.
+Edge Function deploys and runs without errors.
+Notifications appear in the panel when alerts fire.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 3 — SESSION 3
+ATG INTEGRATION HOOKS + IoT READINESS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Fuel Phase 3 Session 3.
+
+This session wires up the integration hooks so that when ATG devices (Automatic
+Tank Gauges) are connected in the future, the system is ready to receive them.
+No physical ATG devices are being connected yet — we are building the receiver.
+
+── TASK 1: ATG INGEST EDGE FUNCTION ─────────────────────────────────────────
+
+Create: supabase/functions/atg-ingest/index.ts
+
+This Edge Function receives tank level readings from ATG devices.
+It should accept an HTTP POST with a JSON body:
+  {
+    "atg_device_id": "ATG-001",
+    "timestamp": "2026-06-30T14:00:00Z",
+    "readings": [
+      { "tank_position": 1, "level_mm": 1250, "volume_litres": 8500.5, "temperature": 25.3 }
+    ]
+  }
+
+Processing:
+  - Look up fuel_tanks by atg_device_id to find the correct tank
+  - Insert a dip_readings row with the received level
+  - If level is below min_threshold: fire an alert (insert into notifications)
+  - Update fuel_tanks.current_level_litres, last_dip_date, last_dip_reading
+  - Log the ingest to a new table: atg_readings
+
+Create migration: migrations/0026_atg_integration.sql
+
+atg_readings(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tank_id UUID NOT NULL REFERENCES fuel_tanks(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  atg_device_id TEXT NOT NULL,
+  reading_timestamp TIMESTAMPTZ NOT NULL,
+  level_mm NUMERIC(8,1),
+  volume_litres NUMERIC(12,3),
+  temperature NUMERIC(5,2),
+  water_level_mm NUMERIC(8,1),
+  raw_payload JSONB,
+  processed_at TIMESTAMPTZ DEFAULT now()
+)
+
+── TASK 2: ATG STATUS PAGE ──────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/ATGStatus.jsx
+(accessible from Fuel Settings → integrations section)
+
+Show each tank that has an atg_device_id configured:
+  - Tank name, ATG device ID
+  - Last reading timestamp
+  - Last level received
+  - Status: Online (last reading < 1 hour ago), Stale (1–6 hours), Offline (>6 hours)
+
+This is an operational health monitor for the ATG integration.
+
+── TASK 3: FLOW METER HOOKS ─────────────────────────────────────────────────
+
+Add to fuel_pumps table (migration):
+  ALTER TABLE fuel_pumps ADD COLUMN IF NOT EXISTS flow_meter_id TEXT;
+  ALTER TABLE fuel_pumps ADD COLUMN IF NOT EXISTS last_flow_meter_reading NUMERIC(12,3);
+  ALTER TABLE fuel_pumps ADD COLUMN IF NOT EXISTS last_flow_meter_read_at TIMESTAMPTZ;
+
+Create: supabase/functions/flow-meter-ingest/index.ts
+  Same pattern as ATG ingest, but for flow meter readings.
+  Receives pump_id or flow_meter_id + cumulative reading.
+  Compares against last reading to determine litres dispensed since last reading.
+  Creates a fuel_transaction entry if significant flow detected.
+
+── TASK 4: SCADA WEBHOOK PLACEHOLDER ────────────────────────────────────────
+
+Create: supabase/functions/scada-webhook/index.ts
+  Placeholder function that logs incoming SCADA data to a scada_events table.
+  No processing logic yet — just receives and logs.
+
+Create migration: migrations/0027_scada_events.sql
+  scada_events(
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    site_id UUID,
+    event_type TEXT,
+    payload JSONB,
+    received_at TIMESTAMPTZ DEFAULT now()
+  )
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+ATG ingest Edge Function deployed and testable via Postman/curl.
+ATG Status page shows device health.
+Flow meter hooks in place on fuel_pumps table.
+SCADA webhook placeholder deployed.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FUEL PHASE 4 — SESSION 1
+FLEET INTEGRATION + FINANCE INTEGRATION HOOKS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Clement, Fuel module lead. Starting Fuel Phase 4.
+
+Phase 3 is complete. Phase 4 integrates Fuel with Fleet, Finance, and Procurement.
+
+NOTE: Fleet and Finance modules do not exist yet. This session builds the
+integration hooks so that when they are built, the Fuel module connects
+without redesign.
+
+── TASK 1: VEHICLE ↔ FLEET MODULE LINK ─────────────────────────────────────
+
+The fuel_vehicles table already has a future_fleet_id UUID column.
+When the Fleet module is built, it will create a fleet_vehicles table.
+At that point, fuel_vehicles.future_fleet_id will become a real FK.
+
+For now, build a Vehicle Consumption Report that is Fleet-ready:
+
+Update VehicleConsumption.jsx to show:
+  - Service due indicator: placeholder column "Maintenance Status" → shows "N/A (Fleet module pending)"
+  - This column will show real maintenance data once Fleet module is built
+
+Add to Fuel Settings:
+  Fleet Module Integration: (toggle, default OFF)
+  When ON: show maintenance alerts on vehicle consumption report
+
+── TASK 2: FINANCE EXPORT ────────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/fuel/FinanceExport.jsx
+
+Permission gate: if (!can('fuel.reports.export')) return <AccessDenied />
+
+This page prepares fuel data for import into the Finance/Accounting module.
+
+JOURNAL ENTRIES EXPORT:
+  For a selected period:
+  - Each fuel delivery → Debit: Fuel Stock Account, Credit: Accounts Payable
+  - Each period close → Debit: Fuel Expense (by department), Credit: Fuel Stock
+
+Show a preview table of all journal lines before export.
+Export as CSV with columns: Date, Account Code, Description, Debit, Credit, Site, Department.
+
+The account codes come from a simple mapping table:
+
+Create migration: fuel_finance_mapping(
+  id UUID PRIMARY KEY,
+  site_id UUID REFERENCES sites(id),
+  mapping_type TEXT,     -- 'fuel_stock', 'fuel_expense', 'accounts_payable'
+  account_code TEXT,
+  account_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+Add to Fuel Settings: account code configuration form.
+
+── TASK 3: PROCUREMENT INTEGRATION HOOK ────────────────────────────────────
+
+When a tank falls below threshold and "Auto Create Purchase Requisition" is
+enabled in Fuel Settings:
+
+Create: supabase/functions/fuel-procurement-hook/index.ts
+
+This function (triggered by the fuel-alerts Edge Function):
+  - Creates a row in a procurement_requisitions table (create this table even if
+    the Procurement module doesn't exist yet — it will be adopted by Procurement)
+  - Populates: site_id, requested_by='system', item='Diesel', quantity=recommended_qty,
+    unit='litres', justification='Auto-created: Tank X below threshold', status='pending'
+
+This table becomes the starting point for the future Procurement module.
+
+Migration: migrations/0028_procurement_stub.sql
+  procurement_requisitions(
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    site_id UUID NOT NULL REFERENCES sites(id),
+    requisition_number TEXT NOT NULL,
+    source_module TEXT,      -- 'fuel', 'inventory', 'maintenance'
+    source_reference_id UUID,
+    item_description TEXT NOT NULL,
+    quantity NUMERIC(12,3) NOT NULL,
+    unit TEXT,
+    estimated_unit_cost NUMERIC(10,4),
+    total_estimated_cost NUMERIC(15,2),
+    justification TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    created_by UUID REFERENCES profiles(id)
+  )
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Finance Export page produces correct journal CSV.
+Account code mapping configurable in Fuel Settings.
+Procurement hook creates requisitions when tanks go below threshold.
+Fuel Phase 4 complete. All pushed to both branches.
+Fuel module is now complete (Phases 1 through 4).
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+CROSS-MODULE INTEGRATION SESSION
+FOR BOTH CLEMENT AND TAFARA — DO THIS TOGETHER AT END OF MONTH 2
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+This session is a joint integration checkpoint. Both Tafara (HR) and Clement
+(Fuel) have completed Phase 1. Now verify the integration between the modules
+is working correctly.
+
+── TASK 1: VERIFY HR ↔ FUEL OPERATOR LINK ───────────────────────────────────
+
+In Fuel Operators page (Clement's work):
+  The operator dropdown must only show employees from the HR employees table.
+  Verify: when HR adds a new employee and marks them active, they appear in
+  the Fuel Operators page's "Add Operator" employee dropdown.
+
+  Test:
+    1. Create a new employee in HR (Tafara's page)
+    2. Go to Fuel Operators (Clement's page)
+    3. Click "Add Operator" — the new employee should appear in the dropdown
+    4. Save. They should now be a fuel operator.
+
+If this doesn't work: debug the Supabase query joining employees to fuel_operators.
+
+── TASK 2: VERIFY SITE ISOLATION ────────────────────────────────────────────
+
+Create a test using two different sites (or use the existing site + create a test site).
+
+Verify:
+  - Employees created at Site A do NOT appear in Fuel Operators at Site B
+  - Tanks created at Site A do NOT appear in Fuel Dashboard at Site B
+  - Transactions at Site A do NOT appear in reports at Site B
+
+If any bleed is detected: check site_id filter on the relevant query.
+
+── TASK 3: VERIFY AUDIT LOGS ────────────────────────────────────────────────
+
+In the Admin → Audit Log page:
+  - Create an employee in HR
+  - Edit an employee in HR
+  - Issue fuel in Fuel
+  - Confirm all 3 actions appear in audit_logs with correct module, entity, action
+
+If audit_logs entries are missing: ensure both Tafara and Clement's code calls
+the useAudit() hook after each write operation.
+
+── TASK 4: VERIFY PERMISSION CODES ──────────────────────────────────────────
+
+In Admin → Users & Roles:
+  - Create a test role with only fuel.view and fuel.tanks.view
+  - Log in as a user with that role
+  - Verify: Fuel module visible, HR module NOT visible
+  - Verify: "Issue Fuel" button NOT visible (requires fuel.issue permission)
+  - Verify: Tank Detail page visible (fuel.tanks.view)
+
+Create a second test role with only hr.view and hr.employees.view:
+  - Verify: HR module visible, Fuel module NOT visible
+  - Verify: "Add Employee" NOT visible (requires hr.employees.create)
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+HR employees appear as selectable operators in Fuel module.
+Site isolation verified — no cross-site data bleed.
+Audit logs capture actions from both modules.
+Permission codes working correctly for HR and Fuel.
+All issues fixed and pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+END OF CLEMENT PROMPTS
+═══════════════════════════════════════════════════════════════════════════════

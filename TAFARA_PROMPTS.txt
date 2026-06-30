@@ -1,0 +1,1623 @@
+═══════════════════════════════════════════════════════════════════════════════
+TAFARA — HR MODULE DEVELOPER PROMPTS
+Bravura ERP · bromadex/bravura-campsite
+═══════════════════════════════════════════════════════════════════════════════
+
+HOW TO USE THESE PROMPTS
+─────────────────────────
+Each section below is a prompt you paste at the start of a Claude session.
+Paste the MASTER CONTEXT first, then paste the SESSION PROMPT for the phase
+you are working on. You do not need to explain anything else — the prompt
+tells Claude everything it needs to know.
+
+Always open a new session with the Master Context block first.
+Then paste the specific session prompt below it.
+
+═══════════════════════════════════════════════════════════════════════════════
+MASTER CONTEXT — PASTE THIS AT THE START OF EVERY SESSION
+═══════════════════════════════════════════════════════════════════════════════
+
+You are developing the Bravura ERP platform. Read everything below before
+writing a single line of code.
+
+REPOSITORY:   bromadex/bravura-campsite
+APP DIR:      bravura-meals/src/
+STACK:        React 19 + Vite · Supabase (PostgREST + RLS) · React Router
+HOSTING:      Vercel (auto-deploys from main branch)
+MY ROLE:      Tafara — HR Module Lead Developer
+
+── ABSOLUTE RULES ─────────────────────────────────────────────────────────────
+
+1.  PUSH TO MAIN DIRECTLY. No pull requests unless I explicitly ask.
+    Always push to BOTH branches after every commit:
+      git push --force-with-lease origin HEAD:main
+      git push --force-with-lease origin HEAD:claude/code-review-re5zt3
+
+2.  COMMIT AUTHOR must always be:
+      git config user.email noreply@anthropic.com
+      git config user.name Claude
+
+3.  NEVER READ OR WRITE profiles.meals_pin — it is purged from the system.
+
+4.  RBAC: NEVER hardcode role name checks. NEVER write: if role === 'anything'
+    ALWAYS use: const { can } = usePermissions()  then  can('module.action')
+    The 'approver' role is RETIRED — never reference it anywhere.
+    Storekeeper does NOT have supplies.approve — never add it.
+
+5.  NEVER DELETE RECORDS. Use soft deletes only:
+      employees:  set status = 'terminated'
+      any entity: set is_archived = true, archived_at = now()
+
+6.  EVERY SUPABASE QUERY must include .eq('site_id', currentSiteId)
+    Get currentSiteId from: const { currentSiteId } = useSite()
+
+7.  INLINE STYLES ONLY. No CSS files, no Tailwind, no CSS modules.
+    Use THEME tokens: import { THEME, MODULE_COLORS } from '../../utils/permissions'
+    HR module colour: MODULE_COLORS.hr = '#1558A6' (blue)
+
+── EXISTING MODULES (DO NOT BREAK THESE) ──────────────────────────────────────
+
+workforce  — Employees, Contractors, Leave, Reports (already live)
+campsite   — Rooms, Blocks, Assignments, Supplies, Transfers (already live)
+meals      — Dashboard, Entry, Approvals, Kitchen, Reports, Billing (already live)
+admin      — Users and Roles, Audit Log (already live)
+
+── CURRENT EMPLOYEE DATA CONVENTIONS ──────────────────────────────────────────
+
+employees.status values (lowercase, exact):
+  'active' | 'on_leave' | 'long_leave' | 'temporary_assignment' |
+  'transferred' | 'terminated'
+
+contractors.status values (capitalised — intentional):
+  'Active' | 'Inactive'
+
+── SHARED COMPONENT IMPORTS ───────────────────────────────────────────────────
+
+import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td }
+  from '../../components/ui'
+import { useSite } from '../../contexts/SiteContext'
+import { usePermissions } from '../../hooks/usePermissions'
+import { THEME, MODULE_COLORS } from '../../utils/permissions'
+
+── PERMISSION PATTERN ──────────────────────────────────────────────────────────
+
+const { can } = usePermissions()
+if (!can('hr.view')) return <AccessDenied />
+{can('hr.employees.create') && <button>Add Employee</button>}
+{can('hr.employees.terminate') && <button>Terminate</button>}
+
+── STANDARD PAGE STRUCTURE ─────────────────────────────────────────────────────
+
+export default function PageName() {
+  const { currentSiteId } = useSite()
+  const { can } = usePermissions()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  if (!can('hr.view')) return <AccessDenied />
+
+  useEffect(() => {
+    if (!currentSiteId) return
+    async function load() {
+      const { supabase } = await import('../../supabaseClient')
+      const { data, error } = await supabase
+        .from('table_name')
+        .select('*')
+        .eq('site_id', currentSiteId)
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false })
+      if (error) { console.error(error); return }
+      setData(data)
+      setLoading(false)
+    }
+    load()
+  }, [currentSiteId])
+
+  if (loading) return <LoadingSpinner />
+  return ( ... )
+}
+
+── MULTI-SITE RULE ─────────────────────────────────────────────────────────────
+
+No feature may assume a single site.
+All data is scoped by site_id.
+useSite() returns: { currentSiteId, currentSite, sites[] }
+
+── INTEGRATION RULE ────────────────────────────────────────────────────────────
+
+HR is the foundation of the ERP. The employees table is shared with:
+- Fuel module (operators must be active HR employees)
+- Campsite module (employees have room assignments)
+- Meals module (active employees are meal recipients)
+- Future payroll, fleet, procurement, safety modules
+
+Never create HR features that break these relationships.
+
+═══════════════════════════════════════════════════════════════════════════════
+END OF MASTER CONTEXT
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 1 — SESSION 1
+FOUNDATION: Database, Settings, Departments, Designations
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, the HR module lead developer on Bravura ERP.
+
+We are starting HR Phase 1. This session covers the database foundation
+and the first two management pages: Departments and Designations.
+
+── TASK 1: DATABASE MIGRATION ──────────────────────────────────────────────────
+
+Create the file: bravura-meals/migrations/0010_hr_foundation.sql
+
+This migration must create the following tables:
+
+departments(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  name TEXT NOT NULL,
+  code TEXT,
+  description TEXT,
+  parent_department_id UUID REFERENCES departments(id),
+  department_head_id UUID,  -- will FK to employees later
+  is_archived BOOLEAN DEFAULT false,
+  archived_at TIMESTAMPTZ,
+  archived_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, code)
+)
+
+designations(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  name TEXT NOT NULL,
+  code TEXT,
+  department_id UUID REFERENCES departments(id),
+  grade TEXT,
+  description TEXT,
+  is_archived BOOLEAN DEFAULT false,
+  archived_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, code)
+)
+
+employment_types(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,  -- 'Permanent', 'Contract', 'Casual', 'Fixed-Term'
+  code TEXT UNIQUE,
+  description TEXT,
+  is_archived BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+employee_status_history(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  old_status TEXT,
+  new_status TEXT NOT NULL,
+  reason TEXT,
+  effective_date DATE NOT NULL,
+  changed_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+Also add to the existing employees table:
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS department_id UUID REFERENCES departments(id);
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS designation_id UUID REFERENCES designations(id);
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS employment_type_id UUID REFERENCES employment_types(id);
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS manager_id UUID REFERENCES employees(id);
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS employee_number TEXT;
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS date_of_birth DATE;
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS gender TEXT;
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS national_id TEXT;
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS passport_number TEXT;
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS phone TEXT;
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS has_system_account BOOLEAN DEFAULT false;
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS force_password_reset BOOLEAN DEFAULT true;
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false;
+  ALTER TABLE employees ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+
+Enable Row Level Security on all new tables. Add policy:
+  site users can only see rows where site_id = their site_id
+  super_admin can see all rows
+
+Add updated_at trigger to departments and designations.
+
+Seed employment_types with: Permanent, Contract, Casual, Fixed-Term
+
+── TASK 2: REGISTER HR MODULE IN THE APP ────────────────────────────────────────
+
+In bravura-meals/src/utils/permissions.js:
+  - Add to MODULE_COLORS: hr: '#1558A6'
+  - Add hrNav function returning the HR sidebar navigation items
+
+In bravura-meals/src/App.jsx (or wherever module routing lives):
+  - Register the HR module route
+  - Wire up HRDashboard as the default HR page
+  - Add HR to the module selector / home launcher
+
+── TASK 3: DEPARTMENTS PAGE ──────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/Departments.jsx
+
+This page must:
+  - Gate with: if (!can('hr.view')) return <AccessDenied />
+  - Show a table of departments for the current site
+  - Columns: Name, Code, Parent Department, Department Head, Designations Count
+  - Search bar to filter by name or code
+  - "Add Department" button (only if can('hr.departments.create'))
+  - Click row to open an edit drawer/modal
+  - Add/Edit form fields:
+      Department Name (required)
+      Code (optional, auto-uppercase)
+      Parent Department (dropdown of other departments at this site)
+      Description
+  - Cannot delete — only archive (soft delete with confirmation dialog)
+  - Show archived toggle to view archived departments
+  - All THEME tokens for colours, no hardcoded hex values except MODULE_COLORS.hr
+
+── TASK 4: DESIGNATIONS PAGE ────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/Designations.jsx
+
+Same pattern as Departments. Columns: Name, Code, Department, Grade.
+Add/Edit form: Name, Code, Department (dropdown), Grade, Description.
+Cannot delete — archive only.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Migration file created and applied to Supabase.
+HR module appears in the app navigation.
+Departments page loads, shows table, add/edit/archive works.
+Designations page loads, shows table, add/edit/archive works.
+All queries include .eq('site_id', currentSiteId).
+Changes pushed to both main and claude/code-review-re5zt3.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 1 — SESSION 2
+EMPLOYEE LIST + EMPLOYEE DASHBOARD
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. Phase 1 Session 2.
+
+Departments and Designations are done. Now build the HR Dashboard and
+the Employee List page.
+
+── TASK 1: HR DASHBOARD ──────────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/HRDashboard.jsx
+
+The dashboard must show:
+
+KPI ROW (5 cards):
+  - Total Employees (all statuses, current site)
+  - Active Employees (status = 'active')
+  - On Leave (status = 'on_leave' or 'long_leave')
+  - New This Month (start_date in current calendar month)
+  - Terminated This Month (status changed to 'terminated' this month)
+
+PENDING SECTION:
+  - A section showing "Pending Items" — placeholder for now with count 0
+    (will be populated when leave module is built)
+
+QUICK ACTIONS ROW:
+  - "Add Employee" button → navigates to employee form
+  - "View All Employees" button → navigates to employee list
+  - "Departments" button → navigates to departments
+  - Only show buttons the user has permission to access
+
+RECENT ACTIVITY:
+  - Last 10 employee status changes from employee_status_history
+  - Show: employee name, old status, new status, date, changed by
+
+Use MODULE_COLORS.hr (#1558A6) as the accent colour for this dashboard.
+All KPI cards use the same card style as the existing workforce/campsite dashboards.
+Gate the entire page: if (!can('hr.view')) return <AccessDenied />
+
+── TASK 2: EMPLOYEE LIST PAGE ────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/Employees.jsx
+
+This is the main employee list. It must:
+
+QUERY:
+  - Fetch employees at current site (site_id filter mandatory)
+  - Join: contractor(id, name), department(id, name), designation(id, name)
+  - Exclude is_archived = true unless user toggles "Show Archived"
+
+TABLE COLUMNS:
+  - # (row number)
+  - Employee Number
+  - Full Name
+  - Department
+  - Designation
+  - Employment Type
+  - Status badge (colour-coded using statusSuccess/Warning/Error/Neutral tokens)
+  - Contractor
+  - Actions (View button)
+
+FILTERS (above the table):
+  - Search (name, employee number)
+  - Department dropdown filter
+  - Status filter (All, Active, On Leave, Long Leave, Terminated)
+  - Contractor filter
+
+ACTIONS:
+  - "Add Employee" button top-right (only if can('hr.employees.create'))
+  - Export button (CSV) — only if can('hr.reports.export')
+
+TABLE FEATURES:
+  - Pagination (25 per page)
+  - Click row → opens employee detail page (or navigate to /hr/employees/:id)
+
+STATUS BADGE COLOURS:
+  - active        → statusSuccessBg / statusSuccessText
+  - on_leave      → statusWarningBg / statusWarningText
+  - long_leave    → statusTertiaryBg / statusTertiaryText
+  - terminated    → statusNeutralBg / statusNeutralText
+  - transferred   → statusInfoBg / statusInfoText
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+HR Dashboard loads with real KPIs from current site.
+Employee List loads with correct data, filters work, pagination works.
+Status badges use correct colour tokens.
+Export produces a CSV with all visible columns.
+All changes pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 1 — SESSION 3
+EMPLOYEE CREATE FORM + SYSTEM ACCOUNT CREATION
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. Phase 1 Session 3.
+
+HR Dashboard and Employee List are done. Now build the Employee Create
+form — the most important page in the HR module.
+
+── TASK 1: EMPLOYEE CREATE FORM ─────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/EmployeeForm.jsx
+
+This is a multi-section form. Group fields into collapsible sections.
+
+SECTION 1 — Personal Information:
+  - Full Name (required)
+  - Date of Birth
+  - Gender (Male / Female / Other)
+  - National ID Number
+  - Passport Number
+  - Phone Number
+  - Email Address (required if creating system account)
+
+SECTION 2 — Employment Details:
+  - Employee Number (auto-generated from settings prefix + sequence, but editable)
+  - Start Date (required)
+  - Department (dropdown — site-scoped departments)
+  - Designation (dropdown — filtered by selected department)
+  - Employment Type (dropdown — Permanent, Contract, Casual, Fixed-Term)
+  - Direct Manager (dropdown — search employees at this site)
+  - Contractor (optional dropdown — from contractors table)
+
+SECTION 3 — Site Assignment:
+  - Site (defaults to currentSite, can be changed by super_admin)
+
+SECTION 4 — Emergency Contact (at least 1 required):
+  - Contact Name
+  - Relationship
+  - Phone Number
+  - Email (optional)
+  - Allow adding multiple emergency contacts
+
+SECTION 5 — System Account (collapsible, default closed):
+  - Toggle: "Create System Account for this Employee" (default OFF)
+  - When ON, show:
+      Email address (pre-filled from personal section)
+      Note: "An invitation email will be sent to this address with login instructions."
+  - This is optional. Most employees do not need system access.
+
+FORM BEHAVIOUR:
+  - Validate on submit (show inline errors per field)
+  - Smart default: pre-fill Site from currentSite
+  - When Department changes, reset Designation dropdown
+  - Auto-generate employee number: fetch last number, increment, apply prefix from settings
+  - On successful save:
+      If system account toggle ON: call Edge Function to send invite email
+      Insert record into employees table
+      Insert initial status into employee_status_history ('active')
+      Navigate to the new employee's detail page
+
+PERMISSION GATE:
+  - if (!can('hr.employees.create')) return <AccessDenied />
+  - The "Create System Account" toggle only shows if can('hr.employees.create_account')
+
+── TASK 2: EMERGENCY CONTACTS TABLE ─────────────────────────────────────────
+
+Create migration (append to 0010 or create 0011):
+  emergency_contacts(
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    employee_id UUID NOT NULL REFERENCES employees(id),
+    site_id UUID NOT NULL REFERENCES sites(id),
+    name TEXT NOT NULL,
+    relationship TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT,
+    is_primary BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now()
+  )
+
+── TASK 3: EMPLOYEE NUMBER AUTO-GENERATION ──────────────────────────────────
+
+On form load, read the HR settings for employee_number_prefix (default: 'EMP-').
+Query MAX employee_number from employees table at this site.
+Generate next number: prefix + padded sequence (e.g. EMP-0042).
+Allow the user to override the generated number.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Employee form loads with all sections.
+Submitting creates employee + emergency contact(s) + status history entry.
+System account toggle works (sends invite if enabled).
+Employee number auto-generates correctly.
+After save, navigates to the employee detail page.
+Pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 1 — SESSION 4
+EMPLOYEE DETAIL PAGE + STATUS MANAGEMENT
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. Phase 1 Session 4.
+
+The employee form is done. Now build the Employee Detail page and
+status management (activate, suspend, place on leave, terminate).
+
+── TASK 1: EMPLOYEE DETAIL PAGE ─────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/EmployeeDetail.jsx
+
+This is a tabbed page. Route: /hr/employees/:id
+
+HEADER:
+  - Employee avatar (initials circle in MODULE_COLORS.hr)
+  - Full Name, Employee Number, Designation, Department
+  - Status badge
+  - Quick action buttons (Edit, Change Status, Create Account if not yet done)
+
+TABS:
+
+Tab 1 — Overview:
+  - Personal information card (name, DOB, gender, national ID, phone, email)
+  - Employment information card (start date, employment type, contractor, manager)
+  - Emergency contacts list
+
+Tab 2 — Employment:
+  - Current position details
+  - Employment history (from employee_status_history table)
+    Show: date, status change, reason, who changed it
+
+Tab 3 — Documents:
+  - Placeholder: "Documents will be available in HR Phase 2"
+  - List any documents already in employee_documents if table exists
+
+Tab 4 — Leave:
+  - Placeholder: "Leave management available in HR Phase 2"
+
+Tab 5 — History:
+  - Full audit trail for this employee from audit_logs
+  - Show: field changed, old value, new value, date, who changed
+
+EDIT BUTTON:
+  - Only show if can('hr.employees.edit')
+  - Opens the EmployeeForm pre-populated with this employee's data
+
+── TASK 2: STATUS MANAGEMENT ────────────────────────────────────────────────
+
+Add a "Change Status" button on the detail page header.
+Only visible if can('hr.employees.edit') or can('hr.employees.terminate').
+
+On click, open a modal with:
+  - Current Status display
+  - New Status dropdown:
+      Active
+      On Leave (short leave)
+      Long Leave
+      Temporary Assignment
+      Transferred
+      Terminated
+  - Effective Date (date picker, defaults to today)
+  - Reason (required text field)
+  - If status = 'terminated': additional field for Final Date
+
+On confirm:
+  - Update employees.status
+  - Insert row into employee_status_history
+  - If status = 'terminated': set employees.end_date
+  - If status = 'long_leave': this will eventually auto-release their room
+    (the DB trigger for this will be added separately)
+  - Log to audit_logs
+
+SEPARATE TERMINATE BUTTON:
+  - Show only if can('hr.employees.terminate')
+  - Shows a red confirmation dialog before executing
+  - Warning: "This will terminate the employee. This cannot be undone easily."
+
+── TASK 3: HR SETTINGS PAGE ────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/HRSettings.jsx
+
+Permission gate: if (!can('hr.settings.view')) return <AccessDenied />
+Show settings form only if can('hr.settings.edit')
+
+Settings to include:
+  Employee Number Prefix    (text field, default 'EMP-')
+  Employee Number Padding   (number, default 4 digits — gives EMP-0001)
+  Default Employment Type   (dropdown)
+  Require Emergency Contact  (toggle, default ON)
+  Account Creation Enabled  (toggle — whether HR can create employee accounts)
+  Leave Approval Required   (toggle, default ON — will be used in Phase 2)
+
+Store all settings in module_settings table:
+  (site_id, module='hr', key='employee_number_prefix', value='"EMP-"')
+
+On save: upsert all settings, show success toast.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Employee detail page loads all tabs correctly.
+Status change modal works, logs to employee_status_history and audit_logs.
+Terminate confirmation works.
+HR Settings page saves and loads settings from module_settings table.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 2 — SESSION 1
+LEAVE TYPES + LEAVE ALLOCATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. HR Phase 2 begins.
+
+Phase 1 is complete (Departments, Designations, Employee CRUD, Status
+Management, HR Settings). Now we build leave management.
+
+── TASK 1: DATABASE MIGRATION — LEAVE TABLES ────────────────────────────────
+
+Create: migrations/0012_hr_leave.sql
+
+leave_types(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,                          -- 'Annual Leave', 'Sick Leave', etc.
+  code TEXT NOT NULL UNIQUE,
+  description TEXT,
+  is_paid BOOLEAN DEFAULT true,
+  max_days_per_year INTEGER,
+  carry_over_days INTEGER DEFAULT 0,           -- days that roll over to next year
+  accrual_rate NUMERIC(5,2),                   -- days accrued per month (optional)
+  requires_approval BOOLEAN DEFAULT true,
+  advance_notice_days INTEGER DEFAULT 1,       -- minimum notice required
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+leave_allocations(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  leave_type_id UUID NOT NULL REFERENCES leave_types(id),
+  year INTEGER NOT NULL,
+  allocated_days NUMERIC(5,1) NOT NULL,
+  used_days NUMERIC(5,1) DEFAULT 0,
+  carried_over_days NUMERIC(5,1) DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(employee_id, leave_type_id, year)
+)
+
+leave_requests(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  leave_type_id UUID NOT NULL REFERENCES leave_types(id),
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  days_requested NUMERIC(5,1) NOT NULL,
+  reason TEXT,
+  status TEXT DEFAULT 'pending',             -- 'pending', 'approved', 'rejected', 'cancelled'
+  approved_by UUID REFERENCES profiles(id),
+  approved_at TIMESTAMPTZ,
+  rejected_reason TEXT,
+  cancelled_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id)
+)
+
+Enable RLS on all three tables. site_id scoping.
+
+── TASK 2: LEAVE TYPES PAGE ─────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/leave/LeaveTypes.jsx
+
+Permission gate: if (!can('hr.leave.view')) return <AccessDenied />
+
+Show table of all leave types (global — not site-scoped).
+Columns: Name, Code, Paid/Unpaid, Max Days/Year, Carry Over Days, Requires Approval, Status.
+Add/Edit form (modal): all fields above.
+Cannot delete — archive only (is_active = false).
+Only show Add/Edit if can('hr.settings.edit').
+
+Seed with default leave types on migration:
+  Annual Leave (21 days, paid, carry over 5)
+  Sick Leave (30 days, paid, no carry over)
+  Maternity Leave (90 days, paid, no carry over)
+  Paternity Leave (5 days, paid, no carry over)
+  Compassionate Leave (5 days, paid, no carry over)
+  Study Leave (10 days, paid, no carry over)
+  Unpaid Leave (unlimited, unpaid, no carry over)
+
+── TASK 3: LEAVE ALLOCATIONS PAGE ──────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/leave/LeaveAllocations.jsx
+
+Permission gate: if (!can('hr.leave.view')) return <AccessDenied />
+
+Show allocations for current site, current year (year picker to change).
+Table: Employee Name, Leave Type, Year, Allocated, Used, Remaining, Carried Over.
+Filter: by employee, by leave type.
+
+BULK ALLOCATE BUTTON (if can('hr.leave.approve')):
+  - Select leave type + year + days
+  - Choose: All active employees, or specific department
+  - Creates allocation rows for all selected employees
+  - Skip employees who already have an allocation for that type+year
+
+MANUAL ADJUST BUTTON per row:
+  - Override allocated_days for one employee
+  - Requires reason
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Migration applied. leave_types seeded with defaults.
+Leave Types page works — add/edit/archive.
+Leave Allocations page works — bulk allocate and manual adjust.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 2 — SESSION 2
+LEAVE REQUESTS + APPROVAL WORKFLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. HR Phase 2 Session 2.
+
+Leave types and allocations are done. Now build leave requests and approvals.
+
+── TASK 1: LEAVE REQUEST FORM ───────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/leave/LeaveRequestForm.jsx
+
+Can be opened from:
+  - The Leave Requests list page (HR officer submitting on behalf of employee)
+  - The Employee Detail page (tab: Leave)
+  - Employee Self-Service (future — same component)
+
+Form fields:
+  Employee (dropdown, searchable — defaults to current user's employee record if ESS)
+  Leave Type (dropdown — only types with an active allocation for this employee+year)
+  Start Date (date picker)
+  End Date (date picker)
+  Days Requested (auto-calculated, exclude weekends, show calculated value)
+  Reason (text area, required for some leave types)
+  Supporting Document (file upload, optional — stored in Supabase Storage)
+
+On submit:
+  - Check: does the employee have sufficient balance? If not, show warning (not a block — HR can override)
+  - Check: is there a clash with another approved leave for this employee? If yes, show warning
+  - Insert leave_requests row with status = 'pending'
+  - Insert notification for the approver (whoever is configured as leave approver in HR settings)
+  - Log to audit_logs
+
+── TASK 2: LEAVE REQUESTS LIST PAGE ────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/leave/LeaveRequests.jsx
+
+Permission gate: if (!can('hr.leave.view')) return <AccessDenied />
+
+Table columns:
+  Employee Name, Leave Type, Start Date, End Date, Days, Status, Submitted Date, Action
+
+Filters:
+  Status (All, Pending, Approved, Rejected, Cancelled)
+  Date range
+  Employee search
+  Leave type
+
+For each pending row, if can('hr.leave.approve'):
+  Show Approve and Reject buttons inline in the Actions column
+
+On Approve:
+  - Update leave_requests.status = 'approved'
+  - Update leave_allocations.used_days += days_requested
+  - Insert notification to the employee
+  - Optionally update employees.status = 'on_leave' if start_date = today
+
+On Reject:
+  - Open modal asking for rejection reason
+  - Update leave_requests.status = 'rejected', rejected_reason
+  - Insert notification to the employee
+
+── TASK 3: LEAVE CALENDAR ───────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/leave/LeaveCalendar.jsx
+
+Show a monthly calendar view.
+Each day cell shows: list of employee names on leave that day (approved requests).
+Filter by department.
+Allow clicking a day to see all employees on leave that day (detail panel).
+Month navigation (previous/next month buttons).
+Use only approved leave_requests to populate the calendar.
+Do not use an external calendar library — build it with a simple grid layout
+using CSS grid (7 columns) and inline styles.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Leave Request form submits and creates pending request.
+Leave Requests list shows all requests with correct filters.
+Approve and Reject actions work, update balance, send notifications.
+Leave Calendar renders correctly for current month.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 2 — SESSION 3
+EMPLOYEE DOCUMENTS + ORG CHART
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. HR Phase 2 Session 3.
+
+Leave management is done. Now build employee documents and the org chart.
+
+── TASK 1: DATABASE MIGRATION — DOCUMENTS ──────────────────────────────────
+
+Create: migrations/0013_hr_documents.sql
+
+document_types(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  code TEXT UNIQUE,
+  requires_expiry BOOLEAN DEFAULT false,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+employee_documents(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  document_type_id UUID NOT NULL REFERENCES document_types(id),
+  file_path TEXT NOT NULL,         -- Supabase Storage path
+  file_name TEXT NOT NULL,
+  file_size_bytes INTEGER,
+  expiry_date DATE,
+  issue_date DATE,
+  is_verified BOOLEAN DEFAULT false,
+  verified_by UUID REFERENCES profiles(id),
+  verified_at TIMESTAMPTZ,
+  notes TEXT,
+  is_archived BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id)
+)
+
+Enable RLS. Enable row-level security so users can only see documents
+for employees at their site.
+
+Seed document_types: National ID, Passport, Contract of Employment,
+Medical Certificate, Driver's License, Blasting License, Mining Certificate,
+First Aid Certificate, Safety Certificate.
+
+── TASK 2: EMPLOYEE DOCUMENTS PAGE ──────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/documents/EmployeeDocuments.jsx
+
+This page appears inside the Employee Detail page (Tab: Documents).
+Pass employee_id as a prop or read from route params.
+
+Show a list of all documents for this employee:
+  Card per document showing: document type, file name, issue date, expiry date,
+  verified badge, uploaded date.
+
+Expiry warning colours:
+  Expired (past expiry date): red badge
+  Expiring within 30 days: amber badge
+  Valid: green badge
+  No expiry required: grey badge
+
+UPLOAD BUTTON (only if can('hr.employees.edit')):
+  - File picker (PDF, JPG, PNG only)
+  - Document Type dropdown
+  - Issue Date
+  - Expiry Date (show only if document type requires_expiry = true)
+  - Upload to Supabase Storage bucket: employee-documents/{employee_id}/{filename}
+  - Insert into employee_documents
+
+VERIFY BUTTON per document (only if can('hr.employees.edit')):
+  - Sets is_verified = true, verified_by, verified_at
+
+DOWNLOAD BUTTON per document:
+  - Generate signed URL from Supabase Storage
+  - Open in new tab
+
+── TASK 3: ORG CHART PAGE ───────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/OrgChart.jsx
+
+Permission gate: if (!can('hr.view')) return <AccessDenied />
+
+Show the organisational hierarchy for the current site.
+Root nodes: employees whose manager_id is NULL.
+Children: employees whose manager_id = parent employee's id.
+
+Render as a collapsible tree:
+  - Each node: employee avatar circle (initials), name, designation
+  - Click node to expand/collapse children
+  - Horizontal tree layout (manager on top, reports below)
+  - Filter by department to show only that department's tree
+
+Do not use an external tree library.
+Build with nested div elements and inline styles.
+Use MODULE_COLORS.hr (#1558A6) for the connecting lines and avatar circles.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Documents tab on employee detail works.
+Upload, verify, download all work.
+Expiry warning colours correct.
+Org Chart renders tree correctly.
+Pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 2 — SESSION 4
+INTER-SITE TRANSFERS + MEDICAL RECORDS + LEAVE BALANCE REPORT
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. HR Phase 2 Session 4 — final session for Phase 2.
+
+── TASK 1: INTER-SITE TRANSFERS ─────────────────────────────────────────────
+
+Migration: add to 0013 or create 0014_hr_transfers.sql
+
+site_transfers(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  from_site_id UUID NOT NULL REFERENCES sites(id),
+  to_site_id UUID NOT NULL REFERENCES sites(id),
+  from_department_id UUID REFERENCES departments(id),
+  to_department_id UUID REFERENCES departments(id),
+  from_designation_id UUID REFERENCES designations(id),
+  to_designation_id UUID REFERENCES designations(id),
+  transfer_date DATE NOT NULL,
+  reason TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',   -- 'pending', 'approved', 'completed', 'cancelled'
+  approved_by UUID REFERENCES profiles(id),
+  approved_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id)
+)
+
+Create: bravura-meals/src/pages/hr/Transfers.jsx
+
+Table of all transfers involving the current site (from_site_id or to_site_id).
+Columns: Employee, From Site, To Site, Transfer Date, Reason, Status, Actions.
+
+NEW TRANSFER BUTTON (if can('hr.employees.edit')):
+  - Select employee (from current site)
+  - Select destination site
+  - Select new department at destination (optional)
+  - Select new designation at destination (optional)
+  - Transfer date
+  - Reason (required)
+
+On approve:
+  - Update employee.site_id = to_site_id
+  - Update employee.department_id and designation_id if changed
+  - Update employee.status = 'transferred' briefly then 'active'
+  - Insert employee_status_history row
+  - Update site_transfers.status = 'completed'
+
+── TASK 2: MEDICAL RECORDS ──────────────────────────────────────────────────
+
+Migration: add to 0014 or 0015
+
+medical_records(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  exam_type TEXT,          -- 'Pre-Employment', 'Annual', 'Exit', 'Specific'
+  exam_date DATE NOT NULL,
+  result TEXT,             -- 'Fit', 'Fit with Restrictions', 'Unfit', 'Pending'
+  restrictions TEXT,
+  next_exam_date DATE,
+  blood_group TEXT,
+  allergies TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id)
+)
+
+RLS: this table requires the special permission hr.employees.view_medical.
+Add a check in the RLS policy: user must have this permission to see rows.
+
+Add a Medical tab to the Employee Detail page.
+Show: list of medical records, exam type, date, result, next exam due.
+Add record button (if can('hr.employees.view_medical') and can('hr.employees.edit')).
+Show alert if next_exam_date is in the past or within 30 days.
+
+── TASK 3: LEAVE BALANCE REPORT ─────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/leave/LeaveBalanceReport.jsx
+
+Permission gate: if (!can('hr.reports.view')) return <AccessDenied />
+
+Show a table of all employees with their leave balances for the current year.
+Filters: department, employee search, leave type.
+Columns: Employee, Department, Leave Type, Allocated, Used, Remaining, Carried Over.
+
+Export button (if can('hr.reports.export')): export to CSV.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Transfers page works: create, approve, complete — employee.site_id updates.
+Medical records tab shows on employee detail with correct permission gating.
+Leave Balance Report shows correct balances, export works.
+Phase 2 complete. All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 3 — SESSION 1
+ATTENDANCE + SHIFT MANAGEMENT
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. Starting HR Phase 3.
+
+Phase 2 is complete (Leave, Documents, Org Chart, Transfers, Medical).
+Phase 3 focuses on attendance, training, and employee self-service.
+
+── TASK 1: DATABASE — SHIFTS AND ATTENDANCE ─────────────────────────────────
+
+Create: migrations/0016_hr_attendance.sql
+
+shifts(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  name TEXT NOT NULL,              -- 'Day Shift', 'Night Shift', 'Rotating'
+  code TEXT,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  duration_hours NUMERIC(4,2),
+  is_night_shift BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+shift_assignments(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  shift_id UUID NOT NULL REFERENCES shifts(id),
+  start_date DATE NOT NULL,
+  end_date DATE,             -- NULL = ongoing
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id)
+)
+
+attendance_logs(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  date DATE NOT NULL,
+  clock_in TIMESTAMPTZ,
+  clock_out TIMESTAMPTZ,
+  hours_worked NUMERIC(5,2),
+  is_absent BOOLEAN DEFAULT false,
+  is_late BOOLEAN DEFAULT false,
+  overtime_hours NUMERIC(5,2) DEFAULT 0,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(employee_id, date)
+)
+
+── TASK 2: SHIFT MANAGEMENT PAGE ────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/attendance/ShiftManagement.jsx
+
+Show shifts for current site.
+Add/edit/archive shifts (is_active = false to archive).
+Show which employees are assigned to each shift.
+
+ASSIGN SHIFT:
+  - Select employee(s) (bulk possible)
+  - Select shift
+  - Start date, optional end date
+  - Creates shift_assignment records
+
+── TASK 3: ATTENDANCE LOG PAGE ──────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/attendance/AttendanceLog.jsx
+
+Permission gate: if (!can('hr.view')) return <AccessDenied />
+
+Show attendance for current site, current date (date picker to change).
+Table: Employee Name, Shift, Clock In, Clock Out, Hours Worked, Status (Present/Absent/Late).
+
+BULK MARK ATTENDANCE (if can('hr.employees.edit')):
+  - For a given date: mark all employees as present or absent in bulk
+  - Then allow individual corrections
+
+MANUAL ENTRY per employee (if can('hr.employees.edit')):
+  - Override clock in/out times
+  - Mark as absent, mark as late
+  - Add notes
+
+Monthly summary view: select month, see totals per employee:
+  Days present, days absent, total hours, overtime hours, late arrivals.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Shifts can be created and assigned to employees.
+Attendance log records can be entered and edited.
+Monthly summary loads correctly.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 3 — SESSION 2
+TRAINING + SKILLS MATRIX
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. HR Phase 3 Session 2.
+
+── TASK 1: DATABASE — TRAINING AND SKILLS ───────────────────────────────────
+
+Create: migrations/0017_hr_training.sql
+
+skills(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+employee_skills(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  skill_id UUID NOT NULL REFERENCES skills(id),
+  proficiency_level TEXT,     -- 'Beginner', 'Intermediate', 'Expert'
+  acquired_date DATE,
+  expiry_date DATE,
+  certified_by TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(employee_id, skill_id)
+)
+
+training_programs(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  title TEXT NOT NULL,
+  description TEXT,
+  trainer TEXT,
+  start_date DATE,
+  end_date DATE,
+  max_participants INTEGER,
+  status TEXT DEFAULT 'planned',     -- 'planned', 'ongoing', 'completed', 'cancelled'
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+training_enrollments(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  training_program_id UUID NOT NULL REFERENCES training_programs(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  status TEXT DEFAULT 'enrolled',    -- 'enrolled', 'completed', 'withdrew', 'failed'
+  completion_date DATE,
+  score NUMERIC(5,2),
+  certificate_path TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(training_program_id, employee_id)
+)
+
+── TASK 2: TRAINING PROGRAMS PAGE ───────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/training/TrainingPrograms.jsx
+
+Table of training programs at current site.
+Columns: Title, Trainer, Start Date, End Date, Enrolled Count, Status.
+Add/edit training programs.
+Open a program to see enrolled employees and mark completion.
+Mark individual employees as completed/failed, enter score, upload certificate.
+
+── TASK 3: SKILLS MATRIX PAGE ───────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/training/SkillsMatrix.jsx
+
+Show a grid: rows = employees, columns = skills.
+Cell = proficiency level or empty if employee doesn't have the skill.
+Colour cells by proficiency: green=Expert, amber=Intermediate, grey=Beginner, empty=none.
+Click cell to add/edit/remove a skill for an employee.
+Export to CSV.
+Filter by department.
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Training programs page works end-to-end.
+Skills matrix renders and allows cell editing.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 3 — SESSION 3
+HR REPORTS + ANALYTICS DASHBOARD
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. HR Phase 3 Session 3.
+
+── TASK: HR ANALYTICS AND REPORTS SUITE ─────────────────────────────────────
+
+Create these report pages under bravura-meals/src/pages/hr/reports/
+
+All reports:
+  - Gate with if (!can('hr.reports.view')) return <AccessDenied />
+  - Export button (CSV) if can('hr.reports.export')
+  - Site filter (defaults to currentSite)
+  - Date range picker where applicable
+
+── REPORT 1: HRHeadcountReport.jsx
+
+By site and department for the selected date:
+  - Total employees by status
+  - Breakdown by department
+  - Breakdown by employment type
+  - Breakdown by contractor
+  - New hires in period
+  - Terminations in period
+  - Net change
+
+── REPORT 2: HRLeaveReport.jsx
+
+For a selected period:
+  - Total leave days taken by type
+  - Employees currently on leave
+  - Leave utilisation rate (used/allocated)
+  - Leave balance summary per employee
+  - Most taken leave type
+
+── REPORT 3: HRTurnoverReport.jsx
+
+For a selected period:
+  - Number of terminations
+  - Number of new hires
+  - Turnover rate percentage
+  - Average tenure of terminated employees
+  - Termination reasons breakdown
+
+── REPORT 4: HRAttendanceReport.jsx
+
+For a selected period:
+  - Attendance rate per department
+  - Absenteeism rate
+  - Late arrival count
+  - Overtime hours total
+  - Employees with most absences (top 10)
+
+── REPORT 5: UPDATED HR DASHBOARD ──────────────────────────────────────────
+
+Update bravura-meals/src/pages/hr/HRDashboard.jsx to add:
+  - A simple bar chart showing headcount by department (use recharts or build with divs)
+  - A line chart showing headcount trend over last 6 months (from employee_status_history)
+  - Training completion rate KPI
+  - Skills gap alert: employees with 0 skills recorded
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+All 4 report pages load with real data.
+All have export to CSV.
+HR Dashboard updated with charts.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 4 — SESSION 1
+SALARY STRUCTURES + PAYROLL RUN
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. Starting HR Phase 4 — Payroll.
+
+NOTE: Payroll integration with Finance module will happen in Finance Phase 1.
+For now, payroll operates standalone and exports journal data for manual entry.
+
+── TASK 1: SALARY STRUCTURE DATABASE ────────────────────────────────────────
+
+Create: migrations/0018_hr_payroll.sql
+
+salary_grades(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  name TEXT NOT NULL,          -- 'Grade 1', 'Senior Manager', etc.
+  code TEXT,
+  basic_salary NUMERIC(15,2) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+salary_components(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,          -- 'Housing Allowance', 'Transport', 'PAYE', 'NSSA'
+  code TEXT UNIQUE,
+  component_type TEXT NOT NULL,  -- 'allowance' or 'deduction'
+  is_percentage BOOLEAN DEFAULT false,
+  amount NUMERIC(15,2),
+  percentage NUMERIC(5,2),
+  is_taxable BOOLEAN DEFAULT true,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+employee_salary(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  salary_grade_id UUID REFERENCES salary_grades(id),
+  basic_salary NUMERIC(15,2) NOT NULL,
+  effective_date DATE NOT NULL,
+  end_date DATE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id)
+)
+
+payroll_runs(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  period_month INTEGER NOT NULL,  -- 1-12
+  period_year INTEGER NOT NULL,
+  status TEXT DEFAULT 'draft',    -- 'draft', 'processing', 'approved', 'paid'
+  total_gross NUMERIC(15,2),
+  total_deductions NUMERIC(15,2),
+  total_net NUMERIC(15,2),
+  employee_count INTEGER,
+  approved_by UUID REFERENCES profiles(id),
+  approved_at TIMESTAMPTZ,
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id),
+  UNIQUE(site_id, period_month, period_year)
+)
+
+salary_slips(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  payroll_run_id UUID NOT NULL REFERENCES payroll_runs(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  basic_salary NUMERIC(15,2),
+  gross_salary NUMERIC(15,2),
+  total_deductions NUMERIC(15,2),
+  net_salary NUMERIC(15,2),
+  days_worked INTEGER,
+  days_absent INTEGER,
+  leave_days INTEGER,
+  components JSONB,  -- [{name, type, amount}, ...]
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+── TASK 2: SALARY MANAGEMENT PAGES ──────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/payroll/SalaryGrades.jsx
+  - CRUD for salary grades (site-scoped)
+  - Assign grade to employee from Employee Detail page
+
+Create: bravura-meals/src/pages/hr/payroll/SalaryComponents.jsx
+  - CRUD for allowances and deductions
+  - Toggle: fixed amount or percentage of basic salary
+
+Create: bravura-meals/src/pages/hr/payroll/EmployeeSalary.jsx
+  - Manage individual employee salary (accessible from Employee Detail)
+  - Show salary history (all records with effective dates)
+  - Only visible if can('hr.employees.view_salary')
+
+── TASK 3: PAYROLL RUN PAGE ─────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/payroll/PayrollRun.jsx
+
+Permission gate: if (!can('hr.payroll.run')) return <AccessDenied />
+
+Select month and year.
+Show existing run if one exists for that period.
+RUN PAYROLL BUTTON:
+  - For each active employee at the site:
+      Read basic_salary from employee_salary (latest effective record)
+      Apply each salary_component: add allowances, subtract deductions
+      Factor in: days absent (from attendance_logs), leave days unpaid
+      Calculate gross, deductions, net
+      Insert salary_slips row
+  - Insert or update payroll_runs row with totals
+
+Show payroll summary table after run:
+  Employee | Basic | Gross | Deductions | Net | Days Worked | Days Absent
+
+APPROVE BUTTON (if can('hr.payroll.approve')):
+  - Set payroll_runs.status = 'approved'
+
+EXPORT PAYROLL:
+  - Export to CSV for bank upload
+  - Export to PDF (print-ready)
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Salary grades, components, and employee salary work.
+Payroll run calculates correctly for all employees.
+Payroll summary shows correct figures.
+Approve and export work.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 4 — SESSION 2
+SALARY SLIPS + PERFORMANCE APPRAISALS
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. HR Phase 4 Session 2.
+
+── TASK 1: SALARY SLIP PAGE ─────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/payroll/SalarySlip.jsx
+
+View and print a single employee's salary slip for a given payroll period.
+Permission gate: can('hr.employees.view_salary') to see other employees' slips.
+
+Salary slip layout (print-optimised):
+  Header: Company name, Site name, Month/Year
+  Employee: Name, Employee Number, Department, Designation
+  Earnings table: Basic Salary, each allowance with amount
+  Deductions table: each deduction with amount
+  Summary: Gross, Total Deductions, NET PAY (large, bold)
+  Footer: "This is a computer-generated payslip"
+
+Print button triggers window.print()
+Use @media print styles to hide everything except the slip.
+
+Create: bravura-meals/src/pages/hr/payroll/SalarySlipsList.jsx
+  - List all payroll runs (by month/year)
+  - Click run to see all employee slips for that run
+  - Click individual slip to open printable view
+
+── TASK 2: PERFORMANCE APPRAISALS DATABASE ──────────────────────────────────
+
+Migration: migrations/0019_hr_performance.sql
+
+appraisal_cycles(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  site_id UUID NOT NULL REFERENCES sites(id),
+  name TEXT NOT NULL,       -- 'Q1 2026 Appraisal', 'Annual 2025'
+  period_start DATE NOT NULL,
+  period_end DATE NOT NULL,
+  status TEXT DEFAULT 'open',    -- 'open', 'closed'
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+appraisals(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  cycle_id UUID NOT NULL REFERENCES appraisal_cycles(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  appraiser_id UUID REFERENCES employees(id),
+  self_score NUMERIC(3,1),
+  manager_score NUMERIC(3,1),
+  final_score NUMERIC(3,1),
+  rating TEXT,                  -- 'Excellent', 'Good', 'Satisfactory', 'Needs Improvement', 'Unsatisfactory'
+  self_comments TEXT,
+  manager_comments TEXT,
+  status TEXT DEFAULT 'pending',  -- 'pending', 'self_complete', 'manager_complete', 'final'
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+── TASK 3: APPRAISALS PAGE ──────────────────────────────────────────────────
+
+Create: bravura-meals/src/pages/hr/performance/Appraisals.jsx
+
+Show all appraisal cycles and their status.
+Create new cycle (HR admin only).
+Open a cycle to see all employees with their appraisal status.
+
+For each employee:
+  Self-assessment form (can be filled by the employee themselves in ESS)
+  Manager assessment form (filled by manager)
+  Final score and rating (filled by HR after both are complete)
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Salary slip prints correctly.
+Salary slip list shows all periods.
+Appraisal cycles and appraisals work.
+All pushed to both branches.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+═══════════════════════════════════════════════════════════════════════════════
+HR PHASE 4 — SESSION 3
+DISCIPLINARY + EXIT MANAGEMENT
+═══════════════════════════════════════════════════════════════════════════════
+
+[Paste Master Context above this, then paste this block]
+
+I am Tafara, HR module lead. HR Phase 4 Session 3 — final HR phase.
+
+── TASK 1: DISCIPLINARY MODULE ──────────────────────────────────────────────
+
+Migration: migrations/0020_hr_disciplinary.sql
+
+disciplinary_cases(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  case_number TEXT NOT NULL,
+  incident_date DATE NOT NULL,
+  incident_type TEXT,       -- 'Misconduct', 'Negligence', 'Insubordination', 'Absenteeism', 'Other'
+  description TEXT NOT NULL,
+  outcome TEXT,             -- 'Warning', 'Final Warning', 'Suspension', 'Dismissal', 'Exonerated'
+  hearing_date DATE,
+  status TEXT DEFAULT 'open',   -- 'open', 'hearing_scheduled', 'closed'
+  closed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES profiles(id)
+)
+
+Create: bravura-meals/src/pages/hr/disciplinary/DisciplinaryCases.jsx
+  - List all cases at current site
+  - Add new case
+  - Filter by employee, status, type
+  - View case detail with full history
+
+── TASK 2: EXIT MANAGEMENT ──────────────────────────────────────────────────
+
+Migration: add to 0020 or 0021
+
+exit_records(
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  site_id UUID NOT NULL REFERENCES sites(id),
+  exit_type TEXT NOT NULL,     -- 'Resignation', 'Termination', 'Retirement', 'Redundancy', 'Death'
+  last_working_date DATE NOT NULL,
+  exit_interview_date DATE,
+  exit_interview_notes TEXT,
+  clearance_completed BOOLEAN DEFAULT false,
+  clearance_date DATE,
+  clearance_by UUID REFERENCES profiles(id),
+  final_payslip_generated BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'in_progress',   -- 'in_progress', 'completed'
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+Create: bravura-meals/src/pages/hr/ExitManagement.jsx
+  - Initiate exit process for an employee
+  - Exit type, last working date
+  - Clearance checklist (Room returned? Equipment returned? Access revoked? Final payslip?)
+  - Exit interview form
+  - When clearance complete: auto-trigger termination of employee record
+
+── TASK 3: HR REPORTS — FINAL ADDITIONS ─────────────────────────────────────
+
+Add to existing reports:
+  - Disciplinary cases report (by type, by employee, by period)
+  - Payroll summary report (by department, by month)
+
+Update HR Dashboard to show:
+  - Open disciplinary cases count
+  - Employees in exit process
+  - Payroll last run date and total
+
+── DONE WHEN ──────────────────────────────────────────────────────────────────
+
+Disciplinary cases work end-to-end.
+Exit management process works.
+Reports updated.
+HR Phase 4 complete — all pushed to both branches.
+HR module is now complete (Phases 1 through 4).
+
+═══════════════════════════════════════════════════════════════════════════════
+END OF TAFARA PROMPTS
+═══════════════════════════════════════════════════════════════════════════════

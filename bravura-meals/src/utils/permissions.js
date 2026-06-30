@@ -84,14 +84,6 @@ export const MODULE_COLORS = {
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
-export const ROLES = {
-  SUPER_ADMIN:   'super_admin',
-  MEAL_OFFICER:  'meal_officer',
-  APPROVER:      'approver',
-  KITCHEN:       'kitchen',
-  KITCHEN_OWNER: 'kitchen_owner',
-}
-
 export const ROLE_LABELS = {
   super_admin:   'Super Admin',
   meal_officer:  'Meal Officer',
@@ -116,31 +108,6 @@ export const moduleAccess = {
   // legacy role string. Signature is (role, can) so the same .access(role, can)
   // call works for every module; the three above simply ignore the extra arg.
   admin:     (role, can) => can ? can('users.view') : false,
-}
-
-// ─── Permission helpers ───────────────────────────────────────────────────────
-export const can = {
-  // Meals
-  enterMeals:        r => ['super_admin','meal_officer'].includes(r),
-  editApproved:      r => ['super_admin'].includes(r),
-  editSubmitted:     r => ['super_admin','approver'].includes(r),
-  editDraft:         r => ['super_admin','meal_officer'].includes(r),
-  submitForApproval: r => ['super_admin','meal_officer'].includes(r),
-  approveDay:        r => ['super_admin','approver'].includes(r),
-  confirmCounts:     r => ['super_admin','kitchen'].includes(r),
-  raiseFlag:         r => ['super_admin','kitchen'].includes(r),
-  resolveFlag:       r => ['super_admin','approver'].includes(r),
-  seeCosts:          r => ['super_admin','approver','kitchen_owner'].includes(r),
-  setPrices:         r => ['super_admin','kitchen_owner'].includes(r),
-  manageSettings:    r => ['super_admin'].includes(r),
-  seeReports:        r => ['super_admin','meal_officer','approver','kitchen_owner'].includes(r),
-  // Workforce / shared
-  manageEmployees:   r => ['super_admin','meal_officer','approver'].includes(r),
-  deleteEmployee:    r => ['super_admin','meal_officer','approver'].includes(r),
-  manageContractors: r => ['super_admin','meal_officer','approver'].includes(r),
-  // Campsite
-  manageCampsite:    r => ['super_admin','approver','meal_officer'].includes(r),
-  viewCampsite:      r => !!r,
 }
 
 // ─── Per-module nav definitions ───────────────────────────────────────────────

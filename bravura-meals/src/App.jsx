@@ -46,6 +46,7 @@ const AuditLogViewer = lazy(() => import('./pages/admin/AuditLogViewer'))
 
 // ── Fuel pages ────────────────────────────────────────────────────────────────
 const FuelDashboard = lazy(() => import('./pages/fuel/FuelDashboard'))
+const FuelLedger    = lazy(() => import('./pages/fuel/FuelLedger'))
 const FuelReceipts  = lazy(() => import('./pages/fuel/FuelReceipts'))
 const FuelIssues    = lazy(() => import('./pages/fuel/FuelIssues'))
 const DipReadings   = lazy(() => import('./pages/fuel/DipReadings'))
@@ -166,6 +167,7 @@ function getAdminPage(page, can) {
 function getFuelPage(page, setPage, can) {
   switch (page) {
     case 'fuel_dashboard': return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
+    case 'fuel_ledger':    return can('fuel.view')   ? <FuelLedger />                      : null
     case 'fuel_receipts':  return can('fuel.create') ? <FuelReceipts />                    : null
     case 'fuel_issues':    return can('fuel.create') ? <FuelIssues />                      : null
     case 'fuel_dips':      return can('fuel.create') ? <DipReadings />                     : null

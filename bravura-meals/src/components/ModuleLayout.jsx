@@ -43,6 +43,7 @@ const PAGE_TITLES = {
   meals_settings:   'Settings',
   // Fuel
   fuel_dashboard:   'Dashboard',
+  fuel_ledger:      'Fuel Ledger',
   fuel_receipts:    'Fuel Receipts',
   fuel_issues:      'Fuel Issues',
   fuel_dips:        'Dip Stick Readings',

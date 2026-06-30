@@ -22,18 +22,35 @@ export default function FuelReceipts() {
   const { profile } = useAuth()
   const { can } = usePermissions()
   const { currentSite } = useSite()
-  const { tanks, receipts, addReceipt, deleteReceipt, loading } = useFuel()
+  const { tanks, receipts, addReceipt, updateReceipt, deleteReceipt, loading } = useFuel()
 
   const canCreate = can('fuel.create')
   const canDelete = can('fuel.delete')
 
   const [modal,    setModal]    = useState(false)
+  const [editing,  setEditing]  = useState(null)   // receipt being edited (or null = adding)
   const [form,     setForm]     = useState(BLANK_FORM)
   const [saving,   setSaving]   = useState(false)
   const [deleting, setDeleting] = useState(null)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo,   setDateTo]   = useState('')
 
   function openAdd() {
+    setEditing(null)
     setForm({ ...BLANK_FORM, receipt_date: new Date().toISOString().slice(0, 10) })
+    setModal(true)
+  }
+
+  function openEdit(r) {
+    setEditing(r)
+    setForm({
+      receipt_date:      r.receipt_date,
+      tank_id:           r.tank_id,
+      quantity_litres:   String(r.quantity_litres),
+      supplier:          r.supplier || '',
+      delivery_note_ref: r.delivery_note_ref || '',
+      notes:             r.notes || '',
+    })
     setModal(true)
   }
 
@@ -46,17 +63,21 @@ export default function FuelReceipts() {
     }
     setSaving(true)
     try {
-      await addReceipt({
+      const payload = {
         tank_id:           form.tank_id,
         receipt_date:      form.receipt_date,
         quantity_litres:   Number(form.quantity_litres),
         supplier:          form.supplier.trim() || null,
         delivery_note_ref: form.delivery_note_ref.trim() || null,
         notes:             form.notes.trim() || null,
-        recorded_by:       profile?.id,
-        recorded_by_name:  profile?.full_name || null,
-      })
-      showToast('Receipt recorded', 'green')
+      }
+      if (editing) {
+        await updateReceipt(editing.id, payload)
+        showToast('Receipt updated', 'green')
+      } else {
+        await addReceipt({ ...payload, recorded_by: profile?.id, recorded_by_name: profile?.full_name || null })
+        showToast('Receipt recorded', 'green')
+      }
       setModal(false)
     } catch (err) {
       showToast(err.message || 'Failed to save', 'red')
@@ -78,10 +99,16 @@ export default function FuelReceipts() {
 
   const tankName = id => tanks.find(t => t.id === id)?.name || '—'
 
+  const filtered = receipts.filter(r => {
+    if (dateFrom && r.receipt_date < dateFrom) return false
+    if (dateTo   && r.receipt_date > dateTo)   return false
+    return true
+  })
+
   if (loading) return null
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1100px' }}>
+    <div style={{ maxWidth: '1100px' }}>
       <PageHeader
         title="Fuel Receipts"
         site={currentSite}
@@ -90,11 +117,34 @@ export default function FuelReceipts() {
         )}
       />
 
+      {/* Date range filter */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>From</div>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={filterInputStyle} />
+        </div>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>To</div>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={filterInputStyle} />
+        </div>
+        {(dateFrom || dateTo) && (
+          <button onClick={() => { setDateFrom(''); setDateTo('') }} style={clearBtnStyle}>Clear</button>
+        )}
+        <div style={{ marginLeft: 'auto', fontSize: '12px', color: THEME.textLow, alignSelf: 'flex-end', paddingBottom: '2px' }}>
+          {filtered.length} receipt{filtered.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+
       <Card style={{ padding: 0 }}>
         {receipts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', color: THEME.textLow }}>
             <Icon name="local_gas_station" size={40} style={{ display: 'block', margin: '0 auto 10px', color: THEME.outline }} />
             <p style={{ fontSize: '14px', margin: 0 }}>No fuel receipts recorded yet.</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 24px', color: THEME.textLow }}>
+            <Icon name="search_off" size={40} style={{ display: 'block', margin: '0 auto 10px', color: THEME.outline }} />
+            <p style={{ fontSize: '14px', margin: 0 }}>No receipts in this date range.</p>
           </div>
         ) : (
           <TableWrap>
@@ -106,11 +156,11 @@ export default function FuelReceipts() {
               <Th>Delivery Note</Th>
               <Th>Recorded By</Th>
               <Th>Notes</Th>
-              {canDelete && <Th />}
+              {(canCreate || canDelete) && <Th />}
             </THead>
             <tbody>
-              {receipts.map((r, idx) => (
-                <TRow key={r.id} last={idx === receipts.length - 1}>
+              {filtered.map((r, idx) => (
+                <TRow key={r.id} last={idx === filtered.length - 1}>
                   <Td>{fmtDate(r.receipt_date)}</Td>
                   <Td><span style={{ fontWeight: 500 }}>{tankName(r.tank_id)}</span></Td>
                   <Td align="right" style={{ fontWeight: 600, color: THEME.success }}>
@@ -124,15 +174,20 @@ export default function FuelReceipts() {
                       {r.notes || '—'}
                     </span>
                   </Td>
-                  {canDelete && (
+                  {(canCreate || canDelete) && (
                     <Td>
-                      <button
-                        onClick={() => setDeleting(r)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: THEME.error, opacity: .7 }}
-                        title="Delete receipt"
-                      >
-                        <Icon name="delete" size={16} style={{ color: 'inherit' }} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {canCreate && (
+                          <button onClick={() => openEdit(r)} style={iconBtnStyle} title="Edit">
+                            <Icon name="edit" size={15} style={{ color: THEME.primary }} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => setDeleting(r)} style={iconBtnStyle} title="Delete">
+                            <Icon name="delete" size={15} style={{ color: THEME.error }} />
+                          </button>
+                        )}
+                      </div>
                     </Td>
                   )}
                 </TRow>
@@ -142,15 +197,15 @@ export default function FuelReceipts() {
         )}
       </Card>
 
-      {/* Add Modal */}
+      {/* Add / Edit Modal */}
       <Modal
         open={modal}
         onClose={() => setModal(false)}
-        title="Record Fuel Receipt"
+        title={editing ? 'Edit Fuel Receipt' : 'Record Fuel Receipt'}
         footer={
           <>
             <Button onClick={() => setModal(false)} variant="text">Cancel</Button>
-            <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Receipt'}</Button>
+            <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : editing ? 'Save Changes' : 'Save Receipt'}</Button>
           </>
         }
       >
@@ -224,4 +279,21 @@ const inputStyle = {
   borderRadius: '12px', fontSize: '14px', color: THEME.text,
   fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
   background: THEME.surface, marginBottom: '14px', display: 'block',
+}
+
+const filterInputStyle = {
+  padding: '9px 12px', border: `1px solid ${THEME.outline}`,
+  borderRadius: '10px', fontSize: '13px', color: THEME.text,
+  fontFamily: 'inherit', outline: 'none', background: THEME.surface,
+}
+
+const iconBtnStyle = {
+  background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+  borderRadius: '6px', display: 'flex', alignItems: 'center',
+}
+
+const clearBtnStyle = {
+  background: 'none', border: `1px solid ${THEME.outline}`, borderRadius: '8px',
+  padding: '9px 14px', cursor: 'pointer', fontSize: '12px', color: THEME.textMed,
+  fontFamily: 'inherit', alignSelf: 'flex-end',
 }

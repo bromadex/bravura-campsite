@@ -60,6 +60,18 @@ export function FuelProvider({ children }) {
     return readings.reduce((best, d) => (!best || d.reading_date > best.reading_date) ? d : best, null)
   }
 
+  // Average daily consumption over the last 30 days for a tank.
+  // Returns litres/day, or null if no issues in that window.
+  function avgDailyConsumption(tankId, days = 30) {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    const recent = issues.filter(i => i.tank_id === tankId && i.issue_date >= cutoffStr)
+    if (!recent.length) return null
+    const total = recent.reduce((s, i) => s + Number(i.quantity_litres), 0)
+    return total / days
+  }
+
   // ── Tanks CRUD ────────────────────────────────────────────────────────────────
   async function addTank(data) {
     const { data: row, error } = await supabase
@@ -92,6 +104,14 @@ export function FuelProvider({ children }) {
     return row
   }
 
+  async function updateReceipt(id, data) {
+    const { data: row, error } = await supabase
+      .from('fuel_receipts').update(data).eq('id', id).select().single()
+    if (error) throw error
+    setReceipts(prev => prev.map(r => r.id === id ? row : r))
+    return row
+  }
+
   async function deleteReceipt(id) {
     const { error } = await supabase.from('fuel_receipts').delete().eq('id', id)
     if (error) throw error
@@ -104,6 +124,14 @@ export function FuelProvider({ children }) {
       .from('fuel_issues').insert([{ ...data, site_id: currentSiteId }]).select().single()
     if (error) throw error
     setIssues(prev => [row, ...prev])
+    return row
+  }
+
+  async function updateIssue(id, data) {
+    const { data: row, error } = await supabase
+      .from('fuel_issues').update(data).eq('id', id).select().single()
+    if (error) throw error
+    setIssues(prev => prev.map(i => i.id === id ? row : i))
     return row
   }
 
@@ -131,10 +159,10 @@ export function FuelProvider({ children }) {
   return (
     <FuelContext.Provider value={{
       tanks, receipts, issues, dipReadings, profiles, loading,
-      tankBalance, latestDip,
+      tankBalance, latestDip, avgDailyConsumption,
       addTank, updateTank, deleteTank,
-      addReceipt, deleteReceipt,
-      addIssue, deleteIssue,
+      addReceipt, updateReceipt, deleteReceipt,
+      addIssue, updateIssue, deleteIssue,
       addDipReading, deleteDipReading,
       refresh: fetchAll,
     }}>

@@ -28,19 +28,40 @@ export default function FuelIssues() {
   const { profile } = useAuth()
   const { can } = usePermissions()
   const { currentSite } = useSite()
-  const { tanks, issues, profiles, addIssue, deleteIssue, loading } = useFuel()
+  const { tanks, issues, profiles, addIssue, updateIssue, deleteIssue, loading } = useFuel()
 
   const canCreate = can('fuel.create')
   const canDelete = can('fuel.delete')
 
   const [modal,    setModal]    = useState(false)
+  const [editing,  setEditing]  = useState(null)
   const [form,     setForm]     = useState(BLANK_FORM)
   const [saving,   setSaving]   = useState(false)
   const [deleting, setDeleting] = useState(null)
   const [filter,   setFilter]   = useState('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo,   setDateTo]   = useState('')
 
   function openAdd() {
+    setEditing(null)
     setForm({ ...BLANK_FORM, issue_date: new Date().toISOString().slice(0, 10) })
+    setModal(true)
+  }
+
+  function openEdit(issue) {
+    setEditing(issue)
+    setForm({
+      issue_date:   issue.issue_date,
+      tank_id:      issue.tank_id,
+      quantity_litres: String(issue.quantity_litres),
+      asset_type:   issue.asset_type,
+      asset_name:   issue.asset_name,
+      asset_reg:    issue.asset_reg || '',
+      purpose:      issue.purpose || '',
+      approved_by:  issue.approved_by || '',
+      received_by:  issue.received_by || '',
+      notes:        issue.notes || '',
+    })
     setModal(true)
   }
 
@@ -56,7 +77,7 @@ export default function FuelIssues() {
     const approver = profiles.find(p => p.id === form.approved_by)
     setSaving(true)
     try {
-      await addIssue({
+      const payload = {
         tank_id:          form.tank_id,
         issue_date:       form.issue_date,
         quantity_litres:  Number(form.quantity_litres),
@@ -64,14 +85,18 @@ export default function FuelIssues() {
         asset_name:       form.asset_name.trim(),
         asset_reg:        form.asset_reg.trim() || null,
         purpose:          form.purpose.trim() || null,
-        issued_by:        profile?.id,
-        issued_by_name:   profile?.full_name || null,
         approved_by:      form.approved_by || null,
         approved_by_name: approver?.full_name || null,
         received_by:      form.received_by.trim() || null,
         notes:            form.notes.trim() || null,
-      })
-      showToast('Fuel issue recorded', 'green')
+      }
+      if (editing) {
+        await updateIssue(editing.id, payload)
+        showToast('Issue updated', 'green')
+      } else {
+        await addIssue({ ...payload, issued_by: profile?.id, issued_by_name: profile?.full_name || null })
+        showToast('Fuel issue recorded', 'green')
+      }
       setModal(false)
     } catch (err) {
       showToast(err.message || 'Failed to save', 'red')
@@ -93,12 +118,17 @@ export default function FuelIssues() {
 
   const tankName = id => tanks.find(t => t.id === id)?.name || '—'
 
-  const filtered = filter === 'all' ? issues : issues.filter(i => i.asset_type === filter)
+  const filtered = issues.filter(i => {
+    if (filter !== 'all' && i.asset_type !== filter) return false
+    if (dateFrom && i.issue_date < dateFrom) return false
+    if (dateTo   && i.issue_date > dateTo)   return false
+    return true
+  })
 
   if (loading) return null
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px' }}>
+    <div style={{ maxWidth: '1200px' }}>
       <PageHeader
         title="Fuel Issues"
         site={currentSite}
@@ -107,8 +137,9 @@ export default function FuelIssues() {
         )}
       />
 
-      {/* Asset type filter chips */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+      {/* Filters row */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        {/* Asset type chips */}
         {['all', ...ASSET_TYPES].map(type => (
           <button
             key={type}
@@ -126,13 +157,27 @@ export default function FuelIssues() {
             </span>
           </button>
         ))}
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+        {/* Date range */}
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>From</div>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={filterInputStyle} />
+        </div>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>To</div>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={filterInputStyle} />
+        </div>
+        {(dateFrom || dateTo) && (
+          <button onClick={() => { setDateFrom(''); setDateTo('') }} style={clearBtnStyle}>Clear</button>
+        )}
       </div>
 
       <Card style={{ padding: 0 }}>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', color: THEME.textLow }}>
             <Icon name="output" size={40} style={{ display: 'block', margin: '0 auto 10px', color: THEME.outline }} />
-            <p style={{ fontSize: '14px', margin: 0 }}>No fuel issues recorded yet.</p>
+            <p style={{ fontSize: '14px', margin: 0 }}>{issues.length === 0 ? 'No fuel issues recorded yet.' : 'No issues match the current filters.'}</p>
           </div>
         ) : (
           <TableWrap>
@@ -146,7 +191,7 @@ export default function FuelIssues() {
               <Th>Approved By</Th>
               <Th>Received By</Th>
               <Th>Purpose</Th>
-              {canDelete && <Th />}
+              {(canCreate || canDelete) && <Th />}
             </THead>
             <tbody>
               {filtered.map((issue, idx) => (
@@ -177,15 +222,20 @@ export default function FuelIssues() {
                       {issue.purpose || '—'}
                     </span>
                   </Td>
-                  {canDelete && (
+                  {(canCreate || canDelete) && (
                     <Td>
-                      <button
-                        onClick={() => setDeleting(issue)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: THEME.error, opacity: .7 }}
-                        title="Delete record"
-                      >
-                        <Icon name="delete" size={16} style={{ color: 'inherit' }} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {canCreate && (
+                          <button onClick={() => openEdit(issue)} style={iconBtnStyle} title="Edit">
+                            <Icon name="edit" size={15} style={{ color: THEME.primary }} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => setDeleting(issue)} style={iconBtnStyle} title="Delete">
+                            <Icon name="delete" size={15} style={{ color: THEME.error }} />
+                          </button>
+                        )}
+                      </div>
                     </Td>
                   )}
                 </TRow>
@@ -199,11 +249,11 @@ export default function FuelIssues() {
       <Modal
         open={modal}
         onClose={() => setModal(false)}
-        title="Record Fuel Issue"
+        title={editing ? 'Edit Fuel Issue' : 'Record Fuel Issue'}
         footer={
           <>
             <Button onClick={() => setModal(false)} variant="text">Cancel</Button>
-            <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Issue'}</Button>
+            <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : editing ? 'Save Changes' : 'Save Issue'}</Button>
           </>
         }
       >
@@ -312,4 +362,21 @@ const inputStyle = {
   borderRadius: '12px', fontSize: '14px', color: THEME.text,
   fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
   background: THEME.surface, marginBottom: '14px', display: 'block',
+}
+
+const filterInputStyle = {
+  padding: '9px 12px', border: `1px solid ${THEME.outline}`,
+  borderRadius: '10px', fontSize: '13px', color: THEME.text,
+  fontFamily: 'inherit', outline: 'none', background: THEME.surface,
+}
+
+const iconBtnStyle = {
+  background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+  borderRadius: '6px', display: 'flex', alignItems: 'center',
+}
+
+const clearBtnStyle = {
+  background: 'none', border: `1px solid ${THEME.outline}`, borderRadius: '8px',
+  padding: '9px 14px', cursor: 'pointer', fontSize: '12px', color: THEME.textMed,
+  fontFamily: 'inherit', alignSelf: 'flex-end',
 }

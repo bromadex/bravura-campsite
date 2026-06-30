@@ -45,7 +45,7 @@ function GaugeRing({ pct, color, size = 84 }) {
   )
 }
 
-function TankCard({ tank, balance, dip }) {
+function TankCard({ tank, balance, dip, daysRemaining }) {
   const variance = dip ? balance - Number(dip.reading_litres) : null
   const pct = tank.capacity_litres
     ? Math.min(100, Math.max(0, (balance / Number(tank.capacity_litres)) * 100))
@@ -53,6 +53,11 @@ function TankCard({ tank, balance, dip }) {
   const isLow  = pct !== null && pct <= LOW_PCT
   const isWarn = pct !== null && pct > LOW_PCT && pct < WARN_PCT
   const levelColor = pct === null ? FUEL_CLR : isLow ? THEME.error : isWarn ? THEME.warning : THEME.success
+
+  const daysColor = daysRemaining === null ? null
+    : daysRemaining < 3  ? THEME.error
+    : daysRemaining < 7  ? THEME.warning
+    : THEME.success
 
   return (
     <div style={{
@@ -68,9 +73,16 @@ function TankCard({ tank, balance, dip }) {
           <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tank.name}</div>
           {tank.designation && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>{tank.designation}</div>}
         </div>
-        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, flexShrink: 0, marginLeft: '8px', background: FUEL_CLR + '18', color: FUEL_CLR }}>
-          {tank.fuel_type}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
+          {daysRemaining !== null && (
+            <span style={{ padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: daysColor + '18', color: daysColor }}>
+              ~{daysRemaining}d
+            </span>
+          )}
+          <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: FUEL_CLR + '18', color: FUEL_CLR }}>
+            {tank.fuel_type}
+          </span>
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
@@ -137,7 +149,7 @@ function TankCard({ tank, balance, dip }) {
 }
 
 export default function FuelDashboard({ setPage }) {
-  const { tanks, receipts, issues, loading, tankBalance, latestDip } = useFuel()
+  const { tanks, receipts, issues, loading, tankBalance, latestDip, avgDailyConsumption } = useFuel()
   const { currentSite } = useSite()
   const [alertDismissed, setAlertDismissed] = useState(false)
 
@@ -272,7 +284,13 @@ export default function FuelDashboard({ setPage }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px', marginBottom: '24px' }}>
             {activeTanks.map(tank => (
-              <TankCard key={tank.id} tank={tank} balance={tankBalance(tank.id)} dip={latestDip(tank.id)} setPage={setPage} />
+              <TankCard key={tank.id} tank={tank} balance={tankBalance(tank.id)} dip={latestDip(tank.id)} setPage={setPage}
+                daysRemaining={(() => {
+                  const avg = avgDailyConsumption(tank.id)
+                  if (!avg || avg <= 0) return null
+                  return Math.floor(Math.max(0, tankBalance(tank.id)) / avg)
+                })()}
+              />
             ))}
           </div>
         </>

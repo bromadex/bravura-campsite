@@ -327,13 +327,13 @@ END$$;
 -- ── 12. Permissions ───────────────────────────────────────────────────────────
 
 INSERT INTO permissions (code, module, action, description) VALUES
-  ('fuel.view_dashboard',    'fuel', 'view_dashboard',    'View fuel dashboard, tank levels, and reports'),
-  ('fuel.manage_tanks',      'fuel', 'manage_tanks',      'Add, edit, and archive fuel tanks'),
-  ('fuel.issue_fuel',        'fuel', 'issue_fuel',        'Record fuel issuances (draw from tank)'),
-  ('fuel.receive_delivery',  'fuel', 'receive_delivery',  'Record fuel deliveries (add to tank)'),
-  ('fuel.record_dip',        'fuel', 'record_dip',        'Record dip-stick readings'),
-  ('fuel.run_reconciliation','fuel', 'run_reconciliation','Run fuel reconciliation and post adjustments'),
-  ('fuel.view_reports',      'fuel', 'view_reports',      'Access detailed fuel reports')
+  ('fuel.view_dashboard',    'fuel', 'View',   'View fuel dashboard, tank levels, and reports'),
+  ('fuel.manage_tanks',      'fuel', 'Edit',   'Add, edit, and archive fuel tanks'),
+  ('fuel.issue_fuel',        'fuel', 'Create', 'Record fuel issuances (draw from tank)'),
+  ('fuel.receive_delivery',  'fuel', 'Create', 'Record fuel deliveries (add to tank)'),
+  ('fuel.record_dip',        'fuel', 'Create', 'Record dip-stick readings'),
+  ('fuel.run_reconciliation','fuel', 'Approve','Run fuel reconciliation and post adjustments'),
+  ('fuel.view_reports',      'fuel', 'View',   'Access detailed fuel reports')
 ON CONFLICT (code) DO NOTHING;
 
 -- Remove old prototype permission codes that no longer exist

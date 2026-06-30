@@ -166,14 +166,14 @@ function getAdminPage(page, can) {
 
 function getFuelPage(page, setPage, can) {
   switch (page) {
-    case 'fuel_dashboard': return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
-    case 'fuel_ledger':    return can('fuel.view')   ? <FuelLedger />                      : null
-    case 'fuel_receipts':  return can('fuel.create') ? <FuelReceipts />                    : null
-    case 'fuel_issues':    return can('fuel.create') ? <FuelIssues />                      : null
-    case 'fuel_dips':      return can('fuel.create') ? <DipReadings />                     : null
-    case 'fuel_reports':   return can('fuel.view')   ? <FuelReports />                     : null
-    case 'fuel_tanks':     return can('fuel.delete') ? <FuelTanks />                       : null
-    default:               return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
+    case 'fuel_dashboard': return can('fuel.view_dashboard')   ? <FuelDashboard setPage={setPage} /> : null
+    case 'fuel_ledger':    return can('fuel.view_dashboard')   ? <FuelLedger />                      : null
+    case 'fuel_receipts':  return can('fuel.receive_delivery') ? <FuelReceipts />                    : null
+    case 'fuel_issues':    return can('fuel.issue_fuel')       ? <FuelIssues />                      : null
+    case 'fuel_dips':      return can('fuel.record_dip')       ? <DipReadings />                     : null
+    case 'fuel_reports':   return can('fuel.view_reports')     ? <FuelReports />                     : null
+    case 'fuel_tanks':     return can('fuel.manage_tanks')     ? <FuelTanks />                       : null
+    default:               return can('fuel.view_dashboard')   ? <FuelDashboard setPage={setPage} /> : null
   }
 }
 

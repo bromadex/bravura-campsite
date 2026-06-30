@@ -20,7 +20,7 @@ export default function DipReadings() {
   const { currentSite } = useSite()
   const { tanks, dipReadings, tankBalance, addDipReading, loading } = useFuel()
 
-  const canCreate = can('fuel.dip.record')
+  const canCreate = can('fuel.record_dip')
 
   const [modal,    setModal]    = useState(false)
   const [form,     setForm]     = useState(BLANK_FORM)

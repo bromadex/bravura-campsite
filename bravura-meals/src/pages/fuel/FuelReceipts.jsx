@@ -25,8 +25,8 @@ export default function FuelReceipts() {
   const { currentSite } = useSite()
   const { tanks, receipts, addTransaction, loading } = useFuel()
 
-  const canDeliver = can('fuel.delivery.receive')
-  const canView    = can('fuel.view')
+  const canDeliver = can('fuel.receive_delivery')
+  const canView    = can('fuel.view_dashboard')
 
   const [modal,    setModal]    = useState(false)
   const [form,     setForm]     = useState(BLANK_FORM)

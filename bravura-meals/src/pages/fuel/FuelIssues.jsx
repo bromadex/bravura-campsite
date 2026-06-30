@@ -30,8 +30,8 @@ export default function FuelIssues() {
   const { currentSite } = useSite()
   const { tanks, issues, addTransaction, loading } = useFuel()
 
-  const canIssue = can('fuel.issue')
-  const canView  = can('fuel.view')
+  const canIssue = can('fuel.issue_fuel')
+  const canView  = can('fuel.view_dashboard')
 
   const [modal,    setModal]    = useState(false)
   const [form,     setForm]     = useState(BLANK_FORM)

@@ -110,7 +110,7 @@ export const moduleAccess = {
   // call works for every module; the three above simply ignore the extra arg.
   admin:     (role, can) => can ? can('users.view') : false,
   // Fuel Management — gated by fuel.view from the start.
-  fuel:      (role, can) => can ? can('fuel.view') : false,
+  fuel:      (role, can) => can ? can('fuel.view_dashboard') : false,
 }
 
 // ─── Per-module nav definitions ───────────────────────────────────────────────
@@ -170,10 +170,10 @@ export function fuelNav(role, can) {
   return [
     { id: 'fuel_dashboard', label: 'Dashboard',        section: 'Overview',     icon: 'dashboard' },
     { id: 'fuel_ledger',    label: 'Fuel Ledger',       section: 'Overview',     icon: 'receipt_long' },
-    { id: 'fuel_receipts',  label: 'Fuel Receipts',    section: 'Records',      icon: 'local_gas_station', show: can('fuel.create') },
-    { id: 'fuel_issues',    label: 'Fuel Issues',      section: 'Records',      icon: 'output',            show: can('fuel.create') },
-    { id: 'fuel_dips',      label: 'Dip Readings',     section: 'Records',      icon: 'straighten',        show: can('fuel.create') },
-    { id: 'fuel_reports',   label: 'Reports',          section: 'Reports',      icon: 'bar_chart' },
-    { id: 'fuel_tanks',     label: 'Tanks',            section: 'Admin',        icon: 'propane_tank',      show: can('fuel.delete') },
+    { id: 'fuel_receipts',  label: 'Fuel Receipts',    section: 'Records',      icon: 'local_gas_station', show: can('fuel.receive_delivery') },
+    { id: 'fuel_issues',    label: 'Fuel Issues',      section: 'Records',      icon: 'output',            show: can('fuel.issue_fuel') },
+    { id: 'fuel_dips',      label: 'Dip Readings',     section: 'Records',      icon: 'straighten',        show: can('fuel.record_dip') },
+    { id: 'fuel_reports',   label: 'Reports',          section: 'Reports',      icon: 'bar_chart',         show: can('fuel.view_reports') },
+    { id: 'fuel_tanks',     label: 'Tanks',            section: 'Admin',        icon: 'propane_tank',      show: can('fuel.manage_tanks') },
   ].filter(item => item.show !== false)
 }

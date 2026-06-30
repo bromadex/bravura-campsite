@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useSite } from './SiteContext'
+import SiteRequired from '../components/SiteRequired'
+import { MODULE_COLORS } from '../utils/permissions'
 
 const FuelContext = createContext(null)
 
@@ -16,6 +18,12 @@ export function FuelProvider({ children }) {
 
   const fetchAll = useCallback(async () => {
     if (!currentSiteId) { setLoading(false); return }
+    // Clear stale data from the previous site immediately so pages never
+    // show data belonging to a different site while the new fetch is in-flight.
+    setTanks([])
+    setReceipts([])
+    setIssues([])
+    setDipReadings([])
     setLoading(true)
     try {
       const [tRes, rRes, iRes, dRes, pRes] = await Promise.all([
@@ -130,7 +138,9 @@ export function FuelProvider({ children }) {
       addDipReading, deleteDipReading,
       refresh: fetchAll,
     }}>
-      {children}
+      <SiteRequired moduleColor={MODULE_COLORS.fuel}>
+        {children}
+      </SiteRequired>
     </FuelContext.Provider>
   )
 }

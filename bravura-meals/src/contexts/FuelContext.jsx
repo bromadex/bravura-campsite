@@ -132,6 +132,43 @@ export function FuelProvider({ children }) {
     return `${prefix}-${Date.now()}`
   }
 
+  // ── Fuel Types CRUD ───────────────────────────────────────────────────────────
+
+  async function addFuelType(data) {
+    const { data: row, error } = await supabase
+      .from('fuel_types')
+      .insert([data])
+      .select()
+      .single()
+    if (error) throw error
+    setFuelTypes(prev => [...prev, row].sort((a, b) => a.name.localeCompare(b.name)))
+    return row
+  }
+
+  async function updateFuelType(id, data) {
+    const { data: row, error } = await supabase
+      .from('fuel_types')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    setFuelTypes(prev => prev.map(ft => ft.id === id ? row : ft).filter(ft => ft.is_active))
+    return row
+  }
+
+  async function deactivateFuelType(id) {
+    const { data: row, error } = await supabase
+      .from('fuel_types')
+      .update({ is_active: false })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    setFuelTypes(prev => prev.filter(ft => ft.id !== id))
+    return row
+  }
+
   // ── Tanks CRUD ────────────────────────────────────────────────────────────────
 
   async function addTank(data) {
@@ -230,6 +267,8 @@ export function FuelProvider({ children }) {
       receipts, issues,
       // helpers
       tankBalance, latestDip, avgDailyConsumption,
+      // fuel type ops
+      addFuelType, updateFuelType, deactivateFuelType,
       // tank ops
       addTank, updateTank, archiveTank,
       // transaction ops (immutable — no update/delete)

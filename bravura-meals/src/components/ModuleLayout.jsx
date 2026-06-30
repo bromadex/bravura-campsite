@@ -49,6 +49,7 @@ const PAGE_TITLES = {
   fuel_dips:        'Dip Stick Readings',
   fuel_reports:     'Fuel Reports',
   fuel_tanks:       'Tanks',
+  fuel_types:       'Fuel Types',
 }
 
 export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navItems, page, setPage, onHome, children }) {

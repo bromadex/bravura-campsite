@@ -50,6 +50,8 @@ const PAGE_TITLES = {
   fuel_reports:     'Fuel Reports',
   fuel_tanks:       'Tanks',
   fuel_vehicles:    'Vehicles',
+  fuel_equipment:   'Equipment',
+  fuel_operators:   'Operators',
   fuel_types:       'Fuel Types',
 }
 

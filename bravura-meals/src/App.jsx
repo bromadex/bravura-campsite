@@ -55,6 +55,8 @@ const FuelReports   = lazy(() => import('./pages/fuel/FuelReports'))
 const FuelTypes     = lazy(() => import('./pages/fuel/FuelTypes'))
 const TankDetail    = lazy(() => import('./pages/fuel/TankDetail'))
 const Vehicles      = lazy(() => import('./pages/fuel/Vehicles'))
+const Equipment     = lazy(() => import('./pages/fuel/Equipment'))
+const Operators     = lazy(() => import('./pages/fuel/Operators'))
 
 const PageLoader = (
   <div style={{
@@ -178,6 +180,8 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks />                       : null
     case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                       : null
     case 'fuel_vehicles':  return can('fuel.view')   ? <Vehicles />                        : null
+    case 'fuel_equipment': return can('fuel.view')   ? <Equipment />                       : null
+    case 'fuel_operators': return can('fuel.view')   ? <Operators />                       : null
     default:               return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
   }
 }

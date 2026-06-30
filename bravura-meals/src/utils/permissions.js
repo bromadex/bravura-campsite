@@ -176,6 +176,8 @@ export function fuelNav(role, can) {
     { id: 'fuel_reports',   label: 'Reports',          section: 'Reports',      icon: 'bar_chart',         show: can('fuel.view') },
     { id: 'fuel_tanks',     label: 'Tanks',            section: 'Assets',       icon: 'propane_tank',      show: can('fuel.view') },
     { id: 'fuel_vehicles',  label: 'Vehicles',         section: 'Assets',       icon: 'directions_car',    show: can('fuel.view') },
+    { id: 'fuel_equipment', label: 'Equipment',        section: 'Assets',       icon: 'construction',      show: can('fuel.view') },
+    { id: 'fuel_operators', label: 'Operators',        section: 'Assets',       icon: 'badge',             show: can('fuel.view') },
     { id: 'fuel_types',     label: 'Fuel Types',       section: 'Admin',        icon: 'oil_barrel',        show: can('fuel.edit') },
   ].filter(item => item.show !== false)
 }

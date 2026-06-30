@@ -326,21 +326,21 @@ END$$;
 
 -- ── 12. Permissions ───────────────────────────────────────────────────────────
 
-INSERT INTO permissions (code, description) VALUES
-  ('fuel.view',               'View fuel dashboard, tank levels, and reports'),
-  ('fuel.tanks.edit',         'Add and edit fuel tanks'),
-  ('fuel.issue',              'Record fuel issuances (draw from tank)'),
-  ('fuel.delivery.receive',   'Record fuel deliveries (add to tank)'),
-  ('fuel.dip.record',         'Record dip-stick readings'),
-  ('fuel.reconciliation.run', 'Run fuel reconciliation and post adjustments'),
-  ('fuel.reports.view',       'Access detailed fuel reports')
+INSERT INTO permissions (code, module, action, description) VALUES
+  ('fuel.view',               'fuel', 'view',               'View fuel dashboard, tank levels, and reports'),
+  ('fuel.tanks.edit',         'fuel', 'tanks.edit',         'Add and edit fuel tanks'),
+  ('fuel.issue',              'fuel', 'issue',              'Record fuel issuances (draw from tank)'),
+  ('fuel.delivery.receive',   'fuel', 'delivery.receive',   'Record fuel deliveries (add to tank)'),
+  ('fuel.dip.record',         'fuel', 'dip.record',         'Record dip-stick readings'),
+  ('fuel.reconciliation.run', 'fuel', 'reconciliation.run', 'Run fuel reconciliation and post adjustments'),
+  ('fuel.reports.view',       'fuel', 'reports.view',       'Access detailed fuel reports')
 ON CONFLICT (code) DO NOTHING;
 
 -- Remove old prototype permission codes that no longer exist
 DELETE FROM permissions WHERE code IN ('fuel.create', 'fuel.delete', 'fuel.approve');
 
 -- Grant all fuel permissions to System Admin and Group Admin
-INSERT INTO role_permission_grants (role_id, permission_id)
+INSERT INTO role_permissions (role_id, permission_id)
   SELECT r.id, p.id
   FROM   roles r
   CROSS JOIN permissions p

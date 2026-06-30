@@ -81,6 +81,7 @@ export const MODULE_COLORS = {
   campsite:  '#2A9D8F',  // teal         – outdoors/camp
   meals:     '#982329',  // maroon       – food/dining, matches the real logo anchor colour
   admin:     '#5C6BC0',  // indigo       – system/administration, distinct from the 3 business modules
+  fuel:      '#D97706',  // amber        – petroleum/fuel association
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -108,6 +109,8 @@ export const moduleAccess = {
   // legacy role string. Signature is (role, can) so the same .access(role, can)
   // call works for every module; the three above simply ignore the extra arg.
   admin:     (role, can) => can ? can('users.view') : false,
+  // Fuel Management — gated by fuel.view from the start.
+  fuel:      (role, can) => can ? can('fuel.view') : false,
 }
 
 // ─── Per-module nav definitions ───────────────────────────────────────────────
@@ -161,4 +164,15 @@ export function adminNav(role) {
     { id: 'admin_users', label: 'Users & Roles', section: 'Administration', icon: 'manage_accounts' },
     { id: 'admin_audit',  label: 'Audit Log',     section: 'Administration', icon: 'history' },
   ]
+}
+
+export function fuelNav(role, can) {
+  return [
+    { id: 'fuel_dashboard', label: 'Dashboard',        section: 'Overview',     icon: 'dashboard' },
+    { id: 'fuel_receipts',  label: 'Fuel Receipts',    section: 'Records',      icon: 'local_gas_station', show: can('fuel.create') },
+    { id: 'fuel_issues',    label: 'Fuel Issues',      section: 'Records',      icon: 'output',            show: can('fuel.create') },
+    { id: 'fuel_dips',      label: 'Dip Readings',     section: 'Records',      icon: 'straighten',        show: can('fuel.create') },
+    { id: 'fuel_reports',   label: 'Reports',          section: 'Reports',      icon: 'bar_chart' },
+    { id: 'fuel_tanks',     label: 'Tanks',            section: 'Admin',        icon: 'propane_tank',      show: can('fuel.delete') },
+  ].filter(item => item.show !== false)
 }

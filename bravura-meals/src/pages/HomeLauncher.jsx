@@ -37,6 +37,14 @@ const ALL_MODULES = [
     color:    MODULE_COLORS.admin,
     access:   moduleAccess.admin,
   },
+  {
+    id:       'fuel',
+    label:    'Fuel Management',
+    sub:      'Receipts, issues & dip readings',
+    icon:     'local_gas_station',
+    color:    MODULE_COLORS.fuel,
+    access:   moduleAccess.fuel,
+  },
 ]
 
 export default function HomeLauncher({ onEnterModule }) {

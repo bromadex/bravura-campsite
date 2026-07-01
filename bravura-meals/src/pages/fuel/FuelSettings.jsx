@@ -8,13 +8,21 @@ import { supabase } from '../../supabaseClient'
 const FUEL_CLR = MODULE_COLORS.fuel
 
 const DEFAULTS = {
-  docket_prefix:           'FD-',
-  docket_padding:          4,
-  require_approval:        false,
-  alert_threshold_pct:     20,
-  default_price_per_litre: '',
-  allow_manual_litres:     true,
+  docket_prefix:                'FD-',
+  docket_padding:               4,
+  require_approval:             false,
+  alert_threshold_pct:          20,
+  default_price_per_litre:      '',
+  allow_manual_litres:          true,
+  fleet_integration_enabled:    false,
+  auto_create_requisition:      false,
 }
+
+const MAPPING_META = [
+  { type: 'fuel_stock',       label: 'Fuel Stock',       hint: 'Asset account debited when fuel is delivered' },
+  { type: 'fuel_expense',     label: 'Fuel Expense',     hint: 'Expense account debited when fuel is consumed at period close' },
+  { type: 'accounts_payable', label: 'Accounts Payable', hint: 'Liability account credited on delivery until supplier is paid' },
+]
 
 function FieldWrap({ label, hint, children }) {
   return (
@@ -69,32 +77,36 @@ export default function FuelSettings() {
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
   const [rowExists, setRowExists] = useState(false)
+  const [mappings, setMappings] = useState({ fuel_stock: { code: '', name: '' }, fuel_expense: { code: '', name: '' }, accounts_payable: { code: '', name: '' } })
 
   useEffect(() => {
     if (!currentSiteId) return
     setLoading(true)
-    supabase
-      .from('fuel_settings')
-      .select('*')
-      .eq('site_id', currentSiteId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setRowExists(true)
-          setCfg({
-            docket_prefix:           data.docket_prefix           ?? DEFAULTS.docket_prefix,
-            docket_padding:          data.docket_padding           ?? DEFAULTS.docket_padding,
-            require_approval:        data.require_approval         ?? DEFAULTS.require_approval,
-            alert_threshold_pct:     data.alert_threshold_pct      ?? DEFAULTS.alert_threshold_pct,
-            default_price_per_litre: data.default_price_per_litre  != null ? String(data.default_price_per_litre) : '',
-            allow_manual_litres:     data.allow_manual_litres      ?? DEFAULTS.allow_manual_litres,
-          })
-        } else {
-          setRowExists(false)
-          setCfg(DEFAULTS)
-        }
-        setLoading(false)
-      })
+    Promise.all([
+      supabase.from('fuel_settings').select('*').eq('site_id', currentSiteId).maybeSingle(),
+      supabase.from('fuel_finance_mapping').select('*').eq('site_id', currentSiteId),
+    ]).then(([{ data }, { data: maps }]) => {
+      if (data) {
+        setRowExists(true)
+        setCfg({
+          docket_prefix:             data.docket_prefix              ?? DEFAULTS.docket_prefix,
+          docket_padding:            data.docket_padding             ?? DEFAULTS.docket_padding,
+          require_approval:          data.require_approval           ?? DEFAULTS.require_approval,
+          alert_threshold_pct:       data.alert_threshold_pct        ?? DEFAULTS.alert_threshold_pct,
+          default_price_per_litre:   data.default_price_per_litre    != null ? String(data.default_price_per_litre) : '',
+          allow_manual_litres:       data.allow_manual_litres        ?? DEFAULTS.allow_manual_litres,
+          fleet_integration_enabled: data.fleet_integration_enabled  ?? DEFAULTS.fleet_integration_enabled,
+          auto_create_requisition:   data.auto_create_requisition    ?? DEFAULTS.auto_create_requisition,
+        })
+      } else {
+        setRowExists(false)
+        setCfg(DEFAULTS)
+      }
+      const seed = { fuel_stock: { code: '', name: '' }, fuel_expense: { code: '', name: '' }, accounts_payable: { code: '', name: '' } }
+      for (const m of (maps || [])) seed[m.mapping_type] = { code: m.account_code || '', name: m.account_name || '' }
+      setMappings(seed)
+      setLoading(false)
+    })
   }, [currentSiteId])
 
   if (!can('fuel.edit')) return (
@@ -111,18 +123,36 @@ export default function FuelSettings() {
     setSaving(true)
     try {
       const payload = {
-        site_id:                 currentSiteId,
-        docket_prefix:           cfg.docket_prefix.trim() || 'FD-',
-        docket_padding:          Math.max(1, Math.min(8, Number(cfg.docket_padding) || 4)),
-        require_approval:        Boolean(cfg.require_approval),
-        alert_threshold_pct:     Math.max(1, Math.min(99, Number(cfg.alert_threshold_pct) || 20)),
-        default_price_per_litre: cfg.default_price_per_litre ? Number(cfg.default_price_per_litre) : null,
-        allow_manual_litres:     Boolean(cfg.allow_manual_litres),
+        site_id:                   currentSiteId,
+        docket_prefix:             cfg.docket_prefix.trim() || 'FD-',
+        docket_padding:            Math.max(1, Math.min(8, Number(cfg.docket_padding) || 4)),
+        require_approval:          Boolean(cfg.require_approval),
+        alert_threshold_pct:       Math.max(1, Math.min(99, Number(cfg.alert_threshold_pct) || 20)),
+        default_price_per_litre:   cfg.default_price_per_litre ? Number(cfg.default_price_per_litre) : null,
+        allow_manual_litres:       Boolean(cfg.allow_manual_litres),
+        fleet_integration_enabled: Boolean(cfg.fleet_integration_enabled),
+        auto_create_requisition:   Boolean(cfg.auto_create_requisition),
       }
       const { error } = rowExists
         ? await supabase.from('fuel_settings').update(payload).eq('site_id', currentSiteId)
         : await supabase.from('fuel_settings').insert([payload])
       if (error) throw error
+
+      const mapRows = MAPPING_META
+        .filter(m => (mappings[m.type].code || '').trim())
+        .map(m => ({
+          site_id:      currentSiteId,
+          mapping_type: m.type,
+          account_code: mappings[m.type].code.trim(),
+          account_name: (mappings[m.type].name || '').trim() || null,
+        }))
+      if (mapRows.length) {
+        const { error: mapErr } = await supabase
+          .from('fuel_finance_mapping')
+          .upsert(mapRows, { onConflict: 'site_id,mapping_type' })
+        if (mapErr) throw mapErr
+      }
+
       setRowExists(true)
       showToast('Fuel settings saved', 'green')
     } catch (err) {
@@ -130,6 +160,10 @@ export default function FuelSettings() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function setMap(type, key, val) {
+    setMappings(prev => ({ ...prev, [type]: { ...prev[type], [key]: val } }))
   }
 
   const docketPreview = `${cfg.docket_prefix}${'1'.padStart(Number(cfg.docket_padding) || 4, '0')}`
@@ -249,6 +283,75 @@ export default function FuelSettings() {
                 </div>
                 <Toggle value={cfg.require_approval} onChange={v => set('require_approval', v)} />
               </div>
+            </div>
+          </section>
+
+          {/* Module Integrations */}
+          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '20px 24px', marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icon name="hub" size={15} style={{ color: THEME.info }} />
+              Module Integrations
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 500, color: THEME.text }}>Fleet Module Integration</div>
+                    <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: THEME.statusInfoBg, color: THEME.statusInfoText, letterSpacing: '.04em' }}>PENDING</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>
+                    When enabled, vehicle consumption reports will pull maintenance status from the Fleet module. Placeholder until Fleet is built.
+                  </div>
+                </div>
+                <Toggle value={cfg.fleet_integration_enabled} onChange={v => set('fleet_integration_enabled', v)} />
+              </div>
+
+              <div style={{ borderTop: `1px solid ${THEME.outlineVar}`, paddingTop: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 500, color: THEME.text }}>Auto-create Purchase Requisition</div>
+                  <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>
+                    When a tank falls below its alert threshold, automatically create a pending requisition for the Procurement module.
+                  </div>
+                </div>
+                <Toggle value={cfg.auto_create_requisition} onChange={v => set('auto_create_requisition', v)} />
+              </div>
+            </div>
+          </section>
+
+          {/* Finance Account Mapping */}
+          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '20px 24px', marginBottom: '24px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icon name="account_balance" size={15} style={{ color: THEME.info }} />
+              Finance Account Mapping
+            </div>
+            <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '18px' }}>
+              Chart-of-accounts codes used by the Finance Export page when generating journal entries.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {MAPPING_META.map(m => (
+                <div key={m.type}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.text, marginBottom: '4px' }}>{m.label}</div>
+                  <div style={{ fontSize: '11px', color: THEME.textLow, marginBottom: '6px' }}>{m.hint}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
+                    <input
+                      type="text"
+                      value={mappings[m.type].code}
+                      onChange={e => setMap(m.type, 'code', e.target.value)}
+                      placeholder="Account code"
+                      style={inp}
+                    />
+                    <input
+                      type="text"
+                      value={mappings[m.type].name}
+                      onChange={e => setMap(m.type, 'name', e.target.value)}
+                      placeholder="Account name (optional)"
+                      style={inp}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
 

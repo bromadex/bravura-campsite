@@ -74,6 +74,7 @@ const DeliveryReport           = lazy(() => import('./pages/fuel/reports/Deliver
 const VarianceReport           = lazy(() => import('./pages/fuel/reports/VarianceReport'))
 const VehicleConsumption       = lazy(() => import('./pages/fuel/VehicleConsumption'))
 const CostAllocation           = lazy(() => import('./pages/fuel/CostAllocation'))
+const FinanceExport            = lazy(() => import('./pages/fuel/FinanceExport'))
 
 const PageLoader = (
   <div style={{
@@ -205,6 +206,7 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_report_variance':   return can('fuel.view') ? <VarianceReport />                       : null
     case 'fuel_vehicle_consumption': return can('fuel.view') ? <VehicleConsumption />                 : null
     case 'fuel_cost_allocation':   return can('fuel.view') ? <CostAllocation />                       : null
+    case 'fuel_finance_export':    return can('fuel.edit') ? <FinanceExport />                        : null
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports />                     : null
     case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks />                       : null
     case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                          : null

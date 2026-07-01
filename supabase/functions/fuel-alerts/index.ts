@@ -7,6 +7,38 @@ const supabase = createClient(
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const APP_URL        = Deno.env.get('APP_URL') || 'https://app.bravura-campsite.com'
+const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
+const SERVICE_ROLE   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+// Invoke the procurement hook Edge Function so a low-tank alert can spawn
+// a purchase requisition when the site has auto_create_requisition enabled.
+async function invokeProcurementHook(tank: {
+  id: string
+  site_id: string
+  tank_name: string
+  current_level_litres: number
+  capacity_litres: number
+}) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/fuel-procurement-hook`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SERVICE_ROLE}`,
+      },
+      body: JSON.stringify({
+        site_id: tank.site_id,
+        tank_id: tank.id,
+        tank_name: tank.tank_name,
+        current_level_litres: tank.current_level_litres,
+        capacity_litres: tank.capacity_litres,
+      }),
+    })
+    if (!res.ok) console.error('procurement-hook non-2xx', res.status, await res.text())
+  } catch (e) {
+    console.error('procurement-hook invoke failed', (e as Error).message)
+  }
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -95,6 +127,16 @@ async function checkLowTanks() {
         await sendEmail(r.email, `[URGENT] ${title}`, `<p>${body}</p><p><a href="${APP_URL}/fuel/fuel_tanks">View Tanks</a></p>`)
       }
     }
+
+    // Fire the procurement hook — it internally checks the site's
+    // auto_create_requisition toggle and dedup window before creating a row.
+    await invokeProcurementHook({
+      id: tank.id,
+      site_id: tank.site_id,
+      tank_name: tank.tank_name,
+      current_level_litres: Number(tank.current_level_litres),
+      capacity_litres: Number(tank.capacity_litres),
+    })
   }
 }
 

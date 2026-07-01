@@ -189,6 +189,7 @@ export function fuelNav(role, can) {
     { id: 'fuel_report_variance',   label: 'Variance Report',     section: 'Reports', icon: 'compare_arrows',    show: can('fuel.view') },
     { id: 'fuel_vehicle_consumption', label: 'Vehicle Consumption', section: 'Analytics', icon: 'directions_car',  show: can('fuel.view') },
     { id: 'fuel_cost_allocation',    label: 'Cost Allocation',     section: 'Analytics', icon: 'account_balance', show: can('fuel.view') },
+    { id: 'fuel_finance_export',     label: 'Finance Export',      section: 'Analytics', icon: 'receipt_long',    show: can('fuel.edit') },
     { id: 'fuel_reports',       label: 'Legacy Reports',    section: 'Reports',  icon: 'analytics',      show: can('fuel.view')   },
     { id: 'fuel_tanks',        label: 'Tanks',              section: 'Assets',   icon: 'propane_tank',      show: can('fuel.view') },
     { id: 'fuel_types',        label: 'Fuel Types',         section: 'Admin',    icon: 'oil_barrel',        show: can('fuel.edit') },

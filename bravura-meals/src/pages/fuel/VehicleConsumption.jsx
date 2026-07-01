@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -83,6 +83,17 @@ export default function VehicleConsumption() {
   const [sortKey, setSortKey] = useState('totalLitres')
   const [sortDir, setSortDir] = useState(-1)
   const [view, setView]       = useState('table')
+  const [fleetIntegration, setFleetIntegration] = useState(false)
+
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase
+      .from('fuel_settings')
+      .select('fleet_integration_enabled')
+      .eq('site_id', currentSiteId)
+      .maybeSingle()
+      .then(({ data }) => setFleetIntegration(!!data?.fleet_integration_enabled))
+  }, [currentSiteId])
 
   const run = useCallback(async () => {
     setLoading(true)
@@ -259,11 +270,17 @@ export default function VehicleConsumption() {
                 <ThSort label="Expected L/km" k="expectedLpkm" />
                 <ThSort label="Ratio" k="ratio" />
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Status</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, whiteSpace: 'nowrap' }}>
+                  Maintenance
+                  {!fleetIntegration && (
+                    <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 700, color: THEME.textLow, letterSpacing: '.04em' }}>(FLEET)</span>
+                  )}
+                </th>
               </tr>
             </thead>
             <tbody>
               {sorted.length === 0 ? (
-                <tr><td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No vehicle issuances in this period.</td></tr>
+                <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No vehicle issuances in this period.</td></tr>
               ) : sorted.map(row => {
                 const flag = ratioFlag(row.ratio)
                 const isExpanded = expanded === row.vehicleId
@@ -298,10 +315,19 @@ export default function VehicleConsumption() {
                           </span>
                         ) : <span style={{ color: THEME.textLow, fontSize: '11px' }}>No data</span>}
                       </td>
+                      <td style={{ padding: '10px 14px', fontSize: '11px' }}>
+                        {fleetIntegration ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: THEME.textLow, fontStyle: 'italic' }}>
+                            <Icon name="sync" size={12} />awaiting Fleet data
+                          </span>
+                        ) : (
+                          <span style={{ color: THEME.textLow }}>N/A <span style={{ fontSize: '10px' }}>(Fleet module pending)</span></span>
+                        )}
+                      </td>
                     </tr>
                     {isExpanded && (
                       <tr key={row.vehicleId + '_exp'} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                        <td colSpan={9} style={{ padding: '0 0 0 40px', background: THEME.surfaceVar }}>
+                        <td colSpan={10} style={{ padding: '0 0 0 40px', background: THEME.surfaceVar }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                             <thead>
                               <tr style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>

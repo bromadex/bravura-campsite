@@ -10,8 +10,7 @@ function KPICard({ label, value, icon, color, sub }) {
     <div style={{
       background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
       borderRadius: '10px', padding: '20px',
-      borderTop: `4px solid ${color || THEME.primary}`,
-      boxShadow: '0 1px 3px rgba(0,0,0,.05)',
+      boxShadow: '0 1px 2px rgba(0,0,0,.03)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>

@@ -128,7 +128,7 @@ export default function WorkforceLeave() {
         {Object.entries(counts).map(([status, count]) => {
           const lc = STATUS_COLORS[status]
           return (
-            <div key={status} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${lc.c}` }}>
+            <div key={status} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
               <div style={{ fontSize: '32px', fontWeight: 300, color: lc.c }}>{count}</div>
               <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '4px' }}>{STATUS_LABELS[status]}</div>
             </div>

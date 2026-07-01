@@ -139,7 +139,6 @@ export default function Contractors() {
               <Card
                 key={co.id}
                 style={{
-                  borderTop: `4px solid ${color}`,
                   opacity: isInactive ? 0.6 : 1,
                   padding: '16px',
                 }}

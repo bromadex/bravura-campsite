@@ -62,7 +62,7 @@ export default function WorkforceReports() {
           { label: 'On Leave',         v: onLeave.length,     c: THEME.warning },
           { label: 'Contractors',      v: byContractor.length, c: THEME.info },
         ].map(s => (
-          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
+          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: '32px', fontWeight: 300, color: s.c }}>{s.v}</div>
             <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>{s.label}</div>
           </div>

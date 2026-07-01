@@ -67,7 +67,7 @@ export default function CampOccupancyReport() {
           { label: 'Total Residents', v: grandTotals.residents,   c: '#1558A6' },
           { label: 'Occupancy Rate',  v: `${overallPct}%`,        c: pctColor },
         ].map(s => (
-          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
+          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: '28px', fontWeight: 300, color: s.c }}>{s.v}</div>
             <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>{s.label}</div>
           </div>

@@ -56,7 +56,6 @@ export default function CampFloorplan() {
                   key={block.id}
                   style={{
                     cursor: hasGeometry ? 'pointer' : 'default',
-                    borderTop: `4px solid ${hasGeometry ? THEME.primary : THEME.outline}`,
                     transition: 'transform .15s, box-shadow .15s',
                     position: 'relative',
                   }}

@@ -64,7 +64,7 @@ export default function CampBlocks() {
             const maintRooms    = blockRooms.filter(r => r.status === 'maintenance').length
 
             return (
-              <Card key={block.id} style={{ borderTop: `4px solid ${THEME.primary}` }}>
+              <Card key={block.id}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <div>
                     <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>{block.name}</div>

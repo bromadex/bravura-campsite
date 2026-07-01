@@ -178,7 +178,7 @@ export default function CampSupplies() {
                 const bal = parseFloat(item.balance || 0)
                 const color = balanceColor(bal)
                 return (
-                  <Card key={item.id} style={{ borderTop: `4px solid ${color}` }}>
+                  <Card key={item.id}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                       <div>
                         <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text }}>{item.name}</div>

@@ -10,33 +10,44 @@ export const Icon = ({ name, size = 20, filled = false, style = {} }) => (
   </span>
 )
 
-// ── Stat Card — MD3 "filled card" style ──────────────────────────────────────
+// ── Stat Card — SAP Fiori-style KPI tile ─────────────────────────────────────
 export function StatCard({ label, value, sub, color, icon }) {
   const c = color || THEME.primary
   return (
     <div style={{
       background: THEME.surface,
       border: `1px solid ${THEME.outlineVar}`,
-      borderRadius: '16px',
-      padding: '16px',
-      display: 'flex', flexDirection: 'column', gap: '4px',
-      boxShadow: THEME.shadow1,
+      borderRadius: '10px',
+      padding: '14px 16px',
+      display: 'flex', flexDirection: 'column', gap: '6px',
+      boxShadow: '0 1px 2px rgba(0,0,0,.03)',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>
           {label}
         </div>
-        {icon && <Icon name={icon} size={18} style={{ color: c, opacity: .7 }} />}
+        {icon && (
+          <div style={{
+            width: '26px', height: '26px', borderRadius: '7px',
+            background: c + '14',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Icon name={icon} size={15} style={{ color: c }} />
+          </div>
+        )}
       </div>
-      <div style={{ fontSize: '32px', fontWeight: 400, color: c, lineHeight: 1.1, letterSpacing: '-.02em' }}>
+      <div style={{ fontSize: '28px', fontWeight: 600, color: THEME.text, lineHeight: 1.1, letterSpacing: '-.02em' }}>
         {value}
       </div>
-      {sub && <div style={{ fontSize: '11px', color: THEME.textLow }}>{sub}</div>}
+      {sub && <div style={{ fontSize: '11px', color: THEME.textLow, fontWeight: 500 }}>{sub}</div>}
     </div>
   )
 }
 
-// ── Card — MD3 outlined card ──────────────────────────────────────────────────
+// ── Card — SAP Fiori outlined surface ────────────────────────────────────────
 export function Card({ children, style = {}, elevated = false, onClick, onMouseEnter, onMouseLeave, ...rest }) {
   return (
     <div
@@ -46,9 +57,9 @@ export function Card({ children, style = {}, elevated = false, onClick, onMouseE
       style={{
         background: THEME.surface,
         border: `1px solid ${THEME.outlineVar}`,
-        borderRadius: '16px',
-        padding: '20px',
-        boxShadow: elevated ? THEME.shadow2 : THEME.shadow1,
+        borderRadius: '10px',
+        padding: '18px 20px',
+        boxShadow: elevated ? '0 4px 12px rgba(0,0,0,.06)' : '0 1px 2px rgba(0,0,0,.03)',
         ...style,
       }}
       {...rest}
@@ -58,23 +69,23 @@ export function Card({ children, style = {}, elevated = false, onClick, onMouseE
   )
 }
 
-// ── Button — MD3 filled / tonal / outlined ────────────────────────────────────
+// ── Button — SAP Fiori style: rectangular, tight radii ───────────────────────
 export function Button({ children, onClick, variant = 'filled', size = 'md', disabled = false, style = {}, icon }) {
   const variants = {
-    filled:   { background: THEME.primary,     color: '#fff',         border: 'none' },
-    tonal:    { background: THEME.surfaceVar,   color: THEME.primary,  border: 'none' },
-    outlined: { background: 'transparent',      color: THEME.primary,  border: `1px solid ${THEME.outline}` },
-    text:     { background: 'transparent',      color: THEME.primary,  border: 'none' },
-    danger:   { background: THEME.error,        color: '#fff',         border: 'none' },
-    success:  { background: THEME.success,      color: '#fff',         border: 'none' },
+    filled:   { background: THEME.primary,     color: '#fff',         border: `1px solid ${THEME.primary}` },
+    tonal:    { background: THEME.surfaceVar,   color: THEME.primary,  border: `1px solid ${THEME.outlineVar}` },
+    outlined: { background: THEME.surface,      color: THEME.primary,  border: `1px solid ${THEME.outline}` },
+    text:     { background: 'transparent',      color: THEME.primary,  border: '1px solid transparent' },
+    danger:   { background: THEME.error,        color: '#fff',         border: `1px solid ${THEME.error}` },
+    success:  { background: THEME.success,      color: '#fff',         border: `1px solid ${THEME.success}` },
     // legacy aliases
-    primary:  { background: THEME.primary,     color: '#fff',         border: 'none' },
+    primary:  { background: THEME.primary,     color: '#fff',         border: `1px solid ${THEME.primary}` },
     ghost:    { background: 'transparent',      color: THEME.textMed,  border: `1px solid ${THEME.outline}` },
   }
   const sizes = {
-    sm: { padding: '5px 14px', fontSize: '12px', borderRadius: '20px', height: '32px' },
-    md: { padding: '8px 20px', fontSize: '13px', borderRadius: '20px', height: '40px' },
-    lg: { padding: '10px 24px',fontSize: '14px', borderRadius: '20px', height: '48px' },
+    sm: { padding: '4px 12px', fontSize: '12px', borderRadius: '6px', height: '30px' },
+    md: { padding: '6px 16px', fontSize: '13px', borderRadius: '6px', height: '36px' },
+    lg: { padding: '8px 20px', fontSize: '14px', borderRadius: '8px', height: '42px' },
   }
   return (
     <button
@@ -94,17 +105,17 @@ export function Button({ children, onClick, variant = 'filled', size = 'md', dis
   )
 }
 
-// ── Chip — MD3 filter chip ────────────────────────────────────────────────────
+// ── Chip — Fiori-style filter chip ───────────────────────────────────────────
 export function Chip({ children, active, onClick, color }) {
   return (
     <button
       onClick={onClick}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: '4px',
-        padding: '5px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 500,
-        cursor: 'pointer', border: `1px solid ${active ? (color || THEME.primary) : THEME.outline}`,
+        padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 500,
+        cursor: 'pointer', border: `1px solid ${active ? (color || THEME.primary) : THEME.outlineVar}`,
         fontFamily: 'inherit', transition: 'all .15s',
-        background: active ? (color ? color + '18' : THEME.surfaceVar) : 'transparent',
+        background: active ? (color ? color + '14' : THEME.primary + '10') : THEME.surface,
         color: active ? (color || THEME.primary) : THEME.textMed,
       }}
     >
@@ -113,30 +124,37 @@ export function Chip({ children, active, onClick, color }) {
   )
 }
 
-// ── Modal — MD3 Dialog ────────────────────────────────────────────────────────
+// ── Modal — Fiori Dialog ─────────────────────────────────────────────────────
 export function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,.32)',
+        position: 'fixed', inset: 0, background: 'rgba(15,15,15,.42)',
         zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backdropFilter: 'blur(2px)',
       }}
     >
       <div style={{
-        background: THEME.surface, borderRadius: '28px', padding: '24px',
+        background: THEME.surface, borderRadius: '12px', padding: 0,
         maxWidth: '560px', width: '100%', margin: '16px',
-        boxShadow: THEME.shadow3,
+        boxShadow: '0 20px 48px rgba(0,0,0,.20), 0 4px 12px rgba(0,0,0,.10)',
+        border: `1px solid ${THEME.outlineVar}`,
+        overflow: 'hidden',
       }}>
-        <div style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, marginBottom: '20px', letterSpacing: '-.01em' }}>
+        <div style={{
+          padding: '16px 22px',
+          fontSize: '16px', fontWeight: 600, color: THEME.text, letterSpacing: '-.01em',
+          borderBottom: `1px solid ${THEME.outlineVar}`,
+        }}>
           {title}
         </div>
-        <div style={{ color: THEME.textMed }}>
+        <div style={{ color: THEME.textMed, padding: '20px 22px' }}>
           {children}
         </div>
         {footer && (
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '24px' }}>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', padding: '14px 22px', background: THEME.surfaceVar, borderTop: `1px solid ${THEME.outlineVar}` }}>
             {footer}
           </div>
         )}
@@ -152,24 +170,26 @@ export function ConfirmModal({ open, onClose, onConfirm, title, message, confirm
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,.32)',
+        position: 'fixed', inset: 0, background: 'rgba(15,15,15,.42)',
         zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backdropFilter: 'blur(2px)',
       }}
     >
       <div style={{
-        background: THEME.surface, borderRadius: '28px', padding: '28px 24px',
+        background: THEME.surface, borderRadius: '12px', padding: '24px',
         maxWidth: '380px', width: '100%', margin: '16px',
-        boxShadow: THEME.shadow3,
+        boxShadow: '0 20px 48px rgba(0,0,0,.20), 0 4px 12px rgba(0,0,0,.10)',
+        border: `1px solid ${THEME.outlineVar}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
           <div style={{
-            width: '40px', height: '40px', borderRadius: '50%',
+            width: '38px', height: '38px', borderRadius: '9px',
             background: danger ? THEME.statusErrorBg : THEME.surfaceVar,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Icon name={danger ? 'delete' : 'warning'} size={20} style={{ color: danger ? THEME.error : THEME.primary }} />
+            <Icon name={danger ? 'delete' : 'warning'} size={18} style={{ color: danger ? THEME.error : THEME.primary }} />
           </div>
-          <div style={{ fontSize: '20px', fontWeight: 500, color: THEME.text }}>{title}</div>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>{title}</div>
         </div>
         <div style={{ fontSize: '14px', color: THEME.textMed, lineHeight: 1.6, marginBottom: '24px' }}>
           {message}
@@ -211,10 +231,12 @@ export function StatusBadge({ status }) {
   const s = map[status] || { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: status }
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center',
-      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+      display: 'inline-flex', alignItems: 'center', gap: '5px',
+      padding: '2px 9px', borderRadius: '5px', fontSize: '11px', fontWeight: 600, letterSpacing: '.01em',
       background: s.bg, color: s.color,
+      border: `1px solid ${s.color}22`,
     }}>
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.color, flexShrink: 0 }} />
       {s.label}
     </span>
   )
@@ -232,7 +254,7 @@ export function SectionLabel({ children }) {
   )
 }
 
-// ── Text field — MD3 outlined ─────────────────────────────────────────────────
+// ── Text field — Fiori-style outlined ─────────────────────────────────────────
 export function TextField({ label, value, onChange, placeholder, type = 'text', autoFocus, onKeyDown, style = {} }) {
   return (
     <div style={{ marginBottom: '14px', ...style }}>
@@ -245,14 +267,15 @@ export function TextField({ label, value, onChange, placeholder, type = 'text', 
         autoFocus={autoFocus}
         onKeyDown={onKeyDown}
         style={{
-          width: '100%', padding: '10px 14px',
+          width: '100%', padding: '8px 12px',
           border: `1px solid ${THEME.outline}`,
-          borderRadius: '12px', fontSize: '14px', color: THEME.text,
+          borderRadius: '6px', fontSize: '13px', color: THEME.text,
           fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-          transition: 'border-color .15s, box-shadow .15s',
+          transition: 'border-color .12s, box-shadow .12s',
           background: THEME.surface,
+          height: '36px',
         }}
-        onFocus={e => { e.target.style.borderColor = THEME.primary; e.target.style.boxShadow = `0 0 0 2px ${THEME.primary}22` }}
+        onFocus={e => { e.target.style.borderColor = THEME.primary; e.target.style.boxShadow = `0 0 0 3px ${THEME.primary}1E` }}
         onBlur={e => { e.target.style.borderColor = THEME.outline; e.target.style.boxShadow = 'none' }}
       />
     </div>
@@ -267,18 +290,18 @@ export function SortTh({ label, sortKey, sortState, onSort, style = {} }) {
     <th
       onClick={() => onSort(sortKey)}
       style={{
-        padding: '12px 14px', textAlign: 'left', fontWeight: 500,
-        fontSize: '12px', letterSpacing: '.04em', textTransform: 'uppercase',
+        padding: '10px 14px', textAlign: 'left', fontWeight: 600,
+        fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase',
         cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
-        color: isActive ? THEME.primary : 'rgba(255,255,255,.85)',
-        transition: 'color .15s', ...style,
+        color: isActive ? THEME.primary : THEME.textMed,
+        transition: 'color .12s', ...style,
       }}
     >
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
         {label}
         <span className="material-symbols-rounded" style={{
           fontSize: '14px', lineHeight: 1,
-          color: isActive ? THEME.activeBar : 'rgba(255,255,255,.3)',
+          color: isActive ? THEME.primary : THEME.textLow,
           transform: isActive && dir === 'desc' ? 'rotate(180deg)' : 'rotate(0deg)',
           transition: 'transform .2s',
         }}>
@@ -348,17 +371,19 @@ export function PageHeader({ title, site, actions, children }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-      marginBottom: '20px', gap: '12px', flexWrap: 'wrap',
+      marginBottom: '18px', gap: '12px', flexWrap: 'wrap',
+      paddingBottom: '14px', borderBottom: `1px solid ${THEME.outlineVar}`,
     }}>
       <div>
-        <h2 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0 }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 600, color: THEME.text, margin: 0, letterSpacing: '-.01em', display: 'flex', alignItems: 'center', gap: '10px' }}>
           {title}
           {site && (
             <span style={{
-              marginLeft: '10px', display: 'inline-flex', alignItems: 'center',
-              gap: '4px', padding: '2px 10px', borderRadius: '20px',
-              fontSize: '12px', fontWeight: 600,
-              background: THEME.surfaceVar, color: THEME.primary, verticalAlign: 'middle',
+              display: 'inline-flex', alignItems: 'center',
+              gap: '4px', padding: '2px 8px', borderRadius: '5px',
+              fontSize: '11px', fontWeight: 600,
+              background: THEME.primary + '10', color: THEME.primary,
+              border: `1px solid ${THEME.primary}24`,
             }}>
               <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
               {typeof site === 'string' ? site : (site?.name || '—')}
@@ -384,30 +409,53 @@ export function PageHeader({ title, site, actions, children }) {
 // Td:        body data cell
 export function TableWrap({ children, style }) {
   return (
-    <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, ...style }}>
+    <div style={{
+      overflowX: 'auto', borderRadius: '10px',
+      border: `1px solid ${THEME.outlineVar}`, background: THEME.surface,
+      boxShadow: '0 1px 2px rgba(0,0,0,.03)',
+      ...style,
+    }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
         {children}
       </table>
     </div>
   )
 }
-export function THead({ children, color }) {
+export function THead({ children }) {
   return (
     <thead>
-      <tr style={{ background: color || THEME.primary, color: '#fff' }}>
+      <tr style={{
+        background: THEME.surfaceVar,
+        color: THEME.textMed,
+        borderBottom: `1px solid ${THEME.outlineVar}`,
+      }}>
         {children}
       </tr>
     </thead>
   )
 }
 export function Th({ children, align = 'left', style }) {
-  return <th style={{ padding: '11px 14px', textAlign: align, fontWeight: 500, fontSize: '12px', ...style }}>{children}</th>
+  return (
+    <th style={{
+      padding: '10px 14px', textAlign: align,
+      fontWeight: 600, fontSize: '11px',
+      textTransform: 'uppercase', letterSpacing: '.06em',
+      color: THEME.textMed, whiteSpace: 'nowrap',
+      ...style,
+    }}>{children}</th>
+  )
 }
 export function TRow({ children, onClick, last, style }) {
   const [hov, setHov] = useState(false)
   return (
     <tr
-      style={{ borderBottom: last ? 'none' : `1px solid ${THEME.outlineVar}`, background: hov ? THEME.surfaceVar : THEME.surface, cursor: onClick ? 'pointer' : undefined, ...style }}
+      style={{
+        borderBottom: last ? 'none' : `1px solid ${THEME.outlineVar}`,
+        background: hov ? THEME.primary + '06' : THEME.surface,
+        cursor: onClick ? 'pointer' : undefined,
+        transition: 'background .1s',
+        ...style,
+      }}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       onClick={onClick}
@@ -417,7 +465,7 @@ export function TRow({ children, onClick, last, style }) {
   )
 }
 export function Td({ children, align, style }) {
-  return <td style={{ padding: '11px 14px', textAlign: align, ...style }}>{children}</td>
+  return <td style={{ padding: '10px 14px', textAlign: align, color: THEME.text, ...style }}>{children}</td>
 }
 
 // need useState for useSortState

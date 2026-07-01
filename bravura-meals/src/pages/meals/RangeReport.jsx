@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { StatCard, Button, fmtDate, today, showToast, PageHeader } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { PrintHeader, ReportTable } from './reports/_shared'
 
 export default function RangeReport() {
@@ -23,6 +24,7 @@ export default function RangeReport() {
   }, [currentSiteId])
 
   useEffect(() => { if (currentSiteId) load() }, [start, end, employees, currentSiteId])
+  useAutoRefresh(() => { if (currentSiteId) load() })
 
   async function load() {
     if (!start || !end) return

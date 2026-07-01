@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 
 export default function Approvals() {
   const { profile } = useAuth()
@@ -22,6 +23,7 @@ export default function Approvals() {
   useEffect(() => {
     if (currentSiteId) fetchSubmissions()
   }, [currentSiteId])
+  useAutoRefresh(() => { if (currentSiteId) fetchSubmissions() })
 
   async function fetchSubmissions() {
     setLoading(true)

@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { StatCard, Button, MONTHS, showToast, PageHeader } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { PrintHeader, ReportTable } from './reports/_shared'
 
 export default function MonthlyReport() {
@@ -22,6 +23,7 @@ export default function MonthlyReport() {
   }, [currentSiteId])
 
   useEffect(() => { if (currentSiteId) load() }, [month, year, employees, currentSiteId])
+  useAutoRefresh(() => { if (currentSiteId) load() })
 
   async function load() {
     setLoading(true)

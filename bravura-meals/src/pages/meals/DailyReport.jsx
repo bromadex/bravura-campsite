@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { StatCard, Button, fmtDate, today, PageHeader } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { useSite } from '../../contexts/SiteContext'
 import { PrintHeader, ReportTable } from './reports/_shared'
 
@@ -26,6 +27,7 @@ export default function DailyReport() {
   }, [currentSiteId])
 
   useEffect(() => { if (currentSiteId) load() }, [date, employees, currentSiteId])
+  useAutoRefresh(() => { if (currentSiteId) load() })
 
   async function load() {
     setLoading(true)

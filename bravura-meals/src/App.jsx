@@ -10,6 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
+import InstallBanner from './components/InstallBanner'
 import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, feedbackNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
@@ -42,7 +43,6 @@ const Pricing        = lazy(() => import('./pages/meals/Pricing'))
 const MealProviders  = lazy(() => import('./pages/meals/MealProviders'))
 const Settings       = lazy(() => import('./pages/meals/Settings'))
 const MealForecasts  = lazy(() => import('./pages/meals/MealForecasts'))
-const WasteReport    = lazy(() => import('./pages/meals/WasteReport'))
 const MealFinanceExport = lazy(() => import('./pages/meals/MealFinanceExport'))
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
 const AuditLogViewer = lazy(() => import('./pages/admin/AuditLogViewer'))
@@ -149,7 +149,6 @@ function getMealsPage(page, role, setPage, can) {
   switch (page) {
     case 'meals_dashboard': return <Dashboard setPage={setPage} />
     case 'meals_forecasts':      return can('meals.create')  ? <MealForecasts />     : null
-    case 'meals_waste':          return can('meals.view')    ? <WasteReport />       : null
     case 'meals_finance_export': return can('meals.approve') ? <MealFinanceExport /> : null
     // meals.create: System Admin + Meal Officer — exact match to old MA list.
     case 'meals_entry':     return can('meals.create') ? <DailyEntry />     : null
@@ -410,13 +409,16 @@ function AppContent() {
   if (!user || !profile) return <LoginPage />
 
   return (
-    <Routes>
-      <Route path="/" element={<HomeLauncherPage />} />
-      <Route path="/fuel/tanks/:tankId" element={<FuelDetailShell page="fuel_tank_detail"><TankDetail /></FuelDetailShell>} />
-      <Route path="/:moduleId" element={<ModuleDefaultRedirect />} />
-      <Route path="/:moduleId/:pageId" element={<ModuleShell />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<HomeLauncherPage />} />
+        <Route path="/fuel/tanks/:tankId" element={<FuelDetailShell page="fuel_tank_detail"><TankDetail /></FuelDetailShell>} />
+        <Route path="/:moduleId" element={<ModuleDefaultRedirect />} />
+        <Route path="/:moduleId/:pageId" element={<ModuleShell />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <InstallBanner />
+    </>
   )
 }
 

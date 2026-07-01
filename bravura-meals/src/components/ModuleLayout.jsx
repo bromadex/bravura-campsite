@@ -79,8 +79,11 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const role = profile?.role
-  const [collapsed,  setCollapsed]  = useState(false)
-  const [flagCount,  setFlagCount]  = useState(0)
+  const [collapsed,      setCollapsed]      = useState(false)
+  const [flagCount,      setFlagCount]      = useState(0)
+  const [notifOpen,      setNotifOpen]      = useState(false)
+  const [notifications,  setNotifications]  = useState([])
+  const [unreadCount,    setUnreadCount]    = useState(0)
   const color = MODULE_COLORS[moduleId] || THEME.primary
 
   // Section grouping
@@ -90,6 +93,41 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
     if (item.section !== cur) { cur = item.section; sections.push({ section: item.section, items: [] }) }
     sections[sections.length - 1].items.push(item)
   })
+
+  // Load notifications for current user + site
+  useEffect(() => {
+    if (!profile?.id) return
+    function load() {
+      supabase
+        .from('notifications')
+        .select('*')
+        .eq('recipient_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+        .then(({ data }) => {
+          setNotifications(data || [])
+          setUnreadCount((data || []).filter(n => !n.is_read).length)
+        })
+    }
+    load()
+    // Poll every 60 seconds
+    const t = setInterval(load, 60_000)
+    return () => clearInterval(t)
+  }, [profile?.id])
+
+  function markRead(id) {
+    supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id)
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
+    setUnreadCount(prev => Math.max(0, prev - 1))
+  }
+
+  function markAllRead() {
+    const unread = notifications.filter(n => !n.is_read).map(n => n.id)
+    if (!unread.length) return
+    supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).in('id', unread)
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+    setUnreadCount(0)
+  }
 
   useEffect(() => {
     if (moduleId !== 'meals' || !can('meals.approve') || !currentSiteId) return
@@ -308,6 +346,19 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Notification bell */}
+            <button
+              onClick={() => setNotifOpen(o => !o)}
+              title="Notifications"
+              style={{ position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', color: THEME.textMed, borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name="notifications" size={22} />
+              {unreadCount > 0 && (
+                <span style={{ position: 'absolute', top: '4px', right: '4px', minWidth: '16px', height: '16px', borderRadius: '20px', background: THEME.error, color: '#fff', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
             <SiteSwitcher />
             <ThemeToggle size="sm" />
             <div style={{
@@ -338,6 +389,86 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
           {children}
         </div>
       </div>
+
+      {/* Notification drawer overlay */}
+      {notifOpen && (
+        <>
+          <div onClick={() => setNotifOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 200 }} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: '380px', zIndex: 201,
+            background: THEME.surface, borderLeft: `1px solid ${THEME.outlineVar}`,
+            display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 24px rgba(0,0,0,.15)',
+          }}>
+            {/* Drawer header */}
+            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Icon name="notifications" size={20} style={{ color }} />
+                <span style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Notifications</span>
+                {unreadCount > 0 && (
+                  <span style={{ background: THEME.error, color: '#fff', borderRadius: '20px', fontSize: '11px', fontWeight: 700, padding: '1px 7px' }}>{unreadCount}</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color, fontWeight: 600, fontFamily: 'inherit' }}>
+                    Mark all read
+                  </button>
+                )}
+                <button onClick={() => setNotifOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textMed, display: 'flex', alignItems: 'center' }}>
+                  <Icon name="close" size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Notification list */}
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {notifications.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: THEME.textLow }}>
+                  <Icon name="notifications_none" size={40} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+                  <div style={{ fontSize: '13px' }}>No notifications yet</div>
+                </div>
+              ) : (
+                notifications.map(n => {
+                  const typeColor = n.type === 'fuel_alert' ? THEME.error : n.type === 'fuel_warning' ? THEME.warning : THEME.textMed
+                  const typeIcon  = n.type === 'fuel_alert' ? 'warning' : n.type === 'fuel_warning' ? 'info' : 'notifications'
+                  const ts = new Date(n.created_at)
+                  const age = Date.now() - ts.getTime()
+                  const ageStr = age < 3600000 ? `${Math.floor(age / 60000)}m ago`
+                    : age < 86400000 ? `${Math.floor(age / 3600000)}h ago`
+                    : ts.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => { markRead(n.id); if (n.action_url) { /* external URL — dashboard is SPA, just close */ setNotifOpen(false) } }}
+                      style={{
+                        padding: '14px 20px', borderBottom: `1px solid ${THEME.outlineVar}`,
+                        cursor: n.action_url ? 'pointer' : 'default',
+                        background: n.is_read ? 'transparent' : typeColor + '08',
+                        display: 'flex', gap: '12px', alignItems: 'flex-start',
+                        transition: 'background .15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = THEME.surfaceVar }}
+                      onMouseLeave={e => { e.currentTarget.style.background = n.is_read ? 'transparent' : typeColor + '08' }}
+                    >
+                      <div style={{ width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0, background: typeColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon name={typeIcon} size={16} style={{ color: typeColor }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: n.is_read ? 500 : 700, color: THEME.text }}>{n.title}</span>
+                          <span style={{ fontSize: '11px', color: THEME.textLow, flexShrink: 0 }}>{ageStr}</span>
+                        </div>
+                        {n.body && <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '3px', lineHeight: 1.5 }}>{n.body}</div>}
+                        {!n.is_read && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: typeColor, marginTop: '6px' }} />}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

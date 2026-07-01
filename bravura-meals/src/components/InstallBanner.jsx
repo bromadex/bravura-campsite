@@ -2,34 +2,52 @@ import { useState, useEffect } from 'react'
 import { THEME } from '../utils/permissions'
 
 /**
- * Shows a dismissible "Install App" banner when the browser fires
- * the `beforeinstallprompt` event (Chrome / Edge / Android WebView).
- * On iOS the banner shows manual instructions instead, since iOS doesn't
- * support the prompt API.
+ * Install prompt banner. Reads a pre-buffered event from
+ * window.__deferredInstallPrompt (populated in index.html before React
+ * mounts, so Chrome's early beforeinstallprompt is never missed). Falls
+ * back to iOS "Add to Home Screen" instructions on Safari, where the
+ * prompt API doesn't exist.
  */
 export default function InstallBanner() {
-  const [prompt,    setPrompt]    = useState(null)
+  const [prompt,    setPrompt]    = useState(() =>
+    typeof window !== 'undefined' ? window.__deferredInstallPrompt : null
+  )
   const [showIOS,   setShowIOS]   = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
-    if (localStorage.getItem('pwa_install_dismissed')) return
-
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
     if (isStandalone) return
 
-    if (isIOS && !isStandalone) {
+    if (localStorage.getItem('pwa_install_dismissed')) return
+
+    if (isIOS) {
       setShowIOS(true)
       return
     }
 
-    function onBeforeInstall(e) {
+    // Late-arriving prompt: index.html buffers to __deferredInstallPrompt
+    // and fires bravura-install-ready. Also keep listening in case the
+    // browser fires beforeinstallprompt again after the SW activates.
+    function absorbBuffered() {
+      if (window.__deferredInstallPrompt) {
+        setPrompt(window.__deferredInstallPrompt)
+      }
+    }
+    function onDirect(e) {
       e.preventDefault()
       setPrompt(e)
     }
-    window.addEventListener('beforeinstallprompt', onBeforeInstall)
-    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+    absorbBuffered()
+    window.addEventListener('bravura-install-ready', absorbBuffered)
+    window.addEventListener('beforeinstallprompt', onDirect)
+    return () => {
+      window.removeEventListener('bravura-install-ready', absorbBuffered)
+      window.removeEventListener('beforeinstallprompt', onDirect)
+    }
   }, [])
 
   function dismiss() {
@@ -43,6 +61,7 @@ export default function InstallBanner() {
     if (!prompt) return
     prompt.prompt()
     const { outcome } = await prompt.userChoice
+    window.__deferredInstallPrompt = null
     if (outcome === 'accepted') dismiss()
     else setPrompt(null)
   }

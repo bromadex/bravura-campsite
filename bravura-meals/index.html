@@ -270,10 +270,24 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
+      // Capture the install prompt as early as possible — Chrome can fire
+      // beforeinstallprompt before React mounts, and if nothing catches it,
+      // the event is lost until the next page load.
+      window.__deferredInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__deferredInstallPrompt = e;
+        window.dispatchEvent(new CustomEvent('bravura-install-ready'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__deferredInstallPrompt = null;
+        try { localStorage.removeItem('pwa_install_dismissed'); } catch (e) {}
+      });
+
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {})
-        })
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
       }
     </script>
   </body>

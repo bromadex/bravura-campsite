@@ -406,7 +406,7 @@ function AppContent() {
   // straight back to where the person was, with no extra logic needed.
   // That's a direct, free benefit of routing properly instead of a
   // dead-end nobody could plan for before.
-  if (!user || !profile) return <LoginPage />
+  if (!user || !profile) return <><LoginPage /><InstallBanner /></>
 
   return (
     <>

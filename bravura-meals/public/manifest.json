@@ -8,17 +8,9 @@
   "background_color": "#982329",
   "theme_color": "#982329",
   "icons": [
-    {
-      "src": "/logo/favicon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/logo/bravura-icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/logo/favicon-192.png",       "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/logo/favicon-192.png",       "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/logo/bravura-icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/logo/bravura-icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

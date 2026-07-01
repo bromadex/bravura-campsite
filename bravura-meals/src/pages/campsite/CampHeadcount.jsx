@@ -109,7 +109,7 @@ function BlockMinimap({ block, rooms, assignments, onRoomHover, onRoomLeave }) {
         <svg
           viewBox={viewBox}
           width="100%"
-          style={{ display: 'block', maxHeight: '340px', background: THEME.bg }}
+          style={{ display: 'block', maxHeight: '460px', background: THEME.bg }}
         >
           {/* Building outer shell */}
           <rect x={0} y={0} width={boardW} height={boardH} fill="#FAFAFA" stroke="#37474F" strokeWidth={40} />
@@ -266,11 +266,11 @@ export default function CampHeadcount() {
         />
       </div>
 
-      {/* Block minimaps — Block 1 and Block 2 only */}
+      {/* Block minimaps — Block 1 and Block 2 stacked, each full-width */}
       {featuredBlocks.length > 0 && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: featuredBlocks.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+          gridTemplateColumns: '1fr',
           gap: '16px',
           marginBottom: '24px',
         }}>

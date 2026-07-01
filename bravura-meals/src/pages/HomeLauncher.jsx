@@ -75,15 +75,15 @@ export default function HomeLauncher({ onEnterModule }) {
 
       {/* ── Top Bar ── */}
       <div style={{
-        background: THEME.sidebar,
+        background: 'linear-gradient(90deg, #7A1B20 0%, #982329 55%, #7A1B20 100%)',
         padding: '0 24px',
         height: '64px',
         display: 'grid',
         gridTemplateColumns: '1fr minmax(320px, 520px) 1fr',
         alignItems: 'center',
         gap: '24px',
-        borderBottom: '1px solid rgba(255,255,255,.06)',
-        boxShadow: '0 1px 0 rgba(0,0,0,.15)',
+        borderBottom: '1px solid rgba(0,0,0,.18)',
+        boxShadow: '0 2px 8px rgba(120,20,25,.25)',
         flexShrink: 0,
       }}>
         {/* Left: Logo + wordmark */}
@@ -177,7 +177,7 @@ export default function HomeLauncher({ onEnterModule }) {
 
           {/* Sign out */}
           <button onClick={signOut} title="Sign out" style={{ ...iconBtn, marginLeft: '4px' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,.18)'; e.currentTarget.style.color = '#FCA5A5' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,.22)'; e.currentTarget.style.color = '#fff' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.82)' }}
           >
             <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>logout</span>

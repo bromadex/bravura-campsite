@@ -169,6 +169,7 @@ export function mealsNav(role, can) {
     { id: 'meals_monthly',   label: 'Monthly Report',    section: 'Reports', icon: 'bar_chart',   show: can('meals.view') },
     { id: 'meals_waste',     label: 'Waste Report',      section: 'Reports', icon: 'delete_sweep',show: can('meals.view') },
     { id: 'meals_billing',   label: 'Billing',           section: 'Reports', icon: 'receipt_long',show: can('meals.approve') },
+    { id: 'meals_finance_export', label: 'Finance Export', section: 'Reports', icon: 'account_balance', show: can('meals.approve') },
     { id: 'meals_providers', label: 'Meal Providers',    section: 'Admin',   icon: 'storefront',  show: can('meals.edit') },
     { id: 'meals_pricing',   label: 'Pricing Management',section: 'Admin',   icon: 'sell',        show: can('meals.edit') },
     { id: 'meals_settings',  label: 'Settings',          section: 'Admin',   icon: 'settings',    show: can('meals.delete') },

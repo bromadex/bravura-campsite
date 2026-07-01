@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
-import { Card, Button, showToast, PageHeader } from '../../components/ui'
+import { Card, Button, showToast, PageHeader, Icon } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
+import { useSite } from '../../contexts/SiteContext'
+
+const MEAL_MAPPING_META = [
+  { type: 'meal_expense',     label: 'Meal Expense',     hint: 'Expense account debited when meals are consumed and billed' },
+  { type: 'accounts_payable', label: 'Accounts Payable', hint: 'Liability account credited pending catering supplier payment' },
+]
 
 export default function Settings() {
+  const { currentSiteId } = useSite()
   const [cfg,     setCfg]     = useState({ company_name: '', site_name: '', supervisor_name: '', provider_name: '' })
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
+  const [mappings, setMappings] = useState({ meal_expense: { code: '', name: '' }, accounts_payable: { code: '', name: '' } })
 
   useEffect(() => {
     supabase.from('config').select('*').then(({ data }) => {
@@ -17,6 +25,19 @@ export default function Settings() {
     })
   }, [])
 
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase.from('meals_finance_mapping').select('*').eq('site_id', currentSiteId).then(({ data }) => {
+      const seed = { meal_expense: { code: '', name: '' }, accounts_payable: { code: '', name: '' } }
+      for (const m of (data || [])) seed[m.mapping_type] = { code: m.account_code || '', name: m.account_name || '' }
+      setMappings(seed)
+    })
+  }, [currentSiteId])
+
+  function setMap(type, key, val) {
+    setMappings(prev => ({ ...prev, [type]: { ...prev[type], [key]: val } }))
+  }
+
   async function saveSettings() {
     setSaving(true)
     try {
@@ -24,6 +45,22 @@ export default function Settings() {
       for (const u of updates) {
         const { error } = await supabase.from('config').upsert(u, { onConflict: 'key' })
         if (error) throw error
+      }
+      if (currentSiteId) {
+        const mapRows = MEAL_MAPPING_META
+          .filter(m => (mappings[m.type].code || '').trim())
+          .map(m => ({
+            site_id:      currentSiteId,
+            mapping_type: m.type,
+            account_code: mappings[m.type].code.trim(),
+            account_name: (mappings[m.type].name || '').trim() || null,
+          }))
+        if (mapRows.length) {
+          const { error: mapErr } = await supabase
+            .from('meals_finance_mapping')
+            .upsert(mapRows, { onConflict: 'site_id,mapping_type' })
+          if (mapErr) throw mapErr
+        }
       }
       showToast('Settings saved', 'green')
     } catch (err) {
@@ -66,35 +103,48 @@ export default function Settings() {
             </div>
           ))
         )}
-        <div style={{ marginTop: '4px' }}>
-          <Button onClick={saveSettings} variant="primary" disabled={saving}>
-            {saving ? 'Saving…' : '💾 Save settings'}
-          </Button>
-        </div>
       </Card>
 
-      <Card>
-        <div style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.06em', color: THEME.textMed, marginBottom: '12px' }}>
-          System Info
-        </div>
-        <div style={{ fontSize: '13px', color: THEME.textMed, lineHeight: 1.7 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #eee' }}>
-            <span>Version</span><strong>2.0.0</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #eee' }}>
-            <span>Database</span><strong>Supabase (PostgreSQL)</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #eee' }}>
-            <span>Hosting</span><strong>Vercel</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-            <span>Frontend</span><strong>React 19 + Vite</strong>
+      {/* Finance Account Mapping */}
+      <Card style={{ marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+          <Icon name="account_balance" size={15} style={{ color: THEME.info }} />
+          <div style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.06em', color: THEME.textMed }}>
+            Finance Account Mapping
           </div>
         </div>
-        <div style={{ marginTop: '14px', padding: '12px', background: THEME.surfaceVar, borderRadius: '8px', fontSize: '12px', color: THEME.textMed, lineHeight: 1.6 }}>
-          <strong>Data storage:</strong> All data is stored in Supabase cloud database with row-level security. Data is accessible from any device with internet access and an authorised account.
+        <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '16px' }}>
+          Chart-of-accounts codes used by the Meal Finance Export when generating journal entries.
         </div>
+        {MEAL_MAPPING_META.map(m => (
+          <div key={m.type} style={{ marginBottom: '14px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.text, marginBottom: '4px' }}>{m.label}</div>
+            <div style={{ fontSize: '11px', color: THEME.textLow, marginBottom: '6px' }}>{m.hint}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
+              <input
+                type="text"
+                value={mappings[m.type].code}
+                onChange={e => setMap(m.type, 'code', e.target.value)}
+                placeholder="Account code"
+                style={{ width: '100%', padding: '8px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit', height: '36px', boxSizing: 'border-box' }}
+              />
+              <input
+                type="text"
+                value={mappings[m.type].name}
+                onChange={e => setMap(m.type, 'name', e.target.value)}
+                placeholder="Account name (optional)"
+                style={{ width: '100%', padding: '8px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit', height: '36px', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+        ))}
       </Card>
+
+      <div>
+        <Button onClick={saveSettings} variant="primary" disabled={saving}>
+          {saving ? 'Saving…' : 'Save settings'}
+        </Button>
+      </div>
     </div>
   )
 }

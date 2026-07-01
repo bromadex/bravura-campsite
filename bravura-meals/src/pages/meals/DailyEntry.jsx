@@ -27,6 +27,7 @@ export default function DailyEntry() {
   const [saving,      setSaving]      = useState(false)
   const [search,      setSearch]      = useState('')
   const [coFilter,    setCoFilter]    = useState('all')
+  const [ineligible,  setIneligible]  = useState({})    // { on_leave: n, terminated: m, ... }
 
   // Sortable columns
   const [sortState, onSort] = useSortState('name', 'asc')
@@ -42,6 +43,19 @@ export default function DailyEntry() {
       .eq('site_id', currentSiteId)
       .order('name')
       .then(({ data }) => setEmployees(data || []))
+
+    // HR link — count non-active employees at this site so meal officer knows
+    // what's hidden. Uses head:true count query for speed.
+    supabase
+      .from('employees')
+      .select('status', { count: 'exact', head: false })
+      .eq('site_id', currentSiteId)
+      .neq('status', 'active')
+      .then(({ data }) => {
+        const buckets = {}
+        for (const r of (data || [])) buckets[r.status] = (buckets[r.status] || 0) + 1
+        setIneligible(buckets)
+      })
 
     supabase
       .from('contractors')
@@ -259,6 +273,27 @@ export default function DailyEntry() {
           </div>
         )}
       </PageHeader>
+
+      {/* ── HR eligibility banner — non-active staff are excluded from entry ── */}
+      {Object.keys(ineligible).length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '9px 14px', marginBottom: '14px',
+          borderRadius: '8px',
+          background: THEME.statusInfoBg,
+          border: `1px solid ${THEME.info}22`,
+          fontSize: '12px', color: THEME.statusInfoText,
+        }}>
+          <Icon name="badge" size={14} style={{ color: THEME.info, flexShrink: 0 }} />
+          <span>Only <b>active</b> HR employees appear here.</span>
+          {Object.entries(ineligible).map(([status, n]) => (
+            <span key={status} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '1px 7px', background: THEME.surface, borderRadius: '4px', color: THEME.textMed, fontWeight: 600 }}>
+              {n} {status.replace(/_/g, ' ')}
+            </span>
+          ))}
+          <span style={{ color: THEME.textLow }}>hidden</span>
+        </div>
+      )}
 
       {/* ── Stat cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>

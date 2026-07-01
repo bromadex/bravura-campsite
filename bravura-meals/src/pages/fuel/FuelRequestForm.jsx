@@ -159,7 +159,7 @@ function SuccessScreen({ requestNumber, priority, onAnother, setPage }) {
       {priority !== 'normal' && (
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '5px',
-          padding: '4px 12px', borderRadius: '20px', marginBottom: '6px',
+          padding: '4px 12px', borderRadius: '6px', marginBottom: '6px',
           background: priorityMeta.color + '18', border: `1px solid ${priorityMeta.color}44`,
           fontSize: '12px', fontWeight: 600, color: priorityMeta.color,
         }}>
@@ -333,7 +333,7 @@ export default function FuelRequestForm({ setPage }) {
           {/* Asset type toggle */}
           <div style={{
             background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-            borderRadius: '16px', padding: '20px 24px', marginBottom: '16px',
+            borderRadius: '10px', padding: '20px 24px', marginBottom: '16px',
           }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icon name="local_gas_station" size={15} style={{ color: FUEL_CLR }} />
@@ -409,7 +409,7 @@ export default function FuelRequestForm({ setPage }) {
           {/* Quantity & use */}
           <div style={{
             background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-            borderRadius: '16px', padding: '20px 24px', marginBottom: '16px',
+            borderRadius: '10px', padding: '20px 24px', marginBottom: '16px',
           }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icon name="water_drop" size={15} style={{ color: FUEL_CLR }} />
@@ -456,7 +456,7 @@ export default function FuelRequestForm({ setPage }) {
           {/* Priority */}
           <div style={{
             background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-            borderRadius: '16px', padding: '20px 24px', marginBottom: '24px',
+            borderRadius: '10px', padding: '20px 24px', marginBottom: '24px',
           }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icon name="priority_high" size={15} style={{ color: THEME.warning }} />
@@ -522,7 +522,7 @@ export default function FuelRequestForm({ setPage }) {
         <div style={{
           position: 'sticky', top: '24px',
           background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-          borderRadius: '16px', padding: '20px',
+          borderRadius: '10px', padding: '20px',
         }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '16px' }}>
             Request Summary

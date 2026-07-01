@@ -9,7 +9,7 @@ function KPICard({ label, value, icon, color, sub }) {
   return (
     <div style={{
       background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-      borderRadius: '16px', padding: '20px',
+      borderRadius: '10px', padding: '20px',
       borderTop: `4px solid ${color || THEME.primary}`,
       boxShadow: '0 1px 3px rgba(0,0,0,.05)',
     }}>
@@ -75,7 +75,7 @@ export default function CampHeadcount() {
       <PageHeader
         title="Headcount Dashboard"
         actions={
-          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.primary, fontFamily: 'inherit' }}>
+          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.primary, fontFamily: 'inherit' }}>
             <Icon name="print" size={16} style={{ color: THEME.primary }} /> Print
           </button>
         }

@@ -132,7 +132,7 @@ export default function FuelLedger() {
       {!tankId && (
         <div style={{
           textAlign: 'center', padding: '80px 24px',
-          background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`,
+          background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`,
           color: THEME.textLow,
         }}>
           <Icon name="receipt_long" size={44} style={{ display: 'block', margin: '0 auto 12px', color: THEME.outline }} />
@@ -169,7 +169,7 @@ export default function FuelLedger() {
       {/* Ledger table */}
       {tankId && (
         <div style={{
-          background: THEME.surface, borderRadius: '16px',
+          background: THEME.surface, borderRadius: '10px',
           border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden',
         }}>
           {rows.length === 0 ? (
@@ -203,7 +203,7 @@ export default function FuelLedger() {
                       <Td>
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: '5px',
-                          padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+                          padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
                           background: isReceipt ? THEME.statusSuccessBg : THEME.statusWarningBg,
                           color:      isReceipt ? THEME.statusSuccessText : THEME.statusWarningText,
                         }}>

@@ -29,7 +29,7 @@ export default function SiteSwitcher() {
         title="Switch site"
         style={{
           display: 'flex', alignItems: 'center', gap: '5px',
-          padding: '5px 12px', borderRadius: '20px', cursor: 'pointer',
+          padding: '5px 12px', borderRadius: '6px', cursor: 'pointer',
           background: open ? THEME.surfaceVar : THEME.surface,
           border: `1px solid ${THEME.outlineVar}`,
           fontSize: '12px', fontWeight: 600, color: THEME.primary,

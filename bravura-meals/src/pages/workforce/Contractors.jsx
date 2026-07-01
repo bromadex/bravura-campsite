@@ -111,7 +111,7 @@ export default function Contractors() {
     <div>
       {/* Header */}
       <PageHeader
-        title={<>Contractors <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{contractors.length}</span></>}
+        title={<>Contractors <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '6px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{contractors.length}</span></>}
         actions={<Button onClick={openAdd} variant="filled" icon="add">Add Contractor</Button>}
       >
         <div style={{ fontSize: '13px', color: THEME.textLow }}>Companies whose employees eat on site.</div>

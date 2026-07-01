@@ -39,7 +39,7 @@ export default function RoomTooltip({ room, activeAssignments, employees, mouseX
         <div style={{ fontSize: '15px', fontWeight: 700, color: THEME.text }}>Room {room.room_number}</div>
         <div style={{
           display: 'flex', alignItems: 'center', gap: '5px',
-          padding: '3px 9px', borderRadius: '20px',
+          padding: '3px 9px', borderRadius: '6px',
           background: colors.fill, color: colors.label, fontSize: '11px', fontWeight: 600,
         }}>
           <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: colors.dot }} />

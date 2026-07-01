@@ -213,7 +213,7 @@ function NewReconciliationForm({ tanks, currentSiteId, profileId, onSaved, onCan
   const fmt = (n, dec = 1) => n != null ? Number(n).toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—'
 
   return (
-    <div style={{ background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, boxShadow: THEME.shadow2, marginBottom: '24px' }}>
+    <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, boxShadow: THEME.shadow2, marginBottom: '24px' }}>
       <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>New Reconciliation</div>
@@ -352,7 +352,7 @@ function ReviewModal({ recon, profileId, onClose, onSaved }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: THEME.surface, borderRadius: '16px', width: '520px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', width: '520px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }}>
         <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Review Reconciliation</div>

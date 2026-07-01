@@ -423,7 +423,7 @@ function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommis
       onClick={onOpen}
       style={{
         background: THEME.surface, border: `1px solid ${isLow ? THEME.error + '55' : THEME.outlineVar}`,
-        borderRadius: '16px', padding: '16px', boxShadow: THEME.shadow1,
+        borderRadius: '10px', padding: '16px', boxShadow: THEME.shadow1,
         display: 'flex', flexDirection: 'column', gap: '12px',
         opacity: isDecom ? 0.6 : 1,
         cursor: 'pointer', transition: 'transform .12s, box-shadow .12s',
@@ -442,7 +442,7 @@ function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommis
           </div>
         </div>
         <span style={{
-          padding: '2px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: 600,
+          padding: '2px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 600,
           background: ftColor + '22', color: ftColor, border: `1px solid ${ftColor}44`,
           whiteSpace: 'nowrap',
         }}>
@@ -479,14 +479,14 @@ function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommis
         {isLow && !isDecom && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '4px',
-            padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+            padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
             background: THEME.statusErrorBg, color: THEME.statusErrorText,
           }}>
             <Icon name="warning" size={12} /> Low Fuel
           </span>
         )}
         <span style={{
-          padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+          padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
           background: THEME.surfaceVar, color: THEME.textMed, textTransform: 'capitalize',
         }}>
           {tank.tank_type?.replace('_', ' ')}
@@ -565,7 +565,7 @@ function TankTable({ tanks, tankBalance, canEdit, onOpen, onDecommission }) {
                 </Td>
                 <Td>
                   <span style={{
-                    padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                    padding: '2px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
                     background: ftColor + '22', color: ftColor, border: `1px solid ${ftColor}44`,
                   }}>
                     {ftName}
@@ -639,7 +639,7 @@ function StatusBadge({ status }) {
   const s = map[status] || map.decommissioned
   return (
     <span style={{
-      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+      padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
       background: s.bg, color: s.text,
     }}>
       {s.label}

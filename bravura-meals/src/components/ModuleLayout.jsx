@@ -332,7 +332,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
                   fontSize: '12px', fontWeight: 500, color, cursor: 'pointer',
-                  padding: '3px 10px', borderRadius: '20px', background: color + '14',
+                  padding: '3px 10px', borderRadius: '6px', background: color + '14',
                 }}
               >
                 <Icon name={moduleIcon} size={13} style={{ color }} />
@@ -354,7 +354,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
             >
               <Icon name="notifications" size={22} />
               {unreadCount > 0 && (
-                <span style={{ position: 'absolute', top: '4px', right: '4px', minWidth: '16px', height: '16px', borderRadius: '20px', background: THEME.error, color: '#fff', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
+                <span style={{ position: 'absolute', top: '4px', right: '4px', minWidth: '16px', height: '16px', borderRadius: '6px', background: THEME.error, color: '#fff', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -363,7 +363,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
             <ThemeToggle size="sm" />
             <div style={{
               display: 'flex', alignItems: 'center', gap: '5px',
-              padding: '5px 12px', borderRadius: '20px',
+              padding: '5px 12px', borderRadius: '6px',
               background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`,
               fontSize: '12px', fontWeight: 500, color: THEME.textMed,
             }}>
@@ -373,7 +373,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
             {flagCount > 0 && (
               <div onClick={() => setPage('meals_flags')} style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
-                padding: '5px 12px', borderRadius: '20px',
+                padding: '5px 12px', borderRadius: '6px',
                 background: THEME.statusErrorBg, border: `1px solid ${THEME.error}55`,
                 fontSize: '12px', fontWeight: 600, color: THEME.error, cursor: 'pointer',
               }}>
@@ -405,7 +405,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 <Icon name="notifications" size={20} style={{ color }} />
                 <span style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Notifications</span>
                 {unreadCount > 0 && (
-                  <span style={{ background: THEME.error, color: '#fff', borderRadius: '20px', fontSize: '11px', fontWeight: 700, padding: '1px 7px' }}>{unreadCount}</span>
+                  <span style={{ background: THEME.error, color: '#fff', borderRadius: '6px', fontSize: '11px', fontWeight: 700, padding: '1px 7px' }}>{unreadCount}</span>
                 )}
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

@@ -108,7 +108,7 @@ export default function CampFloorplan() {
       <div>
         <button onClick={() => setSelectedBlockId(null)} style={{
           display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 14px',
-          border: `1px solid ${THEME.outline}`, borderRadius: '20px', background: THEME.surface,
+          border: `1px solid ${THEME.outline}`, borderRadius: '6px', background: THEME.surface,
           cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.textMed,
           fontFamily: 'inherit', marginBottom: '20px',
         }}>
@@ -192,7 +192,7 @@ export default function CampFloorplan() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button onClick={() => { setSelectedBlockId(null); setSelectedRoom(null) }} style={{
               display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 14px',
-              border: `1px solid ${THEME.outline}`, borderRadius: '20px', background: THEME.surface,
+              border: `1px solid ${THEME.outline}`, borderRadius: '6px', background: THEME.surface,
               cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.textMed, fontFamily: 'inherit',
             }}>
               <Icon name="arrow_back" size={16} style={{ color: THEME.textMed }} /> All Blocks

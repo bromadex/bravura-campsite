@@ -266,14 +266,14 @@ export default function Operators() {
                       {op.licence_expiry ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                           {fmtDate(op.licence_expiry)}
-                          {ls === 'expired'  && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '20px', background: THEME.statusErrorBg, color: THEME.statusErrorText }}>EXPIRED</span>}
-                          {ls === 'expiring' && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '20px', background: THEME.statusWarningBg, color: THEME.statusWarningText }}>SOON</span>}
+                          {ls === 'expired'  && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '6px', background: THEME.statusErrorBg, color: THEME.statusErrorText }}>EXPIRED</span>}
+                          {ls === 'expiring' && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '6px', background: THEME.statusWarningBg, color: THEME.statusWarningText }}>SOON</span>}
                         </span>
                       ) : '—'}
                     </Td>
                     <Td>
                       <span style={{
-                        padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                        padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
                         background: op.is_active ? THEME.statusSuccessBg : THEME.statusNeutralBg,
                         color:      op.is_active ? THEME.statusSuccessText : THEME.statusNeutralText,
                       }}>

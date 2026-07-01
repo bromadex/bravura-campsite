@@ -29,7 +29,7 @@ function StatusBadge({ status }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
-      padding: '3px 10px', borderRadius: '20px',
+      padding: '3px 10px', borderRadius: '6px',
       background: m.bg, color: m.text,
       fontSize: '11px', fontWeight: 600,
     }}>
@@ -45,7 +45,7 @@ function PriorityBadge({ priority }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
-      padding: '2px 8px', borderRadius: '20px',
+      padding: '2px 8px', borderRadius: '6px',
       background: m.color + '18', color: m.color,
       fontSize: '11px', fontWeight: 600,
     }}>
@@ -68,7 +68,7 @@ function ApproveModal({ req, onConfirm, onClose, saving }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: THEME.surface, borderRadius: '20px', padding: '28px 32px',
+          background: THEME.surface, borderRadius: '6px', padding: '28px 32px',
           width: '480px', maxWidth: '95vw', boxShadow: '0 8px 40px rgba(0,0,0,.18)',
         }}
       >
@@ -161,7 +161,7 @@ function RejectModal({ req, onConfirm, onClose, saving }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: THEME.surface, borderRadius: '20px', padding: '28px 32px',
+          background: THEME.surface, borderRadius: '6px', padding: '28px 32px',
           width: '440px', maxWidth: '95vw', boxShadow: '0 8px 40px rgba(0,0,0,.18)',
         }}
       >
@@ -546,7 +546,7 @@ export default function FuelRequests({ setPage }) {
           <div style={{ fontSize: '14px' }}>No requests found</div>
         </div>
       ) : (
-        <div style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', overflow: 'hidden' }}>
+        <div style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>

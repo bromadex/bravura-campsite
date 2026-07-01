@@ -19,7 +19,7 @@ function TypeBadge({ type }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
-      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+      padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
       background: m.bg, color: m.text,
     }}>
       <Icon name={m.icon} size={11} style={{ color: 'inherit' }} />
@@ -225,7 +225,7 @@ export default function FuelTransactions({ setPage }) {
                 onClick={() => exportCsv(filtered, tanks, operators)}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 500,
+                  padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500,
                   background: THEME.surfaceVar, color: FUEL_CLR, border: 'none', cursor: 'pointer',
                 }}
               >
@@ -237,7 +237,7 @@ export default function FuelTransactions({ setPage }) {
                 onClick={() => setPage('fuel_issuance')}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 500,
+                  padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500,
                   background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer',
                 }}
               >
@@ -338,7 +338,7 @@ export default function FuelTransactions({ setPage }) {
       )}
 
       {/* Table */}
-      <div style={{ background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden' }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', color: THEME.textLow }}>
             <Icon name="receipt_long" size={40} style={{ display: 'block', margin: '0 auto 12px', color: THEME.outline }} />

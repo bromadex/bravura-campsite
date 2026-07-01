@@ -16,7 +16,7 @@ function StatCard({ label, value, sub, icon, color, onClick }) {
       onClick={onClick}
       style={{
         background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-        borderRadius: '16px', padding: '18px 20px', boxShadow: THEME.shadow1,
+        borderRadius: '10px', padding: '18px 20px', boxShadow: THEME.shadow1,
         display: 'flex', flexDirection: 'column', gap: '4px',
         cursor: onClick ? 'pointer' : 'default',
       }}
@@ -72,7 +72,7 @@ function TankCard({ tank, balance, dip, daysRemaining }) {
     <div style={{
       background: THEME.surface,
       border: `1.5px solid ${isLow ? THEME.error + '55' : THEME.outlineVar}`,
-      borderRadius: '16px', padding: '18px', boxShadow: THEME.shadow1,
+      borderRadius: '10px', padding: '18px', boxShadow: THEME.shadow1,
       position: 'relative', overflow: 'hidden',
     }}>
       {isLow && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: THEME.error }} />}
@@ -84,11 +84,11 @@ function TankCard({ tank, balance, dip, daysRemaining }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
           {daysRemaining !== null && (
-            <span style={{ padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: daysColor + '18', color: daysColor }}>
+            <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: daysColor + '18', color: daysColor }}>
               ~{daysRemaining}d
             </span>
           )}
-          <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: FUEL_CLR + '18', color: FUEL_CLR }}>
+          <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: FUEL_CLR + '18', color: FUEL_CLR }}>
             {tank.fuel_types?.name || 'Diesel'}
           </span>
         </div>
@@ -433,7 +433,7 @@ export default function FuelDashboard({ setPage }) {
                 return (
                   <span key={t.id} style={{
                     display: 'inline-flex', alignItems: 'center', gap: '5px',
-                    padding: '3px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+                    padding: '3px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
                     background: THEME.error + '18', color: THEME.statusErrorText,
                     border: `1px solid ${THEME.error}33`,
                   }}>
@@ -459,12 +459,12 @@ export default function FuelDashboard({ setPage }) {
         actions={
           <div style={{ display: 'flex', gap: '8px' }}>
             {can('fuel.create') && (
-              <button onClick={() => setPage('fuel_receipts')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 500, background: THEME.surfaceVar, color: FUEL_CLR, border: 'none', cursor: 'pointer' }}>
+              <button onClick={() => setPage('fuel_receipts')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: THEME.surfaceVar, color: FUEL_CLR, border: 'none', cursor: 'pointer' }}>
                 <Icon name="local_gas_station" size={16} style={{ color: FUEL_CLR }} /> Record Delivery
               </button>
             )}
             {can('fuel.create') && (
-              <button onClick={() => setPage('fuel_issuance')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '20px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer' }}>
+              <button onClick={() => setPage('fuel_issuance')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer' }}>
                 <Icon name="output" size={16} style={{ color: '#fff' }} /> Issue Fuel
               </button>
             )}
@@ -522,7 +522,7 @@ export default function FuelDashboard({ setPage }) {
       </div>
 
       {/* 7-day bar chart */}
-      <div style={{ background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px', marginBottom: '24px', boxShadow: THEME.shadow1 }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px', marginBottom: '24px', boxShadow: THEME.shadow1 }}>
         <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '12px' }}>
           Daily Issuance — Last 7 Days (L)
         </div>
@@ -546,7 +546,7 @@ export default function FuelDashboard({ setPage }) {
             <Icon name={l.icon} size={18} style={{ color: FUEL_CLR }} />
             <span style={{ fontSize: '13px', fontWeight: 500, color: THEME.text, flex: 1, textAlign: 'left' }}>{l.label}</span>
             {l.badge && (
-              <span style={{ background: THEME.warning, color: '#fff', borderRadius: '20px', fontSize: '11px', fontWeight: 700, padding: '1px 7px' }}>{l.badge}</span>
+              <span style={{ background: THEME.warning, color: '#fff', borderRadius: '6px', fontSize: '11px', fontWeight: 700, padding: '1px 7px' }}>{l.badge}</span>
             )}
             <Icon name="chevron_right" size={16} style={{ color: THEME.textLow }} />
           </button>
@@ -555,7 +555,7 @@ export default function FuelDashboard({ setPage }) {
 
       {/* Anomalies */}
       {anomalies.length > 0 && (
-        <div style={{ background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px', marginBottom: '24px', boxShadow: THEME.shadow1 }}>
+        <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px', marginBottom: '24px', boxShadow: THEME.shadow1 }}>
           <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Icon name="warning" size={15} style={{ color: THEME.warning }} />
             Anomaly Alerts ({anomalies.length})
@@ -588,11 +588,11 @@ export default function FuelDashboard({ setPage }) {
 
       {/* Tank level overview */}
       {activeTanks.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 24px', background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, marginBottom: '24px' }}>
+        <div style={{ textAlign: 'center', padding: '60px 24px', background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, marginBottom: '24px' }}>
           <Icon name="propane_tank" size={48} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
           <p style={{ color: THEME.textLow, fontSize: '14px', margin: '0 0 16px' }}>No tanks configured yet.</p>
           {can('fuel.edit') && (
-            <button onClick={() => setPage('fuel_tanks')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 20px', borderRadius: '20px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button onClick={() => setPage('fuel_tanks')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 20px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer' }}>
               <Icon name="add" size={16} style={{ color: '#fff' }} /> Add First Tank
             </button>
           )}
@@ -633,7 +633,7 @@ export default function FuelDashboard({ setPage }) {
       )}
 
       {/* Recent transactions */}
-      <div style={{ background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px' }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em' }}>
             Recent Transactions

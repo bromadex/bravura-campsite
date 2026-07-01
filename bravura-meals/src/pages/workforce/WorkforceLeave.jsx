@@ -128,7 +128,7 @@ export default function WorkforceLeave() {
         {Object.entries(counts).map(([status, count]) => {
           const lc = STATUS_COLORS[status]
           return (
-            <div key={status} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${lc.c}` }}>
+            <div key={status} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${lc.c}` }}>
               <div style={{ fontSize: '32px', fontWeight: 300, color: lc.c }}>{count}</div>
               <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '4px' }}>{STATUS_LABELS[status]}</div>
             </div>
@@ -181,7 +181,7 @@ export default function WorkforceLeave() {
                     <Td style={{ fontWeight: 500 }}>{emp.name}</Td>
                     <Td style={{ color: THEME.textMed }}>{emp.contractor?.name || '—'}</Td>
                     <Td>
-                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: lc.bg, color: lc.c }}>
+                      <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: lc.bg, color: lc.c }}>
                         {STATUS_LABELS[emp.status]}
                       </span>
                     </Td>

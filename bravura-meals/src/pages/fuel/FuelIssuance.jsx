@@ -240,7 +240,7 @@ function SuccessScreen({ result, onIssueAnother, onViewLedger, siteName, tankNam
         {litres} L successfully recorded
       </div>
       <div style={{
-        background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`,
+        background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`,
         padding: '20px 24px', marginBottom: '28px', textAlign: 'left',
       }}>
         {[
@@ -257,7 +257,7 @@ function SuccessScreen({ result, onIssueAnother, onViewLedger, siteName, tankNam
       </div>
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
         <button onClick={() => window.print()} style={{
-          padding: '10px 24px', borderRadius: '20px', border: `1px solid ${THEME.outline}`,
+          padding: '10px 24px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,
           background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
           display: 'flex', alignItems: 'center', gap: '6px',
         }}>
@@ -265,11 +265,11 @@ function SuccessScreen({ result, onIssueAnother, onViewLedger, siteName, tankNam
           Print Docket
         </button>
         <button onClick={onViewLedger} style={{
-          padding: '10px 24px', borderRadius: '20px', border: `1px solid ${THEME.outline}`,
+          padding: '10px 24px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,
           background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
         }}>View Ledger</button>
         <button onClick={onIssueAnother} style={{
-          padding: '10px 24px', borderRadius: '20px', border: 'none',
+          padding: '10px 24px', borderRadius: '6px', border: 'none',
           background: FUEL_CLR, color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
           display: 'flex', alignItems: 'center', gap: '6px',
         }}>
@@ -846,7 +846,7 @@ export default function FuelIssuance({ setPage }) {
       <div style={{ position: 'sticky', top: '24px' }}>
         <div style={{
           background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-          borderRadius: '16px', padding: '20px', boxShadow: THEME.shadow1,
+          borderRadius: '10px', padding: '20px', boxShadow: THEME.shadow1,
         }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '16px' }}>
             Summary

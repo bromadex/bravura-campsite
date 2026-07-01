@@ -52,7 +52,7 @@ export default class ErrorBoundary extends Component {
         <button
           onClick={() => isPage ? this.setState({ error: null }) : window.location.reload()}
           style={{
-            marginTop: '20px', padding: '9px 20px', borderRadius: '20px', border: 'none',
+            marginTop: '20px', padding: '9px 20px', borderRadius: '6px', border: 'none',
             background: THEME.primary, color: '#fff', fontSize: '13px', fontWeight: 600,
             cursor: 'pointer',
           }}

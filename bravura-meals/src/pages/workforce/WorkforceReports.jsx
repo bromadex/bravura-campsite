@@ -62,7 +62,7 @@ export default function WorkforceReports() {
           { label: 'On Leave',         v: onLeave.length,     c: THEME.warning },
           { label: 'Contractors',      v: byContractor.length, c: THEME.info },
         ].map(s => (
-          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
+          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
             <div style={{ fontSize: '32px', fontWeight: 300, color: s.c }}>{s.v}</div>
             <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>{s.label}</div>
           </div>
@@ -136,10 +136,10 @@ export default function WorkforceReports() {
                     <Td style={{ fontWeight: 500 }}>{emp.name}</Td>
                     <Td style={{ color: THEME.textMed }}>{emp.contractor?.name || '—'}</Td>
                     <Td>
-                      <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: sc.bg, color: sc.c }}>{emp.status}</span>
+                      <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: sc.bg, color: sc.c }}>{emp.status}</span>
                     </Td>
                     <Td>
-                      <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: lc.bg, color: lc.c }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: lc.bg, color: lc.c }}>
                         {{ active: 'Active', on_leave: 'On Leave', long_leave: 'Long Leave', temporary_assignment: 'Temporary Assignment', transferred: 'Transferred', terminated: 'Terminated' }[emp.status] || emp.status}
                       </span>
                     </Td>

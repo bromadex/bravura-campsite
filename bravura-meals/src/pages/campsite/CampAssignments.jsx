@@ -184,7 +184,7 @@ export default function CampAssignments() {
                     <Td style={{ color: THEME.textMed }}>{fmtDate(a.assigned_date)}</Td>
                     <Td style={{ color: THEME.textMed }}>{a.released_date ? fmtDate(a.released_date) : '—'}</Td>
                     <Td>
-                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: s.bg, color: s.c }}>{s.l}</span>
+                      <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: s.bg, color: s.c }}>{s.l}</span>
                     </Td>
                     {tab === 'Active' && (
                       <Td>
@@ -224,7 +224,7 @@ export default function CampAssignments() {
                     <Td style={{ fontWeight: 500 }}>{emp.name}</Td>
                     <Td style={{ color: THEME.textMed }}>{emp.contractor?.name || '—'}</Td>
                     <Td>
-                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: typeColor.bg, color: typeColor.c }}>
+                      <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: typeColor.bg, color: typeColor.c }}>
                         {leaveLabel[emp.status]}
                       </span>
                     </Td>

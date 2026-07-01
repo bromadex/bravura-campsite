@@ -134,7 +134,7 @@ export default function AuditLogViewer() {
                   </Td>
                   <Td style={{ fontWeight: 500 }}>{TABLE_LABELS[entry.table_name] || entry.table_name}</Td>
                   <Td>
-                    <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: ac.bg, color: ac.c }}>
+                    <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: ac.bg, color: ac.c }}>
                       {entry.action}
                     </span>
                   </Td>

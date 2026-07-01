@@ -51,7 +51,7 @@ export default function CampOccupancyReport() {
       <PageHeader
         title="Occupancy Reports"
         actions={
-          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: MODULE_COLORS.campsite, fontFamily: 'inherit' }}>
+          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: MODULE_COLORS.campsite, fontFamily: 'inherit' }}>
             <Icon name="print" size={16} style={{ color: MODULE_COLORS.campsite }} /> Print
           </button>
         }
@@ -67,7 +67,7 @@ export default function CampOccupancyReport() {
           { label: 'Total Residents', v: grandTotals.residents,   c: '#1558A6' },
           { label: 'Occupancy Rate',  v: `${overallPct}%`,        c: pctColor },
         ].map(s => (
-          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
+          <div key={s.label} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '16px', textAlign: 'center', borderTop: `4px solid ${s.c}` }}>
             <div style={{ fontSize: '28px', fontWeight: 300, color: s.c }}>{s.v}</div>
             <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>{s.label}</div>
           </div>

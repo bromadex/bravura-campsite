@@ -104,7 +104,7 @@ export default function UserManagement() {
 
   return (
     <div>
-      <PageHeader title={<>Users & Roles <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{profiles.length}</span></>} />
+      <PageHeader title={<>Users & Roles <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '6px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{profiles.length}</span></>} />
 
       {/* Note on creating brand-new accounts */}
       <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: '10px', background: THEME.statusTertiaryBg }}>
@@ -155,7 +155,7 @@ export default function UserManagement() {
                         {assignments.map(ur => (
                           <span key={ur.id} style={{
                             display: 'inline-flex', alignItems: 'center', gap: '5px',
-                            padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                            padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
                             background: THEME.surfaceVar, color: THEME.primary,
                           }}>
                             {ur.role?.name || '—'}

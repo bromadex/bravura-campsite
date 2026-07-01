@@ -137,12 +137,12 @@ export default function Dashboard({ setPage }) {
 
       {/* Site + provider context */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary }}>
           <Icon name="location_on" size={12} style={{ color: THEME.primary }} />
           {currentSite?.name || '—'}
         </span>
         {providers.length > 0 && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: THEME.statusWarningBg, color: THEME.statusWarningText }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: THEME.statusWarningBg, color: THEME.statusWarningText }}>
             <Icon name="restaurant" size={12} style={{ color: THEME.statusWarningText }} />
             Catered by {providers.map(p => p.name).join(', ')}
           </span>
@@ -155,7 +155,7 @@ export default function Dashboard({ setPage }) {
           onClick={() => setPage('meals_flags')}
           style={{
             display: 'flex', alignItems: 'center', gap: '14px',
-            padding: '14px 18px', borderRadius: '16px',
+            padding: '14px 18px', borderRadius: '10px',
             background: THEME.statusErrorBg, border: `1px solid ${THEME.statusErrorText}33`, cursor: 'pointer',
           }}
         >

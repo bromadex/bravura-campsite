@@ -151,7 +151,7 @@ export default function HomeLauncher({ onEnterModule }) {
           >
             <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>notifications</span>
             {unreadCount > 0 && (
-              <span style={{ position: 'absolute', top: '5px', right: '5px', minWidth: '16px', height: '16px', borderRadius: '20px', background: '#EF4444', color: '#fff', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', lineHeight: 1, border: `2px solid ${THEME.sidebar}` }}>
+              <span style={{ position: 'absolute', top: '5px', right: '5px', minWidth: '16px', height: '16px', borderRadius: '6px', background: '#EF4444', color: '#fff', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', lineHeight: 1, border: `2px solid ${THEME.sidebar}` }}>
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -226,7 +226,7 @@ export default function HomeLauncher({ onEnterModule }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="material-symbols-rounded" style={{ fontSize: '20px', color: THEME.text }}>notifications</span>
                 <span style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Notifications</span>
-                {unreadCount > 0 && <span style={{ background: '#EF4444', color: '#fff', borderRadius: '20px', fontSize: '11px', fontWeight: 700, padding: '1px 7px' }}>{unreadCount}</span>}
+                {unreadCount > 0 && <span style={{ background: '#EF4444', color: '#fff', borderRadius: '6px', fontSize: '11px', fontWeight: 700, padding: '1px 7px' }}>{unreadCount}</span>}
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 {unreadCount > 0 && <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: THEME.primary, fontWeight: 600, fontFamily: 'inherit' }}>Mark all read</button>}

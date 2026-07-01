@@ -138,7 +138,7 @@ function TankCalibrationPanel({ tank, onClose }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: THEME.surface, borderRadius: '16px', width: '560px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadow3, position: 'relative' }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', width: '560px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: THEME.shadow3, position: 'relative' }}>
         <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Calibration Table</div>
@@ -308,7 +308,7 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: THEME.surface, borderRadius: '16px', width: '500px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', width: '500px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }}>
         <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: THEME.surface, zIndex: 1 }}>
           <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Record Dip Reading</div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: THEME.textMed }}>

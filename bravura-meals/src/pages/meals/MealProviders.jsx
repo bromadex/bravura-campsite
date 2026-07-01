@@ -116,7 +116,7 @@ export default function MealProviders() {
                   </div>
                   <div style={{ fontWeight: 600, fontSize: '14px', color: THEME.text }}>{p.name}</div>
                 </div>
-                <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: p.is_active ? '#E8F5E9' : THEME.surfaceVar, color: p.is_active ? '#1B5E20' : THEME.textLow }}>
+                <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600, background: p.is_active ? '#E8F5E9' : THEME.surfaceVar, color: p.is_active ? '#1B5E20' : THEME.textLow }}>
                   {p.is_active ? 'ACTIVE' : 'INACTIVE'}
                 </span>
               </div>

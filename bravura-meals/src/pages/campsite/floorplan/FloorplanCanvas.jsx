@@ -114,7 +114,7 @@ export default function FloorplanCanvas({
       {/* Zoom level indicator */}
       <div style={{
         position: 'absolute', bottom: '20px', left: '20px',
-        background: 'rgba(255,255,255,.92)', borderRadius: '20px',
+        background: 'rgba(255,255,255,.92)', borderRadius: '6px',
         padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: THEME.textMed,
         boxShadow: '0 2px 8px rgba(0,0,0,.1)',
       }}>

@@ -202,7 +202,7 @@ export default function FuelIssues({ setPage }) {
                   </Td>
                   <Td>
                     <span style={{
-                      padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 500,
+                      padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 500,
                       background: THEME.surfaceVar, color: THEME.textMed, textTransform: 'capitalize',
                     }}>
                       {issue.asset_type}

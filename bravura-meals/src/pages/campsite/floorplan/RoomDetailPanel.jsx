@@ -153,7 +153,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
             <div style={{ fontSize: '22px', fontWeight: 700, color: colors.label }}>Room {room.room_number}</div>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '4px',
-              padding: '3px 10px', borderRadius: '20px', background: THEME.surface,
+              padding: '3px 10px', borderRadius: '6px', background: THEME.surface,
               fontSize: '11px', fontWeight: 600, color: colors.label,
             }}>
               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: colors.dot }} />
@@ -199,7 +199,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
               {activeOccupants.length === 0 ? (
                 <span style={{ fontSize: '13px', color: THEME.textLow }}>No occupants</span>
               ) : [...new Set(activeOccupants.map(a => a.employee?.contractor?.name).filter(Boolean))].map(name => (
-                <span key={name} style={{ padding: '3px 10px', borderRadius: '20px', background: THEME.surfaceVar, color: THEME.primary, fontSize: '12px', fontWeight: 500 }}>
+                <span key={name} style={{ padding: '3px 10px', borderRadius: '6px', background: THEME.surfaceVar, color: THEME.primary, fontSize: '12px', fontWeight: 500 }}>
                   {name}
                 </span>
               ))}
@@ -272,7 +272,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
                           </div>
                         </div>
                         {a && (
-                          <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary }}>
+                          <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary }}>
                             {a.occupant_type === 'visitor' ? 'VISITOR' : 'STAFF'}
                           </span>
                         )}

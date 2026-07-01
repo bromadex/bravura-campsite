@@ -214,7 +214,7 @@ export default function Vehicles() {
                     <Td style={{ color: THEME.textMed }}>{deptName(v.department_id)}</Td>
                     <Td>
                       <span style={{
-                        padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                        padding: '2px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
                         background: ftColor + '22', color: ftColor, border: `1px solid ${ftColor}44`,
                       }}>
                         {ftName}
@@ -443,7 +443,7 @@ function StatusPill({ status }) {
   const s = map[status] || map.decommissioned
   return (
     <span style={{
-      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+      padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
       background: s.bg, color: s.text,
     }}>
       {s.label}

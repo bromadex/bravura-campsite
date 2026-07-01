@@ -179,13 +179,13 @@ export default function Employees() {
     <div>
       {/* Header */}
       <PageHeader
-        title={<>Employees <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{employees.length}</span></>}
+        title={<>Employees <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '6px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{employees.length}</span></>}
         site={currentSite}
         actions={<Button onClick={openAdd} variant="filled" icon="add">Add Employee</Button>}
       >
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.statusSuccessBg, color: THEME.statusSuccessText }}>{activeCount} active</span>
-          <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed }}>{employees.length - activeCount} terminated</span>
+          <span style={{ padding: '2px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: THEME.statusSuccessBg, color: THEME.statusSuccessText }}>{activeCount} active</span>
+          <span style={{ padding: '2px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed }}>{employees.length - activeCount} terminated</span>
         </div>
       </PageHeader>
 

@@ -33,7 +33,7 @@ export default function LoginPage() {
 
       <div style={{
         background: THEME.surface,
-        borderRadius: '28px',
+        borderRadius: '12px',
         padding: '40px',
         width: '100%', maxWidth: '400px',
         boxShadow: '0 24px 80px rgba(0,0,0,.4)',

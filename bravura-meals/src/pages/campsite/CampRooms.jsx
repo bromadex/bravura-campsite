@@ -33,7 +33,7 @@ function RoomStatusChip({ status, roomType }) {
 }
 function Chip({ bg, color, label }) {
   return (
-    <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: bg, color }}>
+    <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: bg, color }}>
       {label}
     </span>
   )
@@ -158,7 +158,7 @@ export default function CampRooms() {
     <div>
       {/* Header */}
       <PageHeader
-        title={<>Rooms <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '20px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{totalRooms}</span></>}
+        title={<>Rooms <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '6px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{totalRooms}</span></>}
         actions={<Button onClick={openAdd} variant="filled" icon="add">Add Room</Button>}
       />
 
@@ -246,7 +246,7 @@ export default function CampRooms() {
                   <Td style={{ color: THEME.textMed }}>{room.block?.name || '—'}</Td>
                   <Td>
                       <span style={{
-                        padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                        padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
                         background: occupiable ? THEME.surfaceVar : '#EDE7F6',
                         color: occupiable ? THEME.textMed : '#4527A0',
                       }}>

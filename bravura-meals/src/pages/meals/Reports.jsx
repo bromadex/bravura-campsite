@@ -246,7 +246,7 @@ export function DailyReport() {
       </div>
 
       {/* Table — no overflow:hidden wrapper */}
-      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
+      <div style={{ borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
         {loading
           ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
           : <ReportTable rows={rows} showCosts={showCosts} prices={prices} contractors={contractors} />
@@ -342,7 +342,7 @@ export function RangeReport() {
         <StatCard label="Grand Total"      value={totB+totL+totS} color={THEME.primary} icon="groups" />
       </div>
 
-      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
+      <div style={{ borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
         {loading
           ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
           : <ReportTable rows={rows} isRange contractors={contractors} />
@@ -452,7 +452,7 @@ export function MonthlyReport() {
         <StatCard label="Grand Total" value={totB+totL+totS} color={THEME.primary} icon="groups" />
       </div>
 
-      <div style={{ borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
+      <div style={{ borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
         {loading
           ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
           : <ReportTable rows={rows} isRange contractors={contractors} />

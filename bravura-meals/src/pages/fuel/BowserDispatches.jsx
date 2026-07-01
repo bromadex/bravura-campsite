@@ -117,7 +117,7 @@ function DispatchModal({ bowsers, currentSiteId, profileId, onClose, onSaved }) 
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: THEME.surface, borderRadius: '16px', width: '520px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', width: '520px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }}>
         <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: THEME.surface, zIndex: 1 }}>
           <div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Dispatch Bowser</div>
@@ -213,7 +213,7 @@ function ReturnModal({ dispatch, onClose, onSaved }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: THEME.surface, borderRadius: '16px', width: '460px', boxShadow: THEME.shadow3 }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', width: '460px', boxShadow: THEME.shadow3 }}>
         <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Record Return</div>

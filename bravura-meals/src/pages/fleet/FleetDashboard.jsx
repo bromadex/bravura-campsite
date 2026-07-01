@@ -8,7 +8,7 @@ export default function FleetDashboard({ setPage }) {
       {/* Hero */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '20px',
-        background: THEME.surface, borderRadius: '20px',
+        background: THEME.surface, borderRadius: '6px',
         padding: '32px', marginBottom: '28px',
         border: `1px solid ${THEME.outlineVar}`,
         boxShadow: THEME.shadow1,
@@ -102,7 +102,7 @@ export default function FleetDashboard({ setPage }) {
               </div>
               <div style={{
                 fontSize: '10px', fontWeight: 600, color: THEME.textLow,
-                background: THEME.outline + '22', borderRadius: '20px', padding: '3px 10px',
+                background: THEME.outline + '22', borderRadius: '6px', padding: '3px 10px',
                 letterSpacing: '.05em',
               }}>
                 SOON

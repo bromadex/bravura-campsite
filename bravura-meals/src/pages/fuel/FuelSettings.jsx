@@ -145,7 +145,7 @@ export default function FuelSettings() {
       ) : (
         <>
           {/* Docket numbering */}
-          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '20px 24px', marginBottom: '16px' }}>
+          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '20px 24px', marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icon name="confirmation_number" size={15} style={{ color: FUEL_CLR }} />
               Docket Numbering
@@ -177,7 +177,7 @@ export default function FuelSettings() {
           </section>
 
           {/* Alerts */}
-          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '20px 24px', marginBottom: '16px' }}>
+          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '20px 24px', marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icon name="warning" size={15} style={{ color: THEME.warning }} />
               Alerts
@@ -201,7 +201,7 @@ export default function FuelSettings() {
           </section>
 
           {/* Cost Tracking */}
-          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '20px 24px', marginBottom: '16px' }}>
+          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '20px 24px', marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icon name="monitoring" size={15} style={{ color: THEME.success }} />
               Cost Tracking
@@ -218,7 +218,7 @@ export default function FuelSettings() {
           </section>
 
           {/* Issuance behaviour */}
-          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '20px 24px', marginBottom: '24px' }}>
+          <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '20px 24px', marginBottom: '24px' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icon name="output" size={15} style={{ color: FUEL_CLR }} />
               Issuance Behaviour
@@ -239,7 +239,7 @@ export default function FuelSettings() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{ fontSize: '13px', fontWeight: 500, color: THEME.text }}>Require Approval for Issuance</div>
-                    <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px', background: THEME.statusInfoBg, color: THEME.statusInfoText, letterSpacing: '.04em' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: THEME.statusInfoBg, color: THEME.statusInfoText, letterSpacing: '.04em' }}>
                       PHASE 2
                     </span>
                   </div>

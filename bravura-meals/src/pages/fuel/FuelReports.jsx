@@ -211,7 +211,7 @@ export default function FuelReports() {
                         {row.pct !== null ? `${Math.min(100, Math.max(0, row.pct)).toFixed(0)}%` : '—'}
                       </Td>
                       <Td>
-                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500, background: statusBg, color: statusColor }}>
+                        <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: statusBg, color: statusColor }}>
                           {status}
                         </span>
                       </Td>
@@ -245,7 +245,7 @@ export default function FuelReports() {
                     <Td><span style={{ fontWeight: 500 }}>{row.asset_name}</span></Td>
                     <Td>
                       <span style={{
-                        padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 500,
+                        padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 500,
                         background: THEME.surfaceVar, color: THEME.textMed, textTransform: 'capitalize',
                       }}>
                         {row.asset_type}

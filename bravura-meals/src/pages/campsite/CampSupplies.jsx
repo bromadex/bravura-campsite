@@ -223,7 +223,7 @@ export default function CampSupplies() {
                     <Td style={{ color: THEME.textMed }}>{fmtDate(txn.txn_date)}</Td>
                     <Td style={{ fontWeight: 500 }}>{txn.item?.name || '—'}</Td>
                     <Td>
-                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                      <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
                         background: isReceive ? THEME.statusSuccessBg : THEME.statusErrorBg,
                         color:      isReceive ? THEME.statusSuccessText : THEME.error }}>
                         {isReceive ? 'Receive' : 'Issue'}
@@ -277,12 +277,12 @@ export default function CampSupplies() {
                   <input type="number" value={repYear} onChange={e => setRepYear(parseInt(e.target.value))} min="2020" max="2099"
                     style={{ width: '90px', padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }} />
                 </div>
-                <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.primary, fontFamily: 'inherit' }}>
+                <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: THEME.primary, fontFamily: 'inherit' }}>
                   <Icon name="print" size={16} style={{ color: THEME.primary }} /> Print
                 </button>
               </div>
             </Card>
-            <div style={{ overflowX: 'auto', borderRadius: '16px', border: `1px solid ${THEME.outlineVar}` }}>
+            <div style={{ overflowX: 'auto', borderRadius: '10px', border: `1px solid ${THEME.outlineVar}` }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', background: THEME.surface }}>
                 <thead>
                   <tr style={{ background: THEME.primary, color: '#fff' }}>

@@ -371,7 +371,7 @@ function AppContent() {
       flexDirection: 'column', gap: '14px',
     }}>
       <div style={{
-        background: 'rgba(255,255,255,.92)', borderRadius: '20px',
+        background: 'rgba(255,255,255,.92)', borderRadius: '6px',
         padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <img src="/logo/bravura-logo.png" alt="Bravura" style={{ height: '44px', width: 'auto' }} />

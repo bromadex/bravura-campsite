@@ -418,7 +418,7 @@ function TransactionsTab({ txns }) {
                 <Td>{fmtDate(t.transaction_date)}</Td>
                 <Td>
                   <span style={{
-                    padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+                    padding: '2px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
                     background: typeStyle.bg, color: typeStyle.fg,
                   }}>
                     {typeStyle.label}
@@ -493,13 +493,13 @@ function DipsTab({ dips }) {
 function Pill({ children, color, subtle }) {
   if (subtle) return (
     <span style={{
-      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+      padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
       background: THEME.surfaceVar, color: THEME.textMed, textTransform: 'capitalize',
     }}>{children}</span>
   )
   return (
     <span style={{
-      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+      padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
       background: color + '22', color, border: `1px solid ${color}44`,
     }}>{children}</span>
   )
@@ -514,7 +514,7 @@ function StatusPill({ status }) {
   const s = map[status] || map.decommissioned
   return (
     <span style={{
-      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 500,
+      padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
       background: s.bg, color: s.text,
     }}>
       {s.label}

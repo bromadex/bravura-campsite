@@ -234,84 +234,6 @@ export default function Dashboard({ setPage }) {
         </div>
       )}
 
-      {/* Anomalies — contractors with >20% deviation from 30-day mean */}
-      {anomalies.length > 0 && (
-        <Card>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <Icon name="trending_up" size={16} style={{ color: THEME.warning }} />
-            <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>
-              Consumption anomalies today
-            </div>
-            <span style={{ marginLeft: 'auto', fontSize: '11px', color: THEME.textLow }}>
-              ≥20% off 30-day mean
-            </span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '10px' }}>
-            {anomalies.map(a => {
-              const up = a.deviation > 0
-              const color = up ? THEME.warning : THEME.error
-              return (
-                <div key={a.contractorName} style={{ padding: '12px', background: color + '0E', border: `1px solid ${color}30`, borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Icon name={up ? 'trending_up' : 'trending_down'} size={15} style={{ color }} />
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {a.contractorName}
-                    </span>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color }}>
-                      {(a.deviation > 0 ? '+' : '') + Math.round(a.deviation * 100)}%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
-                    Today {a.todayTotal} · avg {a.meanTotal}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </Card>
-      )}
-
-      {/* Kitchen throughput — last 7 days */}
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-          <Icon name="conveyor_belt" size={16} style={{ color: THEME.primary }} />
-          <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>
-            Kitchen throughput — last 7 days
-          </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '10px', marginBottom: '12px' }}>
-          {[
-            { label: 'Submitted', v: throughput.submitted, color: THEME.info,    icon: 'upload_file' },
-            { label: 'Approved',  v: throughput.approved,  color: THEME.warning, icon: 'thumb_up' },
-            { label: 'Confirmed', v: throughput.confirmed, color: THEME.success, icon: 'check_circle' },
-          ].map((x, i, arr) => (
-            <div key={x.label} style={{ padding: '10px 12px', background: x.color + '10', border: `1px solid ${x.color}22`, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Icon name={x.icon} size={18} style={{ color: x.color }} />
-              <div>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: x.color, lineHeight: 1.1 }}>{x.v}</div>
-                <div style={{ fontSize: '11px', color: THEME.textLow }}>
-                  {x.label}{arr[0].v > 0 && i > 0 ? ` · ${Math.round((x.v / arr[0].v) * 100)}%` : ''}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        {throughput.byPeriod && (
-          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '11px', color: THEME.textMed }}>
-            <span>Portions served (7d):</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-              <Icon name="wb_sunny" size={12} style={{ color: THEME.breakfastClr }} /> {throughput.byPeriod.b} breakfast
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-              <Icon name="light_mode" size={12} style={{ color: THEME.lunchClr }} /> {throughput.byPeriod.l} lunch
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-              <Icon name="bedtime" size={12} style={{ color: THEME.supperClr }} /> {throughput.byPeriod.s} supper
-            </span>
-          </div>
-        )}
-      </Card>
-
       {/* Today */}
       <div>
         <div style={{ fontSize: '12px', fontWeight: 500, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '10px' }}>
@@ -448,6 +370,84 @@ export default function Dashboard({ setPage }) {
           </div>
         )}
       </Card>
+
+      {/* Kitchen throughput — last 7 days */}
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <Icon name="conveyor_belt" size={16} style={{ color: THEME.primary }} />
+          <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            Kitchen throughput — last 7 days
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '10px', marginBottom: '12px' }}>
+          {[
+            { label: 'Submitted', v: throughput.submitted, color: THEME.info,    icon: 'upload_file' },
+            { label: 'Approved',  v: throughput.approved,  color: THEME.warning, icon: 'thumb_up' },
+            { label: 'Confirmed', v: throughput.confirmed, color: THEME.success, icon: 'check_circle' },
+          ].map((x, i, arr) => (
+            <div key={x.label} style={{ padding: '10px 12px', background: x.color + '10', border: `1px solid ${x.color}22`, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Icon name={x.icon} size={18} style={{ color: x.color }} />
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: x.color, lineHeight: 1.1 }}>{x.v}</div>
+                <div style={{ fontSize: '11px', color: THEME.textLow }}>
+                  {x.label}{arr[0].v > 0 && i > 0 ? ` · ${Math.round((x.v / arr[0].v) * 100)}%` : ''}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {throughput.byPeriod && (
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '11px', color: THEME.textMed }}>
+            <span>Portions served (7d):</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              <Icon name="wb_sunny" size={12} style={{ color: THEME.breakfastClr }} /> {throughput.byPeriod.b} breakfast
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              <Icon name="light_mode" size={12} style={{ color: THEME.lunchClr }} /> {throughput.byPeriod.l} lunch
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              <Icon name="bedtime" size={12} style={{ color: THEME.supperClr }} /> {throughput.byPeriod.s} supper
+            </span>
+          </div>
+        )}
+      </Card>
+
+      {/* Anomalies — contractors with >20% deviation from 30-day mean */}
+      {anomalies.length > 0 && (
+        <Card>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <Icon name="trending_up" size={16} style={{ color: THEME.warning }} />
+            <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              Consumption anomalies today
+            </div>
+            <span style={{ marginLeft: 'auto', fontSize: '11px', color: THEME.textLow }}>
+              ≥20% off 30-day mean
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '10px' }}>
+            {anomalies.map(a => {
+              const up = a.deviation > 0
+              const color = up ? THEME.warning : THEME.error
+              return (
+                <div key={a.contractorName} style={{ padding: '12px', background: color + '0E', border: `1px solid ${color}30`, borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Icon name={up ? 'trending_up' : 'trending_down'} size={15} style={{ color }} />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {a.contractorName}
+                    </span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color }}>
+                      {(a.deviation > 0 ? '+' : '') + Math.round(a.deviation * 100)}%
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
+                    Today {a.todayTotal} · avg {a.meanTotal}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

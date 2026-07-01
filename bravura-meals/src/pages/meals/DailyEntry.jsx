@@ -212,7 +212,11 @@ export default function DailyEntry() {
   // Unique contractors that have at least one active employee
   const activeCos = contractors.filter(c => employees.some(e => e.contractor_id === c.id))
 
-  const hStyle = { background: THEME.primary }
+  // Fiori-style light header — neutral surface bg + dark labels.
+  const hStyle       = { background: THEME.surfaceVar, color: THEME.textMed, borderBottom: `1px solid ${THEME.outlineVar}` }
+  const hStyleTintB  = { ...hStyle, background: THEME.breakfastClr + '18' }
+  const hStyleTintL  = { ...hStyle, background: THEME.lunchClr     + '18' }
+  const hStyleTintS  = { ...hStyle, background: THEME.supperClr    + '18' }
 
   return (
     <div>
@@ -355,19 +359,15 @@ export default function DailyEntry() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: THEME.primary, color: '#fff' }}>
-                  {/* # */}
-                  <th style={{ ...hStyle, padding: '12px 10px', width: '40px', textAlign: 'center', fontWeight: 400, fontSize: '11px', color: 'rgba(255,255,255,.5)' }}>
+                <tr>
+                  <th style={{ ...hStyle, padding: '10px 10px', width: '40px', textAlign: 'center', fontWeight: 600, fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase' }}>
                     #
                   </th>
-                  {/* Sortable: Employee */}
                   <SortTh label="Employee"   sortKey="name"       sortState={sortState} onSort={onSort} style={hStyle} />
-                  {/* Sortable: Contractor */}
                   <SortTh label="Contractor" sortKey="contractor" sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
-                  {/* Sortable: meal columns */}
-                  <SortTh label="Breakfast"  sortKey="b"          sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.breakfastClr }} />
-                  <SortTh label="Lunch"      sortKey="l"          sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.lunchClr }} />
-                  <SortTh label="Supper"     sortKey="s"          sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.supperClr }} />
+                  <SortTh label="Breakfast"  sortKey="b"          sortState={sortState} onSort={onSort} style={{ ...hStyleTintB, textAlign: 'center' }} />
+                  <SortTh label="Lunch"      sortKey="l"          sortState={sortState} onSort={onSort} style={{ ...hStyleTintL, textAlign: 'center' }} />
+                  <SortTh label="Supper"     sortKey="s"          sortState={sortState} onSort={onSort} style={{ ...hStyleTintS, textAlign: 'center' }} />
                   <SortTh label="Total"      sortKey="total"      sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
                 </tr>
               </thead>
@@ -442,20 +442,20 @@ export default function DailyEntry() {
 
               {/* Grand total footer */}
               <tfoot>
-                <tr style={{ background: THEME.primary, color: '#fff', fontWeight: 600 }}>
+                <tr style={{ background: THEME.surfaceVar, color: THEME.text, fontWeight: 600, borderTop: `2px solid ${THEME.outlineVar}` }}>
                   <td colSpan={3} style={{ padding: '12px 14px', fontSize: '13px' }}>
                     Grand Total ({sortedFiltered.length} employees shown)
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>
+                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: THEME.breakfastClr }}>
                     {sortedFiltered.reduce((a,e) => a + (entryState[e.id]?.b ? 1 : 0), 0)}
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>
+                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: THEME.lunchClr }}>
                     {sortedFiltered.reduce((a,e) => a + (entryState[e.id]?.l ? 1 : 0), 0)}
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>
+                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: THEME.supperClr }}>
                     {sortedFiltered.reduce((a,e) => a + (entryState[e.id]?.s ? 1 : 0), 0)}
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '16px', fontWeight: 700 }}>
+                  <td style={{ padding: '12px', textAlign: 'center', fontSize: '16px', fontWeight: 700, color: THEME.primary }}>
                     {sortedFiltered.reduce((a,e) => {
                       const m = entryState[e.id] || {}
                       return a + (m.b?1:0) + (m.l?1:0) + (m.s?1:0)

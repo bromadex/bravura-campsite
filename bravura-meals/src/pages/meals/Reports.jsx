@@ -48,7 +48,12 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
   sorted.forEach(r => { totB += r.b||0; totL += r.l||0; totS += r.s||0 })
   const grandTotal = totB + totL + totS
 
-  const hStyle = { background: THEME.primary }
+  // Fiori-style light header — neutral surface bg + dark labels so text
+  // stays readable. Period columns get a subtle tint for at-a-glance identity.
+  const hStyle       = { background: THEME.surfaceVar, color: THEME.textMed, borderBottom: `1px solid ${THEME.outlineVar}` }
+  const hStyleTintB  = { ...hStyle, background: THEME.breakfastClr + '18' }
+  const hStyleTintL  = { ...hStyle, background: THEME.lunchClr     + '18' }
+  const hStyleTintS  = { ...hStyle, background: THEME.supperClr    + '18' }
   const chkCell = (v, color) => v
     ? <Icon name="check_circle" size={18} filled style={{ color }} />
     : <span style={{ color: THEME.outlineVar, fontSize: '14px' }}>—</span>
@@ -58,16 +63,16 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
         <thead>
-          <tr style={{ background: THEME.primary, color: '#fff' }}>
-            <th style={{ ...hStyle, padding: '12px 10px', width: '40px', textAlign: 'center', fontWeight: 500, fontSize: '11px', color: 'rgba(255,255,255,.6)' }}>#</th>
+          <tr>
+            <th style={{ ...hStyle, padding: '10px 10px', width: '40px', textAlign: 'center', fontWeight: 600, fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase' }}>#</th>
             <SortTh label="Employee"   sortKey="name"           sortState={sortState} onSort={onSort} style={hStyle} />
             <SortTh label="Contractor" sortKey="contractorName" sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
-            <SortTh label="Breakfasts" sortKey="b"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.breakfastClr }} />
-            <SortTh label="Lunches"    sortKey="l"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.lunchClr }} />
-            <SortTh label="Suppers"    sortKey="s"              sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center', background: THEME.supperClr }} />
+            <SortTh label="Breakfasts" sortKey="b"              sortState={sortState} onSort={onSort} style={{ ...hStyleTintB, textAlign: 'center' }} />
+            <SortTh label="Lunches"    sortKey="l"              sortState={sortState} onSort={onSort} style={{ ...hStyleTintL, textAlign: 'center' }} />
+            <SortTh label="Suppers"    sortKey="s"              sortState={sortState} onSort={onSort} style={{ ...hStyleTintS, textAlign: 'center' }} />
             <SortTh label="Total"      sortKey="total"          sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
             {showCosts && prices && (
-              <th style={{ ...hStyle, padding: '12px 14px', textAlign: 'right', fontWeight: 500, fontSize: '12px' }}>Cost (USD)</th>
+              <th style={{ ...hStyle, padding: '10px 14px', textAlign: 'right', fontWeight: 600, fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase' }}>Cost (USD)</th>
             )}
           </tr>
         </thead>
@@ -128,12 +133,12 @@ function ReportTable({ rows, showCosts = false, prices = null, isRange = false, 
           })}
         </tbody>
         <tfoot>
-          <tr style={{ background: THEME.primary, color: '#fff', fontWeight: 600 }}>
+          <tr style={{ background: THEME.surfaceVar, color: THEME.text, fontWeight: 600, borderTop: `2px solid ${THEME.outlineVar}` }}>
             <td colSpan={3} style={{ padding: '12px 14px', fontSize: '13px' }}>Grand Total</td>
-            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>{totB}</td>
-            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>{totL}</td>
-            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>{totS}</td>
-            <td style={{ padding: '12px', textAlign: 'center', fontSize: '16px', fontWeight: 700 }}>{grandTotal}</td>
+            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: THEME.breakfastClr }}>{totB}</td>
+            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: THEME.lunchClr }}>{totL}</td>
+            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: THEME.supperClr }}>{totS}</td>
+            <td style={{ padding: '12px', textAlign: 'center', fontSize: '16px', fontWeight: 700, color: THEME.primary }}>{grandTotal}</td>
             {showCosts && prices && (
               <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '14px' }}>
                 ${(totB*prices.b + totL*prices.l + totS*prices.s).toFixed(2)}

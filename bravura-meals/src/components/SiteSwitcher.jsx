@@ -28,16 +28,19 @@ export default function SiteSwitcher() {
         onClick={() => setOpen(o => !o)}
         title="Switch site"
         style={{
-          display: 'flex', alignItems: 'center', gap: '5px',
-          padding: '5px 12px', borderRadius: '6px', cursor: 'pointer',
-          background: open ? THEME.surfaceVar : THEME.surface,
-          border: `1px solid ${THEME.outlineVar}`,
-          fontSize: '12px', fontWeight: 600, color: THEME.primary,
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '6px 12px', borderRadius: '6px', cursor: 'pointer',
+          background: open ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.08)',
+          border: '1px solid rgba(255,255,255,.14)',
+          fontSize: '12px', fontWeight: 600, color: '#fff',
+          transition: 'background .15s',
         }}
+        onMouseEnter={e => { if (!open) e.currentTarget.style.background = 'rgba(255,255,255,.12)' }}
+        onMouseLeave={e => { if (!open) e.currentTarget.style.background = 'rgba(255,255,255,.08)' }}
       >
-        <Icon name="location_on" size={14} style={{ color: THEME.primary }} />
+        <Icon name="location_on" size={14} style={{ color: 'rgba(255,255,255,.85)' }} />
         {currentSite?.name || 'Select site'}
-        <Icon name={open ? 'expand_less' : 'expand_more'} size={14} style={{ color: THEME.textLow }} />
+        <Icon name={open ? 'expand_less' : 'expand_more'} size={14} style={{ color: 'rgba(255,255,255,.65)' }} />
       </div>
 
       {open && (

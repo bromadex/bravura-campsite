@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { MODULE_COLORS, THEME, ROLE_LABELS, moduleAccess } from '../utils/permissions'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
-import { useTheme } from '../contexts/ThemeContext'
 import { useSite } from '../contexts/SiteContext'
 import { supabase } from '../supabaseClient'
 import SiteSwitcher from '../components/SiteSwitcher'
@@ -42,7 +41,6 @@ function useViewport() {
 
 export default function HomeLauncher({ onEnterModule }) {
   const { profile, signOut } = useAuth()
-  const { theme, toggleTheme } = useTheme()
   const { can } = usePermissions()
   const { currentSite } = useSite()
   const role = profile?.role
@@ -189,14 +187,6 @@ export default function HomeLauncher({ onEnterModule }) {
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
-          </button>
-
-          {/* Theme */}
-          <button onClick={toggleTheme} title={theme === 'light' ? 'Dark mode' : 'Light mode'} style={iconBtn}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.10)'; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.82)' }}
-          >
-            <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>{theme === 'light' ? 'dark_mode' : 'light_mode'}</span>
           </button>
 
           {!isMobile && <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,.10)', margin: '0 8px' }} />}

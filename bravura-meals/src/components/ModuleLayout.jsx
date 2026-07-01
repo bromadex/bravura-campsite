@@ -5,7 +5,6 @@ import { useSite } from '../contexts/SiteContext'
 import { THEME, ROLE_LABELS, MODULE_COLORS } from '../utils/permissions'
 import { supabase } from '../supabaseClient'
 import SiteSwitcher from './SiteSwitcher'
-import { ThemeToggle } from './ui'
 
 const Icon = ({ name, size = 20, filled = false, style = {} }) => (
   <span
@@ -412,7 +411,6 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
               )}
             </button>
             {!isMobile && <SiteSwitcher />}
-            <ThemeToggle size="sm" />
             {!isMobile && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '5px',

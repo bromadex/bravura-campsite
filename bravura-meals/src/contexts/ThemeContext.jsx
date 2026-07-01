@@ -10,21 +10,17 @@ const ThemeContext = createContext(null)
 // no flash-of-wrong-theme on load; this just reads that same starting
 // value back out rather than guessing or defaulting blindly.
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => {
-    if (typeof document !== 'undefined') {
-      return document.documentElement.getAttribute('data-theme') || 'light'
-    }
-    return 'light'
-  })
+  // Theme locked to light until the dark palette is finalised. Kept as a
+  // context (rather than deleted) so downstream consumers keep working.
+  const [theme] = useState('light')
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    try { localStorage.setItem('bravura_theme', theme) } catch { /* private browsing etc — non-fatal */ }
-  }, [theme])
+    document.documentElement.setAttribute('data-theme', 'light')
+    try { localStorage.setItem('bravura_theme', 'light') } catch { /* non-fatal */ }
+  }, [])
 
-  function toggleTheme() {
-    setTheme(t => t === 'light' ? 'dark' : 'light')
-  }
+  const toggleTheme = () => {}
+  const setTheme    = () => {}
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>

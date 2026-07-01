@@ -261,11 +261,8 @@
       // would see a flash of the light theme on every load before React's
       // own effect had a chance to run.
       (function () {
-        try {
-          var saved = localStorage.getItem('bravura_theme');
-          var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-          document.documentElement.setAttribute('data-theme', theme);
-        } catch (e) { /* private browsing etc — default light is fine */ }
+        // Theme locked to light until dark palette is polished.
+        document.documentElement.setAttribute('data-theme', 'light');
       })();
     </script>
   </head>

@@ -58,6 +58,7 @@ const FuelReports   = lazy(() => import('./pages/fuel/FuelReports'))
 const FuelTypes     = lazy(() => import('./pages/fuel/FuelTypes'))
 const FuelIssuance    = lazy(() => import('./pages/fuel/FuelIssuance'))
 const FuelTransactions = lazy(() => import('./pages/fuel/FuelTransactions'))
+const FuelSettings    = lazy(() => import('./pages/fuel/FuelSettings'))
 const TankDetail    = lazy(() => import('./pages/fuel/TankDetail'))
 const Vehicles      = lazy(() => import('./pages/fuel/Vehicles'))
 const Equipment     = lazy(() => import('./pages/fuel/Equipment'))
@@ -178,7 +179,7 @@ function getAdminPage(page, can) {
 function getFuelPage(page, setPage, can) {
   switch (page) {
     case 'fuel_dashboard': return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
-    case 'fuel_ledger':    return can('fuel.view')   ? <FuelLedger />                      : null
+    case 'fuel_ledger':    return can('fuel.view')   ? <FuelTransactions setPage={setPage} /> : null
     case 'fuel_receipts':  return can('fuel.create') ? <FuelReceipts />                    : null
     case 'fuel_issues':    return can('fuel.view')         ? <FuelIssues setPage={setPage} />                    : null
     case 'fuel_issuance':     return can('fuel.create') ? <FuelIssuance setPage={setPage} />     : null
@@ -186,8 +187,9 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_dips':      return can('fuel.create')       ? <DipReadings />                     : null
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports />                     : null
     case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks />                       : null
-    case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                       : null
-    default:               return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
+    case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                          : null
+    case 'fuel_settings':  return can('fuel.edit')   ? <FuelSettings />                        : null
+    default:               return can('fuel.view')   ? <FuelDashboard setPage={setPage} />  : null
   }
 }
 

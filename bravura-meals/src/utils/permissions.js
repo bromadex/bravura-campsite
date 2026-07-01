@@ -172,16 +172,16 @@ export function adminNav(role) {
 
 export function fuelNav(role, can) {
   return [
-    { id: 'fuel_dashboard', label: 'Dashboard',        section: 'Overview',     icon: 'dashboard' },
-    { id: 'fuel_ledger',    label: 'Fuel Ledger',       section: 'Overview',     icon: 'receipt_long' },
-    { id: 'fuel_receipts',  label: 'Fuel Deliveries',  section: 'Records',      icon: 'local_gas_station', show: can('fuel.create') },
-    { id: 'fuel_issuance',  label: 'Fuel Issuance',    section: 'Records',      icon: 'output',            show: can('fuel.create') },
-    { id: 'fuel_issues',        label: 'Issuance History',   section: 'Records',  icon: 'history',       show: can('fuel.view') },
-    { id: 'fuel_transactions',  label: 'All Transactions',   section: 'Records',  icon: 'receipt_long',  show: can('fuel.view') },
-    { id: 'fuel_dips',      label: 'Dip Readings',     section: 'Records',      icon: 'straighten',        show: can('fuel.create') },
-    { id: 'fuel_reports',   label: 'Reports',          section: 'Reports',      icon: 'bar_chart',         show: can('fuel.view') },
-    { id: 'fuel_tanks',     label: 'Tanks',            section: 'Assets',       icon: 'propane_tank',      show: can('fuel.view') },
-    { id: 'fuel_types',     label: 'Fuel Types',       section: 'Admin',        icon: 'oil_barrel',        show: can('fuel.edit') },
+    { id: 'fuel_dashboard',    label: 'Dashboard',          section: 'Overview', icon: 'dashboard' },
+    { id: 'fuel_receipts',     label: 'Fuel Deliveries',    section: 'Records',  icon: 'local_gas_station', show: can('fuel.create') },
+    { id: 'fuel_issuance',     label: 'Fuel Issuance',      section: 'Records',  icon: 'output',            show: can('fuel.create') },
+    { id: 'fuel_issues',       label: 'Issuance History',   section: 'Records',  icon: 'history',           show: can('fuel.view') },
+    { id: 'fuel_transactions', label: 'All Transactions',   section: 'Records',  icon: 'receipt_long',      show: can('fuel.view') },
+    { id: 'fuel_dips',         label: 'Dip Readings',       section: 'Records',  icon: 'straighten',        show: can('fuel.create') },
+    { id: 'fuel_reports',      label: 'Reports',            section: 'Reports',  icon: 'bar_chart',         show: can('fuel.view') },
+    { id: 'fuel_tanks',        label: 'Tanks',              section: 'Assets',   icon: 'propane_tank',      show: can('fuel.view') },
+    { id: 'fuel_types',        label: 'Fuel Types',         section: 'Admin',    icon: 'oil_barrel',        show: can('fuel.edit') },
+    { id: 'fuel_settings',     label: 'Settings',           section: 'Admin',    icon: 'settings',          show: can('fuel.edit') },
   ].filter(item => item.show !== false)
 }
 

@@ -204,13 +204,13 @@ export default function HomeLauncher({ onEnterModule }) {
           </p>
         </div>
 
-        {/* Module tiles — always a single row so the whole ERP is visible at a glance */}
+        {/* Module tiles — 5 per row */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))`,
+          gridTemplateColumns: `repeat(${Math.min(visible.length, 5)}, minmax(0, 1fr))`,
           gap: '14px',
           width: '100%',
-          maxWidth: `${Math.min(visible.length * 160, 1200)}px`,
+          maxWidth: `${Math.min(visible.length, 5) * 170}px`,
         }}>
           {visible.map(mod => <ModuleTile key={mod.id} mod={mod} onClick={() => onEnterModule(mod.id)} />)}
         </div>

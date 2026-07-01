@@ -83,6 +83,7 @@ export const MODULE_COLORS = {
   admin:     '#5C6BC0',  // indigo       – system/administration, distinct from the 3 business modules
   fuel:      '#D97706',  // amber        – petroleum/fuel association
   fleet:     '#1A6B52',  // green        – fleet/transport
+  feedback:  '#6B7280',  // slate        – neutral, "system meta" feel
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -115,6 +116,16 @@ export const moduleAccess = {
   // Fleet Management — all authenticated users can access; vehicle registry is
   // not sensitive operational data and is useful across roles.
   fleet:     r => !!r,
+  // Feedback — always open to any signed-in user. This is where the whole
+  // organisation reports bugs, gaps, and suggestions during the build phase.
+  feedback:  r => !!r,
+}
+
+// ─── Feedback nav ─────────────────────────────────────────────────────────────
+export function feedbackNav() {
+  return [
+    { id: 'feedback_board', label: 'Feedback Board', section: 'Overview', icon: 'forum' },
+  ]
 }
 
 // ─── Per-module nav definitions ───────────────────────────────────────────────

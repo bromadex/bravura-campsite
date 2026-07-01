@@ -218,6 +218,13 @@ export function StatusBadge({ status }) {
     open:      { bg: THEME.statusErrorBg,   color: THEME.statusErrorText,   label: 'Open' },
     resolved:  { bg: THEME.statusSuccessBg, color: THEME.statusSuccessText, label: 'Resolved' },
     dismissed: { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: 'Dismissed' },
+    // Feedback board
+    new:         { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'New' },
+    triaged:     { bg: THEME.surfaceVar,       color: THEME.textMed,            label: 'Triaged' },
+    in_progress: { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'In Progress' },
+    done:        { bg: THEME.statusSuccessBg,  color: THEME.statusSuccessText,  label: 'Done' },
+    wont_do:     { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: "Won't Do" },
+    duplicate:   { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Duplicate' },
     Active:    { bg: THEME.statusSuccessBg, color: THEME.statusSuccessText, label: 'Active' },
     Inactive:  { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: 'Inactive' },
     // New lowercase employee status values (post-migration)

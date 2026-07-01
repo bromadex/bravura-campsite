@@ -73,6 +73,8 @@ const PAGE_TITLES = {
   fuel_vehicle_consumption:  'Vehicle Consumption Analysis',
   fuel_cost_allocation:      'Department Cost Allocation',
   fuel_finance_export:       'Finance Export',
+  // Feedback
+  feedback_board:   'Feedback Board',
 }
 
 export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navItems, page, setPage, onHome, children }) {

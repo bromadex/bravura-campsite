@@ -10,7 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import LoginPage    from './auth/LoginPage'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, feedbackNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const Employees       = lazy(() => import('./pages/workforce/Employees'))
@@ -76,6 +76,9 @@ const VehicleConsumption       = lazy(() => import('./pages/fuel/VehicleConsumpt
 const CostAllocation           = lazy(() => import('./pages/fuel/CostAllocation'))
 const FinanceExport            = lazy(() => import('./pages/fuel/FinanceExport'))
 
+// ── Feedback ──────────────────────────────────────────────────────────────────
+const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
+
 const PageLoader = (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -95,6 +98,7 @@ const MODULE_META = {
   admin:     { label: 'Administration',        icon: 'admin_panel_settings', navFn: adminNav },
   fuel:      { label: 'Fuel Management',       icon: 'local_gas_station',    navFn: fuelNav  },
   fleet:     { label: 'Fleet Management',      icon: 'directions_car',   navFn: fleetNav     },
+  feedback:  { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav  },
 }
 
 // ── Route resolvers ───────────────────────────────────────────────────────────
@@ -227,6 +231,13 @@ function getFleetPage(page, setPage) {
   }
 }
 
+function getFeedbackPage(page) {
+  switch (page) {
+    case 'feedback_board': return <FeedbackBoard />
+    default:               return <FeedbackBoard />
+  }
+}
+
 // ── Default page per module ───────────────────────────────────────────────────
 const DEFAULT_PAGE = {
   workforce: 'wf_employees',
@@ -235,6 +246,7 @@ const DEFAULT_PAGE = {
   admin:     'admin_users',
   fuel:      'fuel_dashboard',
   fleet:     'fleet_dashboard',
+  feedback:  'feedback_board',
 }
 
 // ── Module shell — resolves :moduleId/:pageId from the URL ────────────────────
@@ -266,6 +278,7 @@ function ModuleShell() {
   if (moduleId === 'admin')     content = getAdminPage(currentPage, can)
   if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
   if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
+  if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 
   const AccessDenied = (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>

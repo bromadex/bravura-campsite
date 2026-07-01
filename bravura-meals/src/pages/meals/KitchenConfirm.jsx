@@ -12,6 +12,8 @@ export default function KitchenConfirm() {
   const [date, setDate] = useState(today())
   const [submission, setSubmission] = useState(null)
   const [counts, setCounts] = useState({ b: '', l: '', s: '' })
+  const [prepared, setPrepared] = useState({ b: '', l: '', s: '' })
+  const [forecast, setForecast] = useState({ b: 0, l: 0, s: 0, contractorCount: 0 })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -28,12 +30,10 @@ export default function KitchenConfirm() {
 
   async function loadDate(d) {
     setLoading(true)
-    const { data } = await supabase
-      .from('daily_submissions')
-      .select('*')
-      .eq('date', d)
-      .eq('site_id', currentSiteId)
-      .maybeSingle()
+    const [{ data }, { data: fcRows }] = await Promise.all([
+      supabase.from('daily_submissions').select('*').eq('date', d).eq('site_id', currentSiteId).maybeSingle(),
+      supabase.from('meal_forecasts').select('expected_b, expected_l, expected_s').eq('site_id', currentSiteId).eq('forecast_date', d),
+    ])
     setSubmission(data)
     if (data) {
       setCounts({
@@ -41,9 +41,22 @@ export default function KitchenConfirm() {
         l: data.kitchen_count_l ?? '',
         s: data.kitchen_count_s ?? '',
       })
+      setPrepared({
+        b: data.prepared_b ?? '',
+        l: data.prepared_l ?? '',
+        s: data.prepared_s ?? '',
+      })
     } else {
       setCounts({ b: '', l: '', s: '' })
+      setPrepared({ b: '', l: '', s: '' })
     }
+    let fb = 0, fl = 0, fs = 0
+    for (const f of (fcRows || [])) {
+      fb += Number(f.expected_b || 0)
+      fl += Number(f.expected_l || 0)
+      fs += Number(f.expected_s || 0)
+    }
+    setForecast({ b: fb, l: fl, s: fs, contractorCount: (fcRows || []).length })
     setLoading(false)
   }
 
@@ -56,6 +69,9 @@ export default function KitchenConfirm() {
         kitchen_count_b: parseInt(counts.b) || 0,
         kitchen_count_l: parseInt(counts.l) || 0,
         kitchen_count_s: parseInt(counts.s) || 0,
+        prepared_b: prepared.b === '' ? null : parseInt(prepared.b),
+        prepared_l: prepared.l === '' ? null : parseInt(prepared.l),
+        prepared_s: prepared.s === '' ? null : parseInt(prepared.s),
         confirmed_by: profile.id,
         confirmed_at: new Date().toISOString(),
       })
@@ -122,6 +138,33 @@ export default function KitchenConfirm() {
         </Card>
       ) : (
         <>
+          {/* Forecast panel — what meal officer told the kitchen to expect */}
+          {forecast.contractorCount > 0 && (
+            <Card style={{ marginBottom: '16px', background: THEME.statusInfoBg + '55', borderColor: THEME.info + '30' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <Icon name="insights" size={16} style={{ color: THEME.info }} />
+                <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.info, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                  Forecast from meal taker
+                </div>
+                <span style={{ fontSize: '11px', color: THEME.textMed, marginLeft: 'auto' }}>{forecast.contractorCount} contractor{forecast.contractorCount === 1 ? '' : 's'}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                {[
+                  { label: 'Breakfast', v: forecast.b, icon: 'wb_sunny' },
+                  { label: 'Lunch',     v: forecast.l, icon: 'light_mode' },
+                  { label: 'Supper',    v: forecast.s, icon: 'bedtime' },
+                ].map(x => (
+                  <div key={x.label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Icon name={x.icon} size={15} style={{ color: THEME.info }} />
+                    <span style={{ fontSize: '12px', color: THEME.textMed }}>{x.label}:</span>
+                    <span style={{ fontSize: '18px', fontWeight: 700, color: THEME.text }}>{x.v}</span>
+                    <span style={{ fontSize: '11px', color: THEME.textLow }}>expected</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           <Card style={{ marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ fontWeight: 600, fontSize: '15px', color: THEME.text }}>Day Status</div>
@@ -142,9 +185,37 @@ export default function KitchenConfirm() {
               ))}
             </div>
 
-            {/* Kitchen entry */}
-            <SectionLabel>What kitchen received</SectionLabel>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            {/* Portions prepared (waste tracking) */}
+            <SectionLabel>Portions prepared</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '6px' }}>
+              {['b','l','s'].map((k, i) => (
+                <div key={k}>
+                  <label style={{ display: 'block', fontSize: '11px', color: THEME.textLow, marginBottom: '4px' }}>
+                    {['Breakfast','Lunch','Supper'][i]}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={prepared[k]}
+                    onChange={e => setPrepared(prev => ({ ...prev, [k]: e.target.value }))}
+                    placeholder={forecast[k] > 0 ? String(forecast[k]) : '—'}
+                    style={{
+                      width: '100%', padding: '8px 12px', border: `1px solid ${THEME.outline}`,
+                      borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit',
+                      textAlign: 'center', fontWeight: 700, boxSizing: 'border-box', outline: 'none',
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: '11px', color: THEME.textLow, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Icon name="delete_sweep" size={12} style={{ color: THEME.textLow }} />
+              Leave blank if not tracking. Waste = prepared − served (below).
+            </div>
+
+            {/* Kitchen entry — what was served */}
+            <SectionLabel>What kitchen served</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '10px' }}>
               {['b','l','s'].map((k, i) => (
                 <div key={k}>
                   <label style={{ display: 'block', fontSize: '11px', color: THEME.textLow, marginBottom: '4px' }}>
@@ -157,13 +228,35 @@ export default function KitchenConfirm() {
                     onChange={e => setCounts(prev => ({ ...prev, [k]: e.target.value }))}
                     style={{
                       width: '100%', padding: '8px 12px', border: `1px solid ${THEME.outline}`,
-                      borderRadius: '10px', fontSize: '14px', fontFamily: 'inherit',
+                      borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit',
                       textAlign: 'center', fontWeight: 700, boxSizing: 'border-box', outline: 'none',
                     }}
                   />
                 </div>
               ))}
             </div>
+
+            {/* Waste readout */}
+            {(prepared.b !== '' || prepared.l !== '' || prepared.s !== '') && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px', padding: '10px', background: THEME.surfaceVar, borderRadius: '8px' }}>
+                {['b','l','s'].map((k, i) => {
+                  const p = parseInt(prepared[k])
+                  const c = parseInt(counts[k])
+                  const waste = (!isNaN(p) && !isNaN(c)) ? p - c : null
+                  const color = waste == null ? THEME.textLow : waste === 0 ? THEME.success : waste > 0 ? THEME.warning : THEME.error
+                  return (
+                    <div key={k} style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                        {['Breakfast','Lunch','Supper'][i]} waste
+                      </div>
+                      <div style={{ fontSize: '16px', fontWeight: 700, color, marginTop: '2px' }}>
+                        {waste == null ? '—' : (waste > 0 ? '+' : '') + waste}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <Button onClick={saveConfirmation} variant="success" icon="check_circle" disabled={saving}>

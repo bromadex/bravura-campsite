@@ -159,6 +159,7 @@ export function mealsNav(role, can) {
   // underneath it was.
   const all = [
     { id: 'meals_dashboard', label: 'Dashboard',         section: 'Main',    icon: 'dashboard' },
+    { id: 'meals_forecasts', label: 'Meal Forecast',     section: 'Main',    icon: 'insights',    show: can('meals.create') },
     { id: 'meals_entry',     label: 'Daily Meal Entry',  section: 'Main',    icon: 'edit_note',   show: can('meals.create') },
     { id: 'meals_approvals', label: 'Approvals',         section: 'Main',    icon: 'task_alt',    show: can('meals.approve') },
     { id: 'meals_kitchen',   label: 'Kitchen Verify',    section: 'Main',    icon: 'restaurant',  show: can('meals.edit') },
@@ -166,6 +167,7 @@ export function mealsNav(role, can) {
     { id: 'meals_daily',     label: 'Daily Report',      section: 'Reports', icon: 'today',       show: can('meals.view') },
     { id: 'meals_range',     label: 'Range Report',      section: 'Reports', icon: 'date_range',  show: can('meals.view') },
     { id: 'meals_monthly',   label: 'Monthly Report',    section: 'Reports', icon: 'bar_chart',   show: can('meals.view') },
+    { id: 'meals_waste',     label: 'Waste Report',      section: 'Reports', icon: 'delete_sweep',show: can('meals.view') },
     { id: 'meals_billing',   label: 'Billing',           section: 'Reports', icon: 'receipt_long',show: can('meals.approve') },
     { id: 'meals_providers', label: 'Meal Providers',    section: 'Admin',   icon: 'storefront',  show: can('meals.edit') },
     { id: 'meals_pricing',   label: 'Pricing Management',section: 'Admin',   icon: 'sell',        show: can('meals.edit') },

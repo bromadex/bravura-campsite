@@ -19,6 +19,8 @@ export default function Dashboard({ setPage }) {
   const [coBreakdown,  setCoBreakdown]  = useState([])  // monthly by contractor
   const [coBilling,    setCoBilling]    = useState([])  // billing by contractor
   const [providers,    setProviders]    = useState([])  // active meal providers for this site
+  const [throughput,   setThroughput]   = useState({ submitted: 0, approved: 0, confirmed: 0, byPeriod: null })
+  const [anomalies,    setAnomalies]    = useState([])  // [{ contractorName, meanTotal, todayTotal, deviation }]
   const [loading,      setLoading]      = useState(true)
 
   // Re-fetched whenever the selected site changes — this entire page was
@@ -122,6 +124,68 @@ export default function Dashboard({ setPage }) {
       setCoBilling([])
     }
 
+    // ── Kitchen throughput: last 7 days of submissions grouped by status
+    const last7 = new Date(Date.now() - 6 * 86400_000).toISOString().slice(0, 10)
+    const { data: recent7 } = await supabase
+      .from('daily_submissions')
+      .select('status, kitchen_count_b, kitchen_count_l, kitchen_count_s, prepared_b, prepared_l, prepared_s, confirmed_at, date')
+      .eq('site_id', currentSiteId)
+      .gte('date', last7)
+    const rr = recent7 || []
+    const submittedC = rr.filter(r => r.status !== 'draft').length
+    const approvedC  = rr.filter(r => ['approved', 'confirmed'].includes(r.status)).length
+    const confirmedC = rr.filter(r => r.confirmed_at != null).length
+    const byPeriod = { b: 0, l: 0, s: 0 }
+    for (const r of rr) {
+      byPeriod.b += r.kitchen_count_b || 0
+      byPeriod.l += r.kitchen_count_l || 0
+      byPeriod.s += r.kitchen_count_s || 0
+    }
+    setThroughput({ submitted: submittedC, approved: approvedC, confirmed: confirmedC, byPeriod, total7: rr.length })
+
+    // ── Consumption anomaly detection: contractors >20% off their 30-day mean today
+    if (contractors && employees) {
+      const empMap = {}
+      employees.forEach(e => { empMap[e.id] = e.contractor_id })
+      const monthStart30 = new Date(Date.now() - 29 * 86400_000).toISOString().slice(0, 10)
+      const { data: hist } = await supabase
+        .from('meal_logs')
+        .select('employee_id, date, had_breakfast, had_lunch, had_supper')
+        .gte('date', monthStart30)
+        .lte('date', td)
+        .in('employee_id', employeeIds)
+      // Aggregate per contractor per date
+      const perDay = {}   // { cid: { date: total } }
+      for (const log of (hist || [])) {
+        const cid = empMap[log.employee_id]
+        if (!cid) continue
+        if (!perDay[cid]) perDay[cid] = {}
+        const t = (log.had_breakfast ? 1 : 0) + (log.had_lunch ? 1 : 0) + (log.had_supper ? 1 : 0)
+        perDay[cid][log.date] = (perDay[cid][log.date] || 0) + t
+      }
+      const anom = []
+      for (const c of contractors) {
+        const days = perDay[c.id] || {}
+        const historyDates = Object.keys(days).filter(d => d !== td)
+        if (historyDates.length < 5) continue    // need enough baseline
+        const mean = historyDates.reduce((s, d) => s + days[d], 0) / historyDates.length
+        const todayTotal = days[td] || 0
+        if (mean === 0) continue
+        const deviation = (todayTotal - mean) / mean
+        if (Math.abs(deviation) >= 0.2) {
+          anom.push({
+            contractorName: c.name,
+            meanTotal: Math.round(mean * 10) / 10,
+            todayTotal,
+            deviation,
+          })
+        }
+      }
+      // Sort by magnitude
+      anom.sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation))
+      setAnomalies(anom.slice(0, 6))
+    }
+
     setLoading(false)
   }
 
@@ -169,6 +233,84 @@ export default function Dashboard({ setPage }) {
           <Icon name="chevron_right" size={20} style={{ color: THEME.error }} />
         </div>
       )}
+
+      {/* Anomalies — contractors with >20% deviation from 30-day mean */}
+      {anomalies.length > 0 && (
+        <Card>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <Icon name="trending_up" size={16} style={{ color: THEME.warning }} />
+            <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              Consumption anomalies today
+            </div>
+            <span style={{ marginLeft: 'auto', fontSize: '11px', color: THEME.textLow }}>
+              ≥20% off 30-day mean
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '10px' }}>
+            {anomalies.map(a => {
+              const up = a.deviation > 0
+              const color = up ? THEME.warning : THEME.error
+              return (
+                <div key={a.contractorName} style={{ padding: '12px', background: color + '0E', border: `1px solid ${color}30`, borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Icon name={up ? 'trending_up' : 'trending_down'} size={15} style={{ color }} />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {a.contractorName}
+                    </span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color }}>
+                      {(a.deviation > 0 ? '+' : '') + Math.round(a.deviation * 100)}%
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
+                    Today {a.todayTotal} · avg {a.meanTotal}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* Kitchen throughput — last 7 days */}
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <Icon name="conveyor_belt" size={16} style={{ color: THEME.primary }} />
+          <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            Kitchen throughput — last 7 days
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '10px', marginBottom: '12px' }}>
+          {[
+            { label: 'Submitted', v: throughput.submitted, color: THEME.info,    icon: 'upload_file' },
+            { label: 'Approved',  v: throughput.approved,  color: THEME.warning, icon: 'thumb_up' },
+            { label: 'Confirmed', v: throughput.confirmed, color: THEME.success, icon: 'check_circle' },
+          ].map((x, i, arr) => (
+            <div key={x.label} style={{ padding: '10px 12px', background: x.color + '10', border: `1px solid ${x.color}22`, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Icon name={x.icon} size={18} style={{ color: x.color }} />
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: x.color, lineHeight: 1.1 }}>{x.v}</div>
+                <div style={{ fontSize: '11px', color: THEME.textLow }}>
+                  {x.label}{arr[0].v > 0 && i > 0 ? ` · ${Math.round((x.v / arr[0].v) * 100)}%` : ''}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {throughput.byPeriod && (
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '11px', color: THEME.textMed }}>
+            <span>Portions served (7d):</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              <Icon name="wb_sunny" size={12} style={{ color: THEME.breakfastClr }} /> {throughput.byPeriod.b} breakfast
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              <Icon name="light_mode" size={12} style={{ color: THEME.lunchClr }} /> {throughput.byPeriod.l} lunch
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              <Icon name="bedtime" size={12} style={{ color: THEME.supperClr }} /> {throughput.byPeriod.s} supper
+            </span>
+          </div>
+        )}
+      </Card>
 
       {/* Today */}
       <div>

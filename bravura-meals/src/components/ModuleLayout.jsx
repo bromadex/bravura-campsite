@@ -31,7 +31,9 @@ const PAGE_TITLES = {
   camp_occ_report:  'Occupancy Reports',
   // Meals
   meals_dashboard:  'Dashboard',
+  meals_forecasts:  'Meal Forecast',
   meals_entry:      'Daily Meal Entry',
+  meals_waste:      'Waste Report',
   meals_approvals:  'Approvals',
   meals_kitchen:    'Kitchen Verification',
   meals_flags:      'Flags & Queries',

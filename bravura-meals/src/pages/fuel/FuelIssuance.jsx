@@ -307,10 +307,42 @@ export default function FuelIssuance({ setPage }) {
     transactions, addTransaction, updatePump,
   } = useFuel()
 
-  const [form,       setFormState] = useState(BLANK)
-  const [saving,     setSaving]    = useState(false)
-  const [result,     setResult]    = useState(null)    // success screen
-  const [resultMeta, setResultMeta] = useState(null)   // labels for docket
+  const [form,          setFormState]   = useState(BLANK)
+  const [saving,        setSaving]      = useState(false)
+  const [result,        setResult]      = useState(null)
+  const [resultMeta,    setResultMeta]  = useState(null)
+  const [linkedRequest, setLinkedRequest] = useState(null)   // prefilled from FuelRequests
+  const [requireApproval, setRequireApproval] = useState(false)
+
+  // Load fuel settings and check require_approval flag
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase
+      .from('fuel_settings')
+      .select('require_approval')
+      .eq('site_id', currentSiteId)
+      .maybeSingle()
+      .then(({ data }) => setRequireApproval(Boolean(data?.require_approval)))
+  }, [currentSiteId])
+
+  // Check sessionStorage for a request prefill (set by FuelRequests "Issue" button)
+  useEffect(() => {
+    const raw = sessionStorage.getItem('fuel_request_prefill')
+    if (!raw) return
+    sessionStorage.removeItem('fuel_request_prefill')
+    try {
+      const req = JSON.parse(raw)
+      setLinkedRequest(req)
+      setFormState(prev => ({
+        ...prev,
+        asset_type:    req.asset_type    || 'vehicle',
+        vehicle_id:    req.vehicle_id    || '',
+        equipment_id:  req.equipment_id  || '',
+        litres_manual: req.quantity_requested ? String(req.quantity_requested) : '',
+        use_meter:     false,
+      }))
+    } catch { /* ignore malformed data */ }
+  }, [])
 
   if (!can('fuel.create')) return (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
@@ -404,6 +436,7 @@ export default function FuelIssuance({ setPage }) {
     if (form.asset_type === 'equipment' && !form.equipment_id) { showToast('Select equipment', 'red'); return }
     if (!form.operator_id) { showToast('Select an operator', 'red'); return }
     if (wouldOverdraw) { showToast(`Insufficient stock — only ${tankLevel.toFixed(1)} L available`, 'red'); return }
+    if (requireApproval && !linkedRequest) { showToast('An approved fuel request is required before issuing', 'red'); return }
 
     setSaving(true)
     try {
@@ -421,6 +454,18 @@ export default function FuelIssuance({ setPage }) {
         docket_number:     form.docket_number.trim() || null,
         notes:             form.notes.trim() || null,
       })
+
+      // If this issuance was raised against a fuel request, mark it as issued
+      if (linkedRequest?.request_id) {
+        await supabase
+          .from('fuel_requests')
+          .update({
+            status:               'issued',
+            issued_transaction_id: row.id,
+            issued_at:            new Date().toISOString(),
+          })
+          .eq('id', linkedRequest.request_id)
+      }
 
       // Update pump meter reading if a pump was selected and meter mode used
       if (form.pump_id && form.use_meter && form.meter_end) {
@@ -460,8 +505,8 @@ export default function FuelIssuance({ setPage }) {
         pumpName={resultMeta?.pumpName}
         assetLabel={resultMeta?.assetLabel}
         operatorName={resultMeta?.operatorName}
-        onIssueAnother={() => { setResult(null); setResultMeta(null); setFormState(BLANK) }}
-        onViewLedger={() => setPage('fuel_ledger')}
+        onIssueAnother={() => { setResult(null); setResultMeta(null); setLinkedRequest(null); setFormState(BLANK) }}
+        onViewLedger={() => setPage('fuel_transactions')}
       />
     )
   }
@@ -496,6 +541,54 @@ export default function FuelIssuance({ setPage }) {
         </div>
 
         <form onSubmit={submit}>
+          {/* Request reference banner — shown when prefilled from FuelRequests or required by settings */}
+          {(linkedRequest || requireApproval) && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '14px 16px', borderRadius: '12px', marginBottom: '20px',
+              background: linkedRequest ? FUEL_CLR + '14' : THEME.statusWarningBg,
+              border: `1px solid ${linkedRequest ? FUEL_CLR + '44' : THEME.warning + '55'}`,
+            }}>
+              <Icon name={linkedRequest ? 'link' : 'warning'} size={18} style={{ color: linkedRequest ? FUEL_CLR : THEME.warning, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                {linkedRequest ? (
+                  <>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: FUEL_CLR }}>
+                      Issuing against Request {linkedRequest.request_number}
+                    </div>
+                    <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '2px' }}>
+                      Vehicle/equipment and quantity pre-filled from the approved request. Adjust if needed.
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.warning }}>
+                      Approval required
+                    </div>
+                    <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '2px' }}>
+                      This site requires an approved fuel request before issuing.{' '}
+                      <span
+                        onClick={() => setPage('fuel_requests_list')}
+                        style={{ color: FUEL_CLR, cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        View requests
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+              {linkedRequest && (
+                <button
+                  type="button"
+                  onClick={() => { setLinkedRequest(null); setFormState(BLANK) }}
+                  title="Clear request link"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: '4px' }}
+                >
+                  <Icon name="close" size={16} />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* ── 1. Tank ─────────────────────────────────────────────────── */}
           <FieldWrap label="Tank" required>

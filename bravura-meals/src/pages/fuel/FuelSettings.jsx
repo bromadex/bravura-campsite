@@ -200,14 +200,14 @@ export default function FuelSettings() {
             </FieldWrap>
           </section>
 
-          {/* Pricing */}
+          {/* Cost Tracking */}
           <section style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '16px', padding: '20px 24px', marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Icon name="attach_money" size={15} style={{ color: THEME.success }} />
-              Pricing
+              <Icon name="monitoring" size={15} style={{ color: THEME.success }} />
+              Cost Tracking
             </div>
 
-            <FieldWrap label="Default Price Per Litre ($)" hint="Used to estimate cost on the issuance form when no delivery price is available. Leave blank to disable.">
+            <FieldWrap label="Internal Rate Per Litre ($)" hint="Used to estimate internal cost on the issuance form when no delivery rate is available. Leave blank to disable.">
               <input
                 type="number" min={0} step={0.0001} value={cfg.default_price_per_litre}
                 onChange={e => set('default_price_per_litre', e.target.value)}

@@ -199,6 +199,7 @@ export default function FuelDashboard({ setPage }) {
   const [alertDismissed, setAlertDismissed] = useState(false)
   const [pendingRequests, setPendingRequests] = useState(null)
   const [deliveryCost, setDeliveryCost] = useState(null)
+  const [anomalies, setAnomalies] = useState([])
 
   const today = new Date().toISOString().slice(0, 10)
   const thisMonth = today.slice(0, 7)
@@ -214,12 +215,12 @@ export default function FuelDashboard({ setPage }) {
     if (!currentSiteId) return
     const start = thisMonth + '-01'
     supabase.from('fuel_transactions')
-      .select('litres, unit_price_per_litre')
+      .select('litres, unit_price')
       .eq('site_id', currentSiteId)
       .eq('transaction_type', 'delivery')
       .gte('transaction_date', start)
       .then(({ data }) => {
-        const cost = (data || []).reduce((s, r) => s + (r.unit_price_per_litre && r.litres ? Number(r.unit_price_per_litre) * Number(r.litres) : 0), 0)
+        const cost = (data || []).reduce((s, r) => s + (r.unit_price && r.litres ? Number(r.unit_price) * Number(r.litres) : 0), 0)
         setDeliveryCost(cost)
       })
   }, [currentSiteId, thisMonth])
@@ -246,6 +247,139 @@ export default function FuelDashboard({ setPage }) {
       .filter(t => t.transaction_type === 'delivery' && t.transaction_date?.startsWith(thisMonth))
       .reduce((s, t) => s + Number(t.litres), 0),
   [transactions, thisMonth])
+
+  // Anomaly detection — runs after context data loads
+  useEffect(() => {
+    if (loading || !currentSiteId || !tanks.length) return
+    const found = []
+    const now = new Date()
+    const todayStr = now.toISOString().slice(0, 10)
+    const sevenDaysAgo = new Date(now - 7 * 86400000).toISOString().slice(0, 10)
+    const yesterday = new Date(now - 86400000).toISOString().slice(0, 10)
+    const twoDaysAgo = new Date(now - 2 * 86400000).toISOString().slice(0, 10)
+
+    // 1. Tanks with no dip reading in last 24h
+    const activeTankList = tanks.filter(t => t.status === 'active' && !t.is_archived)
+    for (const tank of activeTankList) {
+      const dip = latestDip(tank.id)
+      if (!dip || dip.reading_date < yesterday) {
+        found.push({
+          type: 'no_dip',
+          severity: 'warning',
+          icon: 'straighten',
+          title: 'No dip reading in 24 h',
+          detail: tank.name || tank.tank_name,
+          value: dip ? `Last: ${dip.reading_date}` : 'Never recorded',
+          action: 'fuel_dips',
+        })
+      }
+    }
+
+    // 2. Vehicle excessive consumption — 7 days (compute from context transactions)
+    const recentIssuances = transactions.filter(t =>
+      t.transaction_type === 'issuance' && t.vehicle_id && t.transaction_date >= sevenDaysAgo
+    )
+    const vMap = {}
+    for (const t of recentIssuances) {
+      if (!vMap[t.vehicle_id]) vMap[t.vehicle_id] = { litres: 0, km: 0, expected: null, label: '' }
+      vMap[t.vehicle_id].litres += Number(t.litres)
+      if (t.meter_start != null && t.meter_end != null) {
+        const km = Number(t.meter_end) - Number(t.meter_start)
+        if (km > 0) vMap[t.vehicle_id].km += km
+      }
+      if (!vMap[t.vehicle_id].label) {
+        const v = t.vehicle || t.fuel_vehicles
+        vMap[t.vehicle_id].label = v?.fleet_number || t.vehicle_id
+        vMap[t.vehicle_id].expected = v?.expected_consumption_lpkm ? Number(v.expected_consumption_lpkm) : null
+      }
+    }
+    for (const [, row] of Object.entries(vMap)) {
+      if (row.km > 0 && row.expected) {
+        const actual = row.litres / row.km
+        const ratio = actual / row.expected
+        if (ratio > 1.2) {
+          found.push({
+            type: 'excess_consumption',
+            severity: 'error',
+            icon: 'local_gas_station',
+            title: 'Excessive fuel consumption',
+            detail: row.label,
+            value: `${(ratio * 100).toFixed(0)}% of expected (7 days)`,
+            action: 'fuel_vehicle_consumption',
+          })
+        }
+      }
+    }
+
+    // 3. Operators with >10 issuances today
+    const MAX_ISSUANCES_PER_DAY = 10
+    const opToday = {}
+    for (const t of transactions.filter(t => t.transaction_type === 'issuance' && t.transaction_date === todayStr && t.operator_id)) {
+      opToday[t.operator_id] = (opToday[t.operator_id] || { count: 0, name: '' })
+      opToday[t.operator_id].count += 1
+      if (!opToday[t.operator_id].name) opToday[t.operator_id].name = t.operator?.full_name || t.operator_id
+    }
+    for (const [, op] of Object.entries(opToday)) {
+      if (op.count > MAX_ISSUANCES_PER_DAY) {
+        found.push({
+          type: 'operator_volume',
+          severity: 'warning',
+          icon: 'badge',
+          title: 'High issuance volume',
+          detail: op.name,
+          value: `${op.count} issuances today (limit: ${MAX_ISSUANCES_PER_DAY})`,
+          action: 'fuel_issues',
+        })
+      }
+    }
+
+    // 4 & 5. Unconfirmed deliveries >48h + dip variance — async checks
+    supabase.from('fuel_transactions')
+      .select('id, transaction_date, tank:fuel_tanks(tank_name), created_at')
+      .eq('site_id', currentSiteId)
+      .eq('transaction_type', 'delivery')
+      .is('approved_at', null)
+      .lte('transaction_date', twoDaysAgo)
+      .then(({ data: unconfirmed }) => {
+        for (const d of (unconfirmed || [])) {
+          found.push({
+            type: 'unconfirmed_delivery',
+            severity: 'warning',
+            icon: 'local_shipping',
+            title: 'Delivery awaiting confirmation',
+            detail: d.tank?.tank_name || '—',
+            value: `Recorded ${d.transaction_date} — unconfirmed >48 h`,
+            action: 'fuel_receipts',
+          })
+        }
+      })
+
+    supabase.from('fuel_dip_readings')
+      .select('tank_id, variance_percent, reading_date, tank:fuel_tanks(tank_name)')
+      .eq('site_id', currentSiteId)
+      .not('variance_percent', 'is', null)
+      .gte('reading_date', sevenDaysAgo)
+      .then(({ data: dips }) => {
+        const seen = new Set()
+        for (const d of (dips || [])) {
+          if (!seen.has(d.tank_id) && Math.abs(Number(d.variance_percent)) > 5) {
+            seen.add(d.tank_id)
+            found.push({
+              type: 'dip_variance',
+              severity: 'error',
+              icon: 'compare_arrows',
+              title: 'High dip variance',
+              detail: d.tank?.tank_name || '—',
+              value: `${Number(d.variance_percent).toFixed(1)}% on ${d.reading_date}`,
+              action: 'fuel_report_variance',
+            })
+          }
+        }
+        setAnomalies([...found])
+      })
+
+    setAnomalies([...found])
+  }, [loading, currentSiteId, tanks, transactions, latestDip])
 
   // 7-day daily issuance for bar chart
   const sevenDayData = useMemo(() => {
@@ -418,6 +552,39 @@ export default function FuelDashboard({ setPage }) {
           </button>
         ))}
       </div>
+
+      {/* Anomalies */}
+      {anomalies.length > 0 && (
+        <div style={{ background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px', marginBottom: '24px', boxShadow: THEME.shadow1 }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Icon name="warning" size={15} style={{ color: THEME.warning }} />
+            Anomaly Alerts ({anomalies.length})
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {anomalies.map((a, i) => {
+              const isError = a.severity === 'error'
+              const bc = isError ? THEME.statusErrorBg : THEME.statusWarningBg
+              const tc = isError ? THEME.statusErrorText : THEME.statusWarningText
+              return (
+                <div
+                  key={i}
+                  onClick={() => setPage(a.action)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: bc, borderRadius: '10px', cursor: 'pointer', border: `1px solid ${tc}20` }}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = '.85' }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+                >
+                  <Icon name={a.icon} size={18} style={{ color: tc, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: tc }}>{a.title}</div>
+                    <div style={{ fontSize: '12px', color: tc, opacity: .8 }}>{a.detail} — {a.value}</div>
+                  </div>
+                  <Icon name="chevron_right" size={16} style={{ color: tc, flexShrink: 0 }} />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tank level overview */}
       {activeTanks.length === 0 ? (

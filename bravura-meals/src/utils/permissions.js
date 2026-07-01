@@ -187,6 +187,8 @@ export function fuelNav(role, can) {
     { id: 'fuel_report_monthly',    label: 'Monthly Consumption', section: 'Reports', icon: 'bar_chart',         show: can('fuel.view') },
     { id: 'fuel_report_deliveries', label: 'Delivery Report',     section: 'Reports', icon: 'local_gas_station', show: can('fuel.view') },
     { id: 'fuel_report_variance',   label: 'Variance Report',     section: 'Reports', icon: 'compare_arrows',    show: can('fuel.view') },
+    { id: 'fuel_vehicle_consumption', label: 'Vehicle Consumption', section: 'Analytics', icon: 'directions_car',  show: can('fuel.view') },
+    { id: 'fuel_cost_allocation',    label: 'Cost Allocation',     section: 'Analytics', icon: 'account_balance', show: can('fuel.view') },
     { id: 'fuel_reports',       label: 'Legacy Reports',    section: 'Reports',  icon: 'analytics',      show: can('fuel.view')   },
     { id: 'fuel_tanks',        label: 'Tanks',              section: 'Assets',   icon: 'propane_tank',      show: can('fuel.view') },
     { id: 'fuel_types',        label: 'Fuel Types',         section: 'Admin',    icon: 'oil_barrel',        show: can('fuel.edit') },

@@ -70,6 +70,8 @@ const PAGE_TITLES = {
   fuel_report_monthly:       'Monthly Consumption Report',
   fuel_report_deliveries:    'Delivery Report',
   fuel_report_variance:      'Variance Report',
+  fuel_vehicle_consumption:  'Vehicle Consumption Analysis',
+  fuel_cost_allocation:      'Department Cost Allocation',
 }
 
 export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navItems, page, setPage, onHome, children }) {

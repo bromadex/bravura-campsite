@@ -21,12 +21,34 @@ const ALL_MODULES = [
   { id: 'feedback',  label: 'Feedback',             icon: 'forum',                color: MODULE_COLORS.feedback,  access: moduleAccess.feedback  },
 ]
 
+// Simple viewport tracker so inline styles can respond to breakpoints.
+// mobile < 640, tablet 640–1023, desktop ≥ 1024.
+function useViewport() {
+  const get = () => {
+    if (typeof window === 'undefined') return 'desktop'
+    const w = window.innerWidth
+    if (w < 640)  return 'mobile'
+    if (w < 1024) return 'tablet'
+    return 'desktop'
+  }
+  const [vp, setVp] = useState(get)
+  useEffect(() => {
+    const onResize = () => setVp(get())
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  return vp
+}
+
 export default function HomeLauncher({ onEnterModule }) {
   const { profile, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { can } = usePermissions()
   const { currentSite } = useSite()
   const role = profile?.role
+  const vp = useViewport()
+  const isMobile = vp === 'mobile'
+  const isTablet = vp === 'tablet'
 
   const [notifOpen,     setNotifOpen]     = useState(false)
   const [notifications, setNotifications] = useState([])
@@ -80,12 +102,16 @@ export default function HomeLauncher({ onEnterModule }) {
       {/* ── Top Bar ── */}
       <div style={{
         background: 'linear-gradient(90deg, #7A1B20 0%, #982329 55%, #7A1B20 100%)',
-        padding: '0 24px',
+        padding: isMobile ? '0 12px' : '0 24px',
         height: '64px',
         display: 'grid',
-        gridTemplateColumns: '1fr minmax(320px, 520px) 1fr',
+        gridTemplateColumns: isMobile
+          ? 'auto 1fr'
+          : isTablet
+            ? 'auto 1fr auto'
+            : '1fr minmax(320px, 520px) 1fr',
         alignItems: 'center',
-        gap: '24px',
+        gap: isMobile ? '8px' : '24px',
         borderBottom: '1px solid rgba(0,0,0,.18)',
         boxShadow: '0 2px 8px rgba(120,20,25,.25)',
         flexShrink: 0,
@@ -97,11 +123,14 @@ export default function HomeLauncher({ onEnterModule }) {
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700, letterSpacing: '.06em', lineHeight: 1.1 }}>BRAVURA</div>
-            <div style={{ color: 'rgba(255,255,255,.42)', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '2px' }}>Enterprise Resource Planning</div>
+            {!isMobile && (
+              <div style={{ color: 'rgba(255,255,255,.42)', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '2px' }}>Enterprise Resource Planning</div>
+            )}
           </div>
         </div>
 
-        {/* Center: Global command bar */}
+        {/* Center: Global command bar — desktop only */}
+        {!isMobile && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
           background: 'rgba(255,255,255,.07)',
@@ -138,12 +167,13 @@ export default function HomeLauncher({ onEnterModule }) {
             <span>⌘</span><span>K</span>
           </div>
         </div>
+        )}
 
         {/* Right controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', justifyContent: 'flex-end' }}>
-          <SiteSwitcher />
+          {!isMobile && <SiteSwitcher />}
 
-          <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,.10)', margin: '0 8px' }} />
+          {!isMobile && <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,.10)', margin: '0 8px' }} />}
 
           {/* Bell */}
           <button
@@ -169,16 +199,18 @@ export default function HomeLauncher({ onEnterModule }) {
             <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>{theme === 'light' ? 'dark_mode' : 'light_mode'}</span>
           </button>
 
-          <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,.10)', margin: '0 8px' }} />
+          {!isMobile && <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,.10)', margin: '0 8px' }} />}
 
-          {/* Avatar + name pill */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 10px 4px 4px', borderRadius: '999px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)' }}>
+          {/* Avatar + name pill (name hidden on mobile) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: isMobile ? '4px' : '4px 10px 4px 4px', borderRadius: '999px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)' }}>
             <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: `linear-gradient(135deg, ${MODULE_COLORS.workforce || '#6366F1'}, ${MODULE_COLORS.fuel || '#D97706'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
               {(profile?.full_name || profile?.username || '?').charAt(0).toUpperCase()}
             </div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#fff', lineHeight: 1.1 }}>
-              {profile?.full_name?.split(' ')[0] || profile?.username}
-            </div>
+            {!isMobile && (
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#fff', lineHeight: 1.1 }}>
+                {profile?.full_name?.split(' ')[0] || profile?.username}
+              </div>
+            )}
           </div>
 
           {/* Sign out */}
@@ -204,16 +236,22 @@ export default function HomeLauncher({ onEnterModule }) {
           </p>
         </div>
 
-        {/* Module tiles — 5 per row */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${Math.min(visible.length, 5)}, minmax(0, 1fr))`,
-          gap: '14px',
-          width: '100%',
-          maxWidth: `${Math.min(visible.length, 5) * 170}px`,
-        }}>
-          {visible.map(mod => <ModuleTile key={mod.id} mod={mod} onClick={() => onEnterModule(mod.id)} />)}
-        </div>
+        {/* Module tiles — responsive: 2 cols mobile, 3 tablet, 5 desktop */}
+        {(() => {
+          const perRow = isMobile ? 2 : isTablet ? 3 : 5
+          const cols   = Math.min(visible.length, perRow)
+          return (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+              gap: isMobile ? '12px' : '14px',
+              width: '100%',
+              maxWidth: `${cols * (isMobile ? 160 : 170)}px`,
+            }}>
+              {visible.map(mod => <ModuleTile key={mod.id} mod={mod} onClick={() => onEnterModule(mod.id)} />)}
+            </div>
+          )
+        })()}
       </div>
 
       {/* ── Footer ── */}
@@ -335,6 +373,10 @@ function ModuleTile({ mod, onClick }) {
         color: THEME.text,
         lineHeight: 1.25,
         letterSpacing: '-.005em',
+        wordBreak: 'break-word',
+        hyphens: 'auto',
+        padding: '0 4px',
+        width: '100%',
       }}>
         {mod.label}
       </div>

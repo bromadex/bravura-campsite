@@ -24,10 +24,12 @@ const PAGE_TITLES = {
   wf_reports:      'Employee Reports',
   // Campsite
   camp_headcount:   'Headcount Dashboard',
+  camp_floorplan:   'Visual Layout',
   camp_assignments: 'Room Assignments',
   camp_rooms:       'Rooms',
   camp_blocks:      'Blocks',
   camp_supplies:    'Camp Supplies',
+  camp_transfers:   'Stock Transfers',
   camp_occ_report:  'Occupancy Reports',
   // Meals
   meals_dashboard:  'Dashboard',
@@ -79,12 +81,25 @@ meals_finance_export: 'Meal Finance Export',
   feedback_board:   'Feedback Board',
 }
 
+function useIsMobile() {
+  const get = () => typeof window !== 'undefined' && window.innerWidth < 768
+  const [m, setM] = useState(get)
+  useEffect(() => {
+    const on = () => setM(get())
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
+  }, [])
+  return m
+}
+
 export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navItems, page, setPage, onHome, children }) {
   const { profile, signOut } = useAuth()
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const role = profile?.role
+  const isMobile = useIsMobile()
   const [collapsed,      setCollapsed]      = useState(false)
+  const [mobileNavOpen,  setMobileNavOpen]  = useState(false)
   const [flagCount,      setFlagCount]      = useState(0)
   const [notifOpen,      setNotifOpen]      = useState(false)
   const [notifications,  setNotifications]  = useState([])
@@ -153,23 +168,44 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
       })
   }, [moduleId, currentSiteId, can])
 
+  // On mobile, tapping a nav item should also close the drawer.
+  const navigate = (p) => { setPage(p); if (isMobile) setMobileNavOpen(false) }
+  const navHome  = () => { onHome();   if (isMobile) setMobileNavOpen(false) }
+
+  const sidebarWidth = isMobile ? '260px' : (collapsed ? '68px' : '236px')
+  // On mobile the drawer is always expanded (shows full labels).
+  const showLabels = isMobile ? true : !collapsed
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif" }}>
 
+      {/* Mobile backdrop */}
+      {isMobile && mobileNavOpen && (
+        <div
+          onClick={() => setMobileNavOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 150 }}
+        />
+      )}
+
       {/* ── Sidebar ── */}
       <nav style={{
-        width: collapsed ? '68px' : '236px',
+        width: sidebarWidth,
         background: THEME.sidebar,
         display: 'flex', flexDirection: 'column', flexShrink: 0,
-        transition: 'width 0.25s cubic-bezier(.4,0,.2,1)',
+        transition: isMobile ? 'transform 0.25s cubic-bezier(.4,0,.2,1)' : 'width 0.25s cubic-bezier(.4,0,.2,1)',
         overflow: 'hidden',
+        ...(isMobile ? {
+          position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 160,
+          transform: mobileNavOpen ? 'translateX(0)' : 'translateX(-100%)',
+          boxShadow: mobileNavOpen ? '4px 0 24px rgba(0,0,0,.35)' : 'none',
+        } : {}),
       }}>
         {/* Module identity */}
         <div style={{
-          padding: collapsed ? '16px 0 14px' : '16px 14px 14px',
+          padding: showLabels ? '16px 14px 14px' : '16px 0 14px',
           borderBottom: '1px solid rgba(255,255,255,.07)',
           display: 'flex', alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start', gap: '10px',
+          justifyContent: showLabels ? 'flex-start' : 'center', gap: '10px',
         }}>
           <div style={{
             width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0,
@@ -178,7 +214,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
           }}>
             <Icon name={moduleIcon} size={20} style={{ color: '#fff' }} />
           </div>
-          {!collapsed && (
+          {showLabels && (
             <div>
               <div style={{ color: '#fff', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 }}>
                 {moduleLabel}
@@ -192,29 +228,29 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
 
         {/* Home button */}
         <div
-          onClick={onHome}
+          onClick={navHome}
           title="Back to Home"
           style={{
             display: 'flex', alignItems: 'center', gap: '10px',
-            padding: collapsed ? '10px 0' : '9px 14px',
+            padding: showLabels ? '9px 14px' : '10px 0',
             margin: '6px 8px 2px',
             borderRadius: '10px', cursor: 'pointer',
             color: 'rgba(255,255,255,.5)',
             transition: 'all .15s',
-            justifyContent: collapsed ? 'center' : 'flex-start',
+            justifyContent: showLabels ? 'flex-start' : 'center',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = '#fff' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.5)' }}
         >
           <Icon name="home" size={18} style={{ color: 'inherit', flexShrink: 0 }} />
-          {!collapsed && <span style={{ fontSize: '12px', fontWeight: 500 }}>Home</span>}
+          {showLabels && <span style={{ fontSize: '12px', fontWeight: 500 }}>Home</span>}
         </div>
 
         {/* Nav items */}
         <div style={{ flex: 1, padding: '4px 0', overflowY: 'auto' }}>
           {sections.map(({ section, items }) => (
             <div key={section}>
-              {!collapsed && (
+              {showLabels && (
                 <div style={{
                   padding: '12px 16px 3px', fontSize: '9px', fontWeight: 600,
                   color: 'rgba(255,255,255,.25)', letterSpacing: '.12em', textTransform: 'uppercase',
@@ -227,15 +263,15 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 return (
                   <div
                     key={item.id}
-                    onClick={() => setPage(item.id)}
-                    title={collapsed ? item.label : ''}
+                    onClick={() => navigate(item.id)}
+                    title={!showLabels ? item.label : ''}
                     style={{
                       display: 'flex', alignItems: 'center',
-                      gap: collapsed ? 0 : '11px',
-                      padding: collapsed ? '10px 0' : '9px 12px',
+                      gap: showLabels ? '11px' : 0,
+                      padding: showLabels ? '9px 12px' : '10px 0',
                       margin: '1px 8px', borderRadius: '12px',
                       cursor: 'pointer',
-                      justifyContent: collapsed ? 'center' : 'flex-start',
+                      justifyContent: showLabels ? 'flex-start' : 'center',
                       background: isActive ? `${color}28` : 'transparent',
                       color: isActive ? '#fff' : 'rgba(255,255,255,.62)',
                       transition: 'background .15s', userSelect: 'none',
@@ -252,7 +288,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                       }} />
                     )}
                     <Icon name={item.icon} size={19} style={{ color: 'inherit', flexShrink: 0 }} />
-                    {!collapsed && (
+                    {showLabels && (
                       <span style={{ fontSize: '13px', fontWeight: isActive ? 600 : 400, flex: 1 }}>
                         {item.label}
                       </span>
@@ -276,10 +312,10 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
 
         {/* User footer */}
         <div style={{
-          padding: collapsed ? '10px 0' : '10px 12px',
+          padding: showLabels ? '10px 12px' : '10px 0',
           borderTop: '1px solid rgba(255,255,255,.07)',
           display: 'flex', alignItems: 'center', gap: '8px',
-          justifyContent: collapsed ? 'center' : 'flex-start',
+          justifyContent: showLabels ? 'flex-start' : 'center',
         }}>
           <div style={{
             width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0,
@@ -289,7 +325,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
           }}>
             {(profile?.full_name || profile?.username || '?').charAt(0).toUpperCase()}
           </div>
-          {!collapsed && (
+          {showLabels && (
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: 'rgba(255,255,255,.85)', fontSize: '12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {profile?.full_name || profile?.username}
@@ -318,39 +354,50 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
         <div style={{
           background: THEME.surface,
           borderBottom: `1px solid ${THEME.outlineVar}`,
-          padding: '0 16px', height: '60px',
+          padding: isMobile ? '0 8px' : '0 16px', height: '60px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexShrink: 0, boxShadow: THEME.shadow1,
+          flexShrink: 0, boxShadow: THEME.shadow1, gap: '8px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button onClick={() => setCollapsed(c => !c)} style={{
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              color: THEME.textMed, borderRadius: '50%', width: '38px', height: '38px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+            <button
+              onClick={() => isMobile ? setMobileNavOpen(true) : setCollapsed(c => !c)}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                color: THEME.textMed, borderRadius: '50%', width: '38px', height: '38px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}
+            >
               <Icon name="menu" size={22} />
             </button>
-            {/* Breadcrumb */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span
-                onClick={onHome}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  fontSize: '12px', fontWeight: 500, color, cursor: 'pointer',
-                  padding: '3px 10px', borderRadius: '6px', background: color + '14',
-                }}
-              >
-                <Icon name={moduleIcon} size={13} style={{ color }} />
-                {moduleLabel}
-              </span>
-              <Icon name="chevron_right" size={16} style={{ color: THEME.textLow }} />
-              <span style={{ fontSize: '17px', fontWeight: 400, color: THEME.text }}>
+            {/* Breadcrumb — collapses to just the page title on mobile */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
+              {!isMobile && (
+                <>
+                  <span
+                    onClick={onHome}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      fontSize: '12px', fontWeight: 500, color, cursor: 'pointer',
+                      padding: '3px 10px', borderRadius: '6px', background: color + '14',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon name={moduleIcon} size={13} style={{ color }} />
+                    {moduleLabel}
+                  </span>
+                  <Icon name="chevron_right" size={16} style={{ color: THEME.textLow, flexShrink: 0 }} />
+                </>
+              )}
+              <span style={{
+                fontSize: isMobile ? '15px' : '17px', fontWeight: isMobile ? 600 : 400, color: THEME.text,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
                 {PAGE_TITLES[page] || page}
               </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '2px' : '8px', flexShrink: 0 }}>
             {/* Notification bell */}
             <button
               onClick={() => setNotifOpen(o => !o)}
@@ -364,17 +411,19 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 </span>
               )}
             </button>
-            <SiteSwitcher />
+            {!isMobile && <SiteSwitcher />}
             <ThemeToggle size="sm" />
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              padding: '5px 12px', borderRadius: '6px',
-              background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`,
-              fontSize: '12px', fontWeight: 500, color: THEME.textMed,
-            }}>
-              <Icon name="calendar_today" size={13} style={{ color }} />
-              {new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
-            </div>
+            {!isMobile && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
+                padding: '5px 12px', borderRadius: '6px',
+                background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`,
+                fontSize: '12px', fontWeight: 500, color: THEME.textMed,
+              }}>
+                <Icon name="calendar_today" size={13} style={{ color }} />
+                {new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+              </div>
+            )}
             {flagCount > 0 && (
               <div onClick={() => setPage('meals_flags')} style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
@@ -390,7 +439,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', background: THEME.bg }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px' : '24px', background: THEME.bg }}>
           {children}
         </div>
       </div>

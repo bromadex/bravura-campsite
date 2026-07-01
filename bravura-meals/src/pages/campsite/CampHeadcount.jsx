@@ -2,29 +2,36 @@ import { useCampsite } from '../../contexts/CampsiteContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Icon, PageHeader } from '../../components/ui'
+import {
+  computeViewBox,
+  getRoomOccupancyStatus,
+  roomOccupancy,
+  ROOM_STATUS_COLORS,
+} from './floorplan/geometry'
 
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
 
+// ── Compact KPI tile ──────────────────────────────────────────────────────────
 function KPICard({ label, value, icon, color, sub }) {
   return (
     <div style={{
       background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-      borderRadius: '10px', padding: '20px',
+      borderRadius: '10px', padding: '16px 18px',
       boxShadow: '0 1px 2px rgba(0,0,0,.03)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '8px' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '6px', whiteSpace: 'nowrap' }}>
             {label}
           </div>
-          <div style={{ fontSize: '36px', fontWeight: 300, color: color || THEME.primary, lineHeight: 1 }}>
+          <div style={{ fontSize: '30px', fontWeight: 300, color: color || THEME.primary, lineHeight: 1 }}>
             {value}
           </div>
-          {sub && <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '6px' }}>{sub}</div>}
+          {sub && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>{sub}</div>}
         </div>
         {icon && (
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: (color || THEME.primary) + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={icon} size={22} style={{ color: color || THEME.primary }} />
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: (color || THEME.primary) + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name={icon} size={18} style={{ color: color || THEME.primary }} />
           </div>
         )}
       </div>
@@ -32,9 +39,148 @@ function KPICard({ label, value, icon, color, sub }) {
   )
 }
 
+// ── Small status chip ─────────────────────────────────────────────────────────
+function Chip({ label, color }) {
+  return (
+    <div style={{
+      padding: '3px 9px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+      background: color + '18', color, border: `1px solid ${color}30`,
+    }}>
+      {label}
+    </div>
+  )
+}
+
+// ── Read-only block floorplan minimap ─────────────────────────────────────────
+function BlockMinimap({ block, rooms, assignments }) {
+  const activeAssignments = assignments.filter(a => a.status === 'active')
+  const blockRooms = rooms.filter(r => r.block_id === block.id && r.pos_x != null)
+
+  const boardW = Number(block.floorplan_width)  || 20000
+  const boardH = Number(block.floorplan_height) || 10000
+  const viewBox = computeViewBox(boardW, boardH)
+
+  const occupied   = activeAssignments.filter(a => blockRooms.some(r => r.id === a.room_id)).length
+  const totalBeds  = blockRooms.reduce((s, r) => s + (r.capacity || 0), 0)
+  const available  = totalBeds - occupied
+  const maintenance = blockRooms.filter(r => r.is_maintenance || r.room_type === 'maintenance').length
+  const occPct     = totalBeds > 0 ? Math.round(occupied / totalBeds * 100) : 0
+  const occColor   = occPct > 90 ? THEME.error : occPct > 70 ? THEME.warning : THEME.success
+
+  return (
+    <Card style={{ overflow: 'hidden', padding: 0 }}>
+      {/* Header */}
+      <div style={{
+        padding: '14px 18px', borderBottom: `1px solid ${THEME.outlineVar}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: THEME.surface,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: 38, height: 38, borderRadius: '10px', background: THEME.primary + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="apartment" size={20} style={{ color: THEME.primary }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text }}>{block.name}</div>
+            <div style={{ fontSize: '11px', color: THEME.textLow }}>{blockRooms.length} rooms · {totalBeds} beds</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <Chip label={`${occupied} occupied`}  color={THEME.error} />
+          <Chip label={`${available} free`}     color={THEME.success} />
+          {maintenance > 0 && <Chip label={`${maintenance} maint.`} color={THEME.warning} />}
+          <Chip label={`${occPct}%`}            color={occColor} />
+        </div>
+      </div>
+
+      {/* Occupancy progress bar */}
+      <div style={{ height: '4px', background: THEME.outlineVar }}>
+        <div style={{ height: '100%', width: `${Math.min(occPct, 100)}%`, background: occColor, transition: 'width .5s ease' }} />
+      </div>
+
+      {/* SVG canvas */}
+      {blockRooms.length === 0 ? (
+        <div style={{ padding: '48px 24px', textAlign: 'center', color: THEME.textLow, background: THEME.bg }}>
+          <Icon name="view_in_ar" size={36} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
+          <div style={{ fontSize: '13px' }}>No layout configured yet</div>
+        </div>
+      ) : (
+        <svg
+          viewBox={viewBox}
+          width="100%"
+          style={{ display: 'block', maxHeight: '340px', background: THEME.bg }}
+        >
+          {/* Building outer shell */}
+          <rect x={0} y={0} width={boardW} height={boardH} fill="#FAFAFA" stroke="#37474F" strokeWidth={40} />
+
+          {/* Block name — centered watermark */}
+          <text
+            x={boardW / 2} y={boardH / 2}
+            textAnchor="middle" dominantBaseline="middle"
+            fontSize={boardH * 0.09} fontWeight="900"
+            fill="rgba(0,0,0,0.05)"
+            style={{ fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif", userSelect: 'none' }}
+          >
+            {block.name.toUpperCase()}
+          </text>
+
+          {/* Rooms */}
+          {blockRooms.map(room => {
+            const status = getRoomOccupancyStatus(room, activeAssignments)
+            const colors = ROOM_STATUS_COLORS[status]
+            const occ    = roomOccupancy(room, activeAssignments)
+            const { pos_x: rx, pos_y: ry, width: rw, height: rh } = room
+            if (rx == null || ry == null || rw == null || rh == null) return null
+            const labelFs = Math.min(rw, rh) * 0.22
+            const subFs   = Math.min(rw, rh) * 0.11
+            return (
+              <g key={room.id}>
+                <rect x={rx} y={ry} width={rw} height={rh}
+                  fill={colors.fill} stroke={colors.stroke} strokeWidth={28} rx={20}
+                />
+                <text
+                  x={rx + rw / 2} y={ry + rh / 2 - subFs * 0.6}
+                  textAnchor="middle" dominantBaseline="middle"
+                  fontSize={labelFs} fontWeight="700" fill={colors.label}
+                  style={{ fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif", userSelect: 'none' }}
+                >
+                  {room.room_number}
+                </text>
+                <text
+                  x={rx + rw / 2} y={ry + rh / 2 + subFs * 1.3}
+                  textAnchor="middle" dominantBaseline="middle"
+                  fontSize={subFs} fontWeight="600" fill={colors.label} opacity={0.85}
+                  style={{ fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif", userSelect: 'none' }}
+                >
+                  {room.room_type === 'store'       ? 'STORE'
+                    : room.room_type === 'maintenance' ? 'WORK'
+                    : `${occ}/${room.capacity}`}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+      )}
+
+      {/* Legend */}
+      <div style={{
+        padding: '8px 18px', borderTop: `1px solid ${THEME.outlineVar}`,
+        display: 'flex', gap: '14px', flexWrap: 'wrap', background: THEME.surfaceVar,
+      }}>
+        {Object.entries(ROOM_STATUS_COLORS).map(([st, cl]) => (
+          <div key={st} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: THEME.textMed }}>
+            <div style={{ width: 10, height: 10, borderRadius: '3px', background: cl.fill, border: `1.5px solid ${cl.stroke}` }} />
+            {st.charAt(0).toUpperCase() + st.slice(1)}
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+// ── Main dashboard ────────────────────────────────────────────────────────────
 export default function CampHeadcount() {
   const { currentSite } = useSite()
-  const { kpis, employees, contractors, assignments, loading } = useCampsite()
+  const { kpis, blocks, employees, contractors, rooms, assignments, loading } = useCampsite()
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px', color: THEME.textLow, gap: '10px' }}>
@@ -42,19 +188,14 @@ export default function CampHeadcount() {
     </div>
   )
 
-  // Contractor breakdown
-  const contractorMap = {}
-  contractors.forEach(c => { contractorMap[c.id] = c })
+  // ── Contractor breakdown ──────────────────────────────────────────────────
   const coBreakdown = contractors.map((c, i) => {
     const empCount = employees.filter(e => e.contractor_id === c.id).length
-    const resCount = assignments.filter(a =>
-      a.status === 'active' &&
-      a.employee?.contractor_id === c.id
-    ).length
+    const resCount = assignments.filter(a => a.status === 'active' && a.employee?.contractor_id === c.id).length
     return { ...c, empCount, resCount, color: CO_COLORS[i % CO_COLORS.length] }
   }).filter(c => c.empCount > 0)
 
-  const occupancyBar = Math.min(kpis.occupancyPct, 100)
+  const occupancyBar   = Math.min(kpis.occupancyPct, 100)
   const occupancyColor = occupancyBar > 90 ? THEME.error : occupancyBar > 70 ? THEME.warning : THEME.success
 
   return (
@@ -80,16 +221,14 @@ export default function CampHeadcount() {
         }
       />
 
-      {/* Main KPI grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '14px', marginBottom: '24px' }}>
-        <KPICard label="Total Employees"     value={kpis.totalEmployees}   icon="badge"          color={THEME.primary} />
-        <KPICard label="Total Contractors"   value={kpis.totalContractors} icon="business"       color="#1558A6" />
-        <KPICard label="Camp Residents"      value={kpis.totalResidents}   icon="hotel"          color="#1A6B52" />
-        <KPICard label="Occupied Rooms"      value={kpis.occupiedRooms}    icon="door_front"     color={THEME.error} />
-        <KPICard label="Available Rooms"     value={kpis.availableRooms}   icon="meeting_room"   color={THEME.success} />
-        <KPICard label="Maintenance Rooms"   value={kpis.maintenanceRooms} icon="construction"   color={THEME.warning} />
-        <KPICard label="On Short Leave"      value={kpis.onShortLeave}     icon="schedule"       color={THEME.warning} sub="Room kept" />
-        <KPICard label="On Long Leave"       value={kpis.onLongLeave}      icon="flight_takeoff" color="#5E35B1" sub="Room released" />
+      {/* KPI row — 7 tiles, single row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '12px', marginBottom: '24px' }}>
+        <KPICard label="Camp Residents"    value={kpis.totalResidents}   icon="hotel"          color="#1A6B52" />
+        <KPICard label="Occupied Rooms"    value={kpis.occupiedRooms}    icon="door_front"     color={THEME.error} />
+        <KPICard label="Available Rooms"   value={kpis.availableRooms}   icon="meeting_room"   color={THEME.success} />
+        <KPICard label="Maintenance Rooms" value={kpis.maintenanceRooms} icon="construction"   color={THEME.warning} />
+        <KPICard label="On Short Leave"    value={kpis.onShortLeave}     icon="schedule"       color={THEME.warning} sub="Room kept" />
+        <KPICard label="On Long Leave"     value={kpis.onLongLeave}      icon="flight_takeoff" color="#5E35B1" sub="Room released" />
         <KPICard
           label="Occupancy Rate"
           value={`${kpis.occupancyPct}%`}
@@ -99,7 +238,26 @@ export default function CampHeadcount() {
         />
       </div>
 
-      {/* Occupancy bar */}
+      {/* Block minimaps — one card per block, 2-column grid */}
+      {blocks.length > 0 && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: blocks.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+          gap: '16px',
+          marginBottom: '24px',
+        }}>
+          {blocks.map(block => (
+            <BlockMinimap
+              key={block.id}
+              block={block}
+              rooms={rooms}
+              assignments={assignments}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Occupancy progress bar card */}
       <Card style={{ marginBottom: '20px', padding: '20px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <div style={{ fontSize: '14px', fontWeight: 500, color: THEME.text }}>Room Occupancy</div>
@@ -120,7 +278,7 @@ export default function CampHeadcount() {
         </div>
       </Card>
 
-      {/* By contractor */}
+      {/* Contractor breakdown + Leave status */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <Card elevated>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
@@ -159,9 +317,9 @@ export default function CampHeadcount() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {[
-              { label: 'Active on Site',   value: employees.filter(e => e.status === 'active').length,            color: THEME.success,  icon: 'check_circle' },
-              { label: 'Short Leave',      value: kpis.onShortLeave,                                              color: THEME.warning,  icon: 'schedule' },
-              { label: 'Long Leave',       value: kpis.onLongLeave,                                               color: THEME.statusTertiaryText,      icon: 'flight_takeoff' },
+              { label: 'Active on Site', value: employees.filter(e => e.status === 'active').length, color: THEME.success, icon: 'check_circle' },
+              { label: 'Short Leave',    value: kpis.onShortLeave,                                   color: THEME.warning, icon: 'schedule' },
+              { label: 'Long Leave',     value: kpis.onLongLeave,                                    color: THEME.statusTertiaryText, icon: 'flight_takeoff' },
             ].map(row => (
               <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: THEME.surfaceVar, borderRadius: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

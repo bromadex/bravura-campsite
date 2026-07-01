@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
@@ -8,6 +9,7 @@ import {
   roomOccupancy,
   ROOM_STATUS_COLORS,
 } from './floorplan/geometry'
+import RoomTooltip from './floorplan/RoomTooltip'
 
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
 
@@ -52,7 +54,7 @@ function Chip({ label, color }) {
 }
 
 // ── Read-only block floorplan minimap ─────────────────────────────────────────
-function BlockMinimap({ block, rooms, assignments }) {
+function BlockMinimap({ block, rooms, assignments, onRoomHover, onRoomLeave }) {
   const activeAssignments = assignments.filter(a => a.status === 'active')
   const blockRooms = rooms.filter(r => r.block_id === block.id && r.pos_x != null)
 
@@ -133,7 +135,13 @@ function BlockMinimap({ block, rooms, assignments }) {
             const labelFs = Math.min(rw, rh) * 0.22
             const subFs   = Math.min(rw, rh) * 0.11
             return (
-              <g key={room.id}>
+              <g
+                key={room.id}
+                style={{ cursor: 'pointer', transition: 'filter .15s' }}
+                onMouseEnter={e => { onRoomHover?.(room); e.currentTarget.style.filter = 'brightness(0.94)' }}
+                onMouseMove={e => onRoomHover?.(room, e.clientX, e.clientY)}
+                onMouseLeave={e => { onRoomLeave?.(); e.currentTarget.style.filter = '' }}
+              >
                 <rect x={rx} y={ry} width={rw} height={rh}
                   fill={colors.fill} stroke={colors.stroke} strokeWidth={28} rx={20}
                 />
@@ -181,6 +189,26 @@ function BlockMinimap({ block, rooms, assignments }) {
 export default function CampHeadcount() {
   const { currentSite } = useSite()
   const { kpis, blocks, employees, contractors, rooms, assignments, loading } = useCampsite()
+
+  // Live tooltip state for block-minimap hover — mirrors the Visual Layout page
+  const [hoveredRoom, setHoveredRoom] = useState(null)
+  const [mousePos,    setMousePos]    = useState({ x: 0, y: 0 })
+
+  const activeAssignments = assignments.filter(a => a.status === 'active')
+
+  function handleRoomHover(room, clientX, clientY) {
+    setHoveredRoom(room)
+    if (clientX != null && clientY != null) setMousePos({ x: clientX, y: clientY })
+  }
+
+  // Only show Block 1 and Block 2 on this dashboard — everything else is
+  // pending layout and only clutters the overview. Matched by name so this
+  // survives block-id changes and works across sites that use the same
+  // naming convention.
+  const featuredBlocks = blocks.filter(b => {
+    const n = (b.name || '').toLowerCase().trim()
+    return n === 'block 1' || n === 'block 2'
+  })
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px', color: THEME.textLow, gap: '10px' }}>
@@ -238,23 +266,36 @@ export default function CampHeadcount() {
         />
       </div>
 
-      {/* Block minimaps — one card per block, 2-column grid */}
-      {blocks.length > 0 && (
+      {/* Block minimaps — Block 1 and Block 2 only */}
+      {featuredBlocks.length > 0 && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: blocks.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+          gridTemplateColumns: featuredBlocks.length === 1 ? '1fr' : 'repeat(2, 1fr)',
           gap: '16px',
           marginBottom: '24px',
         }}>
-          {blocks.map(block => (
+          {featuredBlocks.map(block => (
             <BlockMinimap
               key={block.id}
               block={block}
               rooms={rooms}
               assignments={assignments}
+              onRoomHover={handleRoomHover}
+              onRoomLeave={() => setHoveredRoom(null)}
             />
           ))}
         </div>
+      )}
+
+      {/* Hover tooltip — mirrors Visual Layout behaviour */}
+      {hoveredRoom && (
+        <RoomTooltip
+          room={hoveredRoom}
+          activeAssignments={activeAssignments}
+          employees={employees}
+          mouseX={mousePos.x}
+          mouseY={mousePos.y}
+        />
       )}
 
       {/* Occupancy progress bar card */}

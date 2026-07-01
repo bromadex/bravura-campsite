@@ -219,7 +219,7 @@ export default function HomeLauncher({ onEnterModule }) {
   )
 }
 
-// ── Module tile — modern ERP card ─────────────────────────────────────────────
+// ── Module tile — Odoo/SAP-inspired flat card ────────────────────────────────
 function ModuleTile({ mod, onClick }) {
   const [hovered, setHovered] = useState(false)
 
@@ -229,16 +229,16 @@ function ModuleTile({ mod, onClick }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        position: 'relative',
         background: THEME.surface,
-        border: `1.5px solid ${hovered ? mod.color + '55' : THEME.outlineVar}`,
-        borderRadius: '16px',
-        padding: 0,
+        border: `1px solid ${hovered ? mod.color + '40' : THEME.outlineVar}`,
+        borderRadius: '14px',
+        padding: '24px 16px 20px',
         cursor: 'pointer',
-        boxShadow: hovered ? `0 8px 32px ${mod.color}22, 0 2px 8px rgba(0,0,0,.08)` : THEME.shadow1,
-        transform: hovered ? 'translateY(-3px) scale(1.02)' : 'translateY(0) scale(1)',
-        transition: 'all .2s cubic-bezier(.4,0,.2,1)',
-        overflow: 'hidden',
+        boxShadow: hovered
+          ? `0 12px 28px ${mod.color}20, 0 4px 10px rgba(0,0,0,.06)`
+          : '0 1px 2px rgba(0,0,0,.04)',
+        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
+        transition: 'transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s, border-color .18s',
         fontFamily: 'inherit',
         textAlign: 'center',
         width: '100%',
@@ -247,34 +247,23 @@ function ModuleTile({ mod, onClick }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 0,
+        gap: '14px',
       }}
     >
-      {/* Colored accent bar at top */}
+      {/* Solid colored icon block — always filled, white icon */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: '4px',
+        width: '58px', height: '58px',
+        borderRadius: '14px',
         background: mod.color,
-        opacity: hovered ? 1 : 0.6,
-        transition: 'opacity .2s',
-      }} />
-
-      {/* Icon container */}
-      <div style={{
-        width: '64px', height: '64px',
-        borderRadius: '18px',
-        background: hovered ? mod.color : mod.color + '15',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: '14px',
-        transition: 'all .2s cubic-bezier(.4,0,.2,1)',
-        boxShadow: hovered ? `0 4px 16px ${mod.color}44` : 'none',
+        boxShadow: hovered
+          ? `0 8px 20px ${mod.color}55, inset 0 -3px 0 rgba(0,0,0,.10)`
+          : `0 4px 10px ${mod.color}30, inset 0 -3px 0 rgba(0,0,0,.08)`,
+        transition: 'box-shadow .18s',
       }}>
         <span
           className="material-symbols-rounded filled"
-          style={{
-            fontSize: '30px',
-            color: hovered ? '#fff' : mod.color,
-            transition: 'color .2s',
-          }}
+          style={{ fontSize: '30px', color: '#fff', lineHeight: 1 }}
         >
           {mod.icon}
         </span>
@@ -282,12 +271,11 @@ function ModuleTile({ mod, onClick }) {
 
       {/* Label */}
       <div style={{
-        fontSize: '13px',
+        fontSize: '13.5px',
         fontWeight: 600,
         color: THEME.text,
-        lineHeight: 1.3,
-        padding: '0 12px',
-        letterSpacing: '.01em',
+        lineHeight: 1.25,
+        letterSpacing: '-.005em',
       }}>
         {mod.label}
       </div>

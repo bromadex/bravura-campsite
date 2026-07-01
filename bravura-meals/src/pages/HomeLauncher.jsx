@@ -64,43 +64,92 @@ export default function HomeLauncher({ onEnterModule }) {
   const visible = ALL_MODULES.filter(m => m.access(role, can))
 
   const iconBtn = {
-    background: 'rgba(255,255,255,.12)', border: 'none', cursor: 'pointer',
-    borderRadius: '8px', width: '34px', height: '34px',
+    background: 'transparent', border: 'none', cursor: 'pointer',
+    borderRadius: '10px', width: '38px', height: '38px',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#fff', transition: 'background .15s', flexShrink: 0,
+    color: 'rgba(255,255,255,.82)', transition: 'background .15s, color .15s', flexShrink: 0,
   }
 
   return (
     <div style={{ minHeight: '100vh', background: THEME.bg, fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif", display: 'flex', flexDirection: 'column' }}>
 
       {/* ── Top Bar ── */}
-      <div style={{ background: THEME.sidebar, padding: '0 20px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(0,0,0,.25)', flexShrink: 0 }}>
-        {/* Logo + wordmark */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(255,255,255,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', overflow: 'hidden' }}>
+      <div style={{
+        background: THEME.sidebar,
+        padding: '0 24px',
+        height: '64px',
+        display: 'grid',
+        gridTemplateColumns: '1fr minmax(320px, 520px) 1fr',
+        alignItems: 'center',
+        gap: '24px',
+        borderBottom: '1px solid rgba(255,255,255,.06)',
+        boxShadow: '0 1px 0 rgba(0,0,0,.15)',
+        flexShrink: 0,
+      }}>
+        {/* Left: Logo + wordmark */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+          <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}>
             <img src="/logo/bravura-icon-512.png" alt="Bravura" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
-          <div>
-            <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700, letterSpacing: '.04em' }}>BRAVURA</div>
-            <div style={{ color: 'rgba(255,255,255,.45)', fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase' }}>Enterprise Resource Planning</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700, letterSpacing: '.06em', lineHeight: 1.1 }}>BRAVURA</div>
+            <div style={{ color: 'rgba(255,255,255,.42)', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '2px' }}>Enterprise Resource Planning</div>
+          </div>
+        </div>
+
+        {/* Center: Global command bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          background: 'rgba(255,255,255,.07)',
+          border: '1px solid rgba(255,255,255,.08)',
+          borderRadius: '10px',
+          padding: '0 14px',
+          height: '40px',
+          transition: 'background .15s, border-color .15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.11)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.14)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.08)' }}
+        >
+          <span className="material-symbols-rounded" style={{ fontSize: '18px', color: 'rgba(255,255,255,.55)' }}>search</span>
+          <input
+            type="text"
+            placeholder="Search modules, records, or type a command…"
+            style={{
+              flex: 1, background: 'transparent', border: 'none', outline: 'none',
+              color: '#fff', fontSize: '13px', fontFamily: 'inherit',
+              padding: 0,
+            }}
+          />
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '3px',
+            background: 'rgba(255,255,255,.08)',
+            borderRadius: '5px',
+            padding: '2px 6px',
+            fontSize: '10px', fontWeight: 600,
+            color: 'rgba(255,255,255,.55)',
+            letterSpacing: '.03em',
+          }}>
+            <span>⌘</span><span>K</span>
           </div>
         </div>
 
         {/* Right controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', justifyContent: 'flex-end' }}>
           <SiteSwitcher />
+
+          <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,.10)', margin: '0 8px' }} />
 
           {/* Bell */}
           <button
             onClick={() => setNotifOpen(o => !o)}
             title="Notifications"
             style={{ ...iconBtn, position: 'relative' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.22)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.12)'}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.10)'; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.82)' }}
           >
-            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>notifications</span>
+            <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>notifications</span>
             {unreadCount > 0 && (
-              <span style={{ position: 'absolute', top: '3px', right: '3px', minWidth: '14px', height: '14px', borderRadius: '20px', background: '#EF4444', color: '#fff', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
+              <span style={{ position: 'absolute', top: '5px', right: '5px', minWidth: '16px', height: '16px', borderRadius: '20px', background: '#EF4444', color: '#fff', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', lineHeight: 1, border: `2px solid ${THEME.sidebar}` }}>
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -108,23 +157,30 @@ export default function HomeLauncher({ onEnterModule }) {
 
           {/* Theme */}
           <button onClick={toggleTheme} title={theme === 'light' ? 'Dark mode' : 'Light mode'} style={iconBtn}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.22)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.12)'}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.10)'; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.82)' }}
           >
-            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>{theme === 'light' ? 'dark_mode' : 'light_mode'}</span>
+            <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>{theme === 'light' ? 'dark_mode' : 'light_mode'}</span>
           </button>
 
-          {/* Avatar */}
-          <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-            {(profile?.full_name || profile?.username || '?').charAt(0).toUpperCase()}
+          <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,.10)', margin: '0 8px' }} />
+
+          {/* Avatar + name pill */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 10px 4px 4px', borderRadius: '999px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)' }}>
+            <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: `linear-gradient(135deg, ${MODULE_COLORS.workforce || '#6366F1'}, ${MODULE_COLORS.fuel || '#D97706'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+              {(profile?.full_name || profile?.username || '?').charAt(0).toUpperCase()}
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#fff', lineHeight: 1.1 }}>
+              {profile?.full_name?.split(' ')[0] || profile?.username}
+            </div>
           </div>
 
           {/* Sign out */}
-          <button onClick={signOut} title="Sign out" style={iconBtn}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.22)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.12)'}
+          <button onClick={signOut} title="Sign out" style={{ ...iconBtn, marginLeft: '4px' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,.18)'; e.currentTarget.style.color = '#FCA5A5' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.82)' }}
           >
-            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>logout</span>
+            <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>logout</span>
           </button>
         </div>
       </div>

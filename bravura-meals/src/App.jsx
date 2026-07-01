@@ -61,10 +61,12 @@ const FuelTransactions = lazy(() => import('./pages/fuel/FuelTransactions'))
 const FuelSettings    = lazy(() => import('./pages/fuel/FuelSettings'))
 const FuelRequestForm = lazy(() => import('./pages/fuel/FuelRequestForm'))
 const FuelRequests    = lazy(() => import('./pages/fuel/FuelRequests'))
-const TankDetail    = lazy(() => import('./pages/fuel/TankDetail'))
-const Vehicles      = lazy(() => import('./pages/fuel/Vehicles'))
-const Equipment     = lazy(() => import('./pages/fuel/Equipment'))
-const Operators     = lazy(() => import('./pages/fuel/Operators'))
+const TankDetail         = lazy(() => import('./pages/fuel/TankDetail'))
+const Vehicles           = lazy(() => import('./pages/fuel/Vehicles'))
+const Equipment          = lazy(() => import('./pages/fuel/Equipment'))
+const Operators          = lazy(() => import('./pages/fuel/Operators'))
+const BowserDispatches   = lazy(() => import('./pages/fuel/BowserDispatches'))
+const Reconciliation     = lazy(() => import('./pages/fuel/Reconciliation'))
 
 const PageLoader = (
   <div style={{
@@ -186,7 +188,9 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_issues':    return can('fuel.view')         ? <FuelIssues setPage={setPage} />                    : null
     case 'fuel_issuance':     return can('fuel.create') ? <FuelIssuance setPage={setPage} />     : null
     case 'fuel_transactions': return can('fuel.view')   ? <FuelTransactions setPage={setPage} /> : null
-    case 'fuel_dips':      return can('fuel.create')       ? <DipReadings />                     : null
+    case 'fuel_dips':          return can('fuel.create') ? <DipReadings />                           : null
+    case 'fuel_bowsers':       return can('fuel.view')   ? <BowserDispatches />                      : null
+    case 'fuel_reconciliation':return can('fuel.create') ? <Reconciliation />                         : null
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports />                     : null
     case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks />                       : null
     case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                          : null

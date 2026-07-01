@@ -8,6 +8,7 @@ import { SiteProvider } from './contexts/SiteContext'
 import { PermissionsProvider, usePermissions } from './contexts/PermissionsContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import LoginPage    from './auth/LoginPage'
+import ForcePasswordResetModal from './auth/ForcePasswordResetModal'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
@@ -418,6 +419,7 @@ function AppContent() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <InstallBanner />
+      {profile.force_password_reset && <ForcePasswordResetModal />}
     </>
   )
 }

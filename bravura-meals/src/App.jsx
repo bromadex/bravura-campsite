@@ -59,6 +59,7 @@ const FuelTypes     = lazy(() => import('./pages/fuel/FuelTypes'))
 const FuelIssuance    = lazy(() => import('./pages/fuel/FuelIssuance'))
 const FuelTransactions = lazy(() => import('./pages/fuel/FuelTransactions'))
 const FuelSettings    = lazy(() => import('./pages/fuel/FuelSettings'))
+const FuelRequestForm = lazy(() => import('./pages/fuel/FuelRequestForm'))
 const TankDetail    = lazy(() => import('./pages/fuel/TankDetail'))
 const Vehicles      = lazy(() => import('./pages/fuel/Vehicles'))
 const Equipment     = lazy(() => import('./pages/fuel/Equipment'))
@@ -188,7 +189,8 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports />                     : null
     case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks />                       : null
     case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                          : null
-    case 'fuel_settings':  return can('fuel.edit')   ? <FuelSettings />                        : null
+    case 'fuel_settings':     return can('fuel.edit')   ? <FuelSettings />                           : null
+    case 'fuel_request_form': return can('fuel.view')   ? <FuelRequestForm setPage={setPage} />     : null
     default:               return can('fuel.view')   ? <FuelDashboard setPage={setPage} />  : null
   }
 }

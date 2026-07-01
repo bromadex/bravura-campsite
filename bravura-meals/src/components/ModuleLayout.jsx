@@ -60,7 +60,9 @@ const PAGE_TITLES = {
   fuel_equipment:   'Equipment',
   fuel_operators:   'Operators',
   fuel_types:       'Fuel Types',
-  fuel_settings:    'Fuel Settings',
+  fuel_settings:      'Fuel Settings',
+  fuel_request_form:  'Request Fuel',
+  fuel_requests_list: 'Fuel Requests',
 }
 
 export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navItems, page, setPage, onHome, children }) {

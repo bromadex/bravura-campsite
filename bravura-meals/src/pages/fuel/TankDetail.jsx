@@ -70,7 +70,7 @@ export default function TankDetail() {
   )
 
   const dip = latestDip(tank.id)
-  const variance = dip ? balance - Number(dip.reading_litres) : null
+  const variance = dip ? balance - Number(dip.level_litres) : null
 
   return (
     <div style={{ padding: '20px', maxWidth: '1100px' }}>
@@ -178,7 +178,7 @@ function OverviewTab({ tank, balance, dip, variance }) {
     { label: 'GPS',               value: tank.gps_lat != null && tank.gps_lng != null ? `${tank.gps_lat}, ${tank.gps_lng}` : '—' },
     { label: 'ATG Device ID',     value: tank.atg_device_id || '—' },
     { label: 'Last Dip Date',     value: dip ? fmtDate(dip.reading_date) : '— no dip recorded' },
-    { label: 'Last Dip Reading',  value: dip ? `${Number(dip.reading_litres).toFixed(1)} L` : '—' },
+    { label: 'Last Dip Reading',  value: dip ? `${Number(dip.level_litres).toFixed(1)} L` : '—' },
     {
       label: 'Current Variance',
       value: variance == null
@@ -477,7 +477,7 @@ function DipsTab({ dips }) {
           {dips.map((d, idx) => (
             <TRow key={d.id} last={idx === dips.length - 1}>
               <Td>{fmtDate(d.reading_date)}</Td>
-              <Td align="right" style={{ fontWeight: 600 }}>{Number(d.reading_litres).toFixed(1)}</Td>
+              <Td align="right" style={{ fontWeight: 600 }}>{Number(d.level_litres).toFixed(1)}</Td>
               <Td style={{ color: THEME.textMed }}>{d.recorded_by_name || '—'}</Td>
               <Td style={{ color: THEME.textMed }}>{d.notes || '—'}</Td>
             </TRow>

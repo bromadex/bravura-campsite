@@ -450,7 +450,7 @@ export function FuelProvider({ children }) {
     // Update tank snapshot (trigger does it in DB too)
     setTanks(prev => prev.map(t =>
       t.id === data.tank_id && (!t.last_dip_date || data.reading_date >= t.last_dip_date)
-        ? { ...t, last_dip_date: data.reading_date, last_dip_reading: data.reading_litres }
+        ? { ...t, last_dip_date: data.reading_date, last_dip_reading: data.level_litres }
         : t
     ))
     return row

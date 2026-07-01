@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader, fmtDate } from '../../components/ui'
+import { supabase } from '../../supabaseClient'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 const LOW_PCT  = 20
@@ -65,7 +66,7 @@ function TankCard({ tank, balance, dip, daysRemaining }) {
     : daysRemaining < 7 ? THEME.warning
     : THEME.success
 
-  const variance = dip ? balance - Number(dip.reading_litres) : null
+  const variance = dip ? balance - Number(dip.level_litres) : null
 
   return (
     <div style={{
@@ -118,7 +119,7 @@ function TankCard({ tank, balance, dip, daysRemaining }) {
           <div style={{ background: THEME.surfaceVar, borderRadius: '10px', padding: '8px 12px' }}>
             <div style={{ fontSize: '10px', color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.04em' }}>Last Dip</div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: dip ? THEME.text : THEME.textLow, lineHeight: 1.2 }}>
-              {dip ? `${Number(dip.reading_litres).toFixed(0)} L` : '—'}
+              {dip ? `${Number(dip.level_litres).toFixed(0)} L` : '—'}
             </div>
             {dip && <div style={{ fontSize: '10px', color: THEME.textLow }}>{fmtDate(dip.reading_date)}</div>}
           </div>
@@ -163,14 +164,65 @@ const TX_ICONS = {
   dip:        { icon: 'straighten',     bg: THEME.statusNeutralBg, text: THEME.statusNeutralText, label: 'Dip' },
 }
 
+function BarChart({ data, color }) {
+  const W = 480, H = 100, BAR_W = 32, GAP = 10
+  const max = Math.max(...data.map(d => d.v), 1)
+  const total = data.length
+  const slotW = (W - GAP) / total
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 28}`} style={{ width: '100%', maxWidth: W, overflow: 'visible' }}>
+      {data.map((d, i) => {
+        const barH = Math.max(2, (d.v / max) * H)
+        const x = i * slotW + (slotW - BAR_W) / 2
+        const y = H - barH
+        return (
+          <g key={d.label}>
+            <rect x={x} y={y} width={BAR_W} height={barH} rx={4} fill={color} opacity={d.v > 0 ? 1 : 0.15} />
+            {d.v > 0 && (
+              <text x={x + BAR_W / 2} y={y - 4} textAnchor="middle" fontSize={9} fill={THEME.textMed}>
+                {d.v >= 1000 ? (d.v / 1000).toFixed(1) + 'k' : d.v.toFixed(0)}
+              </text>
+            )}
+            <text x={x + BAR_W / 2} y={H + 16} textAnchor="middle" fontSize={9} fill={THEME.textLow}>{d.label}</text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
 export default function FuelDashboard({ setPage }) {
   const { tanks, operators, transactions, loading, tankBalance, latestDip, avgDailyConsumption } = useFuel()
-  const { currentSite } = useSite()
+  const { currentSite, currentSiteId } = useSite()
   const { can } = usePermissions()
   const [alertDismissed, setAlertDismissed] = useState(false)
+  const [pendingRequests, setPendingRequests] = useState(null)
+  const [deliveryCost, setDeliveryCost] = useState(null)
 
   const today = new Date().toISOString().slice(0, 10)
   const thisMonth = today.slice(0, 7)
+
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase.from('fuel_requests').select('id', { count: 'exact', head: true })
+      .eq('site_id', currentSiteId).eq('status', 'pending')
+      .then(({ count }) => setPendingRequests(count ?? 0))
+  }, [currentSiteId])
+
+  useEffect(() => {
+    if (!currentSiteId) return
+    const start = thisMonth + '-01'
+    supabase.from('fuel_transactions')
+      .select('litres, unit_price_per_litre')
+      .eq('site_id', currentSiteId)
+      .eq('transaction_type', 'delivery')
+      .gte('transaction_date', start)
+      .then(({ data }) => {
+        const cost = (data || []).reduce((s, r) => s + (r.unit_price_per_litre && r.litres ? Number(r.unit_price_per_litre) * Number(r.litres) : 0), 0)
+        setDeliveryCost(cost)
+      })
+  }, [currentSiteId, thisMonth])
 
   const activeTanks    = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
   const activeOperators = useMemo(() => operators.filter(o => o.is_active), [operators])
@@ -194,6 +246,19 @@ export default function FuelDashboard({ setPage }) {
       .filter(t => t.transaction_type === 'delivery' && t.transaction_date?.startsWith(thisMonth))
       .reduce((s, t) => s + Number(t.litres), 0),
   [transactions, thisMonth])
+
+  // 7-day daily issuance for bar chart
+  const sevenDayData = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(Date.now() - (6 - i) * 86400000)
+      const label = d.toLocaleDateString('en-GB', { weekday: 'short' }).slice(0, 2)
+      const iso = d.toISOString().slice(0, 10)
+      const v = transactions
+        .filter(t => t.transaction_type === 'issuance' && t.transaction_date === iso)
+        .reduce((s, t) => s + Number(t.litres), 0)
+      return { label, v }
+    })
+  }, [transactions])
 
   // Last 10 transactions for the feed
   const recent = useMemo(() => transactions.slice(0, 10), [transactions])
@@ -300,10 +365,18 @@ export default function FuelDashboard({ setPage }) {
         <StatCard
           label="Delivered This Month"
           value={`${deliveredThisMonth.toLocaleString(undefined, { maximumFractionDigits: 0 })} L`}
-          sub={thisMonth}
+          sub={deliveryCost != null && deliveryCost > 0 ? `$${deliveryCost.toLocaleString(undefined, { maximumFractionDigits: 0 })} cost` : thisMonth}
           icon="local_gas_station"
           color={THEME.success}
           onClick={() => setPage('fuel_receipts')}
+        />
+        <StatCard
+          label="Pending Requests"
+          value={pendingRequests ?? '…'}
+          sub="awaiting approval"
+          icon="pending_actions"
+          color={pendingRequests > 0 ? THEME.warning : THEME.textLow}
+          onClick={() => setPage('fuel_requests_list')}
         />
         <StatCard
           label="Active Operators"
@@ -312,6 +385,38 @@ export default function FuelDashboard({ setPage }) {
           icon="badge"
           color={FUEL_CLR}
         />
+      </div>
+
+      {/* 7-day bar chart */}
+      <div style={{ background: THEME.surface, borderRadius: '16px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px', marginBottom: '24px', boxShadow: THEME.shadow1 }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '12px' }}>
+          Daily Issuance — Last 7 Days (L)
+        </div>
+        <BarChart data={sevenDayData} color={FUEL_CLR} />
+      </div>
+
+      {/* Quick links */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', marginBottom: '24px' }}>
+        {[
+          { label: 'Pending Requests', icon: 'pending_actions', page: 'fuel_requests_list', badge: pendingRequests > 0 ? pendingRequests : null },
+          { label: "Today's Shift Report", icon: 'summarize', page: 'fuel_shift_report' },
+          { label: 'Reconciliations', icon: 'balance', page: 'fuel_reconciliation' },
+        ].map(l => (
+          <button
+            key={l.label}
+            onClick={() => setPage(l.page)}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '12px', cursor: 'pointer', fontFamily: 'inherit', boxShadow: THEME.shadow1, transition: 'box-shadow .15s' }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = THEME.shadow2 }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = THEME.shadow1 }}
+          >
+            <Icon name={l.icon} size={18} style={{ color: FUEL_CLR }} />
+            <span style={{ fontSize: '13px', fontWeight: 500, color: THEME.text, flex: 1, textAlign: 'left' }}>{l.label}</span>
+            {l.badge && (
+              <span style={{ background: THEME.warning, color: '#fff', borderRadius: '20px', fontSize: '11px', fontWeight: 700, padding: '1px 7px' }}>{l.badge}</span>
+            )}
+            <Icon name="chevron_right" size={16} style={{ color: THEME.textLow }} />
+          </button>
+        ))}
       </div>
 
       {/* Tank level overview */}

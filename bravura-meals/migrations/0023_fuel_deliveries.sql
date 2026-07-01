@@ -75,25 +75,35 @@ CREATE POLICY "fuel_deliveries_update" ON fuel_deliveries
 
 
 -- ── Dip Readings ──────────────────────────────────────────────────────────────
--- Manual tank dip measurements taken by operators (usually each shift).
--- Variance against system level flags reconciliation issues.
+-- The foundation migration (0020) already created fuel_dip_readings with
+-- `reading_litres`. This migration extends it with shift/dip/variance columns
+-- and renames reading_litres → level_litres for consistency across the module.
 
-CREATE TABLE IF NOT EXISTS fuel_dip_readings (
-  id                   UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  site_id              UUID          NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
-  tank_id              UUID          NOT NULL REFERENCES fuel_tanks(id),
-  reading_date         DATE          NOT NULL,
-  reading_time         TIME,
-  shift                TEXT          CHECK (shift IN ('morning','afternoon','night')),
-  dip_mm               NUMERIC(8,1),            -- raw dip in millimetres
-  level_litres         NUMERIC(12,3) NOT NULL,  -- calculated from calibration or entered directly
-  system_level_litres  NUMERIC(12,3),           -- system level at time of reading
-  variance_litres      NUMERIC(12,3),           -- dip - system
-  variance_percent     NUMERIC(6,2),
-  read_by              UUID          REFERENCES fuel_operators(id),
-  notes                TEXT,
-  created_at           TIMESTAMPTZ   NOT NULL DEFAULT now()
-);
+-- Rename reading_litres → level_litres (idempotent — skips if already renamed)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'fuel_dip_readings' AND column_name = 'reading_litres'
+  ) THEN
+    ALTER TABLE fuel_dip_readings RENAME COLUMN reading_litres TO level_litres;
+  END IF;
+END $$;
+
+-- Add extended columns introduced in Phase 2
+ALTER TABLE fuel_dip_readings ADD COLUMN IF NOT EXISTS reading_time        TIME;
+ALTER TABLE fuel_dip_readings ADD COLUMN IF NOT EXISTS shift               TEXT
+  CHECK (shift IN ('morning','afternoon','night'));
+ALTER TABLE fuel_dip_readings ADD COLUMN IF NOT EXISTS dip_mm             NUMERIC(8,1);
+ALTER TABLE fuel_dip_readings ADD COLUMN IF NOT EXISTS system_level_litres NUMERIC(12,3);
+ALTER TABLE fuel_dip_readings ADD COLUMN IF NOT EXISTS variance_litres     NUMERIC(12,3);
+ALTER TABLE fuel_dip_readings ADD COLUMN IF NOT EXISTS variance_percent    NUMERIC(6,2);
+ALTER TABLE fuel_dip_readings ADD COLUMN IF NOT EXISTS read_by             UUID
+  REFERENCES fuel_operators(id);
+
+-- Also rename recorded_by_name (Phase 1 field) to avoid confusion —
+-- recorded_by / recorded_by_name are profiles-based; read_by is fuel_operators-based.
+-- Keep both; recorded_by remains for audit trail.
 
 CREATE INDEX IF NOT EXISTS dip_readings_site_idx  ON fuel_dip_readings(site_id);
 CREATE INDEX IF NOT EXISTS dip_readings_tank_idx  ON fuel_dip_readings(tank_id);

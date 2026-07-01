@@ -43,7 +43,7 @@ export default function FuelReports() {
     return tanks.filter(t => t.status === 'active' && !t.is_archived).map(tank => {
       const calc    = tankBalance(tank.id)
       const dip     = latestDip(tank.id)
-      const actual  = dip ? Number(dip.reading_litres) : null
+      const actual  = dip ? Number(dip.level_litres) : null
       const variance = actual !== null ? calc - actual : null
       const pct      = tank.capacity_litres ? (calc / Number(tank.capacity_litres)) * 100 : null
       return { tank, calc, dip, actual, variance, pct }

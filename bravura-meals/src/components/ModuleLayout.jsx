@@ -63,8 +63,13 @@ const PAGE_TITLES = {
   fuel_settings:        'Fuel Settings',
   fuel_request_form:    'Request Fuel',
   fuel_requests_list:   'Fuel Requests',
-  fuel_bowsers:         'Bowser Dispatches',
-  fuel_reconciliation:  'Tank Reconciliation',
+  fuel_bowsers:              'Bowser Dispatches',
+  fuel_reconciliation:       'Tank Reconciliation',
+  fuel_shift_report:         'Shift Report',
+  fuel_report_daily:         'Daily Transaction Report',
+  fuel_report_monthly:       'Monthly Consumption Report',
+  fuel_report_deliveries:    'Delivery Report',
+  fuel_report_variance:      'Variance Report',
 }
 
 export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navItems, page, setPage, onHome, children }) {

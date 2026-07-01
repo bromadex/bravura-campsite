@@ -114,12 +114,14 @@ export default function HomeLauncher({ onEnterModule }) {
           <input
             type="text"
             placeholder="Search modules, records, or type a command…"
+            className="topbar-search"
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               color: '#fff', fontSize: '13px', fontFamily: 'inherit',
               padding: 0,
             }}
           />
+          <style>{`.topbar-search::placeholder { color: rgba(255,255,255,.75); }`}</style>
           <div style={{
             display: 'flex', alignItems: 'center', gap: '3px',
             background: 'rgba(255,255,255,.08)',
@@ -190,9 +192,6 @@ export default function HomeLauncher({ onEnterModule }) {
 
         {/* Welcome */}
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: THEME.textLow, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: '6px' }}>
-            {currentSite?.name || 'Bravura'}
-          </div>
           <h1 style={{ fontSize: '30px', fontWeight: 300, color: THEME.text, margin: '0 0 4px', letterSpacing: '-.01em' }}>
             Welcome back, <span style={{ fontWeight: 700 }}>{profile?.full_name?.split(' ')[0] || profile?.username}</span>
           </h1>

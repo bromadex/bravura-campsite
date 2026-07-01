@@ -2,6 +2,9 @@ import { MODULE_COLORS, THEME, ROLE_LABELS, moduleAccess } from '../utils/permis
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
 import { useTheme } from '../contexts/ThemeContext'
+import { useSite } from '../contexts/SiteContext'
+import { supabase } from '../supabaseClient'
+import SiteSwitcher from '../components/SiteSwitcher'
 
 // ── Module card definitions ───────────────────────────────────────────────────
 const ALL_MODULES = [
@@ -61,6 +64,43 @@ export default function HomeLauncher({ onEnterModule }) {
   const { can } = usePermissions()
   const role = profile?.role
 
+  const [notifOpen,     setNotifOpen]     = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount,   setUnreadCount]   = useState(0)
+
+  useEffect(() => {
+    if (!profile?.id) return
+    function load() {
+      supabase
+        .from('notifications')
+        .select('*')
+        .eq('recipient_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+        .then(({ data }) => {
+          setNotifications(data || [])
+          setUnreadCount((data || []).filter(n => !n.is_read).length)
+        })
+    }
+    load()
+    const t = setInterval(load, 60_000)
+    return () => clearInterval(t)
+  }, [profile?.id])
+
+  function markRead(id) {
+    supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id)
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
+    setUnreadCount(prev => Math.max(0, prev - 1))
+  }
+
+  function markAllRead() {
+    const unread = notifications.filter(n => !n.is_read).map(n => n.id)
+    if (!unread.length) return
+    supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).in('id', unread)
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+    setUnreadCount(0)
+  }
+
   const visible = ALL_MODULES.filter(m => m.access(role, can))
 
   return (
@@ -96,10 +136,39 @@ export default function HomeLauncher({ onEnterModule }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Theme toggle — styled to match the sign-out button beside it,
-              since this header sits on a dark maroon bar, not the lighter
-              surface the shared ThemeToggle component was built for. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Site switcher */}
+          <SiteSwitcher />
+
+          {/* Notification bell */}
+          <button
+            onClick={() => setNotifOpen(o => !o)}
+            title="Notifications"
+            style={{
+              position: 'relative', background: 'rgba(255,255,255,.12)', border: 'none', cursor: 'pointer',
+              borderRadius: '8px', width: '34px', height: '34px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', transition: 'background .15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.22)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.12)'}
+          >
+            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>notifications</span>
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute', top: '3px', right: '3px',
+                minWidth: '14px', height: '14px', borderRadius: '20px',
+                background: '#EF4444', color: '#fff',
+                fontSize: '9px', fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0 3px', lineHeight: 1,
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Theme toggle */}
           <button
             onClick={toggleTheme}
             title={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
@@ -171,6 +240,84 @@ export default function HomeLauncher({ onEnterModule }) {
       <div style={{ textAlign: 'center', padding: '0 20px 24px', fontSize: '11px', color: THEME.textLow }}>
         {ROLE_LABELS[role]} · Bravura Zimbabwe Ltd · Kamativi Mine Site
       </div>
+
+      {/* Notification drawer */}
+      {notifOpen && (
+        <>
+          <div onClick={() => setNotifOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 200 }} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: '380px', zIndex: 201,
+            background: THEME.surface, borderLeft: `1px solid ${THEME.outlineVar}`,
+            display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 24px rgba(0,0,0,.15)',
+            fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif",
+          }}>
+            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '20px', color: THEME.text }}>notifications</span>
+                <span style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Notifications</span>
+                {unreadCount > 0 && (
+                  <span style={{ background: '#EF4444', color: '#fff', borderRadius: '20px', fontSize: '11px', fontWeight: 700, padding: '1px 7px' }}>{unreadCount}</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: THEME.primary, fontWeight: 600, fontFamily: 'inherit' }}>
+                    Mark all read
+                  </button>
+                )}
+                <button onClick={() => setNotifOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textMed, display: 'flex', alignItems: 'center' }}>
+                  <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>close</span>
+                </button>
+              </div>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {notifications.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: THEME.textLow }}>
+                  <span className="material-symbols-rounded" style={{ fontSize: '40px', color: THEME.outline, display: 'block', margin: '0 auto 12px' }}>notifications_none</span>
+                  <div style={{ fontSize: '13px' }}>No notifications yet</div>
+                </div>
+              ) : (
+                notifications.map(n => {
+                  const typeColor = n.type === 'fuel_alert' ? '#EF4444' : n.type === 'fuel_warning' ? '#F59E0B' : THEME.textMed
+                  const typeIcon  = n.type === 'fuel_alert' ? 'warning' : n.type === 'fuel_warning' ? 'info' : 'notifications'
+                  const ts = new Date(n.created_at)
+                  const age = Date.now() - ts.getTime()
+                  const ageStr = age < 3600000 ? `${Math.floor(age / 60000)}m ago`
+                    : age < 86400000 ? `${Math.floor(age / 3600000)}h ago`
+                    : ts.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => markRead(n.id)}
+                      style={{
+                        padding: '14px 20px', borderBottom: `1px solid ${THEME.outlineVar}`,
+                        cursor: 'pointer',
+                        background: n.is_read ? 'transparent' : typeColor + '08',
+                        display: 'flex', gap: '12px', alignItems: 'flex-start',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = THEME.surfaceVar }}
+                      onMouseLeave={e => { e.currentTarget.style.background = n.is_read ? 'transparent' : typeColor + '08' }}
+                    >
+                      <div style={{ width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0, background: typeColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '16px', color: typeColor }}>{typeIcon}</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: n.is_read ? 500 : 700, color: THEME.text }}>{n.title}</span>
+                          <span style={{ fontSize: '11px', color: THEME.textLow, flexShrink: 0 }}>{ageStr}</span>
+                        </div>
+                        {n.body && <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '3px', lineHeight: 1.5 }}>{n.body}</div>}
+                        {!n.is_read && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: typeColor, marginTop: '6px' }} />}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -222,5 +369,4 @@ function ModuleCard({ mod, onClick }) {
   )
 }
 
-// need useState
-import { useState } from 'react'
+import { useState, useEffect } from 'react'

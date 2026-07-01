@@ -121,43 +121,51 @@ BEGIN
 
   -- Meals Officer (Composite)
   FOREACH perm IN ARRAY meals_officer_perms LOOP
-    INSERT INTO role_permissions (role_id, permission_code)
-    SELECT role_meals_officer, perm
-    WHERE NOT EXISTS (
-      SELECT 1 FROM role_permissions
-      WHERE role_id = role_meals_officer AND permission_code = perm
-    );
+    INSERT INTO role_permissions (role_id, permission_id)
+    SELECT role_meals_officer, p.id
+      FROM permissions p
+     WHERE p.code = perm
+       AND NOT EXISTS (
+         SELECT 1 FROM role_permissions rp
+          WHERE rp.role_id = role_meals_officer AND rp.permission_id = p.id
+       );
   END LOOP;
 
   -- Approver
   FOREACH perm IN ARRAY approver_perms LOOP
-    INSERT INTO role_permissions (role_id, permission_code)
-    SELECT role_approver, perm
-    WHERE NOT EXISTS (
-      SELECT 1 FROM role_permissions
-      WHERE role_id = role_approver AND permission_code = perm
-    );
+    INSERT INTO role_permissions (role_id, permission_id)
+    SELECT role_approver, p.id
+      FROM permissions p
+     WHERE p.code = perm
+       AND NOT EXISTS (
+         SELECT 1 FROM role_permissions rp
+          WHERE rp.role_id = role_approver AND rp.permission_id = p.id
+       );
   END LOOP;
 
   -- Operations Administrator
   FOREACH perm IN ARRAY business_full_perms LOOP
-    INSERT INTO role_permissions (role_id, permission_code)
-    SELECT role_ops_admin, perm
-    WHERE NOT EXISTS (
-      SELECT 1 FROM role_permissions
-      WHERE role_id = role_ops_admin AND permission_code = perm
-    );
+    INSERT INTO role_permissions (role_id, permission_id)
+    SELECT role_ops_admin, p.id
+      FROM permissions p
+     WHERE p.code = perm
+       AND NOT EXISTS (
+         SELECT 1 FROM role_permissions rp
+          WHERE rp.role_id = role_ops_admin AND rp.permission_id = p.id
+       );
   END LOOP;
 
   -- Executive Administrator (spec is identical to Ops Admin — kept as a
   -- separate role so job titles stay distinguishable in the UI)
   FOREACH perm IN ARRAY business_full_perms LOOP
-    INSERT INTO role_permissions (role_id, permission_code)
-    SELECT role_exec_admin, perm
-    WHERE NOT EXISTS (
-      SELECT 1 FROM role_permissions
-      WHERE role_id = role_exec_admin AND permission_code = perm
-    );
+    INSERT INTO role_permissions (role_id, permission_id)
+    SELECT role_exec_admin, p.id
+      FROM permissions p
+     WHERE p.code = perm
+       AND NOT EXISTS (
+         SELECT 1 FROM role_permissions rp
+          WHERE rp.role_id = role_exec_admin AND rp.permission_id = p.id
+       );
   END LOOP;
 END $$;
 

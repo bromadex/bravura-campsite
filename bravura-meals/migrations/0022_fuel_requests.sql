@@ -35,6 +35,10 @@ CREATE INDEX IF NOT EXISTS fuel_requests_requested_by   ON fuel_requests(request
 -- ── RLS ───────────────────────────────────────────────────────────────────────
 ALTER TABLE fuel_requests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "fuel_requests_select" ON fuel_requests;
+DROP POLICY IF EXISTS "fuel_requests_insert" ON fuel_requests;
+DROP POLICY IF EXISTS "fuel_requests_update" ON fuel_requests;
+
 -- Any authenticated user at this site can view requests
 CREATE POLICY "fuel_requests_select" ON fuel_requests
   FOR SELECT USING (

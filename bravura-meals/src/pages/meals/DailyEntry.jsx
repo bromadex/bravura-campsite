@@ -28,6 +28,8 @@ export default function DailyEntry() {
   const [search,      setSearch]      = useState('')
   const [coFilter,    setCoFilter]    = useState('all')
   const [ineligible,  setIneligible]  = useState({})    // { on_leave: n, terminated: m, ... }
+  const [focusIdx,    setFocusIdx]    = useState(0)     // keyboard row cursor
+  const [showKbHelp,  setShowKbHelp]  = useState(false)
 
   // Sortable columns
   const [sortState, onSort] = useSortState('name', 'asc')
@@ -159,6 +161,52 @@ export default function DailyEntry() {
     })
   }, [employees, search, coFilter, sortState, entryState])
 
+  // ── Keyboard-first data entry ───────────────────────────────────────────
+  // ↑/↓ move the row cursor. B/L/S toggle that meal on the focused row.
+  // Space toggles all three. Cmd/Ctrl+S saves, Cmd/Ctrl+Enter submits.
+  // Shift+? opens the help overlay.
+  useEffect(() => {
+    function onKey(ev) {
+      // Ignore when typing in a text input
+      const t = ev.target
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+
+      const visible = sortedFiltered
+      const max = visible.length - 1
+
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); setFocusIdx(i => Math.min(max, i + 1)); return }
+      if (ev.key === 'ArrowUp')   { ev.preventDefault(); setFocusIdx(i => Math.max(0,   i - 1)); return }
+      if (ev.key === 'Home')      { ev.preventDefault(); setFocusIdx(0); return }
+      if (ev.key === 'End')       { ev.preventDefault(); setFocusIdx(max); return }
+      if (ev.key === '?')         { setShowKbHelp(v => !v); return }
+
+      const emp = visible[focusIdx]
+      if (!emp) return
+
+      const k = ev.key.toLowerCase()
+      if (k === 'b') { ev.preventDefault(); toggleMeal(emp.id, 'b'); return }
+      if (k === 'l') { ev.preventDefault(); toggleMeal(emp.id, 'l'); return }
+      if (k === 's' && !(ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); toggleMeal(emp.id, 's'); return }
+      if (ev.key === ' ') {
+        ev.preventDefault()
+        const cur = entryState[emp.id] || {}
+        const allOn = cur.b && cur.l && cur.s
+        setEntryState(prev => ({ ...prev, [emp.id]: { b: !allOn, l: !allOn, s: !allOn } }))
+        return
+      }
+      if ((ev.metaKey || ev.ctrlKey) && k === 's') { ev.preventDefault(); saveEntries(); return }
+      if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') { ev.preventDefault(); submitForApproval(); return }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusIdx, sortedFiltered, entryState])
+
+  // Keep focusIdx in range if the filtered list shrinks
+  useEffect(() => {
+    if (focusIdx > sortedFiltered.length - 1) setFocusIdx(Math.max(0, sortedFiltered.length - 1))
+  }, [sortedFiltered.length, focusIdx])
+
   async function saveEntries() {
     if (!isEditable()) { showToast('This day is locked', 'red'); return }
     setSaving(true)
@@ -273,6 +321,49 @@ export default function DailyEntry() {
           </div>
         )}
       </PageHeader>
+
+      {/* ── Keyboard shortcuts hint ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '10px' }}>
+        <button
+          onClick={() => setShowKbHelp(v => !v)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '5px 10px', borderRadius: '6px',
+            border: `1px solid ${THEME.outlineVar}`,
+            background: THEME.surface, color: THEME.textMed,
+            fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer',
+          }}
+          title="Keyboard shortcuts"
+        >
+          <Icon name="keyboard" size={13} />
+          Keyboard <b style={{ color: THEME.text }}>?</b>
+        </button>
+      </div>
+      {showKbHelp && (
+        <div style={{
+          padding: '14px 16px', marginBottom: '14px',
+          background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px',
+          fontSize: '12px', color: THEME.textMed, boxShadow: '0 1px 2px rgba(0,0,0,.03)',
+        }}>
+          <div style={{ fontWeight: 600, color: THEME.text, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '.05em', fontSize: '11px' }}>Keyboard shortcuts</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '6px 20px' }}>
+            {[
+              ['↑ / ↓',    'Move cursor between rows'],
+              ['Home / End','Jump to first / last row'],
+              ['B / L / S', 'Toggle Breakfast / Lunch / Supper on the focused row'],
+              ['Space',     'Toggle all three meals for the focused row'],
+              ['Ctrl + S',  'Save entries'],
+              ['Ctrl + ↵',  'Submit for approval'],
+              ['?',         'Show / hide this panel'],
+            ].map(([k, d]) => (
+              <div key={k} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <span style={{ background: THEME.surfaceVar, padding: '2px 8px', borderRadius: '4px', border: `1px solid ${THEME.outlineVar}`, fontFamily: 'ui-monospace, monospace', fontSize: '11px', color: THEME.text, minWidth: '90px', textAlign: 'center' }}>{k}</span>
+                <span>{d}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── HR eligibility banner — non-active staff are excluded from entry ── */}
       {Object.keys(ineligible).length > 0 && (
@@ -421,16 +512,24 @@ export default function DailyEntry() {
                   const tot  = (m.b?1:0) + (m.l?1:0) + (m.s?1:0)
                   const isAny = tot > 0
                   const color = coColor(contractors, emp.contractor_id)
+                  const isFocused = i === focusIdx
 
                   return (
                     <tr
                       key={emp.id}
-                      style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: THEME.surface, transition: 'background .1s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
-                      onMouseLeave={e => e.currentTarget.style.background = THEME.surface}
+                      onClick={() => setFocusIdx(i)}
+                      style={{
+                        borderBottom: `1px solid ${THEME.outlineVar}`,
+                        background: isFocused ? THEME.primary + '0E' : THEME.surface,
+                        boxShadow: isFocused ? `inset 3px 0 0 ${THEME.primary}` : 'none',
+                        transition: 'background .1s, box-shadow .1s',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={e => { if (!isFocused) e.currentTarget.style.background = THEME.surfaceVar }}
+                      onMouseLeave={e => { if (!isFocused) e.currentTarget.style.background = THEME.surface }}
                     >
                       {/* Row number */}
-                      <td style={{ padding: '10px', textAlign: 'center', color: THEME.textLow, fontSize: '11px' }}>
+                      <td style={{ padding: '10px', textAlign: 'center', color: isFocused ? THEME.primary : THEME.textLow, fontSize: '11px', fontWeight: isFocused ? 700 : 400 }}>
                         {i + 1}
                       </td>
 

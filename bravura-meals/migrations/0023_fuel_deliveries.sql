@@ -78,7 +78,7 @@ CREATE POLICY "fuel_deliveries_update" ON fuel_deliveries
 -- Manual tank dip measurements taken by operators (usually each shift).
 -- Variance against system level flags reconciliation issues.
 
-CREATE TABLE IF NOT EXISTS dip_readings (
+CREATE TABLE IF NOT EXISTS fuel_dip_readings (
   id                   UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   site_id              UUID          NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
   tank_id              UUID          NOT NULL REFERENCES fuel_tanks(id),
@@ -95,21 +95,21 @@ CREATE TABLE IF NOT EXISTS dip_readings (
   created_at           TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS dip_readings_site_idx  ON dip_readings(site_id);
-CREATE INDEX IF NOT EXISTS dip_readings_tank_idx  ON dip_readings(tank_id);
-CREATE INDEX IF NOT EXISTS dip_readings_date_idx  ON dip_readings(reading_date DESC);
+CREATE INDEX IF NOT EXISTS dip_readings_site_idx  ON fuel_dip_readings(site_id);
+CREATE INDEX IF NOT EXISTS dip_readings_tank_idx  ON fuel_dip_readings(tank_id);
+CREATE INDEX IF NOT EXISTS dip_readings_date_idx  ON fuel_dip_readings(reading_date DESC);
 
-ALTER TABLE dip_readings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fuel_dip_readings ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "dip_readings_select" ON dip_readings;
-DROP POLICY IF EXISTS "dip_readings_insert" ON dip_readings;
+DROP POLICY IF EXISTS "fuel_dip_readings_select" ON fuel_dip_readings;
+DROP POLICY IF EXISTS "fuel_dip_readings_insert" ON fuel_dip_readings;
 
-CREATE POLICY "dip_readings_select" ON dip_readings
+CREATE POLICY "fuel_dip_readings_select" ON fuel_dip_readings
   FOR SELECT USING (
     site_id IN (SELECT site_id FROM user_roles WHERE user_id = auth.uid())
   );
 
-CREATE POLICY "dip_readings_insert" ON dip_readings
+CREATE POLICY "fuel_dip_readings_insert" ON fuel_dip_readings
   FOR INSERT WITH CHECK (
     site_id IN (SELECT site_id FROM user_roles WHERE user_id = auth.uid())
     AND EXISTS (
@@ -117,7 +117,7 @@ CREATE POLICY "dip_readings_insert" ON dip_readings
       JOIN role_permissions rp ON rp.role_id = ur.role_id
       JOIN permissions p        ON p.id = rp.permission_id
       WHERE ur.user_id = auth.uid()
-        AND ur.site_id = dip_readings.site_id
+        AND ur.site_id = fuel_dip_readings.site_id
         AND p.code     = 'fuel.create'
     )
   );

@@ -157,6 +157,63 @@ function TankCard({ tank, balance, dip, daysRemaining }) {
   )
 }
 
+function TankHeroBar({ tank, balance }) {
+  const cap = Number(tank.capacity_litres) || 0
+  const pct = cap ? Math.min(100, Math.max(0, (balance / cap) * 100)) : null
+  const isLow  = pct !== null && pct <= LOW_PCT
+  const isWarn = pct !== null && pct > LOW_PCT && pct < WARN_PCT
+  const color  = pct === null ? FUEL_CLR : isLow ? THEME.error : isWarn ? THEME.warning : '#00897B'
+  const status = pct === null ? '—' : isLow ? 'Low' : isWarn ? 'Watch' : 'Normal'
+  const statusBg = isLow ? THEME.statusErrorBg : isWarn ? THEME.statusWarningBg : THEME.statusSuccessBg
+  const statusTx = isLow ? THEME.statusErrorText : isWarn ? THEME.statusWarningText : THEME.statusSuccessText
+
+  const meta = [
+    tank.code,
+    tank.fuel_types?.name || 'Diesel',
+    cap ? `Capacity: ${cap.toLocaleString()} L` : null,
+    tank.location_description,
+  ].filter(Boolean).join(' · ')
+
+  return (
+    <div style={{
+      background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
+      borderRadius: '12px', padding: '18px 22px', marginBottom: '14px', boxShadow: THEME.shadow1,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px', gap: '12px', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: '17px', fontWeight: 700, color: THEME.text }}>{tank.name}</div>
+          <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>{meta}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {pct !== null && <span style={{ fontSize: '26px', fontWeight: 700, color }}>{pct.toFixed(0)}%</span>}
+          <span style={{ padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, background: statusBg, color: statusTx, letterSpacing: '.04em' }}>
+            {status}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ position: 'relative', height: '30px', borderRadius: '6px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden' }}>
+        {/* 20% segment gridlines */}
+        {[20, 40, 60, 80].map(p => (
+          <div key={p} style={{ position: 'absolute', top: 0, bottom: 0, left: `${p}%`, width: '1px', background: THEME.surface, zIndex: 2 }} />
+        ))}
+        <div style={{
+          position: 'absolute', top: 0, bottom: 0, left: 0,
+          width: `${pct ?? 0}%`, background: color, transition: 'width .5s',
+          display: 'flex', alignItems: 'center',
+        }}>
+          <span style={{ marginLeft: '12px', fontSize: '12px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>
+            {Math.round(balance).toLocaleString()} L
+          </span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '10px', color: THEME.textLow }}>
+        {['0', '20%', '40%', '60%', '80%', '100%'].map(t => <span key={t}>{t}</span>)}
+      </div>
+    </div>
+  )
+}
+
 const TX_ICONS = {
   delivery:   { icon: 'arrow_downward', bg: THEME.statusSuccessBg, text: THEME.statusSuccessText, label: 'Delivery' },
   issuance:   { icon: 'arrow_upward',   bg: THEME.statusWarningBg, text: THEME.statusWarningText, label: 'Issuance' },
@@ -335,7 +392,7 @@ export default function FuelDashboard({ setPage }) {
 
     // 4 & 5. Unconfirmed deliveries >48h + dip variance — async checks
     supabase.from('fuel_transactions')
-      .select('id, transaction_date, tank:fuel_tanks(tank_name), created_at')
+      .select('id, transaction_date, tank:fuel_tanks(name), created_at')
       .eq('site_id', currentSiteId)
       .eq('transaction_type', 'delivery')
       .is('approved_at', null)
@@ -347,7 +404,7 @@ export default function FuelDashboard({ setPage }) {
             severity: 'warning',
             icon: 'local_shipping',
             title: 'Delivery awaiting confirmation',
-            detail: d.tank?.tank_name || '—',
+            detail: d.tank?.name || '—',
             value: `Recorded ${d.transaction_date} — unconfirmed >48 h`,
             action: 'fuel_receipts',
           })
@@ -355,7 +412,7 @@ export default function FuelDashboard({ setPage }) {
       })
 
     supabase.from('fuel_dip_readings')
-      .select('tank_id, variance_percent, reading_date, tank:fuel_tanks(tank_name)')
+      .select('tank_id, variance_percent, reading_date, tank:fuel_tanks(name)')
       .eq('site_id', currentSiteId)
       .not('variance_percent', 'is', null)
       .gte('reading_date', sevenDaysAgo)
@@ -369,7 +426,7 @@ export default function FuelDashboard({ setPage }) {
               severity: 'error',
               icon: 'compare_arrows',
               title: 'High dip variance',
-              detail: d.tank?.tank_name || '—',
+              detail: d.tank?.name || '—',
               value: `${Number(d.variance_percent).toFixed(1)}% on ${d.reading_date}`,
               action: 'fuel_report_variance',
             })
@@ -471,6 +528,15 @@ export default function FuelDashboard({ setPage }) {
           </div>
         }
       />
+
+      {/* Hero tank level bars */}
+      {activeTanks.length > 0 && (
+        <div style={{ marginBottom: '10px' }}>
+          {activeTanks.map(t => (
+            <TankHeroBar key={t.id} tank={t} balance={tankBalance(t.id)} />
+          ))}
+        </div>
+      )}
 
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '12px', marginBottom: '24px' }}>

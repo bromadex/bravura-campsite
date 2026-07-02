@@ -36,6 +36,7 @@ export default function FuelReceipts() {
   const [saving,   setSaving]   = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo,   setDateTo]   = useState('')
+  const [search,   setSearch]   = useState('')
 
   if (!canView) return null
 
@@ -71,13 +72,43 @@ export default function FuelReceipts() {
     }
   }
 
-  const tankName = id => tanks.find(t => t.id === id)?.name || '—'
+  const tankOf   = id => tanks.find(t => t.id === id)
+  const tankName = id => tankOf(id)?.name || '—'
 
+  const q = search.toLowerCase().trim()
   const filtered = receipts.filter(r => {
     if (dateFrom && r.transaction_date < dateFrom) return false
     if (dateTo   && r.transaction_date > dateTo)   return false
+    if (q) {
+      const hay = `${r.supplier || ''} ${r.notes || ''} ${r.docket_number || ''} ${tankName(r.tank_id)}`.toLowerCase()
+      if (!hay.includes(q)) return false
+    }
     return true
   })
+
+  function exportCsv() {
+    const headers = ['Date', 'Tank', 'Fuel Type', 'Quantity (L)', 'Amount (USD)', 'Supplier', 'Docket #', 'Notes']
+    const lines = filtered.map(r => {
+      const tank = tankOf(r.tank_id)
+      return [
+        r.transaction_date,
+        tank?.name || '',
+        tank?.fuel_types?.name || 'Diesel',
+        Number(r.litres).toFixed(1),
+        r.total_cost != null ? Number(r.total_cost).toFixed(2) : '',
+        r.supplier || '',
+        r.docket_number || '',
+        r.notes || '',
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+    })
+    const blob = new Blob([[headers.join(','), ...lines].join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `fuel-deliveries-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const activeTanks = tanks.filter(t => t.status === 'active' && !t.is_archived)
 
@@ -103,9 +134,20 @@ export default function FuelReceipts() {
       <PageHeader
         title="Fuel Deliveries"
         site={currentSite}
-        actions={canDeliver && (
-          <Button onClick={openAdd} icon="local_gas_station">Record Delivery</Button>
-        )}
+        actions={
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {filtered.length > 0 && (
+              <button onClick={exportCsv} style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500,
+                background: THEME.surfaceVar, color: FUEL_CLR, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                <Icon name="download" size={15} style={{ color: FUEL_CLR }} /> Export
+              </button>
+            )}
+            {canDeliver && <Button onClick={openAdd} icon="local_gas_station">Add Delivery</Button>}
+          </div>
+        }
       />
 
       {/* ── KPI strip ── */}
@@ -116,8 +158,19 @@ export default function FuelReceipts() {
         <DeliveryKpi icon="storefront"  label="Suppliers"        value={kpis.suppliers || '—'} color="#5E35B1" />
       </div>
 
-      {/* Date range filter */}
+      {/* Search + date range filter */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 220px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Search</div>
+          <div style={{ position: 'relative' }}>
+            <Icon name="search" size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: THEME.textLow }} />
+            <input
+              type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Supplier, docket, notes…"
+              style={{ ...filterInputStyle, paddingLeft: '32px', width: '100%', boxSizing: 'border-box' }}
+            />
+          </div>
+        </div>
         <div>
           <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>From</div>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={filterInputStyle} />
@@ -126,8 +179,8 @@ export default function FuelReceipts() {
           <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>To</div>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={filterInputStyle} />
         </div>
-        {(dateFrom || dateTo) && (
-          <button onClick={() => { setDateFrom(''); setDateTo('') }} style={clearBtnStyle}>Clear</button>
+        {(dateFrom || dateTo || search) && (
+          <button onClick={() => { setDateFrom(''); setDateTo(''); setSearch('') }} style={clearBtnStyle}>Clear</button>
         )}
         <div style={{ marginLeft: 'auto', fontSize: '12px', color: THEME.textLow, alignSelf: 'flex-end', paddingBottom: '2px' }}>
           {filtered.length} delivery record{filtered.length !== 1 ? 's' : ''}
@@ -150,14 +203,17 @@ export default function FuelReceipts() {
             <THead>
               <Th>Date</Th>
               <Th>Tank</Th>
-              <Th>Supplier</Th>
+              <Th>Fuel Type</Th>
               <Th align="right">Quantity</Th>
+              <Th align="right">Amount (USD)</Th>
+              <Th>Supplier</Th>
               <Th>Docket</Th>
               <Th>Notes</Th>
             </THead>
             <tbody>
               {filtered.map((r, idx) => {
                 const parsed = parseTxnNotes(r.notes)
+                const tank = tankOf(r.tank_id)
                 return (
                   <TRow key={r.id} last={idx === filtered.length - 1}>
                     <Td style={{ whiteSpace: 'nowrap' }}>{fmtDate(r.transaction_date)}</Td>
@@ -168,6 +224,21 @@ export default function FuelReceipts() {
                       </div>
                     </Td>
                     <Td>
+                      <span style={{
+                        padding: '2px 9px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
+                        background: THEME.surfaceVar, color: THEME.textMed, letterSpacing: '.04em',
+                        textTransform: 'uppercase',
+                      }}>
+                        {tank?.fuel_types?.name || 'Diesel'}
+                      </span>
+                    </Td>
+                    <Td align="right" style={{ fontWeight: 700, color: THEME.success, whiteSpace: 'nowrap' }}>
+                      +{Number(r.litres).toLocaleString(undefined, { maximumFractionDigits: 1 })} L
+                    </Td>
+                    <Td align="right" style={{ color: THEME.textMed, whiteSpace: 'nowrap' }}>
+                      {r.total_cost != null ? `$${Number(r.total_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                    </Td>
+                    <Td>
                       {r.supplier ? (
                         <span style={{
                           padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
@@ -176,9 +247,6 @@ export default function FuelReceipts() {
                           {r.supplier}
                         </span>
                       ) : <span style={{ color: THEME.textLow }}>—</span>}
-                    </Td>
-                    <Td align="right" style={{ fontWeight: 700, color: THEME.success, whiteSpace: 'nowrap' }}>
-                      +{Number(r.litres).toLocaleString(undefined, { maximumFractionDigits: 1 })} L
                     </Td>
                     <Td style={{ color: THEME.textMed, fontFamily: 'monospace', fontSize: '12px' }}>
                       {r.docket_number || '—'}

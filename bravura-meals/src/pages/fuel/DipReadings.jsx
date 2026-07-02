@@ -142,7 +142,7 @@ function TankCalibrationPanel({ tank, onClose }) {
         <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Calibration Table</div>
-            <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>{tank.tank_name} — depth → litres</div>
+            <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>{tank.name} — depth → litres</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: THEME.textMed, borderRadius: '8px', padding: '4px' }}>
             <Icon name="close" size={20} />
@@ -319,7 +319,7 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <Field label="Tank">
             <select value={tankId} onChange={e => setTankId(e.target.value)} style={selectStyle}>
-              {tanks.map(t => <option key={t.id} value={t.id}>{t.tank_name}</option>)}
+              {tanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </Field>
 
@@ -399,7 +399,7 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
           <Field label="Read By">
             <select value={readBy} onChange={e => setReadBy(e.target.value)} style={selectStyle}>
               <option value="">— Select operator —</option>
-              {operators.map(o => <option key={o.id} value={o.id}>{o.full_name}</option>)}
+              {operators.map(o => <option key={o.id} value={o.id}>{o.employees?.name || o.id}</option>)}
             </select>
           </Field>
 
@@ -436,7 +436,7 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
 export default function DipReadings() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
-  const { tanks, operators } = useFuel()
+  const { tanks, operators, transactions } = useFuel()
 
   const [readings, setReadings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -451,7 +451,7 @@ export default function DipReadings() {
     setLoading(true)
     let q = supabase
       .from('fuel_dip_readings')
-      .select('*, tank:fuel_tanks(tank_name), operator:fuel_operators(full_name)')
+      .select('*, tank:fuel_tanks(name), operator:fuel_operators(employees(name))')
       .eq('site_id', currentSiteId)
       .order('reading_date', { ascending: false })
       .order('reading_time', { ascending: false })
@@ -467,10 +467,48 @@ export default function DipReadings() {
   useEffect(() => { load() }, [load])
 
   const fmtNum = (n, dec = 1) => n != null ? Number(n).toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—'
-  const varianceColor = pct => {
+
+  // Pair each reading with the previous reading of the same tank so the log
+  // reads like the old ERP's dipstick sheet: dip start/end, fuel start/end,
+  // actual drawn vs what the fuel module recorded in the same window.
+  const derived = (() => {
+    const key = r => `${r.reading_date} ${r.reading_time || '00:00'}`
+    const byTank = new Map()
+    for (const r of [...readings].sort((a, b) => key(a).localeCompare(key(b)))) {
+      if (!byTank.has(r.tank_id)) byTank.set(r.tank_id, [])
+      byTank.get(r.tank_id).push(r)
+    }
+    const rows = []
+    for (const list of byTank.values()) {
+      for (let i = 0; i < list.length; i++) {
+        const cur = list[i], prev = i > 0 ? list[i - 1] : null
+        const fuelStart = prev ? Number(prev.level_litres) : null
+        const fuelEnd   = Number(cur.level_litres)
+        const actual    = fuelStart != null ? fuelStart - fuelEnd : null
+        let fmIssued = null
+        if (prev) {
+          fmIssued = transactions
+            .filter(t => t.transaction_type === 'issuance' && t.tank_id === cur.tank_id
+              && t.transaction_date > prev.reading_date && t.transaction_date <= cur.reading_date)
+            .reduce((s, t) => s + Number(t.litres), 0)
+        }
+        const error = (actual != null && fmIssued != null) ? fmIssued - actual : null
+        const errorPct = (error != null && actual) ? (error / Math.abs(actual)) * 100 : null
+        rows.push({
+          r: cur,
+          dipStartCm: prev?.dip_mm != null ? Number(prev.dip_mm) / 10 : null,
+          dipEndCm:   cur.dip_mm  != null ? Number(cur.dip_mm)  / 10 : null,
+          fuelStart, fuelEnd, actual, fmIssued, error, errorPct,
+        })
+      }
+    }
+    return rows.sort((a, b) => key(b.r).localeCompare(key(a.r)))
+  })()
+
+  const errColor = pct => {
     if (pct == null) return THEME.textLow
-    if (Math.abs(pct) > 5) return THEME.error
-    if (Math.abs(pct) > 2) return THEME.warning
+    if (Math.abs(pct) > 10) return THEME.error
+    if (Math.abs(pct) > 5)  return THEME.warning
     return THEME.success
   }
 
@@ -492,7 +530,7 @@ export default function DipReadings() {
               style={filterSelectStyle}
             >
               <option value="">Calibration Table…</option>
-              {tanks.map(t => <option key={t.id} value={t.id}>{t.tank_name}</option>)}
+              {tanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           )}
           {can('fuel.create') && (
@@ -507,7 +545,7 @@ export default function DipReadings() {
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px', padding: '14px 16px', background: THEME.surfaceVar, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}` }}>
         <select value={filterTank} onChange={e => setFilterTank(e.target.value)} style={filterSelectStyle}>
           <option value="">All Tanks</option>
-          {tanks.map(t => <option key={t.id} value={t.id}>{t.tank_name}</option>)}
+          {tanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
         <select value={filterShift} onChange={e => setFilterShift(e.target.value)} style={filterSelectStyle}>
           <option value="">All Shifts</option>
@@ -544,47 +582,44 @@ export default function DipReadings() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: THEME.surfaceVar, borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                  {['Tank', 'Date', 'Shift', 'Dip (mm)', 'Level (L)', 'System (L)', 'Variance', 'Read By', 'Notes'].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, whiteSpace: 'nowrap' }}>{h}</th>
+                  {['Date', 'Tank', 'Dip Start (cm)', 'Dip End (cm)', 'Fuel Start (L)', 'Fuel End (L)', 'Actual Issued (L)', 'FM Issued (L)', 'Error (L)', 'Error %', 'Done By'].map(h => (
+                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {readings.map(r => {
-                  const pct = r.variance_percent
-                  const clr = varianceColor(pct)
+                {derived.map(({ r, dipStartCm, dipEndCm, fuelStart, fuelEnd, actual, fmIssued, error, errorPct }) => {
+                  const clr = errColor(errorPct)
                   return (
                     <tr key={r.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
                       onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{r.tank?.tank_name || '—'}</td>
-                      <td style={{ padding: '10px 14px', color: THEME.text, whiteSpace: 'nowrap' }}>
-                        {new Date(r.reading_date + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      <td style={{ padding: '10px 12px', color: THEME.text, whiteSpace: 'nowrap' }}>
+                        {r.reading_date}
                         {r.reading_time && <span style={{ color: THEME.textMed, marginLeft: '6px', fontSize: '11px' }}>{r.reading_time.slice(0, 5)}</span>}
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        {r.shift ? (
-                          <span style={{
-                            padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600,
-                            background: r.shift === 'morning' ? '#FEF3C7' : r.shift === 'afternoon' ? '#DBEAFE' : '#1e293b',
-                            color: r.shift === 'morning' ? '#92400E' : r.shift === 'afternoon' ? '#1E40AF' : '#94a3b8',
-                          }}>{r.shift.charAt(0).toUpperCase() + r.shift.slice(1)}</span>
-                        ) : <span style={{ color: THEME.textLow }}>—</span>}
+                      <td style={{ padding: '10px 12px', color: THEME.text, fontWeight: 500, whiteSpace: 'nowrap' }}>{r.tank?.name || '—'}</td>
+                      <td style={{ padding: '10px 12px', color: THEME.textMed }}>{dipStartCm != null ? fmtNum(dipStartCm, 2) : '—'}</td>
+                      <td style={{ padding: '10px 12px', color: THEME.textMed }}>{dipEndCm != null ? fmtNum(dipEndCm, 2) : '—'}</td>
+                      <td style={{ padding: '10px 12px', color: THEME.text }}>{fuelStart != null ? fmtNum(fuelStart, 0) : '—'}</td>
+                      <td style={{ padding: '10px 12px', color: THEME.text }}>{fmtNum(fuelEnd, 0)}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 700, color: actual != null && actual < 0 ? THEME.success : THEME.text }}>
+                        {actual != null ? fmtNum(actual, 0) : '—'}
                       </td>
-                      <td style={{ padding: '10px 14px', color: THEME.text }}>{r.dip_mm != null ? fmtNum(r.dip_mm, 1) : <span style={{ color: THEME.textLow }}>—</span>}</td>
-                      <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{fmtNum(r.level_litres, 1)}</td>
-                      <td style={{ padding: '10px 14px', color: THEME.textMed }}>{r.system_level_litres != null ? fmtNum(r.system_level_litres, 1) : <span style={{ color: THEME.textLow }}>—</span>}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        {pct != null ? (
-                          <span style={{ color: clr, fontWeight: 600, fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                            {pct >= 0 ? '+' : ''}{Number(pct).toFixed(1)}%
-                            {Math.abs(pct) > 5 && <Icon name="warning" size={13} style={{ color: clr }} />}
+                      <td style={{ padding: '10px 12px', color: THEME.textMed }}>{fmIssued != null ? fmtNum(fmIssued, 0) : '—'}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600, color: clr }}>
+                        {error != null ? fmtNum(error, 1) : '—'}
+                      </td>
+                      <td style={{ padding: '10px 12px', fontWeight: 700, color: clr }}>
+                        {errorPct != null ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            {errorPct.toFixed(2)}%
+                            {Math.abs(errorPct) > 10 && <Icon name="warning" size={13} style={{ color: clr }} />}
                           </span>
-                        ) : <span style={{ color: THEME.textLow }}>—</span>}
+                        ) : '—'}
                       </td>
-                      <td style={{ padding: '10px 14px', color: THEME.textMed }}>{r.operator?.full_name || <span style={{ color: THEME.textLow }}>—</span>}</td>
-                      <td style={{ padding: '10px 14px', color: THEME.textMed, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.notes || ''}>{r.notes || <span style={{ color: THEME.textLow }}>—</span>}</td>
+                      <td style={{ padding: '10px 12px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{r.operator?.employees?.name || '—'}</td>
                     </tr>
                   )
                 })}

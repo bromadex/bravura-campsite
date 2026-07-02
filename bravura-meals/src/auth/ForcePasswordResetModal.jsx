@@ -38,11 +38,12 @@ export default function ForcePasswordResetModal() {
       const { error: authErr } = await supabase.auth.updateUser({ password: pw1 })
       if (authErr) throw authErr
 
-      const { error: profErr } = await supabase
-        .from('profiles')
-        .update({ force_password_reset: false })
-        .eq('id', user.id)
-      if (profErr) throw profErr
+      // Clear force_password_reset via SECURITY DEFINER RPC — a direct
+      // client-side UPDATE is blocked by RLS on the profiles table and
+      // silently affects 0 rows, which is what caused the modal to keep
+      // reappearing on every sign-in.
+      const { error: rpcErr } = await supabase.rpc('mark_password_reset_done')
+      if (rpcErr) throw rpcErr
 
       await refreshProfile()
     } catch (err) {

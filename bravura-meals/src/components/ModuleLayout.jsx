@@ -100,6 +100,16 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [collapsed,      setCollapsed]      = useState(false)
+  // Collapsible sidebar sections, persisted per module (like the old ERP)
+  const sectionStorageKey = `sidebar_exp_${moduleId}`
+  const [expandedSections, setExpandedSections] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`sidebar_exp_${moduleId}`) || '{}') }
+    catch { return {} }
+  })
+  useEffect(() => {
+    localStorage.setItem(sectionStorageKey, JSON.stringify(expandedSections))
+  }, [expandedSections, sectionStorageKey])
+  const toggleSection = label => setExpandedSections(prev => ({ ...prev, [label]: prev[label] === false ? true : false }))
   const [mobileNavOpen,  setMobileNavOpen]  = useState(false)
   const [flagCount,      setFlagCount]      = useState(0)
   const [notifOpen,      setNotifOpen]      = useState(false)
@@ -249,17 +259,31 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
 
         {/* Nav items */}
         <div style={{ flex: 1, padding: '4px 0', overflowY: 'auto' }}>
-          {sections.map(({ section, items }) => (
+          {sections.map(({ section, items }) => {
+            // A section is expanded unless explicitly collapsed. When the
+            // sidebar is icon-only, sections can't fold — all icons show.
+            const isOpen = !showLabels || expandedSections[section] !== false
+            const hasActive = items.some(i => i.id === page)
+            return (
             <div key={section}>
               {showLabels && (
-                <div style={{
-                  padding: '12px 16px 3px', fontSize: '9px', fontWeight: 600,
-                  color: 'rgba(255,255,255,.25)', letterSpacing: '.12em', textTransform: 'uppercase',
-                }}>
-                  {section}
+                <div
+                  onClick={() => toggleSection(section)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '12px 16px 3px', fontSize: '9px', fontWeight: 600,
+                    color: hasActive && !isOpen ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.25)',
+                    letterSpacing: '.12em', textTransform: 'uppercase',
+                    cursor: 'pointer', userSelect: 'none',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,.6)' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = hasActive && !isOpen ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.25)' }}
+                >
+                  <span style={{ flex: 1 }}>{section}</span>
+                  <Icon name={isOpen ? 'expand_less' : 'expand_more'} size={13} style={{ color: 'inherit' }} />
                 </div>
               )}
-              {items.map(item => {
+              {isOpen && items.map(item => {
                 const isActive = page === item.id
                 return (
                   <div
@@ -308,7 +332,8 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 )
               })}
             </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* User footer */}

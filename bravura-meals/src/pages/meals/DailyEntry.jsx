@@ -229,33 +229,32 @@ export default function DailyEntry() {
     if (!isEditable()) { showToast('This day is locked', 'red'); return }
     setSaving(true)
     try {
+      // Both writes go through SECURITY DEFINER RPCs so RLS on
+      // daily_submissions / meal_logs can't silently reject a Meals
+      // Officer's INSERT (the "new row violates row-level security"
+      // toast). The RPCs verify meals.create for the site themselves.
       let subId = submission?.id
       if (!subId) {
-        // Stamped with the currently selected site — otherwise the
-        // database default (Kamativi) would silently apply even while
-        // working in a different site, same fix already applied to
-        // employees, blocks, and supply items.
-        const { data: newSub, error } = await supabase
-          .from('daily_submissions')
-          .insert({ date, status: 'draft', submitted_by: profile.id, site_id: currentSiteId })
-          .select().single()
-        if (error) throw error
-        subId = newSub.id
-        setSubmission(newSub)
+        const { data: newId, error: ensureErr } = await supabase.rpc('ensure_meal_submission_draft', {
+          p_date:    date,
+          p_site_id: currentSiteId,
+        })
+        if (ensureErr) throw ensureErr
+        subId = newId
       }
-      const upserts = employees.map(e => ({
-        submission_id: subId,
-        date,
+      const payload = employees.map(e => ({
         employee_id:   e.id,
         employee_name: e.name,
         had_breakfast: !!(entryState[e.id]?.b),
         had_lunch:     !!(entryState[e.id]?.l),
         had_supper:    !!(entryState[e.id]?.s),
-        recorded_by:   profile.id,
-        recorded_at:   new Date().toISOString(),
       }))
-      const { error } = await supabase.from('meal_logs').upsert(upserts, { onConflict: 'date,employee_id' })
-      if (error) throw error
+      const { error: logsErr } = await supabase.rpc('save_meal_logs', {
+        p_submission_id: subId,
+        p_date:          date,
+        p_logs:          payload,
+      })
+      if (logsErr) throw logsErr
       showToast('Entries saved', 'green')
       loadDate(date)
     } catch (err) {
@@ -268,10 +267,12 @@ export default function DailyEntry() {
   async function submitForApproval() {
     if (!submission?.id) { showToast('Save entries first', 'red'); return }
     setSaving(true)
-    const { error } = await supabase
-      .from('daily_submissions')
-      .update({ status: 'submitted', submitted_by: profile.id, submitted_at: new Date().toISOString() })
-      .eq('id', submission.id)
+    // SECURITY DEFINER RPC — verifies meals.create on site and flips
+    // status to submitted with auth.uid() as submitted_by, so RLS on
+    // daily_submissions can't silently reject the change.
+    const { error } = await supabase.rpc('submit_meal_submission', {
+      p_submission_id: submission.id,
+    })
     setSaving(false)
     if (error) { showToast(error.message, 'red'); return }
     showToast('Submitted for approval', 'green')

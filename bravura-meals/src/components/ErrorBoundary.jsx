@@ -11,8 +11,31 @@ export default class ErrorBoundary extends Component {
     return { error }
   }
 
+  componentDidMount() {
+    // Clear the one-shot reload guard on any healthy mount so a later
+    // chunk failure can still recover.
+    if (this.state.error === null) sessionStorage.removeItem('bravura_reload_attempted')
+  }
+
   componentDidCatch(error, info) {
     console.error('[ErrorBoundary]', error, info.componentStack)
+
+    // Stale-deploy recovery: when Vercel ships a new build, the old JS
+    // chunks referenced by the cached index.html get purged from the CDN.
+    // The next lazy import then fails with "Failed to fetch dynamically
+    // imported module". Force a full reload so the browser fetches the
+    // fresh index.html + new chunk hashes. Guarded to reload at most once
+    // per session so a genuinely broken chunk can't cause a reload loop.
+    const msg = String(error?.message || '')
+    const isChunkFailure =
+      /dynamically imported module/i.test(msg) ||
+      /Loading chunk [\d]+ failed/i.test(msg) ||
+      /Importing a module script failed/i.test(msg)
+
+    if (isChunkFailure && !sessionStorage.getItem('bravura_reload_attempted')) {
+      sessionStorage.setItem('bravura_reload_attempted', '1')
+      window.location.reload()
+    }
   }
 
   render() {

@@ -41,11 +41,12 @@ export default function DailyTransactionReport() {
 
   const run = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('fuel_transactions')
-      .select('*, tank:fuel_tanks(tank_name), vehicle:fuel_vehicles(fleet_number, registration), equipment:fuel_equipment(name), operator:fuel_operators(full_name)')
+    const { data, error } = await supabase.from('fuel_transactions')
+      .select('*, tank:fuel_tanks(name), vehicle:fuel_vehicles(fleet_number, registration), equipment:fuel_equipment(name), operator:fuel_operators(employees(name))')
       .eq('site_id', currentSiteId)
       .eq('transaction_date', date)
       .order('created_at', { ascending: true })
+    if (error) console.error('DailyTransactionReport query failed:', error)
     setRows(data || [])
     setLoading(false)
   }, [currentSiteId, date])
@@ -54,7 +55,7 @@ export default function DailyTransactionReport() {
   const grouped = rows ? Object.values(
     rows.reduce((acc, t) => {
       const key = t.tank_id
-      if (!acc[key]) acc[key] = { tankName: t.tank?.tank_name || '—', txns: [], delivered: 0, issued: 0, adjusted: 0 }
+      if (!acc[key]) acc[key] = { tankName: t.tank?.name || '—', txns: [], delivered: 0, issued: 0, adjusted: 0 }
       acc[key].txns.push(t)
       if (t.transaction_type === 'delivery') acc[key].delivered += Number(t.litres)
       if (t.transaction_type === 'issuance') acc[key].issued += Number(t.litres)
@@ -73,9 +74,9 @@ export default function DailyTransactionReport() {
       t.transaction_date,
       t.docket_number || '',
       t.transaction_type,
-      t.tank?.tank_name || '',
+      t.tank?.name || '',
       t.vehicle ? `${t.vehicle.fleet_number}${t.vehicle.registration ? ` (${t.vehicle.registration})` : ''}` : t.equipment?.name || t.asset_description || '',
-      t.operator?.full_name || '',
+      t.operator?.employees?.name || '',
       t.litres,
     ])
     exportCsv(`daily-transactions-${date}.csv`, headers, data)
@@ -164,7 +165,7 @@ export default function DailyTransactionReport() {
                             </span>
                           </td>
                           <td style={{ padding: '10px 16px', color: THEME.text }}>{asset}</td>
-                          <td style={{ padding: '10px 16px', color: THEME.textMed }}>{t.operator?.full_name || '—'}</td>
+                          <td style={{ padding: '10px 16px', color: THEME.textMed }}>{t.operator?.employees?.name || '—'}</td>
                           <td style={{ padding: '10px 16px', color: TX_COLORS[t.transaction_type] || THEME.info, fontWeight: 700, textAlign: 'right' }}>
                             {t.transaction_type === 'issuance' ? '−' : t.transaction_type === 'delivery' ? '+' : ''}
                             {fmt(t.litres)} L

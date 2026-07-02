@@ -28,12 +28,6 @@ function exportCsv(filename, headers, rows) {
   URL.revokeObjectURL(url)
 }
 
-const STATUS_COLORS = {
-  confirmed: { bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
-  pending:   { bg: THEME.statusWarningBg, text: THEME.statusWarningText },
-  disputed:  { bg: THEME.statusErrorBg,   text: THEME.statusErrorText },
-}
-
 export default function DeliveryReport() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
@@ -47,32 +41,35 @@ export default function DeliveryReport() {
 
   const run = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('fuel_transactions')
-      .select('*, tank:fuel_tanks(tank_name), fuel_types(name)')
+      .select('*, tank:fuel_tanks(name, fuel_types(name))')
       .eq('site_id', currentSiteId)
       .eq('transaction_type', 'delivery')
       .gte('transaction_date', from)
       .lte('transaction_date', to)
       .order('transaction_date', { ascending: true })
+    if (error) console.error('DeliveryReport query failed:', error)
     setRows(data || [])
     setLoading(false)
   }, [currentSiteId, from, to])
 
+  const rowCostOf = r => r.total_cost != null ? Number(r.total_cost)
+    : r.unit_price && r.litres ? Number(r.unit_price) * Number(r.litres) : null
+
   const totalLitres = rows ? rows.reduce((s, r) => s + Number(r.litres), 0) : 0
-  const totalCost   = rows ? rows.reduce((s, r) => s + (r.unit_price_per_litre && r.litres ? Number(r.unit_price_per_litre) * Number(r.litres) : 0), 0) : 0
+  const totalCost   = rows ? rows.reduce((s, r) => s + (rowCostOf(r) || 0), 0) : 0
 
   const doExport = () => {
     if (!rows) return
-    const headers = ['Date', 'Tank', 'Supplier', 'Quantity (L)', 'Unit Price', 'Total Cost', 'Status', 'Docket #']
+    const headers = ['Date', 'Tank', 'Supplier', 'Quantity (L)', 'Unit Price', 'Total Cost', 'Docket #']
     const data = rows.map(r => [
       r.transaction_date,
-      r.tank?.tank_name || '',
-      r.supplier_name || '',
+      r.tank?.name || '',
+      r.supplier || '',
       r.litres,
-      r.unit_price_per_litre || '',
-      r.unit_price_per_litre ? (Number(r.unit_price_per_litre) * Number(r.litres)).toFixed(2) : '',
-      r.delivery_status || '',
+      r.unit_price || '',
+      rowCostOf(r) != null ? rowCostOf(r).toFixed(2) : '',
       r.docket_number || '',
     ])
     exportCsv(`deliveries-${from}-to-${to}.csv`, headers, data)
@@ -124,34 +121,26 @@ export default function DeliveryReport() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                  {['Date', 'Tank', 'Supplier', 'Docket #', 'Quantity', 'Unit Price', 'Total Cost', 'Status'].map(h => (
+                  {['Date', 'Tank', 'Supplier', 'Docket #', 'Quantity', 'Unit Price', 'Total Cost'].map(h => (
                     <th key={h} style={{ padding: '10px 14px', textAlign: ['Quantity', 'Unit Price', 'Total Cost'].includes(h) ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
-                  <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No deliveries in this period.</td></tr>
+                  <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No deliveries in this period.</td></tr>
                 ) : (
                   rows.map(r => {
-                    const rowCost = r.unit_price_per_litre && r.litres ? Number(r.unit_price_per_litre) * Number(r.litres) : null
-                    const sc = STATUS_COLORS[r.delivery_status] || { bg: THEME.surfaceVar, text: THEME.textMed }
+                    const rowCost = rowCostOf(r)
                     return (
                       <tr key={r.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                         <td style={{ padding: '10px 14px', color: THEME.textMed }}>{r.transaction_date}</td>
-                        <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{r.tank?.tank_name || '—'}</td>
-                        <td style={{ padding: '10px 14px', color: THEME.text }}>{r.supplier_name || '—'}</td>
+                        <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{r.tank?.name || '—'}</td>
+                        <td style={{ padding: '10px 14px', color: THEME.text }}>{r.supplier || '—'}</td>
                         <td style={{ padding: '10px 14px', color: COLOR, fontWeight: 600 }}>{r.docket_number || '—'}</td>
                         <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: THEME.success }}>{fmt(r.litres)} L</td>
-                        <td style={{ padding: '10px 14px', textAlign: 'right', color: THEME.textMed }}>{r.unit_price_per_litre ? fmtCost(r.unit_price_per_litre) + '/L' : '—'}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', color: THEME.textMed }}>{r.unit_price ? fmtCost(r.unit_price) + '/L' : '—'}</td>
                         <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: THEME.text }}>{fmtCost(rowCost)}</td>
-                        <td style={{ padding: '10px 14px' }}>
-                          {r.delivery_status ? (
-                            <span style={{ padding: '2px 8px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, background: sc.bg, color: sc.text }}>
-                              {r.delivery_status}
-                            </span>
-                          ) : '—'}
-                        </td>
                       </tr>
                     )
                   })
@@ -164,7 +153,6 @@ export default function DeliveryReport() {
                     <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: THEME.success }}>{fmt(totalLitres)} L</td>
                     <td />
                     <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: COLOR }}>{fmtCost(totalCost)}</td>
-                    <td />
                   </tr>
                 </tfoot>
               )}

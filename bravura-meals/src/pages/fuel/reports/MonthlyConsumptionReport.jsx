@@ -50,25 +50,28 @@ export default function MonthlyConsumptionReport() {
     const start = month + '-01'
     const end = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 0).toISOString().slice(0, 10)
 
-    const [{ data: txns }, { data: tanks }] = await Promise.all([
+    const [{ data: txns, error: txErr }, { data: tanks, error: tankErr }] = await Promise.all([
       supabase.from('fuel_transactions')
-        .select('*, tank:fuel_tanks(tank_name, fuel_type_id), vehicle:fuel_vehicles(fleet_number, registration, department), equipment:fuel_equipment(name, department), fuel_types(name)')
+        .select('*, tank:fuel_tanks(name, fuel_types(name)), vehicle:fuel_vehicles(fleet_number, registration, department_name), equipment:fuel_equipment(name)')
         .eq('site_id', currentSiteId)
         .gte('transaction_date', start)
         .lte('transaction_date', end),
       supabase.from('fuel_tanks')
-        .select('id, tank_name, current_level_litres, capacity_litres, fuel_types(name)')
+        .select('id, name, current_level_litres, capacity_litres, fuel_types(name)')
         .eq('site_id', currentSiteId)
         .eq('status', 'active')
         .eq('is_archived', false),
     ])
+
+    if (txErr) console.error('MonthlyConsumptionReport txns query failed:', txErr)
+    if (tankErr) console.error('MonthlyConsumptionReport tanks query failed:', tankErr)
 
     const all = txns || []
 
     // By fuel type
     const byFuelType = {}
     for (const t of all.filter(t => t.transaction_type === 'issuance')) {
-      const k = t.fuel_types?.name || t.tank?.fuel_type_id || 'Unknown'
+      const k = t.tank?.fuel_types?.name || 'Diesel'
       byFuelType[k] = (byFuelType[k] || 0) + Number(t.litres)
     }
 
@@ -76,21 +79,21 @@ export default function MonthlyConsumptionReport() {
     const byVehicle = {}
     for (const t of all.filter(t => t.transaction_type === 'issuance' && t.vehicle_id)) {
       const label = t.vehicle ? `${t.vehicle.fleet_number}${t.vehicle.registration ? ` (${t.vehicle.registration})` : ''}` : t.vehicle_id
-      if (!byVehicle[label]) byVehicle[label] = { litres: 0, dept: t.vehicle?.department || '—' }
+      if (!byVehicle[label]) byVehicle[label] = { litres: 0, dept: t.vehicle?.department_name || '—' }
       byVehicle[label].litres += Number(t.litres)
     }
 
     // By department
     const byDept = {}
     for (const t of all.filter(t => t.transaction_type === 'issuance')) {
-      const dept = t.vehicle?.department || t.equipment?.department || 'Unassigned'
+      const dept = t.vehicle?.department_name || 'Unassigned'
       byDept[dept] = (byDept[dept] || 0) + Number(t.litres)
     }
 
     // By tank (deliveries)
     const byTankDelivery = {}
     for (const t of all.filter(t => t.transaction_type === 'delivery')) {
-      const k = t.tank?.tank_name || t.tank_id
+      const k = t.tank?.name || t.tank_id
       byTankDelivery[k] = (byTankDelivery[k] || 0) + Number(t.litres)
     }
 
@@ -227,7 +230,7 @@ export default function MonthlyConsumptionReport() {
                   const pc = pct == null ? THEME.textMed : pct < 20 ? THEME.error : pct < 40 ? THEME.warning : THEME.success
                   return (
                     <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                      <td style={{ padding: '10px 16px', color: THEME.text, fontWeight: 500 }}>{t.tank_name}</td>
+                      <td style={{ padding: '10px 16px', color: THEME.text, fontWeight: 500 }}>{t.name}</td>
                       <td style={{ padding: '10px 16px', color: THEME.textMed }}>{t.fuel_types?.name || '—'}</td>
                       <td style={{ padding: '10px 16px', textAlign: 'right', color: THEME.text, fontWeight: 600 }}>{fmt(t.current_level_litres)} L</td>
                       <td style={{ padding: '10px 16px', textAlign: 'right', color: THEME.textMed }}>{t.capacity_litres ? fmt(t.capacity_litres) + ' L' : '—'}</td>

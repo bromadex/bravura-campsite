@@ -47,13 +47,14 @@ export default function VarianceReport() {
 
   const run = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('fuel_reconciliations')
-      .select('*, tank:fuel_tanks(tank_name)')
+      .select('*, tank:fuel_tanks(name)')
       .eq('site_id', currentSiteId)
       .gte('period_end', from)
       .lte('period_end', to)
       .order('period_end', { ascending: false })
+    if (error) console.error('VarianceReport query failed:', error)
     setRows(data || [])
     setLoading(false)
   }, [currentSiteId, from, to])
@@ -64,8 +65,8 @@ export default function VarianceReport() {
     if (!rows) return
     const headers = ['Ref', 'Tank', 'Period Start', 'Period End', 'Expected Close (L)', 'Actual Close (L)', 'Variance (L)', 'Variance %', 'Status']
     const data = rows.map(r => [
-      r.ref_number || '',
-      r.tank?.tank_name || '',
+      r.reconciliation_number || '',
+      r.tank?.name || '',
       r.period_start,
       r.period_end,
       r.closing_level_expected ?? '',
@@ -134,8 +135,8 @@ export default function VarianceReport() {
                     const sc = STATUS_COLORS[r.status] || { bg: THEME.surfaceVar, text: THEME.textMed }
                     return (
                       <tr key={r.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: isHigh ? THEME.error + '06' : 'transparent' }}>
-                        <td style={{ padding: '10px 14px', color: COLOR, fontWeight: 600 }}>{r.ref_number || '—'}</td>
-                        <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{r.tank?.tank_name || '—'}</td>
+                        <td style={{ padding: '10px 14px', color: COLOR, fontWeight: 600 }}>{r.reconciliation_number || '—'}</td>
+                        <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{r.tank?.name || '—'}</td>
                         <td style={{ padding: '10px 14px', color: THEME.textMed, fontSize: '12px' }}>
                           {r.period_start} → {r.period_end}
                         </td>

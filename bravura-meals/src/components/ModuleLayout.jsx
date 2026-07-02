@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
 import { useSite } from '../contexts/SiteContext'
@@ -97,6 +98,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
   const { currentSiteId } = useSite()
   const role = profile?.role
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
   const [collapsed,      setCollapsed]      = useState(false)
   const [mobileNavOpen,  setMobileNavOpen]  = useState(false)
   const [flagCount,      setFlagCount]      = useState(0)
@@ -481,8 +483,22 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 </div>
               ) : (
                 notifications.map(n => {
-                  const typeColor = n.type === 'fuel_alert' ? THEME.error : n.type === 'fuel_warning' ? THEME.warning : THEME.textMed
-                  const typeIcon  = n.type === 'fuel_alert' ? 'warning' : n.type === 'fuel_warning' ? 'info' : 'notifications'
+                  const typeColor =
+                      n.type === 'fuel_alert'       ? THEME.error
+                    : n.type === 'fuel_warning'     ? THEME.warning
+                    : n.type === 'meals_submitted'  ? THEME.info
+                    : n.type === 'meals_approved'   ? THEME.success
+                    : n.type === 'meals_returned'   ? THEME.warning
+                    : n.type === 'meals_confirmed'  ? THEME.success
+                    : THEME.textMed
+                  const typeIcon =
+                      n.type === 'fuel_alert'       ? 'warning'
+                    : n.type === 'fuel_warning'     ? 'info'
+                    : n.type === 'meals_submitted'  ? 'upload'
+                    : n.type === 'meals_approved'   ? 'check_circle'
+                    : n.type === 'meals_returned'   ? 'undo'
+                    : n.type === 'meals_confirmed'  ? 'restaurant'
+                    : 'notifications'
                   const ts = new Date(n.created_at)
                   const age = Date.now() - ts.getTime()
                   const ageStr = age < 3600000 ? `${Math.floor(age / 60000)}m ago`
@@ -491,7 +507,13 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                   return (
                     <div
                       key={n.id}
-                      onClick={() => { markRead(n.id); if (n.action_url) { /* external URL — dashboard is SPA, just close */ setNotifOpen(false) } }}
+                      onClick={() => {
+                        markRead(n.id)
+                        if (n.action_url && n.action_url.startsWith('/')) {
+                          navigate(n.action_url)
+                        }
+                        setNotifOpen(false)
+                      }}
                       style={{
                         padding: '14px 20px', borderBottom: `1px solid ${THEME.outlineVar}`,
                         cursor: n.action_url ? 'pointer' : 'default',

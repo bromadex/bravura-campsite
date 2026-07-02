@@ -78,12 +78,30 @@ export default function DailyEntry() {
     setLoading(true)
     const employeeIds = employees.map(e => e.id)
     const [{ data: sub }, logsRes] = await Promise.all([
-      supabase.from('daily_submissions').select('*').eq('date', d).eq('site_id', currentSiteId).maybeSingle(),
+      supabase.from('daily_submissions')
+        .select(`
+          *,
+          submitted_by_profile:profiles!daily_submissions_submitted_by_fkey(full_name, username),
+          approved_by_profile:profiles!daily_submissions_approved_by_fkey(full_name, username)
+        `)
+        .eq('date', d).eq('site_id', currentSiteId).maybeSingle(),
       employeeIds.length > 0
         ? supabase.from('meal_logs').select('*').eq('date', d).in('employee_id', employeeIds)
         : Promise.resolve({ data: [] }),
     ])
-    setSubmission(sub)
+
+    // Resolve the reviewer who returned it, if any, so the audit trail
+    // can show their name rather than a raw UUID.
+    let returnedBy = null
+    if (sub?.previous_counts?.actor) {
+      const { data } = await supabase.from('profiles')
+        .select('full_name, username')
+        .eq('id', sub.previous_counts.actor)
+        .maybeSingle()
+      returnedBy = data
+    }
+    setSubmission(sub ? { ...sub, returned_by_profile: returnedBy } : sub)
+
     const state = {}
     logsRes.data?.forEach(log => {
       state[log.employee_id] = { b: log.had_breakfast, l: log.had_lunch, s: log.had_supper }
@@ -321,6 +339,61 @@ export default function DailyEntry() {
           </div>
         )}
       </PageHeader>
+
+      {/* ── Audit trail: submitted / returned / approved by whom, when ── */}
+      {submission && (submission.submitted_at || submission.approved_at || submission.previous_counts) && (() => {
+        const fmtWhen = ts => ts ? new Date(ts).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+        const nameOf  = p => p?.full_name || p?.username || '—'
+        const rows = []
+        if (submission.submitted_at || submission.submitted_by_profile) {
+          rows.push({ icon: 'upload', color: THEME.info, label: 'Submitted', who: nameOf(submission.submitted_by_profile), when: submission.submitted_at })
+        }
+        if (submission.previous_counts) {
+          rows.push({
+            icon: 'undo', color: THEME.warning, label: 'Returned',
+            who: nameOf(submission.returned_by_profile),
+            when: submission.previous_counts.at,
+            note: submission.previous_counts.note,
+          })
+        }
+        if (submission.approved_at || submission.approved_by_profile) {
+          rows.push({ icon: 'check_circle', color: THEME.success, label: 'Approved', who: nameOf(submission.approved_by_profile), when: submission.approved_at })
+        }
+        if (rows.length === 0) return null
+        return (
+          <div style={{
+            marginBottom: '14px', padding: '10px 14px',
+            background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`,
+            borderRadius: '10px',
+          }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>
+              Audit trail
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
+              {rows.map((r, i) => (
+                <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <div style={{ width: 26, height: 26, borderRadius: '8px', background: r.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name={r.icon} size={14} style={{ color: r.color }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: '12px' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, color: THEME.text }}>{r.label}</span>{' '}
+                      <span style={{ color: THEME.textMed }}>by </span>
+                      <span style={{ fontWeight: 500, color: THEME.text }}>{r.who}</span>
+                    </div>
+                    <div style={{ color: THEME.textLow, fontSize: '11px' }}>{fmtWhen(r.when)}</div>
+                    {r.note && (
+                      <div style={{ marginTop: '4px', padding: '5px 8px', background: THEME.surface, borderRadius: '6px', border: `1px solid ${THEME.outlineVar}`, color: THEME.textMed, fontStyle: 'italic' }}>
+                        "{r.note}"
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Keyboard shortcuts hint ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '10px' }}>

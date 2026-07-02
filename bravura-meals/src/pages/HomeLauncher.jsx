@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MODULE_COLORS, THEME, ROLE_LABELS, moduleAccess } from '../utils/permissions'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
@@ -41,6 +42,7 @@ function useViewport() {
 
 export default function HomeLauncher({ onEnterModule }) {
   const { profile, signOut } = useAuth()
+  const navigate = useNavigate()
   const { can } = usePermissions()
   const { currentSite } = useSite()
   const role = profile?.role
@@ -274,12 +276,32 @@ export default function HomeLauncher({ onEnterModule }) {
                   <div style={{ fontSize: '13px' }}>No notifications yet</div>
                 </div>
               ) : notifications.map(n => {
-                const tc = n.type === 'fuel_alert' ? '#EF4444' : n.type === 'fuel_warning' ? '#F59E0B' : THEME.textMed
-                const ti = n.type === 'fuel_alert' ? 'warning' : n.type === 'fuel_warning' ? 'info' : 'notifications'
+                const tc =
+                    n.type === 'fuel_alert'      ? '#EF4444'
+                  : n.type === 'fuel_warning'    ? '#F59E0B'
+                  : n.type === 'meals_submitted' ? '#1558A6'
+                  : n.type === 'meals_approved'  ? '#386A20'
+                  : n.type === 'meals_returned'  ? '#7D5700'
+                  : n.type === 'meals_confirmed' ? '#386A20'
+                  : THEME.textMed
+                const ti =
+                    n.type === 'fuel_alert'      ? 'warning'
+                  : n.type === 'fuel_warning'    ? 'info'
+                  : n.type === 'meals_submitted' ? 'upload'
+                  : n.type === 'meals_approved'  ? 'check_circle'
+                  : n.type === 'meals_returned'  ? 'undo'
+                  : n.type === 'meals_confirmed' ? 'restaurant'
+                  : 'notifications'
                 const age = Date.now() - new Date(n.created_at).getTime()
                 const ageStr = age < 3600000 ? `${Math.floor(age / 60000)}m ago` : age < 86400000 ? `${Math.floor(age / 3600000)}h ago` : new Date(n.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
                 return (
-                  <div key={n.id} onClick={() => markRead(n.id)}
+                  <div key={n.id} onClick={() => {
+                    markRead(n.id)
+                    if (n.action_url && n.action_url.startsWith('/')) {
+                      navigate(n.action_url)
+                    }
+                    setNotifOpen(false)
+                  }}
                     style={{ padding: '14px 20px', borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', background: n.is_read ? 'transparent' : tc + '08', display: 'flex', gap: '12px', alignItems: 'flex-start' }}
                     onMouseEnter={e => { e.currentTarget.style.background = THEME.surfaceVar }}
                     onMouseLeave={e => { e.currentTarget.style.background = n.is_read ? 'transparent' : tc + '08' }}

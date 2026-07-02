@@ -14,6 +14,7 @@ export default function Approvals() {
   const [loading, setLoading]         = useState(true)
   const [selected, setSelected]       = useState(null) // selected submission
   const [logs, setLogs]               = useState([])
+  const [returnedByProfile, setReturnedByProfile] = useState(null)
   const [loadingLogs, setLoadingLogs] = useState(false)
   const [approving, setApproving]     = useState(false)
   const [notes, setNotes]             = useState('')
@@ -48,16 +49,22 @@ export default function Approvals() {
     setSelected(sub)
     setNotes(sub.notes || '')
     setLoadingLogs(true)
+    setReturnedByProfile(null)
     // Filtered by submission_id, not date. A date can now have one
     // submission PER SITE rather than one globally — filtering by date
     // alone would mix two different sites' meal logs together on the same
     // calendar day. submission_id is the actual, reliable link.
-    const { data } = await supabase
-      .from('meal_logs')
-      .select('*, employee:employees(name, group_name)')
-      .eq('submission_id', sub.id)
-      .order('employee(name)')
-    setLogs(data || [])
+    const [{ data: logRows }, actorRes] = await Promise.all([
+      supabase.from('meal_logs')
+        .select('*, employee:employees(name, group_name)')
+        .eq('submission_id', sub.id)
+        .order('employee(name)'),
+      sub.previous_counts?.actor
+        ? supabase.from('profiles').select('full_name, username').eq('id', sub.previous_counts.actor).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ])
+    setLogs(logRows || [])
+    setReturnedByProfile(actorRes.data || null)
     setLoadingLogs(false)
   }
 
@@ -280,6 +287,62 @@ export default function Approvals() {
                     })}
                   </div>
                 ) })()}
+
+                {/* Audit trail — who did what, when */}
+                {(() => {
+                  const submitter = selected.submitted_by_profile
+                  const approver  = selected.approved_by_profile
+                  const returned  = returnedByProfile
+                  const fmtWhen   = ts => ts ? new Date(ts).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+                  const nameOf    = p => p?.full_name || p?.username || '—'
+                  const rows = []
+                  if (selected.submitted_at || submitter) {
+                    rows.push({ icon: 'upload', color: THEME.info,    label: 'Submitted', who: nameOf(submitter), when: selected.submitted_at })
+                  }
+                  if (selected.previous_counts) {
+                    rows.push({
+                      icon: 'undo', color: THEME.warning, label: 'Returned',
+                      who: nameOf(returned),
+                      when: selected.previous_counts.at,
+                      note: selected.previous_counts.note,
+                    })
+                  }
+                  if (selected.approved_at || approver) {
+                    rows.push({ icon: 'check_circle', color: THEME.success, label: 'Approved', who: nameOf(approver), when: selected.approved_at })
+                  }
+                  if (rows.length === 0) return null
+                  return (
+                    <div style={{
+                      marginBottom: '14px', padding: '10px 14px',
+                      background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`,
+                      borderRadius: '8px',
+                    }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>
+                        Audit trail
+                      </div>
+                      {rows.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '4px 0' }}>
+                          <div style={{ width: 26, height: 26, borderRadius: '8px', background: r.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Icon name={r.icon} size={14} style={{ color: r.color }} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0, fontSize: '12px' }}>
+                            <div>
+                              <span style={{ fontWeight: 600, color: THEME.text }}>{r.label}</span>{' '}
+                              <span style={{ color: THEME.textMed }}>by </span>
+                              <span style={{ fontWeight: 500, color: THEME.text }}>{r.who}</span>
+                            </div>
+                            <div style={{ color: THEME.textLow, fontSize: '11px' }}>{fmtWhen(r.when)}</div>
+                            {r.note && (
+                              <div style={{ marginTop: '4px', padding: '5px 8px', background: THEME.surface, borderRadius: '6px', border: `1px solid ${THEME.outlineVar}`, color: THEME.textMed, fontStyle: 'italic' }}>
+                                "{r.note}"
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
 
                 {/* Diff panel — visible if this submission was returned once */}
                 {selected.previous_counts && (

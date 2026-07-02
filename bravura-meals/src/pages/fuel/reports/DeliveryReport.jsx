@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { usePermissions } from '../../../hooks/usePermissions'
 import { useSite } from '../../../contexts/SiteContext'
@@ -54,6 +54,8 @@ export default function DeliveryReport() {
     setLoading(false)
   }, [currentSiteId, from, to])
 
+  useEffect(() => { run() }, [run])
+
   const rowCostOf = r => r.total_cost != null ? Number(r.total_cost)
     : r.unit_price && r.litres ? Number(r.unit_price) * Number(r.litres) : null
 
@@ -93,9 +95,7 @@ export default function DeliveryReport() {
           <label style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>To</label>
           <input type="date" value={to} onChange={e => setTo(e.target.value)} style={selStyle} />
         </div>
-        <button onClick={run} disabled={loading} style={{ ...btn({ background: COLOR, color: '#fff', opacity: loading ? 0.6 : 1 }) }}>
-          <Icon name="bar_chart" size={15} /> {loading ? 'Loading…' : 'Run Report'}
-        </button>
+        {loading && <span style={{ fontSize: '12px', color: THEME.textLow, paddingBottom: '10px' }}>Loading…</span>}
         {rows && can('fuel.edit') && (
           <button onClick={doExport} style={{ ...btn({ background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outline}` }) }}>
             <Icon name="download" size={15} /> Export CSV

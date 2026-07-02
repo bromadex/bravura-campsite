@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { usePermissions } from '../../../hooks/usePermissions'
 import { useSite } from '../../../contexts/SiteContext'
@@ -101,6 +101,8 @@ export default function MonthlyConsumptionReport() {
     setLoading(false)
   }, [currentSiteId, month])
 
+  useEffect(() => { run() }, [run])
+
   const doExport = () => {
     if (!data) return
     const headers = ['Category', 'Name', 'Litres']
@@ -140,9 +142,7 @@ export default function MonthlyConsumptionReport() {
           <label style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Month</label>
           <input type="month" value={month} onChange={e => setMonth(e.target.value)} style={selStyle} />
         </div>
-        <button onClick={run} disabled={loading} style={{ ...btn({ background: COLOR, color: '#fff', opacity: loading ? 0.6 : 1 }) }}>
-          <Icon name="bar_chart" size={15} /> {loading ? 'Loading…' : 'Run Report'}
-        </button>
+        {loading && <span style={{ fontSize: '12px', color: THEME.textLow, paddingBottom: '10px' }}>Loading…</span>}
         {data && can('fuel.edit') && (
           <button onClick={doExport} style={{ ...btn({ background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outline}` }) }}>
             <Icon name="download" size={15} /> Export CSV

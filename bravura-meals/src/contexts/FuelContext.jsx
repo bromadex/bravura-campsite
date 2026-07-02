@@ -256,6 +256,32 @@ export function FuelProvider({ children }) {
     return row
   }
 
+  // Hard-delete a tank. Refuses if any fuel_transaction ever referenced
+  // it — transactions are immutable and their tank_id would dangle.
+  // Also removes pumps, dip readings, and calibration rows for the tank.
+  async function deleteTank(id) {
+    const { count, error: countErr } = await supabase
+      .from('fuel_transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('tank_id', id)
+    if (countErr) throw countErr
+    if ((count ?? 0) > 0) {
+      throw new Error(
+        `This tank has ${count} transaction${count === 1 ? '' : 's'} against it and cannot be deleted. ` +
+        'Decommission it instead — that keeps the history intact.'
+      )
+    }
+
+    // Wipe dependent config rows first so FKs don't block the tank delete.
+    await supabase.from('tank_calibrations').delete().eq('tank_id', id)
+    await supabase.from('fuel_pumps').delete().eq('tank_id', id)
+    await supabase.from('fuel_dip_readings').delete().eq('tank_id', id)
+
+    const { error } = await supabase.from('fuel_tanks').delete().eq('id', id)
+    if (error) throw error
+    setTanks(prev => prev.filter(t => t.id !== id))
+  }
+
   // ── Pumps CRUD ────────────────────────────────────────────────────────────────
 
   async function addPump(data) {
@@ -466,7 +492,7 @@ export function FuelProvider({ children }) {
       // fuel type ops
       addFuelType, updateFuelType, deactivateFuelType,
       // tank ops
-      addTank, updateTank, archiveTank,
+      addTank, updateTank, archiveTank, deleteTank,
       // pump ops
       addPump, updatePump, archivePump,
       // vehicle ops

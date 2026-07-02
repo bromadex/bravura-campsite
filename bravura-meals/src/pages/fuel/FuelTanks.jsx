@@ -42,7 +42,7 @@ export default function FuelTanks() {
   const navigate = useNavigate()
   const { can } = usePermissions()
   const { currentSite } = useSite()
-  const { fuelTypes, tanks, addTank, updateTank, archiveTank, tankBalance, loading } = useFuel()
+  const { fuelTypes, tanks, addTank, updateTank, archiveTank, deleteTank, tankBalance, loading } = useFuel()
 
   const openDetail = id => navigate(`/fuel/tanks/${id}`)
 
@@ -54,6 +54,7 @@ export default function FuelTanks() {
   const [form,       setForm]       = useState(BLANK_FORM)
   const [saving,     setSaving]     = useState(false)
   const [archiving,  setArchiving]  = useState(null)
+  const [deleting,   setDeleting]   = useState(null)
   const [view,       setView]       = useState('cards')   // 'cards' | 'table'
   const [filterFuel, setFilterFuel] = useState('all')
   const [filterType, setFilterType] = useState('all')
@@ -157,6 +158,17 @@ export default function FuelTanks() {
     }
   }
 
+  async function confirmDelete() {
+    try {
+      await deleteTank(deleting.id)
+      showToast('Tank deleted', 'green')
+    } catch (err) {
+      showToast(err.message || 'Failed to delete', 'red')
+    } finally {
+      setDeleting(null)
+    }
+  }
+
   // ── Filtering ────────────────────────────────────────────────────────────────
   const displayed = useMemo(() => tanks.filter(t => {
     if (filterFuel !== 'all' && t.fuel_type_id !== filterFuel) return false
@@ -247,6 +259,7 @@ export default function FuelTanks() {
           onEdit={openEdit}
           onStatus={setStatus}
           onDecommission={t => setArchiving(t)}
+          onDelete={t => setDeleting(t)}
         />
       ) : (
         <TankTable
@@ -255,6 +268,7 @@ export default function FuelTanks() {
           canEdit={canEdit}
           onOpen={openDetail}
           onDecommission={t => setArchiving(t)}
+          onDelete={t => setDeleting(t)}
         />
       )}
 
@@ -382,13 +396,25 @@ export default function FuelTanks() {
           ? `Decommission "${archiving.name}"? The tank will be hidden from all dropdowns. Transaction history is preserved. This cannot be undone.`
           : ''}
       />
+
+      <ConfirmModal
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        onConfirm={confirmDelete}
+        title="Delete Tank"
+        danger
+        confirmLabel="Delete permanently"
+        message={deleting
+          ? `Delete "${deleting.name}" permanently? This removes the tank, its pumps, dip readings, and calibration chart. The action is refused if any transaction has ever been recorded against this tank — in that case decommission instead.`
+          : ''}
+      />
     </div>
   )
 }
 
 // ── Card Grid ──────────────────────────────────────────────────────────────────
 
-function TankCardGrid({ tanks, tankBalance, canEdit, onOpen, onEdit, onStatus, onDecommission }) {
+function TankCardGrid({ tanks, tankBalance, canEdit, onOpen, onEdit, onStatus, onDecommission, onDelete }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '14px' }}>
       {tanks.map(tank => (
@@ -401,13 +427,14 @@ function TankCardGrid({ tanks, tankBalance, canEdit, onOpen, onEdit, onStatus, o
           onEdit={() => onEdit(tank)}
           onStatus={s => onStatus(tank, s)}
           onDecommission={() => onDecommission(tank)}
+          onDelete={() => onDelete(tank)}
         />
       ))}
     </div>
   )
 }
 
-function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommission }) {
+function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommission, onDelete }) {
   const capacity = Number(tank.capacity_litres) || 0
   const pct      = capacity ? Math.min(100, Math.max(0, (balance / capacity) * 100)) : 0
   const minPct   = Number(tank.min_threshold_percent) || 20
@@ -517,6 +544,9 @@ function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommis
           <button onClick={e => { e.stopPropagation(); onDecommission() }} style={cardBtn(true)} title="Decommission">
             <Icon name="archive" size={13} />
           </button>
+          <button onClick={e => { e.stopPropagation(); onDelete() }} style={cardBtn(true)} title="Delete permanently">
+            <Icon name="delete" size={13} />
+          </button>
         </div>
       )}
     </div>
@@ -525,7 +555,7 @@ function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommis
 
 // ── Table view ─────────────────────────────────────────────────────────────────
 
-function TankTable({ tanks, tankBalance, canEdit, onOpen, onDecommission }) {
+function TankTable({ tanks, tankBalance, canEdit, onOpen, onDecommission, onDelete }) {
   return (
     <Card style={{ padding: 0 }}>
       <TableWrap>
@@ -590,13 +620,22 @@ function TankTable({ tanks, tankBalance, canEdit, onOpen, onDecommission }) {
                 {canEdit && (
                   <Td>
                     {tank.status !== 'decommissioned' && (
-                      <button
-                        onClick={e => { e.stopPropagation(); onDecommission(tank) }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', opacity: .6 }}
-                        title="Decommission tank"
-                      >
-                        <Icon name="archive" size={16} style={{ color: THEME.error }} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); onDecommission(tank) }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', opacity: .6 }}
+                          title="Decommission tank"
+                        >
+                          <Icon name="archive" size={16} style={{ color: THEME.warning }} />
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); onDelete(tank) }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', opacity: .6 }}
+                          title="Delete tank permanently"
+                        >
+                          <Icon name="delete" size={16} style={{ color: THEME.error }} />
+                        </button>
+                      </div>
                     )}
                   </Td>
                 )}

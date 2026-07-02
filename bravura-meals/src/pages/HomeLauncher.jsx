@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MODULE_COLORS, THEME, ROLE_LABELS, moduleAccess } from '../utils/permissions'
+import { MODULE_COLORS, THEME, moduleAccess } from '../utils/permissions'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
 import { useSite } from '../contexts/SiteContext'
@@ -220,12 +220,9 @@ export default function HomeLauncher({ onEnterModule }) {
 
         {/* Welcome */}
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-          <h1 style={{ fontSize: '30px', fontWeight: 300, color: THEME.text, margin: '0 0 4px', letterSpacing: '-.01em' }}>
+          <h1 style={{ fontSize: '30px', fontWeight: 300, color: THEME.text, margin: 0, letterSpacing: '-.01em' }}>
             Welcome back, <span style={{ fontWeight: 700 }}>{profile?.full_name?.split(' ')[0] || profile?.username}</span>
           </h1>
-          <p style={{ fontSize: '13px', color: THEME.textMed, margin: 0 }}>
-            {ROLE_LABELS[role] || role}
-          </p>
         </div>
 
         {/* Module tiles — responsive: 2 cols mobile, 3 tablet, 5 desktop */}

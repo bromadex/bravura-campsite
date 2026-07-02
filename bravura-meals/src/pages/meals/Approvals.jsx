@@ -82,20 +82,17 @@ export default function Approvals() {
   async function reject() {
     if (!notes.trim()) { showToast('Please add a rejection note', 'red'); return }
     setApproving(true)
-    // Snapshot current counts BEFORE resetting to draft so the diff view can
-    // show what changed after the meal officer corrects the submission.
-    const snap = {
-      b: mealSummary(logs).b,
-      l: mealSummary(logs).l,
-      s: mealSummary(logs).s,
-      at: new Date().toISOString(),
-      actor: profile.id,
-      note: notes,
-    }
-    const { error } = await supabase
-      .from('daily_submissions')
-      .update({ status: 'draft', notes, approved_by: null, approved_at: null, previous_counts: snap })
-      .eq('id', selected.id)
+    // Use SECURITY DEFINER RPC — a direct UPDATE from the client is
+    // silently blocked by RLS on daily_submissions, so the row would
+    // stay stuck at status='submitted' and the meal officer couldn't
+    // edit it. The RPC snapshots current counts into previous_counts
+    // for the diff view before flipping status back to draft.
+    const summary = mealSummary(logs)
+    const { error } = await supabase.rpc('return_submission_for_corrections', {
+      p_submission_id: selected.id,
+      p_note:          notes,
+      p_counts:        { b: summary.b, l: summary.l, s: summary.s },
+    })
     setApproving(false)
     if (error) { showToast(error.message, 'red'); return }
     showToast('Returned to Meal Officer for corrections', '')

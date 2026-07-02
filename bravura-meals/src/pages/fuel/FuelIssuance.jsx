@@ -297,6 +297,10 @@ const BLANK = {
   litres_manual:    '',
   docket_number:    '',
   notes:            '',
+  // Manual/emergency authorisation — captured when there is no linked
+  // approved fuel request. Approvers acknowledge these post-hoc.
+  authorised_by_name:   '',
+  authorisation_reason: '',
 }
 
 export default function FuelIssuance({ setPage }) {
@@ -436,7 +440,15 @@ export default function FuelIssuance({ setPage }) {
     if (form.asset_type === 'equipment' && !form.equipment_id) { showToast('Select equipment', 'red'); return }
     if (!form.operator_id) { showToast('Select an operator', 'red'); return }
     if (wouldOverdraw) { showToast(`Insufficient stock — only ${tankLevel.toFixed(1)} L available`, 'red'); return }
-    if (requireApproval && !linkedRequest) { showToast('An approved fuel request is required before issuing', 'red'); return }
+
+    // Manual / emergency issuance (no linked request) — require the
+    // "authorised by" name + a reason so there's a clear audit trail
+    // and the approver has something to acknowledge against.
+    const isManual = !linkedRequest
+    if (isManual) {
+      if (!form.authorised_by_name.trim()) { showToast('Enter who authorised this issuance', 'red'); return }
+      if (!form.authorisation_reason.trim()) { showToast('Enter the reason / justification', 'red'); return }
+    }
 
     setSaving(true)
     try {
@@ -453,6 +465,10 @@ export default function FuelIssuance({ setPage }) {
         meter_reading_end:   form.use_meter && form.meter_end   ? Number(form.meter_end)   : null,
         docket_number:     form.docket_number.trim() || null,
         notes:             form.notes.trim() || null,
+        // Acknowledgement fields — pending review when unlinked.
+        authorised_by_name:     isManual ? form.authorised_by_name.trim() : null,
+        authorisation_reason:   isManual ? form.authorisation_reason.trim() : null,
+        acknowledgement_status: isManual ? 'pending' : 'not_required',
       })
 
       // If this issuance was raised against a fuel request, mark it as issued
@@ -801,12 +817,40 @@ export default function FuelIssuance({ setPage }) {
             />
           </FieldWrap>
 
-          {/* ── 8. Notes ─────────────────────────────────────────────────── */}
+          {/* ── 8. Manual-authorisation fields (no linked request) ───────── */}
+          {!linkedRequest && (
+            <>
+              <InfoPanel icon="verified_user" color={THEME.warning}>
+                No fuel request linked. Record who authorised this issuance and the reason —
+                an approver will acknowledge it after the fact.
+              </InfoPanel>
+              <FieldWrap label="Authorised By" required>
+                <input
+                  type="text"
+                  value={form.authorised_by_name}
+                  onChange={e => set('authorised_by_name', e.target.value)}
+                  placeholder="Name of the manager / supervisor who authorised this"
+                  style={inp()}
+                />
+              </FieldWrap>
+              <FieldWrap label="Reason / Emergency Justification" required>
+                <textarea
+                  value={form.authorisation_reason}
+                  onChange={e => set('authorisation_reason', e.target.value)}
+                  placeholder="e.g. Emergency medivac — Manager approved verbally over radio."
+                  rows={2}
+                  style={{ ...inp(), resize: 'vertical' }}
+                />
+              </FieldWrap>
+            </>
+          )}
+
+          {/* ── 9. Notes ─────────────────────────────────────────────────── */}
           <FieldWrap label="Notes">
             <textarea
               value={form.notes}
               onChange={e => set('notes', e.target.value)}
-              placeholder="Purpose, destination, authorised by…"
+              placeholder="Purpose, destination, additional info…"
               rows={2}
               style={{ ...inp(), resize: 'vertical' }}
             />

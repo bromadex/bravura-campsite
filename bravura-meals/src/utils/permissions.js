@@ -187,16 +187,17 @@ export function fuelNav(role, can) {
   return [
     { id: 'fuel_dashboard',    label: 'Dashboard',          section: 'Overview', icon: 'dashboard' },
     // Records — ordered by operational flow: request → deliver → measure → issue → distribute → reconcile → audit
-    { id: 'fuel_request_form',  label: 'Request Fuel',       section: 'Records',  icon: 'send',              show: can('fuel.view')   },
+    // Request form is reachable via the "New Request" button on the Fuel Requests list — no need for a separate nav item
+    { id: 'fuel_request_form',  label: 'Request Fuel',       section: 'Records',  icon: 'send',              show: false },
     { id: 'fuel_requests_list', label: 'Fuel Requests',      section: 'Records',  icon: 'checklist',         show: can('fuel.view')   },
     { id: 'fuel_receipts',      label: 'Fuel Deliveries',    section: 'Records',  icon: 'local_gas_station', show: can('fuel.create') },
     { id: 'fuel_dips',          label: 'Dip Stick Readings', section: 'Records',  icon: 'straighten',        show: can('fuel.create') },
     { id: 'fuel_issuance',      label: 'Issue Fuel',         section: 'Records',  icon: 'output',            show: can('fuel.create') },
     { id: 'fuel_issues',        label: 'Issuance History',   section: 'Records',  icon: 'history',           show: can('fuel.view')   },
-    { id: 'fuel_bowsers',       label: 'Bowser Dispatches',  section: 'Records',  icon: 'local_shipping',    show: can('fuel.view')   },
+    { id: 'fuel_bowsers',       label: 'Bowser Dispatches',  section: 'Records',  icon: 'local_shipping',    show: false },
     { id: 'fuel_reconciliation',label: 'Tank Reconciliation',section: 'Records',  icon: 'balance',           show: can('fuel.create') },
     { id: 'fuel_transactions',  label: 'All Transactions',   section: 'Records',  icon: 'receipt_long',      show: can('fuel.view')   },
-    { id: 'fuel_shift_report',      label: 'Shift Report',        section: 'Reports', icon: 'summarize',         show: can('fuel.view') },
+    { id: 'fuel_shift_report',      label: 'Shift Report',        section: 'Reports', icon: 'summarize',         show: false },
     { id: 'fuel_report_daily',      label: 'Daily Transaction Report',  section: 'Reports', icon: 'today',             show: can('fuel.view') },
     { id: 'fuel_report_monthly',    label: 'Monthly Consumption Report', section: 'Reports', icon: 'bar_chart',         show: can('fuel.view') },
     { id: 'fuel_report_deliveries', label: 'Delivery Report',     section: 'Reports', icon: 'local_gas_station', show: can('fuel.view') },

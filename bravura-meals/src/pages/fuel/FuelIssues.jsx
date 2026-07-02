@@ -3,6 +3,7 @@ import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
+import { supabase } from '../../supabaseClient'
 import {
   PageHeader, Card, Button, Modal, Icon, SectionLabel,
   showToast, fmtDate, TableWrap, THead, Th, TRow, Td,
@@ -30,8 +31,9 @@ export default function FuelIssues({ setPage }) {
   const { currentSite } = useSite()
   const { tanks, issues, addTransaction, loading } = useFuel()
 
-  const canIssue = can('fuel.create')
-  const canView  = can('fuel.view')
+  const canIssue     = can('fuel.create')
+  const canView      = can('fuel.view')
+  const canAcknowledge = can('fuel.approve')
 
   const [modal,    setModal]    = useState(false)
   const [form,     setForm]     = useState(BLANK_FORM)
@@ -39,6 +41,25 @@ export default function FuelIssues({ setPage }) {
   const [filter,   setFilter]   = useState('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo,   setDateTo]   = useState('')
+  const [ackTarget, setAckTarget] = useState(null)
+  const [ackNote,   setAckNote]   = useState('')
+  const [ackBusy,   setAckBusy]   = useState(false)
+
+  async function submitAck(query) {
+    if (!ackTarget) return
+    setAckBusy(true)
+    const { error } = await supabase.rpc('acknowledge_fuel_issuance', {
+      p_transaction_id: ackTarget.id,
+      p_note:           ackNote.trim() || null,
+      p_query:          !!query,
+    })
+    setAckBusy(false)
+    if (error) { showToast(error.message, 'red'); return }
+    showToast(query ? 'Query raised' : 'Issuance acknowledged', 'green')
+    setAckTarget(null); setAckNote('')
+    // useFuel context refreshes on next mount; force a soft refresh via reload for now
+    setTimeout(() => window.location.reload(), 350)
+  }
 
   if (!canView) return null
 
@@ -183,6 +204,7 @@ export default function FuelIssues({ setPage }) {
               <Th>Type</Th>
               <Th align="right">Litres</Th>
               <Th>Notes</Th>
+              <Th>Acknowledgement</Th>
             </THead>
             <tbody>
               {filtered.map((issue, idx) => (
@@ -215,6 +237,42 @@ export default function FuelIssues({ setPage }) {
                     <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {issue.notes || '—'}
                     </span>
+                  </Td>
+                  <Td>
+                    {(() => {
+                      const status = issue.acknowledgement_status || 'not_required'
+                      const badge = {
+                        not_required: { label: 'Linked to request', bg: THEME.surfaceVar,     fg: THEME.textMed },
+                        pending:      { label: 'Pending',           bg: THEME.statusWarningBg, fg: THEME.statusWarningText },
+                        acknowledged: { label: 'Acknowledged',      bg: THEME.statusSuccessBg, fg: THEME.statusSuccessText },
+                        queried:      { label: 'Queried',           bg: THEME.statusErrorBg,   fg: THEME.statusErrorText },
+                      }[status] || { label: status, bg: THEME.surfaceVar, fg: THEME.textMed }
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <span style={{
+                            padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600,
+                            background: badge.bg, color: badge.fg, whiteSpace: 'nowrap',
+                          }}>{badge.label}</span>
+                          {issue.authorised_by_name && (
+                            <span style={{ fontSize: '10px', color: THEME.textLow }}>
+                              Auth: {issue.authorised_by_name}
+                            </span>
+                          )}
+                          {status === 'pending' && canAcknowledge && (
+                            <button
+                              onClick={() => { setAckTarget(issue); setAckNote('') }}
+                              style={{
+                                padding: '3px 10px', borderRadius: '6px', border: 'none',
+                                background: THEME.primary, color: '#fff',
+                                fontSize: '10px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                              }}
+                            >
+                              Acknowledge
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </Td>
                 </TRow>
               ))}
@@ -336,6 +394,48 @@ export default function FuelIssues({ setPage }) {
             style={{ ...inputStyle, resize: 'vertical' }}
           />
         </div>
+      </Modal>
+
+      {/* Acknowledge / Query manual issuance */}
+      <Modal
+        open={!!ackTarget}
+        onClose={() => { setAckTarget(null); setAckNote('') }}
+        title="Acknowledge fuel issuance"
+        footer={
+          <>
+            <Button onClick={() => { setAckTarget(null); setAckNote('') }} variant="text">Cancel</Button>
+            <Button onClick={() => submitAck(true)}  variant="outlined" disabled={ackBusy}>Query</Button>
+            <Button onClick={() => submitAck(false)} disabled={ackBusy}>{ackBusy ? 'Saving…' : 'Acknowledge'}</Button>
+          </>
+        }
+      >
+        {ackTarget && (
+          <div style={{ fontSize: '13px', color: THEME.text }}>
+            <div style={{ padding: '10px 14px', borderRadius: '10px', background: THEME.surfaceVar, marginBottom: '14px' }}>
+              <div><strong>{Number(ackTarget.litres).toFixed(1)} L</strong> issued on {fmtDate(ackTarget.transaction_date)}</div>
+              <div style={{ marginTop: '4px', color: THEME.textMed }}>
+                Authorised by <strong>{ackTarget.authorised_by_name || '—'}</strong>
+              </div>
+              {ackTarget.authorisation_reason && (
+                <div style={{ marginTop: '4px', color: THEME.textMed, fontStyle: 'italic' }}>
+                  "{ackTarget.authorisation_reason}"
+                </div>
+              )}
+            </div>
+            <SectionLabel>Note (optional)</SectionLabel>
+            <textarea
+              value={ackNote}
+              onChange={e => setAckNote(e.target.value)}
+              placeholder="Any comment for the audit trail…"
+              rows={2}
+              style={{ ...inputStyle, resize: 'vertical' }}
+            />
+            <div style={{ fontSize: '11px', color: THEME.textLow }}>
+              Choose <strong>Acknowledge</strong> to confirm you authorised this issuance,
+              or <strong>Query</strong> to flag it for follow-up.
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )

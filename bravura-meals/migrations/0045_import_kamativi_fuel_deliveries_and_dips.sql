@@ -48,15 +48,19 @@ BEGIN
   -- Live column names are level_litres + dip_mm + read_by (the 0020
   -- migration file documented pre-shipping names — the running schema
   -- matches what DipReadings.jsx inserts).
+  -- read_by is a uuid FK to profiles(id); legacy rows only have free-text
+  -- names, so we keep the name in the notes instead of the FK column.
   INSERT INTO fuel_dip_readings (
-    site_id, tank_id, reading_date, dip_mm, level_litres,
-    read_by, notes)
+    site_id, tank_id, reading_date, dip_mm, level_litres, notes)
   SELECT v_site_id, v_tank_id, r.date::date,
          (r.dip_end::numeric * 1000)::numeric,
          r.fuel_end::numeric,
-         NULLIF(r.done_by, ''),
-         format('Imported legacy %s (dip %s→%s m, fuel %s→%s L)',
-                r.legacy_id, r.dip_start, r.dip_end, r.fuel_start, r.fuel_end)
+         format('Imported legacy %s (dip %s→%s m, fuel %s→%s L%s)',
+                r.legacy_id, r.dip_start, r.dip_end,
+                r.fuel_start, r.fuel_end,
+                CASE WHEN COALESCE(r.done_by,'') <> ''
+                     THEN ', done by ' || r.done_by
+                     ELSE '' END)
     FROM (VALUES
       ('12e19281-431c-4a29-8bff-4e5ee6c78d7c', '2026-05-24', '0.52', '0.51', '2087', '2031', 'Clement Mpala'),
       ('4fb4e37a-5c03-4e25-a873-c4b0e5b30350', '2026-05-15', '0.48', '0.05', '1865', '67',   'Wendy T. Mpala'),

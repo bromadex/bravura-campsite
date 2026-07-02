@@ -1,13 +1,22 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
-import { THEME } from '../../utils/permissions'
+import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { supabase } from '../../supabaseClient'
 import {
   PageHeader, Card, Button, Modal, Icon, SectionLabel,
   showToast, fmtDate, TableWrap, THead, Th, TRow, Td,
 } from '../../components/ui'
+import { parseTxnNotes } from './fuelDisplay'
+
+const FUEL_CLR = MODULE_COLORS.fuel
+
+const ASSET_ICON = {
+  vehicle:   'directions_car',
+  equipment: 'precision_manufacturing',
+  other:     'category',
+}
 
 // Fuel transactions are IMMUTABLE — no edit or delete is permitted.
 // If a correction is needed, record a new 'adjustment' transaction.
@@ -127,6 +136,25 @@ export default function FuelIssues({ setPage }) {
     return true
   })
 
+  // ── KPI strip ──────────────────────────────────────────────────────────
+  const kpis = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    const monthStart = today.slice(0, 8) + '01'
+    let todayL = 0, monthL = 0, monthCount = 0
+    const byRecipient = {}
+    for (const i of issues) {
+      const l = Number(i.litres) || 0
+      if (i.transaction_date === today) todayL += l
+      if (i.transaction_date >= monthStart) {
+        monthL += l; monthCount++
+        const key = i.asset_name || 'Unknown'
+        byRecipient[key] = (byRecipient[key] || 0) + l
+      }
+    }
+    const top = Object.entries(byRecipient).sort((a, b) => b[1] - a[1])[0]
+    return { todayL, monthL, monthCount, topName: top?.[0] || '—', topL: top?.[1] || 0 }
+  }, [issues])
+
   const activeTanks = tanks.filter(t => t.status === 'active' && !t.is_archived)
 
   if (loading) return null
@@ -141,15 +169,12 @@ export default function FuelIssues({ setPage }) {
         )}
       />
 
-      {/* Note about immutability */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        padding: '10px 14px', borderRadius: '10px', marginBottom: '16px',
-        background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`,
-        fontSize: '12px', color: THEME.textMed,
-      }}>
-        <Icon name="lock" size={14} style={{ color: THEME.textMed, flexShrink: 0 }} />
-        Fuel issuance records are locked after creation. If a correction is needed, record an adjustment transaction.
+      {/* ── KPI strip ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+        <Kpi icon="today"       label="Issued today"      value={`${kpis.todayL.toLocaleString()} L`} color={FUEL_CLR} />
+        <Kpi icon="bar_chart"   label="Issued this month" value={`${kpis.monthL.toLocaleString()} L`} color={THEME.info}  sub={`${kpis.monthCount} issuance${kpis.monthCount === 1 ? '' : 's'}`} />
+        <Kpi icon="trending_up" label="Top consumer (month)" value={kpis.topName} color={THEME.error} sub={kpis.topL ? `${kpis.topL.toLocaleString()} L` : null} small />
+        <Kpi icon="receipt_long" label="Total records"    value={issues.length.toLocaleString()} color={THEME.success} />
       </div>
 
       {/* Filters */}
@@ -198,84 +223,101 @@ export default function FuelIssues({ setPage }) {
           <TableWrap>
             <THead>
               <Th>Date</Th>
-              <Th>Docket</Th>
-              <Th>Tank</Th>
               <Th>Recipient</Th>
-              <Th>Type</Th>
+              <Th>Driver / Operator</Th>
+              <Th>Purpose</Th>
+              <Th>Authorised By</Th>
               <Th align="right">Litres</Th>
-              <Th>Notes</Th>
-              <Th>Acknowledgement</Th>
+              <Th>Status</Th>
             </THead>
             <tbody>
-              {filtered.map((issue, idx) => (
-                <TRow key={issue.id} last={idx === filtered.length - 1}>
-                  <Td>{fmtDate(issue.transaction_date)}</Td>
-                  <Td style={{ color: THEME.textMed, fontFamily: 'monospace', fontSize: '12px' }}>
-                    {issue.docket_number || '—'}
-                  </Td>
-                  <Td><span style={{ fontWeight: 500 }}>{tankName(issue.tank_id)}</span></Td>
-                  <Td>
-                    <span style={{ fontWeight: 500 }}>{issue.asset_name}</span>
-                    {issue.asset_reg && (
-                      <span style={{ marginLeft: '6px', fontSize: '11px', color: THEME.textMed }}>
-                        ({issue.asset_reg})
-                      </span>
-                    )}
-                  </Td>
-                  <Td>
-                    <span style={{
-                      padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 500,
-                      background: THEME.surfaceVar, color: THEME.textMed, textTransform: 'capitalize',
-                    }}>
-                      {issue.asset_type}
-                    </span>
-                  </Td>
-                  <Td align="right" style={{ fontWeight: 600, color: THEME.warning }}>
-                    {Number(issue.litres).toFixed(1)}
-                  </Td>
-                  <Td style={{ color: THEME.textMed, maxWidth: '160px' }}>
-                    <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {issue.notes || '—'}
-                    </span>
-                  </Td>
-                  <Td>
-                    {(() => {
-                      const status = issue.acknowledgement_status || 'not_required'
-                      const badge = {
-                        not_required: { label: 'Linked to request', bg: THEME.surfaceVar,     fg: THEME.textMed },
-                        pending:      { label: 'Pending',           bg: THEME.statusWarningBg, fg: THEME.statusWarningText },
-                        acknowledged: { label: 'Acknowledged',      bg: THEME.statusSuccessBg, fg: THEME.statusSuccessText },
-                        queried:      { label: 'Queried',           bg: THEME.statusErrorBg,   fg: THEME.statusErrorText },
-                      }[status] || { label: status, bg: THEME.surfaceVar, fg: THEME.textMed }
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                          <span style={{
-                            padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600,
-                            background: badge.bg, color: badge.fg, whiteSpace: 'nowrap',
-                          }}>{badge.label}</span>
-                          {issue.authorised_by_name && (
-                            <span style={{ fontSize: '10px', color: THEME.textLow }}>
-                              Auth: {issue.authorised_by_name}
-                            </span>
-                          )}
-                          {status === 'pending' && canAcknowledge && (
-                            <button
-                              onClick={() => { setAckTarget(issue); setAckNote('') }}
-                              style={{
-                                padding: '3px 10px', borderRadius: '6px', border: 'none',
-                                background: THEME.primary, color: '#fff',
-                                fontSize: '10px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                              }}
-                            >
-                              Acknowledge
-                            </button>
+              {filtered.map((issue, idx) => {
+                const parsed     = parseTxnNotes(issue.notes)
+                const driver     = parsed.driver
+                const purpose    = parsed.purpose || parsed.clean
+                const authorised = issue.authorised_by_name || parsed.authorised
+                return (
+                  <TRow key={issue.id} last={idx === filtered.length - 1}>
+                    <Td style={{ whiteSpace: 'nowrap' }}>{fmtDate(issue.transaction_date)}</Td>
+                    <Td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: 30, height: 30, borderRadius: '8px', flexShrink: 0,
+                          background: FUEL_CLR + '14',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Icon
+                            name={issue.asset_type === 'equipment' && /generator/i.test(issue.asset_name || '') ? 'bolt' : (ASSET_ICON[issue.asset_type] || 'category')}
+                            size={16} style={{ color: FUEL_CLR }}
+                          />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, color: THEME.text, fontSize: '13px' }}>
+                            {issue.asset_reg || issue.asset_name}
+                          </div>
+                          {issue.asset_reg && issue.asset_name && issue.asset_reg !== issue.asset_name && (
+                            <div style={{ fontSize: '11px', color: THEME.textLow }}>{issue.asset_name}</div>
                           )}
                         </div>
-                      )
-                    })()}
-                  </Td>
-                </TRow>
-              ))}
+                      </div>
+                    </Td>
+                    <Td style={{ color: driver ? THEME.text : THEME.textLow, textTransform: 'capitalize' }}>
+                      {driver || '—'}
+                    </Td>
+                    <Td style={{ color: purpose ? THEME.textMed : THEME.textLow, maxWidth: '180px' }}>
+                      <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {purpose || '—'}
+                      </span>
+                    </Td>
+                    <Td style={{ color: authorised ? THEME.textMed : THEME.textLow }}>
+                      {authorised || '—'}
+                    </Td>
+                    <Td align="right" style={{ fontWeight: 700, color: FUEL_CLR, whiteSpace: 'nowrap' }}>
+                      {Number(issue.litres).toLocaleString(undefined, { maximumFractionDigits: 1 })} L
+                    </Td>
+                    <Td>
+                      {(() => {
+                        const status = issue.acknowledgement_status || 'not_required'
+                        // Legacy imports carry 'not_required' but were never
+                        // linked to a request — show a neutral Imported chip
+                        // instead of the misleading "Linked to request".
+                        const badge = parsed.legacy
+                          ? { label: 'Imported',      bg: THEME.surfaceVar,      fg: THEME.textLow,          icon: 'history' }
+                          : {
+                              not_required: { label: 'Via request',  bg: THEME.statusInfoBg,    fg: THEME.statusInfoText,    icon: 'link' },
+                              pending:      { label: 'Pending',      bg: THEME.statusWarningBg, fg: THEME.statusWarningText, icon: 'schedule' },
+                              acknowledged: { label: 'Acknowledged', bg: THEME.statusSuccessBg, fg: THEME.statusSuccessText, icon: 'check_circle' },
+                              queried:      { label: 'Queried',      bg: THEME.statusErrorBg,   fg: THEME.statusErrorText,   icon: 'help' },
+                            }[status] || { label: status, bg: THEME.surfaceVar, fg: THEME.textMed, icon: 'info' }
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              padding: '3px 9px', borderRadius: '20px', fontSize: '10px', fontWeight: 600,
+                              background: badge.bg, color: badge.fg, whiteSpace: 'nowrap',
+                            }}>
+                              <Icon name={badge.icon} size={11} style={{ color: badge.fg }} />
+                              {badge.label}
+                            </span>
+                            {status === 'pending' && !parsed.legacy && canAcknowledge && (
+                              <button
+                                onClick={() => { setAckTarget(issue); setAckNote('') }}
+                                style={{
+                                  padding: '3px 10px', borderRadius: '6px', border: 'none',
+                                  background: THEME.primary, color: '#fff',
+                                  fontSize: '10px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                }}
+                              >
+                                Acknowledge
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </Td>
+                  </TRow>
+                )
+              })}
             </tbody>
           </TableWrap>
         )}
@@ -437,6 +479,38 @@ export default function FuelIssues({ setPage }) {
           </div>
         )}
       </Modal>
+    </div>
+  )
+}
+
+function Kpi({ icon, label, value, sub, color, small }) {
+  return (
+    <div style={{
+      background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
+      borderRadius: '12px', padding: '14px 16px',
+      display: 'flex', gap: '12px', alignItems: 'flex-start',
+      boxShadow: '0 1px 2px rgba(0,0,0,.03)',
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: '10px', flexShrink: 0,
+        background: color + '16',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={icon} size={18} style={{ color }} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '3px' }}>
+          {label}
+        </div>
+        <div style={{
+          fontSize: small ? '14px' : '20px', fontWeight: small ? 600 : 700,
+          color: THEME.text, lineHeight: 1.15,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {value}
+        </div>
+        {sub && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>{sub}</div>}
+      </div>
     </div>
   )
 }

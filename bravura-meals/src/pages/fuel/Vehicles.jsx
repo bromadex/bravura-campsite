@@ -7,6 +7,7 @@ import {
   PageHeader, Card, Button, Modal, ConfirmModal, Icon, SectionLabel,
   showToast, fmtDate, TableWrap, THead, Th, TRow, Td,
 } from '../../components/ui'
+import { fuelUsageByAsset, parseTxnNotes } from './fuelDisplay'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -122,10 +123,14 @@ export default function Vehicles() {
       if (filterFuel !== 'all' && v.fuel_type_id !== filterFuel) return false
       if (filterDept !== 'all' && v.department_id !== filterDept) return false
       if (filterStat !== 'all' && v.status !== filterStat) return false
-      if (q && !`${v.fleet_number} ${v.registration || ''}`.toLowerCase().includes(q)) return false
+      if (q && !`${v.fleet_number} ${v.registration || ''} ${v.description || ''}`.toLowerCase().includes(q)) return false
       return true
     })
   }, [vehicles, filterFuel, filterDept, filterStat, query])
+
+  // Live fuel usage per vehicle — the fleet registry talks to the fuel
+  // module through the shared transactions list, no extra queries.
+  const fuelUsage = useMemo(() => fuelUsageByAsset(transactions, 'vehicle_id'), [transactions])
 
   if (loading) return null
 
@@ -187,38 +192,58 @@ export default function Vehicles() {
         ) : (
           <TableWrap>
             <THead color={FUEL_CLR}>
-              <Th>Fleet #</Th>
-              <Th>Registration</Th>
-              <Th>Make / Model</Th>
+              <Th>Vehicle</Th>
+              <Th>Description</Th>
               <Th>Department</Th>
-              <Th>Fuel</Th>
+              <Th align="right">Fuel — 30 days</Th>
+              <Th>Last Fueled</Th>
               <Th>Status</Th>
               {canEdit && <Th />}
             </THead>
             <tbody>
               {displayed.map((v, idx) => {
-                const ftName  = v.fuel_types?.name   || '—'
-                const ftColor = v.fuel_types?.colour || FUEL_CLR
+                const usage = fuelUsage.get(v.id)
+                const desc  = [v.make, v.model].filter(Boolean).join(' ') || v.description || null
                 return (
                   <TRow key={v.id} last={idx === displayed.length - 1} onClick={() => setDetail(v)}>
                     <Td>
-                      <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 600, color: THEME.textMed }}>
-                        {v.fleet_number}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '8px', flexShrink: 0,
+                          background: FUEL_CLR + '14',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Icon name="directions_car" size={17} style={{ color: FUEL_CLR }} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: THEME.text, fontSize: '13px' }}>
+                            {v.registration || v.fleet_number}
+                          </div>
+                          <div style={{ fontSize: '11px', color: THEME.textLow, fontFamily: 'monospace' }}>
+                            {v.fleet_number}
+                          </div>
+                        </div>
+                      </div>
                     </Td>
-                    <Td><span style={{ fontWeight: 500 }}>{v.registration || '—'}</span></Td>
-                    <Td style={{ color: THEME.textMed }}>
-                      {[v.make, v.model].filter(Boolean).join(' ') || '—'}
+                    <Td style={{ color: desc ? THEME.textMed : THEME.textLow }}>
+                      {desc || '—'}
                       {v.year && <span style={{ color: THEME.textLow, marginLeft: '6px' }}>({v.year})</span>}
                     </Td>
                     <Td style={{ color: THEME.textMed }}>{deptName(v.department_id)}</Td>
-                    <Td>
-                      <span style={{
-                        padding: '2px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
-                        background: ftColor + '22', color: ftColor, border: `1px solid ${ftColor}44`,
-                      }}>
-                        {ftName}
-                      </span>
+                    <Td align="right">
+                      {usage?.count30 ? (
+                        <div>
+                          <div style={{ fontWeight: 700, color: FUEL_CLR, whiteSpace: 'nowrap' }}>
+                            {usage.litres30.toLocaleString(undefined, { maximumFractionDigits: 0 })} L
+                          </div>
+                          <div style={{ fontSize: '10px', color: THEME.textLow }}>
+                            {usage.count30} fill{usage.count30 === 1 ? '' : 's'}
+                          </div>
+                        </div>
+                      ) : <span style={{ color: THEME.textLow, fontSize: '12px' }}>—</span>}
+                    </Td>
+                    <Td style={{ color: usage?.lastDate ? THEME.textMed : THEME.textLow, whiteSpace: 'nowrap' }}>
+                      {usage?.lastDate ? fmtDate(usage.lastDate) : 'Never'}
                     </Td>
                     <Td><StatusPill status={v.status} /></Td>
                     {canEdit && (
@@ -340,37 +365,45 @@ export default function Vehicles() {
 // ── Detail modal: recent transactions (last 30 days) ───────────────────────────
 
 function VehicleDetailModal({ vehicle, transactions, onClose }) {
-  const recent = useMemo(() => {
-    if (!vehicle) return []
+  const history = useMemo(() => {
+    if (!vehicle) return { rows: [], total: 0, total30: 0, count30: 0 }
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 30)
     const cutoffStr = cutoff.toISOString().slice(0, 10)
-    return transactions.filter(t => t.vehicle_id === vehicle.id && t.transaction_date >= cutoffStr)
+    const rows = transactions
+      .filter(t => t.vehicle_id === vehicle.id)
+      .sort((a, b) => b.transaction_date.localeCompare(a.transaction_date))
+    let total = 0, total30 = 0, count30 = 0
+    for (const t of rows) {
+      const l = Number(t.litres) || 0
+      total += l
+      if (t.transaction_date >= cutoffStr) { total30 += l; count30++ }
+    }
+    return { rows: rows.slice(0, 25), total, total30, count30 }
   }, [vehicle, transactions])
 
-  const total = recent.reduce((s, t) => s + Number(t.litres), 0)
-
   if (!vehicle) return null
+  const desc = [vehicle.make, vehicle.model].filter(Boolean).join(' ') || vehicle.description || '—'
   return (
     <Modal
       open={!!vehicle}
       onClose={onClose}
-      title={`${vehicle.fleet_number}${vehicle.registration ? ` · ${vehicle.registration}` : ''}`}
+      title={`${vehicle.registration || vehicle.fleet_number} · ${desc}`}
       footer={<Button onClick={onClose} variant="text">Close</Button>}
     >
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
         gap: '10px', marginBottom: '16px',
       }}>
-        <Stat label="Make / Model" value={[vehicle.make, vehicle.model].filter(Boolean).join(' ') || '—'} />
-        <Stat label="Fuel Type"    value={vehicle.fuel_types?.name || '—'} />
-        <Stat label="Last 30 days" value={`${recent.length} txns`} />
-        <Stat label="Litres Used"  value={`${total.toFixed(1)} L`} />
+        <Stat label="Fleet #"      value={vehicle.fleet_number} />
+        <Stat label="Fuel Type"    value={vehicle.fuel_types?.name || 'Diesel'} />
+        <Stat label="Last 30 days" value={`${history.total30.toLocaleString(undefined, { maximumFractionDigits: 0 })} L · ${history.count30} fills`} />
+        <Stat label="All time"     value={`${history.total.toLocaleString(undefined, { maximumFractionDigits: 0 })} L`} />
       </div>
 
-      {recent.length === 0 ? (
+      {history.rows.length === 0 ? (
         <div style={{ padding: '24px', textAlign: 'center', color: THEME.textLow, fontSize: '13px', background: THEME.surfaceVar, borderRadius: '12px' }}>
-          No fuel transactions for this vehicle in the last 30 days.
+          No fuel transactions recorded for this vehicle yet.
         </div>
       ) : (
         <div style={{ border: `1px solid ${THEME.outlineVar}`, borderRadius: '12px', overflow: 'hidden' }}>
@@ -378,22 +411,29 @@ function VehicleDetailModal({ vehicle, transactions, onClose }) {
             <THead color={FUEL_CLR}>
               <Th>Date</Th>
               <Th align="right">Litres</Th>
-              <Th>Type</Th>
-              <Th>Docket</Th>
-              <Th>Notes</Th>
+              <Th>Driver</Th>
+              <Th>Purpose</Th>
             </THead>
             <tbody>
-              {recent.map((t, idx) => (
-                <TRow key={t.id} last={idx === recent.length - 1}>
-                  <Td>{fmtDate(t.transaction_date)}</Td>
-                  <Td align="right" style={{ fontWeight: 600, color: t.transaction_type === 'issuance' ? THEME.error : THEME.success }}>
-                    {t.transaction_type === 'issuance' ? '−' : '+'}{Number(t.litres).toFixed(1)}
-                  </Td>
-                  <Td style={{ textTransform: 'capitalize', color: THEME.textMed }}>{t.transaction_type}</Td>
-                  <Td style={{ fontFamily: 'monospace', fontSize: '12px', color: THEME.textMed }}>{t.docket_number || '—'}</Td>
-                  <Td style={{ color: THEME.textMed }}>{t.notes || '—'}</Td>
-                </TRow>
-              ))}
+              {history.rows.map((t, idx) => {
+                const parsed = parseTxnNotes(t.notes)
+                return (
+                  <TRow key={t.id} last={idx === history.rows.length - 1}>
+                    <Td style={{ whiteSpace: 'nowrap' }}>{fmtDate(t.transaction_date)}</Td>
+                    <Td align="right" style={{ fontWeight: 600, color: t.transaction_type === 'issuance' ? FUEL_CLR : THEME.success, whiteSpace: 'nowrap' }}>
+                      {t.transaction_type === 'issuance' ? '−' : '+'}{Number(t.litres).toFixed(0)} L
+                    </Td>
+                    <Td style={{ color: parsed.driver ? THEME.textMed : THEME.textLow, textTransform: 'capitalize' }}>
+                      {parsed.driver || '—'}
+                    </Td>
+                    <Td style={{ color: THEME.textMed, maxWidth: '160px' }}>
+                      <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {parsed.purpose || parsed.clean || '—'}
+                      </span>
+                    </Td>
+                  </TRow>
+                )
+              })}
             </tbody>
           </TableWrap>
         </div>

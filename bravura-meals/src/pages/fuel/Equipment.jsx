@@ -7,8 +7,15 @@ import {
   PageHeader, Card, Button, Modal, ConfirmModal, Icon, SectionLabel,
   showToast, fmtDate, TableWrap, THead, Th, TRow, Td,
 } from '../../components/ui'
+import { fuelUsageByAsset } from './fuelDisplay'
 
 const FUEL_CLR = MODULE_COLORS.fuel
+
+const EQUIP_ICON = t =>
+  /generator/i.test(t || '') ? 'bolt'
+  : /crane|tlb|excavator|bulldozer|adt|compactor|grader|bobcat/i.test(t || '') ? 'front_loader'
+  : /drill/i.test(t || '') ? 'construction'
+  : 'precision_manufacturing'
 
 const EQUIPMENT_TYPES = ['Generator', 'Compressor', 'Drill', 'Pump', 'Other']
 
@@ -118,10 +125,13 @@ export default function Equipment() {
       if (filterDept !== 'all' && e.department_id !== filterDept) return false
       if (filterStat !== 'all' && e.status !== filterStat) return false
       if (filterType !== 'all' && e.equipment_type !== filterType) return false
-      if (q && !`${e.equipment_number} ${e.name}`.toLowerCase().includes(q)) return false
+      if (q && !`${e.equipment_number} ${e.name} ${e.description || ''}`.toLowerCase().includes(q)) return false
       return true
     })
   }, [equipment, filterFuel, filterDept, filterStat, filterType, query])
+
+  // Live fuel usage per equipment item, from the shared transactions list.
+  const fuelUsage = useMemo(() => fuelUsageByAsset(transactions, 'equipment_id'), [transactions])
 
   if (loading) return null
 
@@ -185,35 +195,52 @@ export default function Equipment() {
         ) : (
           <TableWrap>
             <THead color={FUEL_CLR}>
-              <Th>Equipment #</Th>
-              <Th>Name</Th>
+              <Th>Equipment</Th>
               <Th>Type</Th>
               <Th>Department</Th>
-              <Th>Fuel</Th>
+              <Th align="right">Fuel — 30 days</Th>
+              <Th>Last Fueled</Th>
               <Th>Status</Th>
               {canEdit && <Th />}
             </THead>
             <tbody>
               {displayed.map((e, idx) => {
-                const ftName  = e.fuel_types?.name   || '—'
-                const ftColor = e.fuel_types?.colour || FUEL_CLR
+                const usage = fuelUsage.get(e.id)
                 return (
                   <TRow key={e.id} last={idx === displayed.length - 1} onClick={() => setDetail(e)}>
                     <Td>
-                      <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 600, color: THEME.textMed }}>
-                        {e.equipment_number}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '8px', flexShrink: 0,
+                          background: FUEL_CLR + '14',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Icon name={EQUIP_ICON(`${e.equipment_type} ${e.name}`)} size={17} style={{ color: FUEL_CLR }} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: THEME.text, fontSize: '13px' }}>{e.name}</div>
+                          <div style={{ fontSize: '11px', color: THEME.textLow, fontFamily: 'monospace' }}>
+                            {e.equipment_number}
+                          </div>
+                        </div>
+                      </div>
                     </Td>
-                    <Td><span style={{ fontWeight: 500 }}>{e.name}</span></Td>
                     <Td style={{ color: THEME.textMed }}>{e.equipment_type || '—'}</Td>
                     <Td style={{ color: THEME.textMed }}>{deptName(e.department_id)}</Td>
-                    <Td>
-                      <span style={{
-                        padding: '2px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
-                        background: ftColor + '22', color: ftColor, border: `1px solid ${ftColor}44`,
-                      }}>
-                        {ftName}
-                      </span>
+                    <Td align="right">
+                      {usage?.count30 ? (
+                        <div>
+                          <div style={{ fontWeight: 700, color: FUEL_CLR, whiteSpace: 'nowrap' }}>
+                            {usage.litres30.toLocaleString(undefined, { maximumFractionDigits: 0 })} L
+                          </div>
+                          <div style={{ fontSize: '10px', color: THEME.textLow }}>
+                            {usage.count30} fill{usage.count30 === 1 ? '' : 's'}
+                          </div>
+                        </div>
+                      ) : <span style={{ color: THEME.textLow, fontSize: '12px' }}>—</span>}
+                    </Td>
+                    <Td style={{ color: usage?.lastDate ? THEME.textMed : THEME.textLow, whiteSpace: 'nowrap' }}>
+                      {usage?.lastDate ? fmtDate(usage.lastDate) : 'Never'}
                     </Td>
                     <Td><StatusPill status={e.status} /></Td>
                     {canEdit && (

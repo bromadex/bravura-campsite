@@ -1,293 +1,437 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
-import { THEME } from '../../utils/permissions'
+import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import {
   PageHeader, Card, Icon, fmtDate, MONTHS,
   TableWrap, THead, Th, TRow, Td,
 } from '../../components/ui'
+import { parseTxnNotes } from './fuelDisplay'
+
+const FUEL_CLR = MODULE_COLORS.fuel
+const LINE_CLR = '#1565C0'   // issuance-by-day line
+const TANK_CLR = '#00897B'   // tank level line
+
+// ── SVG chart primitives ──────────────────────────────────────────────────────
+
+const CHART_W = 960
+const CHART_H = 240
+const PAD = { top: 12, right: 16, bottom: 52, left: 56 }
+
+function niceMax(v) {
+  if (v <= 0) return 10
+  const mag = Math.pow(10, Math.floor(Math.log10(v)))
+  const n = v / mag
+  const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10
+  return nice * mag
+}
+
+function LineChart({ points, color, unit = 'L' }) {
+  // points: [{ label, value }]
+  if (!points.length) return <EmptyChart />
+  const innerW = CHART_W - PAD.left - PAD.right
+  const innerH = CHART_H - PAD.top - PAD.bottom
+  const maxV = niceMax(Math.max(...points.map(p => p.value)))
+  const x = i => PAD.left + (points.length === 1 ? innerW / 2 : (i / (points.length - 1)) * innerW)
+  const y = v => PAD.top + innerH - (v / maxV) * innerH
+
+  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ')
+  const area = `${path} L${x(points.length - 1).toFixed(1)},${(PAD.top + innerH).toFixed(1)} L${x(0).toFixed(1)},${(PAD.top + innerH).toFixed(1)} Z`
+
+  // x labels: at most ~12, evenly thinned
+  const step = Math.max(1, Math.ceil(points.length / 12))
+  const gridVals = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxV)
+
+  return (
+    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block' }}>
+      {gridVals.map(v => (
+        <g key={v}>
+          <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
+          <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow}>
+            {v >= 1000 ? `${(v / 1000).toLocaleString()}k` : v.toLocaleString()}
+          </text>
+        </g>
+      ))}
+      <path d={area} fill={color} opacity="0.10" />
+      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {points.map((p, i) => (
+        <circle key={i} cx={x(i)} cy={y(p.value)} r="3.5" fill={color} stroke={THEME.surface} strokeWidth="1.5">
+          <title>{`${p.label}: ${p.value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`}</title>
+        </circle>
+      ))}
+      {points.map((p, i) => (i % step === 0 || i === points.length - 1) && (
+        <text
+          key={`l${i}`} x={x(i)} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
+          textAnchor="end" transform={`rotate(-35 ${x(i)} ${CHART_H - 8})`}
+        >
+          {p.label}
+        </text>
+      ))}
+    </svg>
+  )
+}
+
+function BarChart({ bars, color, unit = 'L' }) {
+  // bars: [{ label, value }]
+  if (!bars.length) return <EmptyChart />
+  const innerW = CHART_W - PAD.left - PAD.right
+  const innerH = CHART_H - PAD.top - PAD.bottom
+  const maxV = niceMax(Math.max(...bars.map(b => b.value)))
+  const slot = innerW / bars.length
+  const barW = Math.min(56, slot * 0.55)
+  const y = v => PAD.top + innerH - (v / maxV) * innerH
+  const gridVals = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxV)
+
+  return (
+    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block' }}>
+      {gridVals.map(v => (
+        <g key={v}>
+          <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
+          <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow}>
+            {v >= 1000 ? `${(v / 1000).toLocaleString()}k` : v.toLocaleString()}
+          </text>
+        </g>
+      ))}
+      {bars.map((b, i) => {
+        const cx = PAD.left + slot * i + slot / 2
+        const h = (b.value / maxV) * innerH
+        return (
+          <g key={b.label}>
+            <rect x={cx - barW / 2} y={y(b.value)} width={barW} height={Math.max(2, h)} rx="4" fill={color}>
+              <title>{`${b.label}: ${b.value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`}</title>
+            </rect>
+            <text
+              x={cx} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
+              textAnchor="end" transform={`rotate(-25 ${cx} ${CHART_H - 8})`}
+            >
+              {b.label.length > 20 ? b.label.slice(0, 19) + '…' : b.label}
+            </text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+function EmptyChart() {
+  return (
+    <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: THEME.textLow, fontSize: '13px' }}>
+      No data to plot yet.
+    </div>
+  )
+}
+
+function ChartCard({ title, legend, legendColor, children, right }) {
+  return (
+    <Card style={{ padding: '20px 22px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>{title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          {right}
+          {legend && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: THEME.textMed }}>
+              <span style={{ width: 22, height: 10, borderRadius: '3px', background: legendColor, display: 'inline-block' }} />
+              {legend}
+            </div>
+          )}
+        </div>
+      </div>
+      {children}
+    </Card>
+  )
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function FuelReports() {
   const { currentSite } = useSite()
-  const { tanks, receipts, issues, transactions, dipReadings, tankBalance, latestDip, loading } = useFuel()
+  const { tanks, transactions, dipReadings, tankBalance, loading } = useFuel()
 
+  const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
+  const [tankSel, setTankSel] = useState('')
+
+  const issuances = useMemo(() => transactions.filter(t => t.transaction_type === 'issuance'), [transactions])
+
+  // ── Issuance by day ──
+  const byDay = useMemo(() => {
+    const m = new Map()
+    for (const t of issuances) m.set(t.transaction_date, (m.get(t.transaction_date) || 0) + Number(t.litres))
+    return [...m.entries()].sort(([a], [b]) => a.localeCompare(b))
+      .map(([d, v]) => ({ label: d.slice(5), value: v, date: d }))
+  }, [issuances])
+
+  // ── Top 10 consumers ──
+  const top10 = useMemo(() => {
+    const m = new Map()
+    for (const t of issuances) {
+      const label = t.fuel_vehicles
+        ? (t.fuel_vehicles.registration || t.fuel_vehicles.fleet_number)
+        : t.fuel_equipment?.name || t.asset_description || 'Other'
+      m.set(label, (m.get(label) || 0) + Number(t.litres))
+    }
+    return [...m.entries()].sort(([, a], [, b]) => b - a).slice(0, 10)
+      .map(([label, value]) => ({ label, value }))
+  }, [issuances])
+
+  // ── Tank level over time (dip readings) ──
+  const dipTankId = tankSel || activeTanks[0]?.id || ''
+  const tankLevelPoints = useMemo(() => {
+    return dipReadings
+      .filter(d => d.tank_id === dipTankId)
+      .sort((a, b) => a.reading_date.localeCompare(b.reading_date))
+      .map(d => ({ label: d.reading_date.slice(5), value: Number(d.level_litres) }))
+  }, [dipReadings, dipTankId])
+
+  // ── Predicted empty / next order date ──
+  const prediction = useMemo(() => {
+    if (!issuances.length) return null
+    const dates = issuances.map(t => t.transaction_date).sort()
+    const lastDate = dates[dates.length - 1]
+    const cutoff = new Date(new Date(lastDate + 'T00:00:00').getTime() - 30 * 86400000).toISOString().slice(0, 10)
+    const recent = issuances.filter(t => t.transaction_date >= cutoff)
+    if (!recent.length) return null
+    const perDay = recent.reduce((s, t) => s + Number(t.litres), 0) / 30
+    if (perDay <= 0) return null
+    const stock = activeTanks.reduce((s, t) => s + tankBalance(t.id), 0)
+    const days = stock / perDay
+    const emptyDate = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
+    return { perDay, stock, days, emptyDate }
+  }, [issuances, activeTanks, tankBalance])
+
+  // ── Anomalous issuances (≥ 2.5× asset average) ──
+  const anomalies = useMemo(() => {
+    const byAsset = new Map()
+    for (const t of issuances) {
+      const key = t.vehicle_id || t.equipment_id
+      if (!key) continue
+      if (!byAsset.has(key)) byAsset.set(key, [])
+      byAsset.get(key).push(t)
+    }
+    const out = []
+    for (const list of byAsset.values()) {
+      if (list.length < 3) continue
+      const avg = list.reduce((s, t) => s + Number(t.litres), 0) / list.length
+      for (const t of list) {
+        if (Number(t.litres) >= 2.5 * avg) {
+          out.push({ tx: t, avg, excess: Number(t.litres) - avg })
+        }
+      }
+    }
+    return out.sort((a, b) => b.excess - a.excess).slice(0, 15)
+  }, [issuances])
+
+  // ── Monthly usage table (kept from previous version) ──
   const now = new Date()
-  const [tab,      setTab]      = useState('monthly')
-
-  // Default to the latest month that actually has transaction data,
-  // falling back to the current month if nothing exists yet.
+  const receipts = useMemo(() => transactions.filter(t => t.transaction_type === 'delivery'), [transactions])
   const defaultMonth = useMemo(() => {
     if (!transactions.length) return { y: now.getFullYear(), m: now.getMonth() }
-    const latest = transactions.reduce((best, t) =>
-      t.transaction_date > best ? t.transaction_date : best, transactions[0].transaction_date)
+    const latest = transactions.reduce((best, t) => t.transaction_date > best ? t.transaction_date : best, transactions[0].transaction_date)
     const [y, m] = latest.split('-').map(Number)
     return { y, m: m - 1 }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions])
+  const [repYear, setRepYear] = useState(null)
+  const [repMonth, setRepMonth] = useState(null)
+  const selYear = repYear ?? defaultMonth.y
+  const selMonth = repMonth ?? defaultMonth.m
 
-  const [repYear,  setRepYear]  = useState(defaultMonth.y)
-  const [repMonth, setRepMonth] = useState(defaultMonth.m)
-  const [initialized, setInitialized] = useState(false)
-
-  useEffect(() => {
-    if (!initialized && transactions.length > 0) {
-      setRepYear(defaultMonth.y)
-      setRepMonth(defaultMonth.m)
-      setInitialized(true)
-    }
-  }, [initialized, transactions.length, defaultMonth])
-
-  // ── Monthly usage report ──────────────────────────────────────────────────────
   const monthlyRows = useMemo(() => {
-    const month = `${repYear}-${String(repMonth + 1).padStart(2, '0')}`
+    const month = `${selYear}-${String(selMonth + 1).padStart(2, '0')}`
     return tanks.map(tank => {
-      const monthReceipts = receipts.filter(r => r.tank_id === tank.id && r.transaction_date?.startsWith(month))
-      const monthIssues   = issues.filter(i => i.tank_id === tank.id && i.transaction_date?.startsWith(month))
-      const received = monthReceipts.reduce((s, r) => s + Number(r.litres), 0)
-      const issued   = monthIssues.reduce((s, i) => s + Number(i.litres), 0)
-      const net      = received - issued
-      const currentBalance = tankBalance(tank.id)
-      return { tank, received, issued, net, txnCount: monthReceipts.length + monthIssues.length, currentBalance }
+      const rec = receipts.filter(r => r.tank_id === tank.id && r.transaction_date?.startsWith(month))
+      const iss = issuances.filter(i => i.tank_id === tank.id && i.transaction_date?.startsWith(month))
+      const received = rec.reduce((s, r) => s + Number(r.litres), 0)
+      const issued = iss.reduce((s, i) => s + Number(i.litres), 0)
+      return { tank, received, issued, net: received - issued, currentBalance: tankBalance(tank.id) }
     })
-  }, [tanks, receipts, issues, repYear, repMonth, tankBalance])
-
-  const monthTotals = useMemo(() => ({
-    received:       monthlyRows.reduce((s, r) => s + r.received, 0),
-    issued:         monthlyRows.reduce((s, r) => s + r.issued, 0),
-    net:            monthlyRows.reduce((s, r) => s + r.net, 0),
-    txnCount:       monthlyRows.reduce((s, r) => s + r.txnCount, 0),
-    currentBalance: monthlyRows.reduce((s, r) => s + r.currentBalance, 0),
-  }), [monthlyRows])
-
-  // ── Variance / dip report ─────────────────────────────────────────────────────
-  const varianceRows = useMemo(() => {
-    return tanks.filter(t => t.status === 'active' && !t.is_archived).map(tank => {
-      const calc    = tankBalance(tank.id)
-      const dip     = latestDip(tank.id)
-      const actual  = dip ? Number(dip.level_litres) : null
-      const variance = actual !== null ? calc - actual : null
-      const pct      = tank.capacity_litres ? (calc / Number(tank.capacity_litres)) * 100 : null
-      return { tank, calc, dip, actual, variance, pct }
-    })
-  }, [tanks, tankBalance, latestDip])
-
-  // ── Asset usage summary ───────────────────────────────────────────────────────
-  const assetRows = useMemo(() => {
-    const map = new Map()
-    issues.forEach(i => {
-      const key = `${i.asset_type}::${i.asset_name}::${i.asset_reg || ''}`
-      if (!map.has(key)) map.set(key, { asset_type: i.asset_type, asset_name: i.asset_name, asset_reg: i.asset_reg, total: 0, count: 0, last: null })
-      const row = map.get(key)
-      row.total += Number(i.litres)
-      row.count += 1
-      if (!row.last || i.transaction_date > row.last) row.last = i.transaction_date
-    })
-    return [...map.values()].sort((a, b) => b.total - a.total)
-  }, [issues])
+  }, [tanks, receipts, issuances, selYear, selMonth, tankBalance])
 
   if (loading) return null
 
-  return (
-    <div style={{ padding: '20px', maxWidth: '1100px' }}>
-      <PageHeader title="Fuel Reports" site={currentSite} />
+  const assetLabel = tx => tx.fuel_vehicles
+    ? (tx.fuel_vehicles.registration || tx.fuel_vehicles.fleet_number)
+    : tx.fuel_equipment?.name || tx.asset_description || '—'
 
-      {/* Tab bar */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: THEME.surfaceVar, borderRadius: '12px', padding: '4px', width: 'fit-content' }}>
-        {[
-          { id: 'monthly',  label: 'Monthly Usage',   icon: 'bar_chart' },
-          { id: 'variance', label: 'Variance (Dip)',  icon: 'compare_arrows' },
-          { id: 'assets',   label: 'Asset Usage',     icon: 'directions_car' },
-        ].map(t => (
+  const selStyle = {
+    padding: '7px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px',
+    fontSize: '13px', color: THEME.text, background: THEME.surface,
+    fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
+  }
+
+  return (
+    <div style={{ maxWidth: '1100px' }}>
+      <PageHeader
+        title="Fuel Reports"
+        site={currentSite}
+        actions={
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => window.print()}
             style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '7px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 500,
-              border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s',
-              background: tab === t.id ? THEME.surface : 'transparent',
-              color:      tab === t.id ? THEME.primary : THEME.textMed,
-              boxShadow:  tab === t.id ? THEME.shadow1 : 'none',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '9px 18px', borderRadius: '6px', fontSize: '13px', fontWeight: 600,
+              background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
-            <Icon name={t.icon} size={15} style={{ color: 'inherit' }} />
-            {t.label}
+            <Icon name="print" size={15} style={{ color: '#fff' }} /> Print
           </button>
-        ))}
-      </div>
+        }
+      />
 
-      {/* ── Monthly Usage ── */}
-      {tab === 'monthly' && (
-        <>
-          {/* Month picker */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            <select value={repMonth} onChange={e => setRepMonth(Number(e.target.value))} style={selectStyle}>
+      {/* ── Predicted next order date banner ── */}
+      {prediction && (
+        <Card style={{ padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: '10px', flexShrink: 0,
+            background: FUEL_CLR + '16', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon name="insights" size={20} style={{ color: FUEL_CLR }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, marginBottom: '3px' }}>
+              Predicted next order date
+            </div>
+            <div style={{ fontSize: '13px', color: THEME.textMed }}>
+              Based on recent consumption (~{Math.round(prediction.perDay).toLocaleString()} L/day),
+              current stock of {Math.round(prediction.stock).toLocaleString()} L will run out
+              around <strong style={{ color: THEME.text }}>{fmtDate(prediction.emptyDate)}</strong>
+              {prediction.days < 21 ? ' — plan a purchase order.' : '.'}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ── Fuel issuance by day ── */}
+      <ChartCard title="Fuel Issuance by Day" legend="Litres Issued" legendColor={LINE_CLR}>
+        <LineChart points={byDay} color={LINE_CLR} />
+      </ChartCard>
+
+      {/* ── Top 10 consumers ── */}
+      <ChartCard title="Fuel Issuance by Vehicle (Top 10)" legend="Litres Issued" legendColor={FUEL_CLR}>
+        <BarChart bars={top10} color={FUEL_CLR} />
+      </ChartCard>
+
+      {/* ── Tank level over time ── */}
+      <ChartCard
+        title="Tank Level Over Time"
+        legend="Litres in Tank"
+        legendColor={TANK_CLR}
+        right={activeTanks.length > 1 && (
+          <select value={dipTankId} onChange={e => setTankSel(e.target.value)} style={selStyle}>
+            {activeTanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        )}
+      >
+        <LineChart points={tankLevelPoints} color={TANK_CLR} />
+      </ChartCard>
+
+      {/* ── Anomalous issuances ── */}
+      <Card style={{ padding: 0, marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Icon name="warning" size={18} style={{ color: THEME.error }} />
+            <span style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Anomalous Issuances</span>
+            {anomalies.length > 0 && (
+              <span style={{
+                minWidth: 20, height: 20, borderRadius: '10px', padding: '0 6px',
+                background: THEME.error, color: '#fff', fontSize: '11px', fontWeight: 700,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {anomalies.length}
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize: '12px', color: THEME.textLow }}>
+            Statistically unusual fuel draws (≥ 2.5× asset average)
+          </span>
+        </div>
+        {anomalies.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px', color: THEME.textLow, fontSize: '13px' }}>
+            No anomalous issuances detected.
+          </div>
+        ) : (
+          <TableWrap>
+            <THead>
+              <Th>Date</Th>
+              <Th>Asset</Th>
+              <Th>Driver</Th>
+              <Th align="right">Issued (L)</Th>
+              <Th align="right">Asset Avg (L)</Th>
+              <Th align="right">Excess (L)</Th>
+              <Th>Purpose</Th>
+              <Th>Flag</Th>
+            </THead>
+            <tbody>
+              {anomalies.map(({ tx, avg, excess }, idx) => {
+                const parsed = parseTxnNotes(tx.notes)
+                return (
+                  <TRow key={tx.id} last={idx === anomalies.length - 1} style={{ background: THEME.error + '06' }}>
+                    <Td style={{ whiteSpace: 'nowrap', color: THEME.textMed }}>{tx.transaction_date}</Td>
+                    <Td style={{ fontWeight: 600, color: THEME.text }}>{assetLabel(tx)}</Td>
+                    <Td style={{ color: THEME.textMed }}>{parsed.driver || '—'}</Td>
+                    <Td align="right" style={{ fontWeight: 700, color: THEME.error }}>{Number(tx.litres).toLocaleString()}</Td>
+                    <Td align="right" style={{ color: THEME.textLow }}>{Math.round(avg).toLocaleString()}</Td>
+                    <Td align="right" style={{ fontWeight: 600, color: THEME.error }}>+{Math.round(excess).toLocaleString()}</Td>
+                    <Td style={{ color: THEME.textMed, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {parsed.purpose || parsed.clean || '—'}
+                    </Td>
+                    <Td>
+                      <span style={{
+                        padding: '3px 9px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
+                        background: THEME.statusErrorBg, color: THEME.statusErrorText, letterSpacing: '.04em',
+                      }}>
+                        ANOMALY
+                      </span>
+                    </Td>
+                  </TRow>
+                )
+              })}
+            </tbody>
+          </TableWrap>
+        )}
+      </Card>
+
+      {/* ── Monthly usage summary ── */}
+      <Card style={{ padding: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', flexWrap: 'wrap', gap: '10px' }}>
+          <span style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Monthly Usage by Tank</span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <select value={selMonth} onChange={e => setRepMonth(Number(e.target.value))} style={selStyle}>
               {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
             </select>
-            <select value={repYear} onChange={e => setRepYear(Number(e.target.value))} style={{ ...selectStyle, width: '100px' }}>
+            <select value={selYear} onChange={e => setRepYear(Number(e.target.value))} style={{ ...selStyle, width: '90px' }}>
               {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
           </div>
-
-          <div style={{ fontWeight: 600, color: THEME.text, marginBottom: '12px', fontSize: '15px' }}>
-            {MONTHS[repMonth]} {repYear}
-          </div>
-
-          <Card style={{ padding: 0 }}>
-            <TableWrap>
-              <THead>
-                <Th>Tank</Th>
-                <Th>Fuel Type</Th>
-                <Th align="right">Received (L)</Th>
-                <Th align="right">Issued (L)</Th>
-                <Th align="right">Net (L)</Th>
-                <Th align="right">Current Balance (L)</Th>
-              </THead>
-              <tbody>
-                {monthlyRows.map((row, idx) => (
-                  <TRow key={row.tank.id} last={idx === monthlyRows.length - 1}>
-                    <Td><span style={{ fontWeight: 500 }}>{row.tank.name}</span></Td>
-                    <Td style={{ color: THEME.textMed }}>{row.tank.fuel_types?.name || 'Diesel'}</Td>
-                    <Td align="right" style={{ color: row.received > 0 ? THEME.success : THEME.textMed, fontWeight: row.received > 0 ? 600 : 400 }}>
-                      {row.received > 0 ? `+${row.received.toFixed(1)}` : '—'}
-                    </Td>
-                    <Td align="right" style={{ color: row.issued > 0 ? THEME.warning : THEME.textMed, fontWeight: row.issued > 0 ? 600 : 400 }}>
-                      {row.issued > 0 ? row.issued.toFixed(1) : '—'}
-                    </Td>
-                    <Td align="right" style={{ fontWeight: 600, color: row.net >= 0 ? THEME.text : THEME.error }}>
-                      {row.net >= 0 ? '+' : ''}{row.net.toFixed(1)}
-                    </Td>
-                    <Td align="right" style={{ fontWeight: 600 }}>{row.currentBalance.toFixed(1)}</Td>
-                  </TRow>
-                ))}
-                {/* Totals row */}
-                <tr style={{ background: THEME.primary + '10', borderTop: `2px solid ${THEME.primary}30` }}>
-                  <td colSpan={2} style={{ padding: '11px 14px', fontWeight: 700, color: THEME.text, fontSize: '13px' }}>TOTAL</td>
-                  <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: THEME.success }}>
-                    {monthTotals.received > 0 ? `+${monthTotals.received.toFixed(1)}` : '—'}
-                  </td>
-                  <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: THEME.warning }}>
-                    {monthTotals.issued > 0 ? monthTotals.issued.toFixed(1) : '—'}
-                  </td>
-                  <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: monthTotals.net >= 0 ? THEME.text : THEME.error }}>
-                    {monthTotals.net >= 0 ? '+' : ''}{monthTotals.net.toFixed(1)}
-                  </td>
-                  <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: THEME.text }}>
-                    {monthTotals.currentBalance.toFixed(1)}
-                  </td>
-                </tr>
-              </tbody>
-            </TableWrap>
-          </Card>
-        </>
-      )}
-
-      {/* ── Variance / Dip ── */}
-      {tab === 'variance' && (
-        <Card style={{ padding: 0 }}>
-          <TableWrap>
-            <THead>
-              <Th>Tank</Th>
-              <Th align="right">Calculated Balance (L)</Th>
-              <Th align="right">Last Dip Reading (L)</Th>
-              <Th>Dip Date</Th>
-              <Th align="right">Variance (L)</Th>
-              <Th align="right">Level %</Th>
-              <Th>Status</Th>
-            </THead>
-            <tbody>
-              {varianceRows.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: THEME.textLow }}>No active tanks.</td></tr>
-              ) : (
-                varianceRows.map((row, idx) => {
-                  const varianceAbs = row.variance !== null ? Math.abs(row.variance) : null
-                  const status = row.actual === null ? 'No dip recorded'
-                    : varianceAbs > 50 ? 'High variance — investigate'
-                    : varianceAbs > 10 ? 'Moderate variance'
-                    : 'Within tolerance'
-                  const statusColor = row.actual === null ? THEME.statusNeutralText
-                    : varianceAbs > 50 ? THEME.statusErrorText
-                    : varianceAbs > 10 ? THEME.statusWarningText
-                    : THEME.statusSuccessText
-                  const statusBg = row.actual === null ? THEME.statusNeutralBg
-                    : varianceAbs > 50 ? THEME.statusErrorBg
-                    : varianceAbs > 10 ? THEME.statusWarningBg
-                    : THEME.statusSuccessBg
-                  return (
-                    <TRow key={row.tank.id} last={idx === varianceRows.length - 1}>
-                      <Td><span style={{ fontWeight: 500 }}>{row.tank.name}</span></Td>
-                      <Td align="right" style={{ fontWeight: 600 }}>{row.calc.toFixed(1)}</Td>
-                      <Td align="right">{row.actual !== null ? row.actual.toFixed(1) : '—'}</Td>
-                      <Td style={{ color: THEME.textMed }}>{row.dip ? fmtDate(row.dip.reading_date) : '—'}</Td>
-                      <Td align="right">
-                        {row.variance !== null ? (
-                          <span style={{ fontWeight: 600, color: varianceAbs > 10 ? THEME.error : THEME.success }}>
-                            {row.variance > 0 ? '+' : ''}{row.variance.toFixed(1)}
-                          </span>
-                        ) : '—'}
-                      </Td>
-                      <Td align="right">
-                        {row.pct !== null ? `${Math.min(100, Math.max(0, row.pct)).toFixed(0)}%` : '—'}
-                      </Td>
-                      <Td>
-                        <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500, background: statusBg, color: statusColor }}>
-                          {status}
-                        </span>
-                      </Td>
-                    </TRow>
-                  )
-                })
-              )}
-            </tbody>
-          </TableWrap>
-        </Card>
-      )}
-
-      {/* ── Asset Usage ── */}
-      {tab === 'assets' && (
-        <Card style={{ padding: 0 }}>
-          <TableWrap>
-            <THead>
-              <Th>Asset</Th>
-              <Th>Type</Th>
-              <Th>Reg / Designation</Th>
-              <Th align="right">Total Issued (L)</Th>
-              <Th align="right">Transactions</Th>
-              <Th>Last Issue</Th>
-            </THead>
-            <tbody>
-              {assetRows.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: THEME.textLow }}>No fuel issues recorded.</td></tr>
-              ) : (
-                assetRows.map((row, idx) => (
-                  <TRow key={idx} last={idx === assetRows.length - 1}>
-                    <Td><span style={{ fontWeight: 500 }}>{row.asset_name}</span></Td>
-                    <Td>
-                      <span style={{
-                        padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 500,
-                        background: THEME.surfaceVar, color: THEME.textMed, textTransform: 'capitalize',
-                      }}>
-                        {row.asset_type}
-                      </span>
-                    </Td>
-                    <Td style={{ color: THEME.textMed }}>{row.asset_reg || '—'}</Td>
-                    <Td align="right" style={{ fontWeight: 600, color: THEME.warning }}>{row.total.toFixed(1)}</Td>
-                    <Td align="right" style={{ color: THEME.textMed }}>{row.count}</Td>
-                    <Td style={{ color: THEME.textMed }}>{row.last ? fmtDate(row.last) : '—'}</Td>
-                  </TRow>
-                ))
-              )}
-            </tbody>
-          </TableWrap>
-        </Card>
-      )}
+        </div>
+        <TableWrap>
+          <THead>
+            <Th>Tank</Th>
+            <Th align="right">Received (L)</Th>
+            <Th align="right">Issued (L)</Th>
+            <Th align="right">Net (L)</Th>
+            <Th align="right">Current Balance (L)</Th>
+          </THead>
+          <tbody>
+            {monthlyRows.map((row, idx) => (
+              <TRow key={row.tank.id} last={idx === monthlyRows.length - 1}>
+                <Td><span style={{ fontWeight: 500 }}>{row.tank.name}</span></Td>
+                <Td align="right" style={{ color: row.received > 0 ? THEME.success : THEME.textMed, fontWeight: row.received > 0 ? 600 : 400 }}>
+                  {row.received > 0 ? `+${row.received.toFixed(1)}` : '—'}
+                </Td>
+                <Td align="right" style={{ color: row.issued > 0 ? THEME.warning : THEME.textMed, fontWeight: row.issued > 0 ? 600 : 400 }}>
+                  {row.issued > 0 ? row.issued.toFixed(1) : '—'}
+                </Td>
+                <Td align="right" style={{ fontWeight: 600, color: row.net >= 0 ? THEME.text : THEME.error }}>
+                  {row.net >= 0 ? '+' : ''}{row.net.toFixed(1)}
+                </Td>
+                <Td align="right" style={{ fontWeight: 600 }}>{row.currentBalance.toFixed(1)}</Td>
+              </TRow>
+            ))}
+          </tbody>
+        </TableWrap>
+      </Card>
     </div>
   )
-}
-
-const selectStyle = {
-  padding: '8px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '10px',
-  fontSize: '13px', color: THEME.text, background: THEME.surface,
-  fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
 }

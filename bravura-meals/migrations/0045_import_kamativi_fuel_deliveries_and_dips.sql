@@ -45,10 +45,15 @@ BEGIN
   -- ── 35 dipstick observations → fuel_dip_readings ─────────────────────
   -- fuel_end is the level after the shift; that's the observed value.
   -- Skip rows we've already seeded (dedup by tank+date+litres).
+  -- Live column names are level_litres + dip_mm + read_by (the 0020
+  -- migration file documented pre-shipping names — the running schema
+  -- matches what DipReadings.jsx inserts).
   INSERT INTO fuel_dip_readings (
-    site_id, tank_id, reading_date, reading_litres,
-    recorded_by_name, notes)
-  SELECT v_site_id, v_tank_id, r.date::date, r.fuel_end::numeric,
+    site_id, tank_id, reading_date, dip_mm, level_litres,
+    read_by, notes)
+  SELECT v_site_id, v_tank_id, r.date::date,
+         (r.dip_end::numeric * 1000)::numeric,
+         r.fuel_end::numeric,
          NULLIF(r.done_by, ''),
          format('Imported legacy %s (dip %s→%s m, fuel %s→%s L)',
                 r.legacy_id, r.dip_start, r.dip_end, r.fuel_start, r.fuel_end)
@@ -93,7 +98,7 @@ BEGIN
      SELECT 1 FROM fuel_dip_readings d
       WHERE d.tank_id = v_tank_id
         AND d.reading_date = r.date::date
-        AND d.reading_litres = r.fuel_end::numeric
+        AND d.level_litres = r.fuel_end::numeric
    );
 
   -- Sync tank fields to the latest dipstick reading so the dashboard shows

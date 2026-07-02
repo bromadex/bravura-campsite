@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
@@ -9,12 +9,32 @@ import {
 
 export default function FuelReports() {
   const { currentSite } = useSite()
-  const { tanks, receipts, issues, dipReadings, tankBalance, latestDip, loading } = useFuel()
+  const { tanks, receipts, issues, transactions, dipReadings, tankBalance, latestDip, loading } = useFuel()
 
   const now = new Date()
   const [tab,      setTab]      = useState('monthly')
-  const [repYear,  setRepYear]  = useState(now.getFullYear())
-  const [repMonth, setRepMonth] = useState(now.getMonth())
+
+  // Default to the latest month that actually has transaction data,
+  // falling back to the current month if nothing exists yet.
+  const defaultMonth = useMemo(() => {
+    if (!transactions.length) return { y: now.getFullYear(), m: now.getMonth() }
+    const latest = transactions.reduce((best, t) =>
+      t.transaction_date > best ? t.transaction_date : best, transactions[0].transaction_date)
+    const [y, m] = latest.split('-').map(Number)
+    return { y, m: m - 1 }
+  }, [transactions])
+
+  const [repYear,  setRepYear]  = useState(defaultMonth.y)
+  const [repMonth, setRepMonth] = useState(defaultMonth.m)
+  const [initialized, setInitialized] = useState(false)
+
+  useEffect(() => {
+    if (!initialized && transactions.length > 0) {
+      setRepYear(defaultMonth.y)
+      setRepMonth(defaultMonth.m)
+      setInitialized(true)
+    }
+  }, [initialized, transactions.length, defaultMonth])
 
   // ── Monthly usage report ──────────────────────────────────────────────────────
   const monthlyRows = useMemo(() => {

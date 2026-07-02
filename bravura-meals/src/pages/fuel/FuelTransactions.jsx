@@ -156,8 +156,8 @@ export default function FuelTransactions({ setPage }) {
   const { currentSite } = useSite()
   const { tanks, operators, pumps, transactions, fuelTypes, loading } = useFuel()
 
-  const [dateFrom,  setDateFrom]  = useState(today)
-  const [dateTo,    setDateTo]    = useState(today)
+  const [dateFrom,  setDateFrom]  = useState('')
+  const [dateTo,    setDateTo]    = useState('')
   const [tankId,    setTankId]    = useState('')
   const [txType,    setTxType]    = useState('')
   const [fuelTypeId,setFuelTypeId]= useState('')
@@ -208,10 +208,10 @@ export default function FuelTransactions({ setPage }) {
   )
 
   function clearFilters() {
-    setDateFrom(today); setDateTo(today); setTankId(''); setTxType(''); setFuelTypeId(''); setSearch('')
+    setDateFrom(''); setDateTo(''); setTankId(''); setTxType(''); setFuelTypeId(''); setSearch('')
   }
 
-  const hasFilters = dateFrom !== today || dateTo !== today || tankId || txType || fuelTypeId || search
+  const hasFilters = dateFrom || dateTo || tankId || txType || fuelTypeId || search
 
   return (
     <div style={{ maxWidth: '1200px' }}>

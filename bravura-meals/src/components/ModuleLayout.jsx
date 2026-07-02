@@ -170,7 +170,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
   }, [moduleId, currentSiteId, can])
 
   // On mobile, tapping a nav item should also close the drawer.
-  const navigate = (p) => { setPage(p); if (isMobile) setMobileNavOpen(false) }
+  const goToPage = (p) => { setPage(p); if (isMobile) setMobileNavOpen(false) }
   const navHome  = () => { onHome();   if (isMobile) setMobileNavOpen(false) }
 
   const sidebarWidth = isMobile ? '260px' : (collapsed ? '68px' : '236px')
@@ -264,7 +264,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 return (
                   <div
                     key={item.id}
-                    onClick={() => navigate(item.id)}
+                    onClick={() => goToPage(item.id)}
                     title={!showLabels ? item.label : ''}
                     style={{
                       display: 'flex', alignItems: 'center',

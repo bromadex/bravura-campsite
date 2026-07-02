@@ -69,7 +69,7 @@ export default function HomeLauncher({ onEnterModule }) {
         })
     }
     load()
-    const t = setInterval(load, 60_000)
+    const t = setInterval(load, 20_000)
     return () => clearInterval(t)
   }, [profile?.id])
 

@@ -89,13 +89,53 @@ export default function FuelReceipts() {
   const fetchDeliveries = useCallback(async () => {
     if (!currentSiteId) return
     setLoadingDel(true)
-    const { data, error } = await supabase
+
+    // Try fuel_deliveries table first (rich records)
+    const { data: rich, error: richErr } = await supabase
       .from('fuel_deliveries')
       .select('*, fuel_tanks(id, name, fuel_types(name)), confirmed_profile:profiles!fuel_deliveries_confirmed_by_fkey(id, full_name), created_profile:profiles!fuel_deliveries_created_by_fkey(id, full_name)')
       .eq('site_id', currentSiteId)
       .order('delivery_date', { ascending: false })
       .order('created_at', { ascending: false })
-    if (!error && data) setDeliveries(data)
+    const richRows = (!richErr && rich) ? rich : []
+
+    // Also load delivery transactions (legacy records not in fuel_deliveries)
+    const { data: txns } = await supabase
+      .from('fuel_transactions')
+      .select('*, fuel_tanks:tank_id(id, name, fuel_types(name))')
+      .eq('site_id', currentSiteId)
+      .eq('transaction_type', 'delivery')
+      .order('transaction_date', { ascending: false })
+
+    // Merge: rich rows take priority; add txn-based rows that aren't already
+    // covered by a fuel_deliveries record (match on tank_id + date + litres)
+    const richKeys = new Set(richRows.map(r => `${r.tank_id}|${r.delivery_date}|${Number(r.quantity_delivered).toFixed(1)}`))
+    const txnRows = (txns || [])
+      .filter(t => !richKeys.has(`${t.tank_id}|${t.transaction_date}|${Number(t.litres).toFixed(1)}`))
+      .map(t => ({
+        id:                  t.id,
+        _from_txn:           true,
+        delivery_date:       t.transaction_date,
+        supplier_name:       t.supplier || '',
+        delivery_note_number: t.docket_number || '',
+        tank_id:             t.tank_id,
+        fuel_tanks:          t.fuel_tanks,
+        quantity_delivered:   t.litres,
+        unit_price:          t.unit_price,
+        total_cost:          t.total_cost,
+        dip_before:          null,
+        dip_after:           null,
+        status:              'confirmed',
+        notes:               t.notes,
+        created_at:          t.created_at,
+        created_profile:     null,
+        confirmed_profile:   null,
+      }))
+
+    setDeliveries([...richRows, ...txnRows].sort((a, b) => {
+      const da = a.delivery_date || ''; const db = b.delivery_date || ''
+      return da < db ? 1 : da > db ? -1 : 0
+    }))
     setLoadingDel(false)
   }, [currentSiteId])
 
@@ -120,6 +160,7 @@ export default function FuelReceipts() {
   }
 
   function openEdit(del) {
+    if (del._from_txn) return
     if (!canCreate && !canApprove) return
     setEditId(del.id)
     setForm({
@@ -514,7 +555,7 @@ export default function FuelReceipts() {
                 return (
                   <TRow key={r.id} last={idx === filtered.length - 1}
                     onClick={() => openEdit(r)}
-                    style={{ cursor: (canCreate || canApprove) ? 'pointer' : 'default' }}
+                    style={{ cursor: (!r._from_txn && (canCreate || canApprove)) ? 'pointer' : 'default' }}
                   >
                     <Td style={{ whiteSpace: 'nowrap' }}>{fmtDate(r.delivery_date)}</Td>
                     <Td>

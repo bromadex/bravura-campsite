@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -308,7 +308,7 @@ export default function FuelIssuance({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const {
     tanks, pumps, vehicles, equipment, operators,
-    transactions, addTransaction, updatePump,
+    transactions, addTransaction, updatePump, refresh: refreshFuel,
   } = useFuel()
 
   const [form,          setFormState]   = useState(BLANK)
@@ -320,13 +320,20 @@ export default function FuelIssuance({ setPage }) {
 
   // ── Bulk issuance mode ─────────────────────────────────────────────────────
   const [bulkMode, setBulkMode] = useState(false)
-  const BLANK_BULK_ROW = { time: '', transaction_date: new Date().toISOString().slice(0, 10), fuel_type_id: '', vehicle_id: '', litres: '', operator_id: '' }
-  const [bulkRows, setBulkRows] = useState([{ ...BLANK_BULK_ROW }, { ...BLANK_BULK_ROW }, { ...BLANK_BULK_ROW }])
+  const nowTime = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const makeBulkRow = useCallback(() => ({
+    time: nowTime(), transaction_date: todayStr,
+    asset_type: 'vehicle', vehicle_id: '', equipment_id: '',
+    litres: '', operator_id: '', notes: '',
+  }), [todayStr])
+  const [bulkRows, setBulkRows] = useState(() => Array.from({ length: 5 }, () => makeBulkRow()))
   const [bulkTankId, setBulkTankId] = useState('')
   const [bulkAuth, setBulkAuth] = useState('')
   const [bulkReason, setBulkReason] = useState('')
   const [bulkSaving, setBulkSaving] = useState(false)
   const [bulkResults, setBulkResults] = useState(null)
+  const gridRef = useRef(null)
 
   // Load fuel settings and check require_approval flag
   useEffect(() => {
@@ -520,7 +527,116 @@ export default function FuelIssuance({ setPage }) {
     }
   }
 
-  // ── Bulk submit ────────────────────────────────────────────────────────────
+  // ── Bulk helpers ───────────────────────────────────────────────────────────
+
+  function addBulkRow() {
+    setBulkRows(prev => [...prev, makeBulkRow()])
+  }
+
+  function updateBulkRow(idx, field, value) {
+    setBulkRows(prev => prev.map((r, i) => {
+      if (i !== idx) return r
+      const next = { ...r, [field]: value }
+      if (field === 'asset_type') { next.vehicle_id = ''; next.equipment_id = '' }
+      return next
+    }))
+  }
+
+  function removeBulkRow(idx) {
+    setBulkRows(prev => prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx))
+  }
+
+  // Keyboard navigation: Tab/Enter moves to next cell in grid
+  function handleBulkKeyDown(e, rowIdx, colIdx) {
+    if (e.key !== 'Tab' && e.key !== 'Enter') return
+    if (e.key === 'Enter' && e.target.tagName === 'SELECT') return
+    const COLS = 5 // time, date, asset, litres, operator
+    const isShift = e.shiftKey
+    let nextRow = rowIdx
+    let nextCol = colIdx
+
+    if (isShift) {
+      nextCol--
+      if (nextCol < 0) { nextCol = COLS - 1; nextRow-- }
+    } else {
+      nextCol++
+      if (nextCol >= COLS) { nextCol = 0; nextRow++ }
+    }
+
+    if (nextRow >= bulkRows.length && !isShift) {
+      addBulkRow()
+      nextRow = bulkRows.length
+      nextCol = 0
+    }
+    if (nextRow < 0 || nextRow >= bulkRows.length + (isShift ? 0 : 1)) return
+
+    e.preventDefault()
+    setTimeout(() => {
+      const grid = gridRef.current
+      if (!grid) return
+      const row = grid.querySelectorAll('tr[data-bulk-row]')[nextRow]
+      if (!row) return
+      const inputs = row.querySelectorAll('input, select')
+      if (inputs[nextCol]) inputs[nextCol].focus()
+    }, 30)
+  }
+
+  // Excel paste: detect TSV/CSV and populate rows
+  function handleBulkPaste(e) {
+    const text = e.clipboardData?.getData('text/plain')
+    if (!text || !text.includes('\t') && !text.includes(',')) return
+    e.preventDefault()
+    const sep = text.includes('\t') ? '\t' : ','
+    const lines = text.trim().split('\n').map(l => l.split(sep).map(c => c.trim().replace(/^"|"$/g, '')))
+    if (lines.length === 0) return
+
+    const vehicleMap = new Map()
+    activeVehicles.forEach(v => {
+      vehicleMap.set(v.fleet_number?.toLowerCase(), v.id)
+      if (v.registration) vehicleMap.set(v.registration.toLowerCase(), v.id)
+    })
+    const equipMap = new Map()
+    activeEquipment.forEach(eq => {
+      if (eq.equipment_number) equipMap.set(eq.equipment_number.toLowerCase(), eq.id)
+      equipMap.set(eq.name?.toLowerCase(), eq.id)
+    })
+    const opMap = new Map()
+    activeOperators.forEach(op => {
+      const name = op.employees?.name?.toLowerCase()
+      if (name) opMap.set(name, op.id)
+    })
+
+    const newRows = lines.map(cols => {
+      // Expected columns: Time, Date, Vehicle/Equipment, Litres, Operator
+      const row = makeBulkRow()
+      if (cols[0]) row.time = cols[0]
+      if (cols[1]) {
+        const d = new Date(cols[1])
+        if (!isNaN(d.getTime())) row.transaction_date = d.toISOString().slice(0, 10)
+      }
+      if (cols[2]) {
+        const lookup = cols[2].toLowerCase()
+        const vid = vehicleMap.get(lookup)
+        const eid = equipMap.get(lookup)
+        if (vid) { row.asset_type = 'vehicle'; row.vehicle_id = vid }
+        else if (eid) { row.asset_type = 'equipment'; row.equipment_id = eid }
+      }
+      if (cols[3]) row.litres = cols[3].replace(/[^\d.]/g, '')
+      if (cols[4]) {
+        const oid = opMap.get(cols[4].toLowerCase())
+        if (oid) row.operator_id = oid
+      }
+      return row
+    })
+
+    setBulkRows(prev => {
+      const hasData = prev.some(r => r.vehicle_id || r.equipment_id || Number(r.litres) > 0)
+      return hasData ? [...prev, ...newRows] : newRows
+    })
+    showToast(`Pasted ${newRows.length} row${newRows.length > 1 ? 's' : ''} from clipboard`, 'green')
+  }
+
+  // ── Bulk submit (atomic via RPC) ──────────────────────────────────────────
 
   async function submitBulk(e) {
     e.preventDefault()
@@ -528,8 +644,8 @@ export default function FuelIssuance({ setPage }) {
     if (!bulkAuth.trim()) { showToast('Enter who authorised this bulk issuance', 'red'); return }
     if (!bulkReason.trim()) { showToast('Enter the reason / justification', 'red'); return }
 
-    const valid = bulkRows.filter(r => r.vehicle_id && Number(r.litres) > 0)
-    if (valid.length === 0) { showToast('Add at least one row with a vehicle and litres', 'red'); return }
+    const valid = bulkRows.filter(r => (r.vehicle_id || r.equipment_id) && Number(r.litres) > 0)
+    if (valid.length === 0) { showToast('Add at least one row with a vehicle/equipment and litres', 'red'); return }
 
     const tank = tanks.find(t => t.id === bulkTankId)
     const totalLitres = valid.reduce((s, r) => s + Number(r.litres), 0)
@@ -538,79 +654,241 @@ export default function FuelIssuance({ setPage }) {
     }
 
     setBulkSaving(true)
-    const results = []
     try {
-      for (const r of valid) {
-        const row = await addTransaction({
-          transaction_type:  'issuance',
-          transaction_date:  r.transaction_date,
-          tank_id:           bulkTankId,
-          litres:            Number(r.litres),
-          vehicle_id:        r.vehicle_id || null,
-          operator_id:       r.operator_id || null,
-          notes:             r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance',
-          authorised_by_name:     bulkAuth.trim(),
-          authorisation_reason:   bulkReason.trim(),
-          acknowledgement_status: 'pending',
-        })
-        results.push(row)
-      }
-      setBulkResults(results)
-      showToast(`${results.length} issuance${results.length > 1 ? 's' : ''} recorded`, 'green')
+      const batchId = crypto.randomUUID()
+      const rpcRows = valid.map(r => ({
+        transaction_date: r.transaction_date,
+        vehicle_id:       r.asset_type === 'vehicle'   ? (r.vehicle_id || null)   : null,
+        equipment_id:     r.asset_type === 'equipment' ? (r.equipment_id || null) : null,
+        litres:           Number(r.litres),
+        operator_id:      r.operator_id || null,
+        notes:            r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance',
+      }))
+
+      const { data, error } = await supabase.rpc('rpc_bulk_fuel_issuance', {
+        p_site_id:       currentSiteId,
+        p_tank_id:       bulkTankId,
+        p_batch_id:      batchId,
+        p_authorised_by: bulkAuth.trim(),
+        p_reason:        bulkReason.trim(),
+        p_rows:          rpcRows,
+      })
+
+      if (error) throw error
+
+      // Refresh all fuel data so tank levels, transactions etc. reflect the bulk insert
+      refreshFuel()
+
+      setBulkResults({
+        batchId,
+        totalLitres: data.total_litres,
+        rowCount:    data.row_count,
+        rows:        data.rows,
+        tankName:    tank?.name || '—',
+        tankLevelAfter: data.tank_level_after,
+      })
+      showToast(`${data.row_count} issuance${data.row_count > 1 ? 's' : ''} recorded atomically`, 'green')
     } catch (err) {
-      showToast(err.message || 'Failed during bulk issuance', 'red')
+      // Fallback: if RPC doesn't exist yet, do sequential inserts
+      if (err.message?.includes('rpc_bulk_fuel_issuance') || err.code === '42883') {
+        const results = []
+        try {
+          for (const r of valid) {
+            const row = await addTransaction({
+              transaction_type:  'issuance',
+              transaction_date:  r.transaction_date,
+              tank_id:           bulkTankId,
+              litres:            Number(r.litres),
+              vehicle_id:        r.asset_type === 'vehicle'   ? (r.vehicle_id || null)   : null,
+              equipment_id:      r.asset_type === 'equipment' ? (r.equipment_id || null) : null,
+              operator_id:       r.operator_id || null,
+              notes:             r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance',
+              authorised_by_name:     bulkAuth.trim(),
+              authorisation_reason:   bulkReason.trim(),
+              acknowledgement_status: 'pending',
+            })
+            results.push(row)
+          }
+          setBulkResults({
+            batchId:    null,
+            totalLitres: results.reduce((s, r) => s + Number(r.litres), 0),
+            rowCount:   results.length,
+            rows:       results.map(r => ({
+              id:                r.id,
+              transaction_number: r.transaction_number,
+              litres:            Number(r.litres),
+              vehicle_id:        r.vehicle_id,
+              equipment_id:      r.equipment_id,
+              operator_id:       r.operator_id,
+              transaction_date:  r.transaction_date,
+            })),
+            tankName:   tank?.name || '—',
+            tankLevelAfter: null,
+          })
+          showToast(`${results.length} issuance${results.length > 1 ? 's' : ''} recorded`, 'green')
+        } catch (fallbackErr) {
+          showToast(fallbackErr.message || 'Failed during bulk issuance', 'red')
+        }
+      } else {
+        showToast(err.message || 'Failed during bulk issuance', 'red')
+      }
     } finally {
       setBulkSaving(false)
     }
   }
 
-  function addBulkRow() {
-    setBulkRows(prev => [...prev, { ...BLANK_BULK_ROW }])
-  }
-
-  function updateBulkRow(idx, field, value) {
-    setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r))
-  }
-
-  function removeBulkRow(idx) {
-    setBulkRows(prev => prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx))
-  }
 
   // ── Success state ─────────────────────────────────────────────────────────
 
   if (bulkResults) {
+    const br = bulkResults
     return (
-      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '60px 24px 40px', textAlign: 'center' }}>
-        <div style={{
-          width: '72px', height: '72px', borderRadius: '50%', margin: '0 auto 20px',
-          background: THEME.statusSuccessBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon name="check_circle" size={40} style={{ color: THEME.success }} />
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px' }}>
+        {/* Print-only consolidated docket */}
+        <style>{`
+          @media print {
+            body > * { display: none !important; }
+            #bulk-docket-print { display: block !important; }
+          }
+          #bulk-docket-print { display: none; }
+          @media print {
+            #bulk-docket-print {
+              position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+              background: white; color: black; font-family: monospace;
+              font-size: 11pt; padding: 15mm;
+            }
+          }
+        `}</style>
+        <div id="bulk-docket-print">
+          <div style={{ borderBottom: '2px solid black', paddingBottom: '6px', marginBottom: '10px', textAlign: 'center' }}>
+            <div style={{ fontSize: '15pt', fontWeight: 'bold' }}>BULK FUEL ISSUANCE DOCKET</div>
+            <div>{currentSite?.name || 'Bravura Zimbabwe'}</div>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8px' }}>
+            <tbody>
+              {[
+                ['Tank', br.tankName],
+                ['Date', new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })],
+                ['Authorised By', bulkAuth],
+                ['Reason', bulkReason],
+                ['Total', `${Number(br.totalLitres).toFixed(1)} L across ${br.rowCount} vehicle${br.rowCount > 1 ? 's' : ''}`],
+                br.batchId && ['Batch Ref', br.batchId.slice(0, 8).toUpperCase()],
+              ].filter(Boolean).map(([k, v]) => (
+                <tr key={k}><td style={{ padding: '2px 0', fontWeight: 'bold', width: '35%' }}>{k}:</td><td>{v}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid black', marginBottom: '12px' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid black', fontWeight: 'bold' }}>
+                <td style={{ padding: '4px 6px', borderRight: '1px solid black' }}>#</td>
+                <td style={{ padding: '4px 6px', borderRight: '1px solid black' }}>Vehicle / Equipment</td>
+                <td style={{ padding: '4px 6px', borderRight: '1px solid black', textAlign: 'right' }}>Litres</td>
+                <td style={{ padding: '4px 6px' }}>Txn #</td>
+              </tr>
+            </thead>
+            <tbody>
+              {br.rows.map((r, i) => {
+                const v = vehicles.find(x => x.id === r.vehicle_id)
+                const eq = equipment.find(x => x.id === r.equipment_id)
+                const label = v ? `${v.fleet_number}${v.registration ? ' (' + v.registration + ')' : ''}` : eq ? eq.name : '—'
+                return (
+                  <tr key={r.id || i} style={{ borderBottom: '1px solid black' }}>
+                    <td style={{ padding: '3px 6px', borderRight: '1px solid black' }}>{i + 1}</td>
+                    <td style={{ padding: '3px 6px', borderRight: '1px solid black' }}>{label}</td>
+                    <td style={{ padding: '3px 6px', borderRight: '1px solid black', textAlign: 'right' }}>{Number(r.litres).toFixed(1)}</td>
+                    <td style={{ padding: '3px 6px', fontFamily: 'monospace', fontSize: '9pt' }}>{r.transaction_number}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: '2px solid black', fontWeight: 'bold' }}>
+                <td colSpan={2} style={{ padding: '4px 6px', borderRight: '1px solid black' }}>TOTAL</td>
+                <td style={{ padding: '4px 6px', borderRight: '1px solid black', textAlign: 'right' }}>{Number(br.totalLitres).toFixed(1)} L</td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
+            <div><div style={{ fontWeight: 'bold', marginBottom: '20px' }}>Authorised By:</div><div style={{ borderBottom: '1px solid black', width: '200px' }}>&nbsp;</div></div>
+            <div><div style={{ fontWeight: 'bold', marginBottom: '20px' }}>Fuel Attendant:</div><div style={{ borderBottom: '1px solid black', width: '200px' }}>&nbsp;</div></div>
+          </div>
         </div>
-        <div style={{ fontSize: '24px', fontWeight: 600, color: THEME.text, marginBottom: '8px' }}>Bulk Issuance Complete</div>
-        <div style={{ fontSize: '15px', color: THEME.textMed, marginBottom: '28px' }}>
-          {bulkResults.length} issuance{bulkResults.length > 1 ? 's' : ''} recorded — {bulkResults.reduce((s, r) => s + Number(r.litres), 0).toFixed(1)} L total
+
+        {/* On-screen success */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{
+            width: '72px', height: '72px', borderRadius: '50%', margin: '0 auto 20px',
+            background: THEME.statusSuccessBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon name="check_circle" size={40} style={{ color: THEME.success }} />
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 600, color: THEME.text, marginBottom: '4px' }}>Bulk Issuance Complete</div>
+          <div style={{ fontSize: '15px', color: THEME.textMed }}>
+            {br.rowCount} issuance{br.rowCount > 1 ? 's' : ''} · {Number(br.totalLitres).toFixed(1)} L total from {br.tankName}
+          </div>
+          {br.batchId && (
+            <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px', fontFamily: 'monospace' }}>
+              Batch: {br.batchId.slice(0, 8).toUpperCase()}
+            </div>
+          )}
         </div>
-        <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, padding: '16px', marginBottom: '28px', textAlign: 'left' }}>
-          {bulkResults.map((r, i) => {
-            const v = vehicles.find(x => x.id === r.vehicle_id)
-            return (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < bulkResults.length - 1 ? `1px solid ${THEME.outlineVar}` : 'none', fontSize: '13px' }}>
-                <span style={{ color: THEME.text, fontWeight: 500 }}>{v ? `${v.fleet_number}${v.registration ? ' · ' + v.registration : ''}` : '—'}</span>
-                <span style={{ fontWeight: 700, color: FUEL_CLR }}>{Number(r.litres).toFixed(1)} L</span>
-              </div>
-            )
-          })}
+
+        <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden', marginBottom: '24px', boxShadow: THEME.shadow1 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>#</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Vehicle / Equipment</th>
+                <th style={{ padding: '10px 14px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Litres</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Transaction #</th>
+              </tr>
+            </thead>
+            <tbody>
+              {br.rows.map((r, i) => {
+                const v = vehicles.find(x => x.id === r.vehicle_id)
+                const eq = equipment.find(x => x.id === r.equipment_id)
+                const label = v ? `${v.fleet_number}${v.registration ? ' · ' + v.registration : ''}` : eq ? eq.name : '—'
+                return (
+                  <tr key={r.id || i} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                    <td style={{ padding: '10px 14px', color: THEME.textLow, fontWeight: 600 }}>{i + 1}</td>
+                    <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{label}</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: FUEL_CLR }}>{Number(r.litres).toFixed(1)} L</td>
+                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontSize: '11px', color: THEME.textMed }}>{r.transaction_number}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: `2px solid ${THEME.outlineVar}`, background: THEME.surfaceVar }}>
+                <td colSpan={2} style={{ padding: '11px 14px', fontWeight: 700, color: THEME.text }}>TOTAL</td>
+                <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: FUEL_CLR }}>{Number(br.totalLitres).toFixed(1)} L</td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
         </div>
+
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <button onClick={() => window.print()} style={{
+            padding: '10px 24px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,
+            background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}>
+            <Icon name="print" size={16} style={{ color: THEME.textMed }} /> Print Docket
+          </button>
           <button onClick={() => setPage('fuel_issues')} style={{
             padding: '10px 24px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,
             background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
           }}>View History</button>
-          <button onClick={() => { setBulkResults(null); setBulkRows([{ ...BLANK_BULK_ROW }, { ...BLANK_BULK_ROW }, { ...BLANK_BULK_ROW }]); setBulkAuth(''); setBulkReason('') }} style={{
+          <button onClick={() => { setBulkResults(null); setBulkRows(Array.from({ length: 5 }, () => makeBulkRow())); setBulkAuth(''); setBulkReason('') }} style={{
             padding: '10px 24px', borderRadius: '6px', border: 'none',
             background: FUEL_CLR, color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}>Issue Another Batch</button>
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}>
+            <Icon name="add" size={16} style={{ color: '#fff' }} /> Issue Another Batch
+          </button>
         </div>
       </div>
     )
@@ -656,13 +934,19 @@ export default function FuelIssuance({ setPage }) {
     const bulkTank = tanks.find(t => t.id === bulkTankId)
     const bulkTotal = bulkRows.reduce((s, r) => s + (Number(r.litres) || 0), 0)
     const bulkOverdraw = bulkTank && bulkTotal > Number(bulkTank.current_level_litres)
+    const bulkTankLevel = bulkTank ? Number(bulkTank.current_level_litres) : 0
+    const bulkTankCap = bulkTank?.capacity_litres ? Number(bulkTank.capacity_litres) : 0
+    const bulkPctBefore = bulkTankCap ? Math.min(100, (bulkTankLevel / bulkTankCap) * 100) : null
+    const bulkPctAfter = bulkTankCap ? Math.min(100, (Math.max(0, bulkTankLevel - bulkTotal) / bulkTankCap) * 100) : null
+    const bulkFuelType = bulkTank?.fuel_types?.name || 'Diesel'
+    const validCount = bulkRows.filter(r => (r.vehicle_id || r.equipment_id) && Number(r.litres) > 0).length
 
     return (
       <div style={{ maxWidth: '1100px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
           <div>
             <div style={{ fontSize: '22px', fontWeight: 400, color: THEME.text }}>Bulk Fuel Issuance</div>
-            <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '4px' }}>Record multiple vehicle issuances at once — e.g. morning diesel run.</div>
+            <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '4px' }}>Record multiple vehicle/equipment issuances at once. Paste from Excel or type directly.</div>
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: THEME.textMed, background: THEME.surfaceVar, padding: '8px 14px', borderRadius: '10px', border: `1px solid ${THEME.outlineVar}` }}>
             <input type="checkbox" checked={bulkMode} onChange={() => setBulkMode(false)} style={{ accentColor: FUEL_CLR }} />
@@ -688,49 +972,98 @@ export default function FuelIssuance({ setPage }) {
             </FieldWrap>
           </div>
 
-          <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden', boxShadow: THEME.shadow1, marginBottom: '20px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          {/* Tank level bar */}
+          {bulkTank && (
+            <div style={{ marginBottom: '20px', padding: '14px 16px', borderRadius: '12px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', color: THEME.textMed }}>
+                <span>{bulkFuelType} · {bulkTank.tank_type || 'Above Ground'}</span>
+                <span>{bulkTankLevel.toFixed(0)} L / {bulkTankCap.toFixed(0)} L capacity</span>
+              </div>
+              <LevelBar pct={bulkPctBefore} color={levelColor(bulkPctBefore)} label="Current" />
+              {bulkTotal > 0 && (
+                <div style={{ marginTop: '6px' }}>
+                  <LevelBar pct={bulkPctAfter} color={bulkOverdraw ? THEME.error : levelColor(bulkPctAfter)} label="After issue" />
+                </div>
+              )}
+            </div>
+          )}
+
+          <div ref={gridRef} onPaste={handleBulkPaste} style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden', boxShadow: THEME.shadow1, marginBottom: '20px' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '900px' }}>
               <thead>
                 <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '40px' }}>#</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Time</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Date</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Vehicle</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Litres</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '100px' }}>Time</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '130px' }}>Date</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '90px' }}>Fuel Type</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Vehicle / Equipment</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '100px' }}>Litres</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Operator</th>
                   <th style={{ padding: '10px 12px', width: '40px' }} />
                 </tr>
               </thead>
               <tbody>
                 {bulkRows.map((row, idx) => (
-                  <tr key={idx} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                  <tr key={idx} data-bulk-row style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                     <td style={{ padding: '8px 12px', color: THEME.textLow, fontWeight: 600 }}>{idx + 1}</td>
-                    <td style={{ padding: '8px 6px' }}>
-                      <input type="time" value={row.time} onChange={e => updateBulkRow(idx, 'time', e.target.value)} style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
+                    <td style={{ padding: '8px 4px' }}>
+                      <input type="time" value={row.time} onChange={e => updateBulkRow(idx, 'time', e.target.value)}
+                        onKeyDown={e => handleBulkKeyDown(e, idx, 0)}
+                        style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
                     </td>
-                    <td style={{ padding: '8px 6px' }}>
-                      <input type="date" value={row.transaction_date} onChange={e => updateBulkRow(idx, 'transaction_date', e.target.value)} style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
+                    <td style={{ padding: '8px 4px' }}>
+                      <input type="date" value={row.transaction_date} onChange={e => updateBulkRow(idx, 'transaction_date', e.target.value)}
+                        onKeyDown={e => handleBulkKeyDown(e, idx, 1)}
+                        style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
                     </td>
-                    <td style={{ padding: '8px 6px' }}>
-                      <select value={row.vehicle_id} onChange={e => updateBulkRow(idx, 'vehicle_id', e.target.value)} style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }}>
-                        <option value="">— Vehicle —</option>
-                        {activeVehicles.map(v => (
-                          <option key={v.id} value={v.id}>{v.fleet_number}{v.registration ? ' · ' + v.registration : ''}</option>
-                        ))}
-                      </select>
+                    <td style={{ padding: '8px 4px' }}>
+                      <span style={{ fontSize: '12px', color: THEME.textLow, padding: '7px 8px', display: 'block' }}>{bulkFuelType}</span>
                     </td>
-                    <td style={{ padding: '8px 6px' }}>
-                      <input type="number" step="0.1" min="0" value={row.litres} onChange={e => updateBulkRow(idx, 'litres', e.target.value)} placeholder="0" style={{ ...inp({ padding: '7px 8px', fontSize: '12px', width: '90px' }) }} />
+                    <td style={{ padding: '8px 4px' }}>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        <select value={row.asset_type} onChange={e => updateBulkRow(idx, 'asset_type', e.target.value)}
+                          style={{ ...inp({ padding: '7px 6px', fontSize: '11px', width: '70px', flexShrink: 0 }) }}>
+                          <option value="vehicle">Veh</option>
+                          <option value="equipment">Eqp</option>
+                        </select>
+                        {row.asset_type === 'vehicle' ? (
+                          <select value={row.vehicle_id} onChange={e => updateBulkRow(idx, 'vehicle_id', e.target.value)}
+                            onKeyDown={e => handleBulkKeyDown(e, idx, 2)}
+                            style={{ ...inp({ padding: '7px 8px', fontSize: '12px', flex: 1 }) }}>
+                            <option value="">— Vehicle —</option>
+                            {activeVehicles.map(v => (
+                              <option key={v.id} value={v.id}>{v.fleet_number}{v.registration ? ' · ' + v.registration : ''}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <select value={row.equipment_id} onChange={e => updateBulkRow(idx, 'equipment_id', e.target.value)}
+                            onKeyDown={e => handleBulkKeyDown(e, idx, 2)}
+                            style={{ ...inp({ padding: '7px 8px', fontSize: '12px', flex: 1 }) }}>
+                            <option value="">— Equipment —</option>
+                            {activeEquipment.map(eq => (
+                              <option key={eq.id} value={eq.id}>{eq.name}{eq.equipment_number ? ' · ' + eq.equipment_number : ''}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
                     </td>
-                    <td style={{ padding: '8px 6px' }}>
-                      <select value={row.operator_id} onChange={e => updateBulkRow(idx, 'operator_id', e.target.value)} style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }}>
+                    <td style={{ padding: '8px 4px' }}>
+                      <input type="number" step="0.1" min="0" value={row.litres} onChange={e => updateBulkRow(idx, 'litres', e.target.value)}
+                        onKeyDown={e => handleBulkKeyDown(e, idx, 3)}
+                        placeholder="0" style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
+                    </td>
+                    <td style={{ padding: '8px 4px' }}>
+                      <select value={row.operator_id} onChange={e => updateBulkRow(idx, 'operator_id', e.target.value)}
+                        onKeyDown={e => handleBulkKeyDown(e, idx, 4)}
+                        style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }}>
                         <option value="">— Operator —</option>
                         {activeOperators.map(op => (
                           <option key={op.id} value={op.id}>{op.employees?.name || op.id}</option>
                         ))}
                       </select>
                     </td>
-                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>
+                    <td style={{ padding: '8px 4px', textAlign: 'center' }}>
                       {bulkRows.length > 1 && (
                         <button type="button" onClick={() => removeBulkRow(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: '4px' }}>
                           <Icon name="close" size={15} />
@@ -741,17 +1074,26 @@ export default function FuelIssuance({ setPage }) {
                 ))}
               </tbody>
             </table>
+            </div>
             <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${THEME.outlineVar}` }}>
-              <button type="button" onClick={addBulkRow} style={{
-                background: 'none', border: `1px dashed ${THEME.outline}`, borderRadius: '8px',
-                padding: '6px 14px', cursor: 'pointer', fontSize: '12px', color: FUEL_CLR, fontWeight: 600, fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: '4px',
-              }}>
-                <Icon name="add" size={14} style={{ color: FUEL_CLR }} /> Add Row
-              </button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button type="button" onClick={addBulkRow} style={{
+                  background: 'none', border: `1px dashed ${THEME.outline}`, borderRadius: '8px',
+                  padding: '6px 14px', cursor: 'pointer', fontSize: '12px', color: FUEL_CLR, fontWeight: 600, fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                }}>
+                  <Icon name="add" size={14} style={{ color: FUEL_CLR }} /> Add Row
+                </button>
+                <button type="button" onClick={() => setBulkRows(Array.from({ length: 5 }, () => makeBulkRow()))} style={{
+                  background: 'none', border: `1px solid ${THEME.outlineVar}`, borderRadius: '8px',
+                  padding: '6px 14px', cursor: 'pointer', fontSize: '12px', color: THEME.textLow, fontWeight: 500, fontFamily: 'inherit',
+                }}>
+                  Reset
+                </button>
+              </div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: bulkOverdraw ? THEME.error : FUEL_CLR }}>
                 Total: {bulkTotal.toFixed(1)} L
-                {bulkTank && <span style={{ fontSize: '11px', color: THEME.textLow, marginLeft: '8px' }}>of {Number(bulkTank.current_level_litres).toFixed(0)} L available</span>}
+                {bulkTank && <span style={{ fontSize: '11px', color: THEME.textLow, marginLeft: '8px' }}>of {bulkTankLevel.toFixed(0)} L available</span>}
               </div>
             </div>
           </div>
@@ -760,7 +1102,7 @@ export default function FuelIssuance({ setPage }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderRadius: '12px', background: THEME.statusErrorBg, border: `1px solid ${THEME.error}55`, marginBottom: '16px' }}>
               <Icon name="warning" size={18} style={{ color: THEME.error, flexShrink: 0 }} />
               <span style={{ fontSize: '13px', color: THEME.statusErrorText, fontWeight: 500 }}>
-                Total ({bulkTotal.toFixed(1)} L) exceeds tank level ({Number(bulkTank.current_level_litres).toFixed(1)} L).
+                Total ({bulkTotal.toFixed(1)} L) exceeds tank level ({bulkTankLevel.toFixed(1)} L).
               </span>
             </div>
           )}
@@ -774,7 +1116,7 @@ export default function FuelIssuance({ setPage }) {
             {bulkSaving ? (
               <><Icon name="progress_activity" size={18} style={{ color: '#fff', animation: 'spin 1s linear infinite' }} /> Recording…</>
             ) : (
-              <><Icon name="output" size={18} style={{ color: '#fff' }} /> Issue {bulkRows.filter(r => r.vehicle_id && Number(r.litres) > 0).length} Vehicle{bulkRows.filter(r => r.vehicle_id && Number(r.litres) > 0).length !== 1 ? 's' : ''}</>
+              <><Icon name="output" size={18} style={{ color: '#fff' }} /> Issue {validCount} Issuance{validCount !== 1 ? 's' : ''}</>
             )}
           </button>
         </form>

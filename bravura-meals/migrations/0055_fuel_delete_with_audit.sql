@@ -77,9 +77,10 @@ CREATE TRIGGER trg_fuel_delivery_reverse_delete
 -- ─── 3. RLS DELETE policies ─────────────────────────────────────────────────
 
 -- Add 'fuel.delete' permission if it doesn't exist
-INSERT INTO permissions (code, description, module)
-VALUES ('fuel.delete', 'Delete fuel records (dip readings, deliveries)', 'fuel')
-ON CONFLICT (code) DO NOTHING;
+INSERT INTO permissions (code, module, action, description)
+VALUES ('fuel.delete', 'fuel', 'Delete', 'Permanently delete fuel records (dip readings, deliveries)')
+ON CONFLICT (code) DO UPDATE SET
+  module = EXCLUDED.module, action = EXCLUDED.action, description = EXCLUDED.description;
 
 DROP POLICY IF EXISTS fuel_dip_readings_delete ON fuel_dip_readings;
 CREATE POLICY fuel_dip_readings_delete ON fuel_dip_readings

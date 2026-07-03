@@ -251,7 +251,6 @@ function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose
   const [tankId, setTankId] = useState(reading?.tank_id || tanks[0]?.id || '')
   const [date, setDate] = useState(reading?.reading_date || new Date().toISOString().slice(0, 10))
   const [time, setTime] = useState(reading?.reading_time || (isEdit ? '' : new Date().toTimeString().slice(0, 5)))
-  const [shift, setShift] = useState(reading?.shift || '')
   const [dipStartMm, setDipStartMm] = useState(reading?.dip_start_mm != null ? String(reading.dip_start_mm) : '')
   const [dipEndMm, setDipEndMm] = useState(
     reading?.dip_end_mm != null ? String(reading.dip_end_mm)
@@ -260,8 +259,6 @@ function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose
   const [readBy, setReadBy] = useState(reading?.read_by || '')
   const [notes, setNotes] = useState(reading?.notes || '')
   const [calibration, setCalibration] = useState([])
-  const [systemLevel, setSystemLevel] = useState(null)
-  const [acknowledged, setAcknowledged] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const calcedStartLitres = calibration.length > 0 && dipStartMm !== '' ? interpolate(calibration, parseFloat(dipStartMm)) : null
@@ -271,39 +268,27 @@ function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose
     if (!tankId) return
     supabase.from('tank_calibrations').select('dip_mm,level_litres').eq('tank_id', tankId)
       .then(({ data }) => setCalibration(data || []))
-    supabase.from('fuel_tanks').select('current_level_litres').eq('id', tankId).single()
-      .then(({ data }) => setSystemLevel(data?.current_level_litres ?? null))
   }, [tankId])
 
-  const variance = (calcedEndLitres != null && systemLevel != null) ? calcedEndLitres - systemLevel : null
-  const variancePct = (variance != null && systemLevel > 0) ? (variance / systemLevel) * 100 : null
-  const highVariance = variancePct != null && Math.abs(variancePct) > 5
-
   const hasEndMm = dipEndMm !== '' && !isNaN(parseFloat(dipEndMm))
-  const canSave = tankId && date && hasEndMm && (!highVariance || (acknowledged && notes.trim()))
+  const canSave = tankId && date && hasEndMm
 
   const save = async () => {
     setSaving(true)
     try {
       const levelEnd = calcedEndLitres
       const levelStart = calcedStartLitres
-      const varL = (levelEnd != null && systemLevel != null) ? levelEnd - systemLevel : null
-      const varP = (varL != null && systemLevel > 0) ? (varL / systemLevel) * 100 : null
 
       const payload = {
         tank_id: tankId,
         reading_date: date,
         reading_time: time || null,
-        shift: shift || null,
         dip_mm: dipEndMm !== '' ? parseFloat(dipEndMm) : null,
         level_litres: levelEnd ?? (dipEndMm !== '' ? parseFloat(dipEndMm) : null),
         dip_start_mm: dipStartMm !== '' ? parseFloat(dipStartMm) : null,
         dip_end_mm: dipEndMm !== '' ? parseFloat(dipEndMm) : null,
         level_start_litres: levelStart,
         level_end_litres: levelEnd ?? (dipEndMm !== '' ? parseFloat(dipEndMm) : null),
-        system_level_litres: systemLevel,
-        variance_litres: varL,
-        variance_percent: varP,
         read_by: readBy || null,
         notes: notes || null,
       }
@@ -370,15 +355,6 @@ function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose
             </Field>
           </div>
 
-          <Field label="Shift">
-            <select value={shift} onChange={e => setShift(e.target.value)} style={inputStyle}>
-              <option value="">— Select shift (optional) —</option>
-              <option value="morning">Morning</option>
-              <option value="afternoon">Afternoon</option>
-              <option value="night">Night</option>
-            </select>
-          </Field>
-
           {/* Dip Start & End — user enters mm, litres auto-calc from calibration */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ padding: '12px 14px', borderRadius: '10px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}` }}>
@@ -415,31 +391,6 @@ function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose
             </div>
           </div>
 
-          {variance != null && (
-            <div style={{
-              background: highVariance ? THEME.statusErrorBg : THEME.statusSuccessBg,
-              border: `1px solid ${highVariance ? THEME.error + '44' : THEME.success + '44'}`,
-              borderRadius: '10px', padding: '12px',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: highVariance ? THEME.error : THEME.success }}>
-                  Variance vs system level
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: highVariance ? THEME.error : THEME.success }}>
-                  {variance >= 0 ? '+' : ''}{Number(variance).toFixed(1)} L ({variancePct >= 0 ? '+' : ''}{Number(variancePct).toFixed(1)}%)
-                </div>
-              </div>
-              <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '4px' }}>
-                System level: {Number(systemLevel).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} L
-              </div>
-              {highVariance && (
-                <div style={{ marginTop: '8px', fontSize: '12px', color: THEME.error, fontWeight: 500 }}>
-                  Variance exceeds ±5% — notes and acknowledgment required before saving.
-                </div>
-              )}
-            </div>
-          )}
-
           <Field label="Read By">
             <select value={readBy} onChange={e => setReadBy(e.target.value)} style={inputStyle}>
               <option value="">— Select operator —</option>
@@ -449,16 +400,9 @@ function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose
 
           <Field label="Notes">
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-              placeholder={highVariance ? 'Required — explain the variance' : 'Optional notes'}
-              style={{ ...inputStyle, resize: 'vertical', border: `1px solid ${highVariance && !notes.trim() ? THEME.error : THEME.outline}` }} />
+              placeholder="Optional notes"
+              style={{ ...inputStyle, resize: 'vertical' }} />
           </Field>
-
-          {highVariance && (
-            <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', cursor: 'pointer', fontSize: '13px', color: THEME.text }}>
-              <input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} style={{ marginTop: '2px', flexShrink: 0 }} />
-              I acknowledge this variance is outside the ±5% threshold and have provided an explanation in the notes.
-            </label>
-          )}
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', bottom: 0, background: THEME.surface }}>
@@ -483,12 +427,11 @@ function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose
 export default function DipReadings() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
-  const { tanks, operators, transactions, updateDipReading, deleteDipReading, refresh: refreshFuel } = useFuel()
+  const { tanks, operators, updateDipReading, deleteDipReading, refresh: refreshFuel } = useFuel()
 
   const [readings, setReadings] = useState([])
   const [loading, setLoading] = useState(true)
   const [filterTank, setFilterTank] = useState('')
-  const [filterShift, setFilterShift] = useState('')
   const [filterFrom, setFilterFrom] = useState('')
   const [filterTo, setFilterTo] = useState('')
   const [showRecord, setShowRecord] = useState(false)
@@ -504,62 +447,35 @@ export default function DipReadings() {
       .order('reading_date', { ascending: false })
       .order('reading_time', { ascending: false })
     if (filterTank) q = q.eq('tank_id', filterTank)
-    if (filterShift) q = q.eq('shift', filterShift)
     if (filterFrom) q = q.gte('reading_date', filterFrom)
     if (filterTo) q = q.lte('reading_date', filterTo)
     const { data } = await q
     setReadings(data || [])
     setLoading(false)
-  }, [currentSiteId, filterTank, filterShift, filterFrom, filterTo])
+  }, [currentSiteId, filterTank, filterFrom, filterTo])
 
   useEffect(() => { load() }, [load])
 
-  // Build display rows with consumption analysis
   const derived = useMemo(() => {
     return readings.map(r => {
       const dipStartMm = r.dip_start_mm != null ? Number(r.dip_start_mm) : null
       const dipEndMm = r.dip_end_mm != null ? Number(r.dip_end_mm) : (r.dip_mm != null ? Number(r.dip_mm) : null)
       const fuelStart = r.level_start_litres != null ? Number(r.level_start_litres) : null
       const fuelEnd = r.level_end_litres != null ? Number(r.level_end_litres) : (r.level_litres != null ? Number(r.level_litres) : null)
-
-      const consumed = (fuelStart != null && fuelEnd != null) ? fuelStart - fuelEnd : null
-
-      let fmIssued = null
-      if (fuelStart != null) {
-        fmIssued = transactions
-          .filter(t => t.transaction_type === 'issuance' && t.tank_id === r.tank_id && t.transaction_date === r.reading_date)
-          .reduce((s, t) => s + Number(t.litres), 0)
-      }
-
-      const error = (consumed != null && fmIssued != null) ? fmIssued - consumed : null
-      const errorPct = (error != null && consumed) ? (error / Math.abs(consumed)) * 100 : null
-
-      return { r, dipStartMm, dipEndMm, fuelStart, fuelEnd, consumed, fmIssued, error, errorPct }
+      return { r, dipStartMm, dipEndMm, fuelStart, fuelEnd }
     })
-  }, [readings, transactions])
-
-  const errColor = pct => {
-    if (pct == null) return THEME.textLow
-    if (Math.abs(pct) > 10) return THEME.error
-    if (Math.abs(pct) > 5) return THEME.warning
-    return THEME.success
-  }
+  }, [readings])
 
   const exportCsv = () => {
-    const headers = ['Date', 'Time', 'Shift', 'Tank', 'Dip Start (mm)', 'Dip End (mm)', 'Fuel Start (L)', 'Fuel End (L)', 'Consumed (L)', 'FM Issued (L)', 'Error (L)', 'Error %', 'Done By', 'Notes']
-    const lines = derived.map(({ r, dipStartMm, dipEndMm, fuelStart, fuelEnd, consumed, fmIssued, error, errorPct }) => [
+    const headers = ['Date', 'Time', 'Tank', 'Dip Start (mm)', 'Dip End (mm)', 'Start Level (L)', 'End Level (L)', 'Done By', 'Notes']
+    const lines = derived.map(({ r, dipStartMm, dipEndMm, fuelStart, fuelEnd }) => [
       r.reading_date,
       r.reading_time || '',
-      r.shift || '',
       r.tank?.name || '',
       dipStartMm != null ? dipStartMm : '',
       dipEndMm != null ? dipEndMm : '',
       fuelStart != null ? fuelStart.toFixed(1) : '',
       fuelEnd != null ? fuelEnd.toFixed(1) : '',
-      consumed != null ? consumed.toFixed(1) : '',
-      fmIssued != null ? fmIssued.toFixed(1) : '',
-      error != null ? error.toFixed(1) : '',
-      errorPct != null ? errorPct.toFixed(2) : '',
       r.operator?.employees?.name || '',
       (r.notes || '').replace(/,/g, ';'),
     ].map(v => `"${v}"`).join(','))
@@ -580,7 +496,7 @@ export default function DipReadings() {
         <div>
           <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 400, color: THEME.text }}>Dipstick Log</h2>
           <p style={{ margin: '4px 0 0', fontSize: '13px', color: THEME.textMed }}>
-            Manual tank dip measurements — start/end per shift
+            Manual tank dip measurements
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -607,16 +523,10 @@ export default function DipReadings() {
           <option value="">All Tanks</option>
           {tanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <select value={filterShift} onChange={e => setFilterShift(e.target.value)} style={filterStyle}>
-          <option value="">All Shifts</option>
-          <option value="morning">Morning</option>
-          <option value="afternoon">Afternoon</option>
-          <option value="night">Night</option>
-        </select>
         <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} style={filterStyle} placeholder="From" />
         <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} style={filterStyle} placeholder="To" />
-        {(filterTank || filterShift || filterFrom || filterTo) && (
-          <button onClick={() => { setFilterTank(''); setFilterShift(''); setFilterFrom(''); setFilterTo('') }}
+        {(filterTank || filterFrom || filterTo) && (
+          <button onClick={() => { setFilterTank(''); setFilterFrom(''); setFilterTo('') }}
             style={{ ...btn({ background: 'transparent', color: THEME.textMed, border: `1px solid ${THEME.outline}`, fontSize: '12px', padding: '6px 12px' }) }}>
             <Icon name="close" size={13} /> Clear
           </button>
@@ -646,15 +556,13 @@ export default function DipReadings() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: THEME.surfaceVar, borderBottom: `2px solid ${THEME.outlineVar}` }}>
-                  {['Date', 'Shift', 'Tank', 'Dip Start (mm)', 'Dip End (mm)', 'Start Level (L)', 'End Level (L)', 'Consumed (L)', 'FM Issued (L)', 'Error %', 'Done By'].map(h => (
+                  {['Date', 'Tank', 'Dip Start (mm)', 'Dip End (mm)', 'Start Level (L)', 'End Level (L)', 'Done By'].map(h => (
                     <th key={h} style={{ padding: '10px 12px', textAlign: h.includes('(') ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {derived.map(({ r, dipStartMm, dipEndMm, fuelStart, fuelEnd, consumed, fmIssued, error, errorPct }) => {
-                  const clr = errColor(errorPct)
-                  return (
+                {derived.map(({ r, dipStartMm, dipEndMm, fuelStart, fuelEnd }) => (
                     <tr key={r.id}
                       style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: can('fuel.edit') ? 'pointer' : 'default' }}
                       onClick={() => can('fuel.edit') && setEditDip(r)}
@@ -665,28 +573,14 @@ export default function DipReadings() {
                         {r.reading_date}
                         {r.reading_time && <span style={{ color: THEME.textMed, marginLeft: '6px', fontSize: '11px' }}>{r.reading_time.slice(0, 5)}</span>}
                       </td>
-                      <td style={{ padding: '10px 12px', color: THEME.textMed, textTransform: 'capitalize' }}>{r.shift || '—'}</td>
                       <td style={{ padding: '10px 12px', color: THEME.text, fontWeight: 500, whiteSpace: 'nowrap' }}>{r.tank?.name || '—'}</td>
                       <td style={{ padding: '10px 12px', color: THEME.textMed, textAlign: 'right' }}>{dipStartMm != null ? fmtNum(dipStartMm, 1) : '—'}</td>
                       <td style={{ padding: '10px 12px', color: THEME.textMed, textAlign: 'right' }}>{dipEndMm != null ? fmtNum(dipEndMm, 1) : '—'}</td>
                       <td style={{ padding: '10px 12px', color: THEME.text, textAlign: 'right' }}>{fuelStart != null ? fmtNum(fuelStart, 0) : '—'}</td>
                       <td style={{ padding: '10px 12px', color: THEME.text, textAlign: 'right', fontWeight: 600 }}>{fuelEnd != null ? fmtNum(fuelEnd, 0) : '—'}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: consumed != null && consumed > 0 ? THEME.text : consumed != null && consumed < 0 ? THEME.success : THEME.textLow }}>
-                        {consumed != null ? fmtNum(consumed, 0) : '—'}
-                      </td>
-                      <td style={{ padding: '10px 12px', color: THEME.textMed, textAlign: 'right' }}>{fmIssued != null ? fmtNum(fmIssued, 0) : '—'}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: clr }}>
-                        {errorPct != null ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                            {errorPct >= 0 ? '+' : ''}{errorPct.toFixed(1)}%
-                            {Math.abs(errorPct) > 10 && <Icon name="warning" size={13} style={{ color: clr }} />}
-                          </span>
-                        ) : '—'}
-                      </td>
                       <td style={{ padding: '10px 12px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{r.operator?.employees?.name || '—'}</td>
                     </tr>
-                  )
-                })}
+                ))}
               </tbody>
             </table>
           </div>

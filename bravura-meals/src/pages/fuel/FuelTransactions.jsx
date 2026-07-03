@@ -6,7 +6,6 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, fmtDate } from '../../components/ui'
 
 const FUEL_CLR = MODULE_COLORS.fuel
-const today    = new Date().toISOString().slice(0, 10)
 
 const TYPE_META = {
   delivery:   { label: 'Delivery',   bg: THEME.statusSuccessBg,  text: THEME.statusSuccessText,  icon: 'arrow_downward' },
@@ -34,7 +33,39 @@ const selStyle = {
   fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
 }
 
-// ── Detail panel ──────────────────────────────────────────────────────────────
+// ── Quick date helpers ───────────────────────────────────────────────────────
+
+function isoDate(d) { return d.toISOString().slice(0, 10) }
+function startOfWeek(d) {
+  const r = new Date(d); r.setDate(r.getDate() - r.getDay() + 1); return r
+}
+function quickRange(key) {
+  const now = new Date()
+  const today = isoDate(now)
+  const yest  = new Date(now); yest.setDate(yest.getDate() - 1)
+  const sow   = startOfWeek(now)
+  const som   = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lmStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lmEnd   = new Date(now.getFullYear(), now.getMonth(), 0)
+  switch (key) {
+    case 'today':     return [today, today]
+    case 'yesterday': return [isoDate(yest), isoDate(yest)]
+    case 'week':      return [isoDate(sow), today]
+    case 'month':     return [isoDate(som), today]
+    case 'last_month': return [isoDate(lmStart), isoDate(lmEnd)]
+    default: return ['', '']
+  }
+}
+
+const QUICK_FILTERS = [
+  { key: 'today',      label: 'Today' },
+  { key: 'yesterday',  label: 'Yesterday' },
+  { key: 'week',       label: 'This Week' },
+  { key: 'month',      label: 'This Month' },
+  { key: 'last_month', label: 'Last Month' },
+]
+
+// ── Detail panel ─────────────────────────────────────────────────────────────
 
 function DetailPanel({ tx, tanks, operators, pumps, onClose }) {
   if (!tx) return null
@@ -114,10 +145,10 @@ function DetailPanel({ tx, tanks, operators, pumps, onClose }) {
   )
 }
 
-// ── CSV export ────────────────────────────────────────────────────────────────
+// ── CSV export ───────────────────────────────────────────────────────────────
 
 function exportCsv(rows, tanks, operators) {
-  const headers = ['Docket No', 'Transaction #', 'Date', 'Type', 'Tank', 'Fuel Type', 'Asset', 'Operator', 'Litres', 'Unit Price', 'Total Cost', 'Notes']
+  const headers = ['Docket No', 'Transaction #', 'Date', 'Type', 'Tank', 'Fuel Type', 'Asset', 'Operator', 'Litres', 'Unit Price', 'Total Cost', 'Supplier', 'Notes']
   const lines = rows.map(tx => {
     const tank = tanks.find(t => t.id === tx.tank_id)
     const op   = operators.find(o => o.id === tx.operator_id)
@@ -136,6 +167,7 @@ function exportCsv(rows, tanks, operators) {
       Number(tx.litres).toFixed(3),
       tx.unit_price ? Number(tx.unit_price).toFixed(4) : '',
       tx.total_cost ? Number(tx.total_cost).toFixed(2) : '',
+      tx.supplier || '',
       tx.notes || '',
     ].map(v => `"${String(v).replace(/"/g, '""')}"`)
   })
@@ -149,20 +181,49 @@ function exportCsv(rows, tanks, operators) {
   URL.revokeObjectURL(url)
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+function printTable(filtered, tanks, operators, siteName) {
+  const w = window.open('', '_blank', 'width=1000,height=700')
+  if (!w) return
+  const rows = filtered.map((tx, i) => {
+    const tank = tanks.find(t => t.id === tx.tank_id)
+    const op = operators.find(o => o.id === tx.operator_id)
+    const asset = tx.fuel_vehicles?.fleet_number
+      ? tx.fuel_vehicles.fleet_number + (tx.fuel_vehicles.registration ? ' · ' + tx.fuel_vehicles.registration : '')
+      : tx.fuel_equipment?.name || tx.supplier || '—'
+    return `<tr>
+      <td>${i + 1}</td><td>${tx.transaction_date}</td><td>${tx.transaction_type}</td>
+      <td>${tank?.name || '—'}</td><td>${tank?.fuel_types?.name || '—'}</td>
+      <td>${asset}</td><td>${op?.employees?.name || '—'}</td>
+      <td style="text-align:right">${Number(tx.litres).toFixed(1)}</td>
+      <td style="text-align:right">${tx.total_cost ? '$' + Number(tx.total_cost).toFixed(2) : '—'}</td>
+    </tr>`
+  }).join('')
+  w.document.write(`<html><head><title>Transactions</title><style>body{font:11pt monospace;margin:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:4px 6px;text-align:left}th{background:#eee}</style></head><body>
+    <h2>Fuel Transactions — ${siteName || ''}</h2><p>${filtered.length} records · Printed ${new Date().toLocaleString()}</p>
+    <table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Tank</th><th>Fuel</th><th>Asset/Supplier</th><th>Operator</th><th>Litres</th><th>Cost</th></tr></thead><tbody>${rows}</tbody></table></body></html>`)
+  w.document.close()
+  setTimeout(() => w.print(), 300)
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function FuelTransactions({ setPage }) {
   const { can }        = usePermissions()
   const { currentSite } = useSite()
-  const { tanks, operators, pumps, transactions, fuelTypes, loading } = useFuel()
+  const { tanks, operators, pumps, vehicles, equipment, transactions, fuelTypes, loading } = useFuel()
 
-  const [dateFrom,  setDateFrom]  = useState('')
-  const [dateTo,    setDateTo]    = useState('')
-  const [tankId,    setTankId]    = useState('')
-  const [txType,    setTxType]    = useState('')
-  const [fuelTypeId,setFuelTypeId]= useState('')
-  const [search,    setSearch]    = useState('')
-  const [selected,  setSelected]  = useState(null)
+  const [dateFrom,    setDateFrom]    = useState('')
+  const [dateTo,      setDateTo]      = useState('')
+  const [tankId,      setTankId]      = useState('')
+  const [txType,      setTxType]      = useState('')
+  const [fuelTypeId,  setFuelTypeId]  = useState('')
+  const [vehicleId,   setVehicleId]   = useState('')
+  const [equipmentId, setEquipmentId] = useState('')
+  const [operatorId,  setOperatorId]  = useState('')
+  const [suppFilter,  setSuppFilter]  = useState('')
+  const [search,      setSearch]      = useState('')
+  const [selected,    setSelected]    = useState(null)
+  const [quickKey,    setQuickKey]    = useState('')
 
   if (!can('fuel.view')) return (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
@@ -171,7 +232,16 @@ export default function FuelTransactions({ setPage }) {
     </div>
   )
 
-  const activeTanks = tanks.filter(t => t.status === 'active' && !t.is_archived)
+  const activeTanks     = tanks.filter(t => t.status === 'active' && !t.is_archived)
+  const activeVehicles  = vehicles.filter(v => v.status !== 'archived' && !v.is_archived)
+  const activeEquipment = equipment.filter(e => !e.is_archived)
+  const activeOperators = operators.filter(o => o.is_active)
+
+  const suppliers = useMemo(() => {
+    const set = new Set()
+    for (const t of transactions) if (t.supplier) set.add(t.supplier.trim())
+    return [...set].sort()
+  }, [transactions])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -180,26 +250,39 @@ export default function FuelTransactions({ setPage }) {
       if (dateTo   && tx.transaction_date > dateTo)   return false
       if (tankId   && tx.tank_id !== tankId)           return false
       if (txType   && tx.transaction_type !== txType)  return false
+      if (vehicleId   && tx.vehicle_id !== vehicleId)     return false
+      if (equipmentId && tx.equipment_id !== equipmentId) return false
+      if (operatorId  && tx.operator_id !== operatorId)   return false
+      if (suppFilter  && (tx.supplier || '').trim() !== suppFilter) return false
       if (fuelTypeId) {
         const tank = tanks.find(t => t.id === tx.tank_id)
         if (!tank || tank.fuel_type_id !== fuelTypeId) return false
       }
       if (q) {
-        const docket = (tx.docket_number || '').toLowerCase()
-        const fleet  = (tx.fuel_vehicles?.fleet_number || '').toLowerCase()
-        const txNum  = (tx.transaction_number || '').toLowerCase()
-        if (!docket.includes(q) && !fleet.includes(q) && !txNum.includes(q)) return false
+        const hay = [
+          tx.docket_number, tx.transaction_number,
+          tx.fuel_vehicles?.fleet_number, tx.fuel_vehicles?.registration,
+          tx.fuel_equipment?.name, tx.supplier, tx.notes,
+        ].filter(Boolean).join(' ').toLowerCase()
+        if (!hay.includes(q)) return false
       }
       return true
     })
-  }, [transactions, dateFrom, dateTo, tankId, txType, fuelTypeId, search, tanks])
+  }, [transactions, dateFrom, dateTo, tankId, txType, fuelTypeId, vehicleId, equipmentId, operatorId, suppFilter, search, tanks])
 
-  // Summary totals for filtered set
-  const summary = useMemo(() => ({
-    deliveries: filtered.filter(t => t.transaction_type === 'delivery').reduce((s, t) => s + Number(t.litres), 0),
-    issuances:  filtered.filter(t => t.transaction_type === 'issuance').reduce((s, t) => s + Number(t.litres), 0),
-    cost:       filtered.reduce((s, t) => s + Number(t.total_cost || 0), 0),
-  }), [filtered])
+  const summary = useMemo(() => {
+    let deliveries = 0, issuances = 0, cost = 0, delCount = 0, issCount = 0
+    const dates = new Set()
+    for (const t of filtered) {
+      const l = Number(t.litres) || 0
+      if (t.transaction_type === 'delivery')  { deliveries += l; delCount++ }
+      if (t.transaction_type === 'issuance')  { issuances += l; issCount++ }
+      cost += Number(t.total_cost || 0)
+      if (t.transaction_type === 'issuance') dates.add(t.transaction_date)
+    }
+    const avgDaily = dates.size > 0 ? issuances / dates.size : 0
+    return { deliveries, issuances, cost, delCount, issCount, avgDaily, total: filtered.length }
+  }, [filtered])
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: THEME.textLow }}>
@@ -207,40 +290,40 @@ export default function FuelTransactions({ setPage }) {
     </div>
   )
 
-  function clearFilters() {
-    setDateFrom(''); setDateTo(''); setTankId(''); setTxType(''); setFuelTypeId(''); setSearch('')
+  function applyQuick(key) {
+    if (quickKey === key) { setQuickKey(''); setDateFrom(''); setDateTo(''); return }
+    setQuickKey(key)
+    const [from, to] = quickRange(key)
+    setDateFrom(from); setDateTo(to)
   }
 
-  const hasFilters = dateFrom || dateTo || tankId || txType || fuelTypeId || search
+  function clearFilters() {
+    setDateFrom(''); setDateTo(''); setTankId(''); setTxType(''); setFuelTypeId('')
+    setVehicleId(''); setEquipmentId(''); setOperatorId(''); setSuppFilter('')
+    setSearch(''); setQuickKey('')
+  }
+
+  const hasFilters = dateFrom || dateTo || tankId || txType || fuelTypeId || vehicleId || equipmentId || operatorId || suppFilter || search
 
   return (
     <div style={{ maxWidth: '1200px' }}>
       <PageHeader
-        title="Fuel Transactions"
+        title="Transactions"
         site={currentSite}
         actions={
           <div style={{ display: 'flex', gap: '8px' }}>
-            {can('fuel.approve') && filtered.length > 0 && (
-              <button
-                onClick={() => exportCsv(filtered, tanks, operators)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500,
-                  background: THEME.surfaceVar, color: FUEL_CLR, border: 'none', cursor: 'pointer',
-                }}
-              >
-                <Icon name="download" size={15} style={{ color: FUEL_CLR }} /> Export CSV
-              </button>
+            {filtered.length > 0 && (
+              <>
+                <button onClick={() => exportCsv(filtered, tanks, operators)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: THEME.surfaceVar, color: FUEL_CLR, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <Icon name="download" size={15} style={{ color: FUEL_CLR }} /> Export
+                </button>
+                <button onClick={() => printTable(filtered, tanks, operators, currentSite?.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: THEME.surfaceVar, color: THEME.textMed, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <Icon name="print" size={15} style={{ color: THEME.textMed }} /> Print
+                </button>
+              </>
             )}
             {can('fuel.create') && (
-              <button
-                onClick={() => setPage('fuel_issuance')}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500,
-                  background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer',
-                }}
-              >
+              <button onClick={() => setPage('fuel_issuance')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <Icon name="output" size={15} style={{ color: '#fff' }} /> New Issuance
               </button>
             )}
@@ -248,68 +331,96 @@ export default function FuelTransactions({ setPage }) {
         }
       />
 
-      {/* Filters */}
+      {/* ── Dashboard Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+        <SummaryCard icon="receipt_long"   label="Total Litres"       value={`${(summary.deliveries + summary.issuances).toLocaleString(undefined, { maximumFractionDigits: 0 })} L`} color={FUEL_CLR} sub={`${summary.total} transactions`} />
+        <SummaryCard icon="payments"       label="Total Cost"         value={summary.cost > 0 ? `$${summary.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'} color={THEME.info} />
+        <SummaryCard icon="arrow_downward" label="Total Deliveries"   value={`${summary.deliveries.toLocaleString(undefined, { maximumFractionDigits: 0 })} L`} color={THEME.success} sub={`${summary.delCount} deliver${summary.delCount !== 1 ? 'ies' : 'y'}`} />
+        <SummaryCard icon="output"         label="Total Issuances"    value={`${summary.issuances.toLocaleString(undefined, { maximumFractionDigits: 0 })} L`} color={THEME.warning} sub={`${summary.issCount} issuance${summary.issCount !== 1 ? 's' : ''}`} />
+        <SummaryCard icon="speed"          label="Avg Daily Usage"    value={summary.avgDaily > 0 ? `${summary.avgDaily.toFixed(0)} L/day` : '—'} color="#5E35B1" />
+      </div>
+
+      {/* ── Quick Filters ── */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {QUICK_FILTERS.map(qf => (
+          <button key={qf.key} onClick={() => applyQuick(qf.key)} style={{
+            padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+            border: quickKey === qf.key ? `2px solid ${FUEL_CLR}` : `1px solid ${THEME.outlineVar}`,
+            background: quickKey === qf.key ? FUEL_CLR + '14' : 'transparent',
+            color: quickKey === qf.key ? FUEL_CLR : THEME.textMed,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            {qf.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Filters ── */}
       <div style={{
         display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end',
         marginBottom: '16px', padding: '14px 16px', background: THEME.surface,
         borderRadius: '14px', border: `1px solid ${THEME.outlineVar}`,
       }}>
-        {/* Search */}
-        <div style={{ flex: '2 1 200px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Search</div>
+        <FilterField label="Search" flex="2 1 200px">
           <div style={{ position: 'relative' }}>
             <Icon name="search" size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: THEME.textLow }} />
-            <input
-              type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Docket #, fleet #, tx #…"
-              style={{ ...selStyle, paddingLeft: '32px', width: '100%', boxSizing: 'border-box' }}
-            />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Docket, fleet #, tx #, notes…" style={{ ...selStyle, paddingLeft: '32px', width: '100%', boxSizing: 'border-box' }} />
           </div>
-        </div>
-
-        {/* Date from */}
-        <div style={{ flex: '1 1 130px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>From</div>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }} />
-        </div>
-
-        {/* Date to */}
-        <div style={{ flex: '1 1 130px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>To</div>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }} />
-        </div>
-
-        {/* Tank */}
-        <div style={{ flex: '1 1 150px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Tank</div>
-          <select value={tankId} onChange={e => setTankId(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }}>
-            <option value="">All tanks</option>
-            {activeTanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </div>
-
-        {/* Type */}
-        <div style={{ flex: '1 1 140px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Type</div>
+        </FilterField>
+        <FilterField label="From" flex="1 1 130px">
+          <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setQuickKey('') }} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }} />
+        </FilterField>
+        <FilterField label="To" flex="1 1 130px">
+          <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setQuickKey('') }} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }} />
+        </FilterField>
+        <FilterField label="Type" flex="1 1 130px">
           <select value={txType} onChange={e => setTxType(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }}>
             <option value="">All types</option>
             <option value="issuance">Issuance</option>
             <option value="delivery">Delivery</option>
             <option value="adjustment">Adjustment</option>
           </select>
-        </div>
-
-        {/* Fuel type */}
+        </FilterField>
+        <FilterField label="Tank" flex="1 1 140px">
+          <select value={tankId} onChange={e => setTankId(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }}>
+            <option value="">All tanks</option>
+            {activeTanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </FilterField>
         {fuelTypes.length > 1 && (
-          <div style={{ flex: '1 1 140px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Fuel Type</div>
+          <FilterField label="Fuel Type" flex="1 1 130px">
             <select value={fuelTypeId} onChange={e => setFuelTypeId(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }}>
               <option value="">All fuel types</option>
               {fuelTypes.map(ft => <option key={ft.id} value={ft.id}>{ft.name}</option>)}
             </select>
-          </div>
+          </FilterField>
         )}
-
+        <FilterField label="Vehicle" flex="1 1 150px">
+          <select value={vehicleId} onChange={e => setVehicleId(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }}>
+            <option value="">All vehicles</option>
+            {activeVehicles.map(v => <option key={v.id} value={v.id}>{v.fleet_number}{v.registration ? ' · ' + v.registration : ''}</option>)}
+          </select>
+        </FilterField>
+        <FilterField label="Equipment" flex="1 1 150px">
+          <select value={equipmentId} onChange={e => setEquipmentId(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }}>
+            <option value="">All equipment</option>
+            {activeEquipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name}</option>)}
+          </select>
+        </FilterField>
+        <FilterField label="Operator" flex="1 1 150px">
+          <select value={operatorId} onChange={e => setOperatorId(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }}>
+            <option value="">All operators</option>
+            {activeOperators.map(op => <option key={op.id} value={op.id}>{op.employees?.name || op.id}</option>)}
+          </select>
+        </FilterField>
+        {suppliers.length > 0 && (
+          <FilterField label="Supplier" flex="1 1 150px">
+            <select value={suppFilter} onChange={e => setSuppFilter(e.target.value)} style={{ ...selStyle, width: '100%', boxSizing: 'border-box' }}>
+              <option value="">All suppliers</option>
+              {suppliers.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </FilterField>
+        )}
         {hasFilters && (
           <button onClick={clearFilters} style={{ alignSelf: 'flex-end', background: 'none', border: `1px solid ${THEME.outline}`, borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontSize: '12px', color: THEME.textMed, fontFamily: 'inherit' }}>
             Clear
@@ -317,27 +428,11 @@ export default function FuelTransactions({ setPage }) {
         )}
       </div>
 
-      {/* Summary totals */}
-      {filtered.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', marginBottom: '16px' }}>
-          {[
-            { label: `${filtered.length} Transactions`, value: null, icon: 'receipt_long', color: FUEL_CLR },
-            { label: 'Total Delivered', value: `${summary.deliveries.toFixed(1)} L`, icon: 'arrow_downward', color: THEME.success },
-            { label: 'Total Issued',    value: `${summary.issuances.toFixed(1)} L`,  icon: 'output',         color: THEME.warning },
-            summary.cost > 0 && { label: 'Total Cost', value: `$${summary.cost.toFixed(2)}`, icon: 'attach_money', color: THEME.textMed },
-          ].filter(Boolean).map((s, i) => (
-            <div key={i} style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '12px', padding: '12px 14px', boxShadow: THEME.shadow1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <Icon name={s.icon} size={14} style={{ color: s.color, opacity: .8 }} />
-                <span style={{ fontSize: '10px', fontWeight: 500, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em' }}>{s.label}</span>
-              </div>
-              {s.value && <div style={{ fontSize: '20px', fontWeight: 600, color: s.color, lineHeight: 1 }}>{s.value}</div>}
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ fontSize: '12px', color: THEME.textLow, marginBottom: '8px', textAlign: 'right' }}>
+        {filtered.length} of {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
+      </div>
 
-      {/* Table */}
+      {/* ── Table ── */}
       <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', color: THEME.textLow }}>
@@ -370,15 +465,9 @@ export default function FuelTransactions({ setPage }) {
                   : tx.fuel_equipment?.name
                   ? `${tx.fuel_equipment.name}`
                   : tx.supplier || tx.asset_description || '—'
-                const isLast = idx === filtered.length - 1
 
                 return (
-                  <TRow
-                    key={tx.id}
-                    last={isLast}
-                    onClick={() => setSelected(tx)}
-                    style={{ cursor: 'pointer' }}
-                  >
+                  <TRow key={tx.id} last={idx === filtered.length - 1} onClick={() => setSelected(tx)} style={{ cursor: 'pointer' }}>
                     <Td>
                       <span style={{ fontFamily: 'monospace', fontSize: '12px', color: FUEL_CLR, fontWeight: 600 }}>
                         {tx.docket_number || tx.transaction_number}
@@ -410,14 +499,29 @@ export default function FuelTransactions({ setPage }) {
         )}
       </div>
 
-      {/* Detail slide-over */}
-      <DetailPanel
-        tx={selected}
-        tanks={tanks}
-        operators={operators}
-        pumps={pumps}
-        onClose={() => setSelected(null)}
-      />
+      <DetailPanel tx={selected} tanks={tanks} operators={operators} pumps={pumps} onClose={() => setSelected(null)} />
+    </div>
+  )
+}
+
+function SummaryCard({ icon, label, value, color, sub }) {
+  return (
+    <div style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '12px', padding: '14px 16px', boxShadow: '0 1px 2px rgba(0,0,0,.03)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+        <Icon name={icon} size={15} style={{ color, opacity: .8 }} />
+        <span style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</span>
+      </div>
+      <div style={{ fontSize: '20px', fontWeight: 700, color, lineHeight: 1.15 }}>{value}</div>
+      {sub && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '3px' }}>{sub}</div>}
+    </div>
+  )
+}
+
+function FilterField({ label, flex, children }) {
+  return (
+    <div style={{ flex }}>
+      <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+      {children}
     </div>
   )
 }

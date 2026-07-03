@@ -428,7 +428,7 @@ export function FuelProvider({ children }) {
     return updateOperator(id, { is_active: true, deactivated_at: null })
   }
 
-  // ── Fuel Transactions (immutable) ─────────────────────────────────────────────
+  // ── Fuel Transactions ─────────────────────────────────────────────────────────
 
   async function addTransaction(data) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -463,6 +463,21 @@ export function FuelProvider({ children }) {
     return row
   }
 
+  async function updateTransaction(id, data) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: row, error } = await supabase
+      .from('fuel_transactions')
+      .update({ ...data, updated_by: user?.id || null })
+      .eq('id', id)
+      .eq('site_id', currentSiteId)
+      .select('*, fuel_vehicles(id, fleet_number, registration), fuel_equipment(id, name, equipment_number), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
+      .single()
+    if (error) throw error
+    setTransactions(prev => prev.map(t => t.id === id ? row : t))
+    await fetchAll()
+    return row
+  }
+
   // ── Dip Readings ──────────────────────────────────────────────────────────────
 
   async function addDipReading(data) {
@@ -479,6 +494,27 @@ export function FuelProvider({ children }) {
         ? { ...t, last_dip_date: data.reading_date, last_dip_reading: data.level_litres }
         : t
     ))
+    return row
+  }
+
+  async function updateDipReading(id, data) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: row, error } = await supabase
+      .from('fuel_dip_readings')
+      .update({ ...data, updated_by: user?.id || null })
+      .eq('id', id)
+      .eq('site_id', currentSiteId)
+      .select()
+      .single()
+    if (error) throw error
+    setDipReadings(prev => prev.map(d => d.id === id ? row : d))
+    if (data.level_litres != null) {
+      setTanks(prev => prev.map(t =>
+        t.id === row.tank_id && (!t.last_dip_date || row.reading_date >= t.last_dip_date)
+          ? { ...t, last_dip_date: row.reading_date, last_dip_reading: row.level_litres }
+          : t
+      ))
+    }
     return row
   }
 
@@ -501,10 +537,10 @@ export function FuelProvider({ children }) {
       addEquipment, updateEquipment, archiveEquipment,
       // operator ops
       addOperator, updateOperator, deactivateOperator, reactivateOperator,
-      // transaction ops (immutable — no update/delete)
-      addTransaction,
+      // transaction ops
+      addTransaction, updateTransaction,
       // dip ops
-      addDipReading,
+      addDipReading, updateDipReading,
       refresh: fetchAll,
     }}>
       <SiteRequired moduleColor={MODULE_COLORS.fuel}>

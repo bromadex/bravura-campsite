@@ -3,7 +3,7 @@ import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, fmtDate } from '../../components/ui'
+import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, fmtDate, showToast } from '../../components/ui'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -67,7 +67,7 @@ const QUICK_FILTERS = [
 
 // ── Detail panel ─────────────────────────────────────────────────────────────
 
-function DetailPanel({ tx, tanks, operators, pumps, onClose }) {
+function DetailPanel({ tx, tanks, operators, pumps, canEdit, onClose, onEdit }) {
   if (!tx) return null
   const tank     = tanks.find(t => t.id === tx.tank_id)
   const operator = operators.find(o => o.id === tx.operator_id)
@@ -98,6 +98,7 @@ function DetailPanel({ tx, tanks, operators, pumps, onClose }) {
     tx.supplier    && ['Supplier', tx.supplier],
     tx.notes       && ['Notes', tx.notes],
     tx.approved_by_profile?.full_name && ['Approved By', tx.approved_by_profile.full_name],
+    tx.updated_at && ['Last Edited', new Date(tx.updated_at).toLocaleString()],
   ].filter(Boolean)
 
   return (
@@ -136,9 +137,214 @@ function DetailPanel({ tx, tanks, operators, pumps, onClose }) {
           ))}
         </div>
 
-        <div style={{ marginTop: '20px', padding: '12px 14px', borderRadius: '10px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`, fontSize: '12px', color: THEME.textMed, display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Icon name="lock" size={13} style={{ color: THEME.textMed, flexShrink: 0 }} />
-          Transactions are immutable — to correct this record, post an adjustment.
+        {canEdit && (
+          <button onClick={() => onEdit(tx)} style={{
+            marginTop: '20px', width: '100%', padding: '10px', borderRadius: '10px',
+            background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: '13px', fontWeight: 600,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          }}>
+            <Icon name="edit" size={15} style={{ color: '#fff' }} /> Edit Transaction
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Edit Transaction Modal ──────────────────────────────────────────────────
+
+const editInputStyle = {
+  width: '100%', padding: '9px 12px', border: `1px solid ${THEME.outline}`,
+  borderRadius: '10px', fontSize: '13px', color: THEME.text,
+  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+  background: THEME.surface,
+}
+
+function EditField({ label, children }) {
+  return (
+    <div>
+      <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+      {children}
+    </div>
+  )
+}
+
+function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps, onClose, onSave }) {
+  const [form, setForm] = useState({
+    transaction_date: tx.transaction_date || '',
+    tank_id:          tx.tank_id || '',
+    litres:           tx.litres != null ? String(tx.litres) : '',
+    vehicle_id:       tx.vehicle_id || '',
+    equipment_id:     tx.equipment_id || '',
+    operator_id:      tx.operator_id || '',
+    pump_id:          tx.pump_id || '',
+    meter_start:      tx.meter_start != null ? String(tx.meter_start) : '',
+    meter_end:        tx.meter_end != null ? String(tx.meter_end) : '',
+    unit_price:       tx.unit_price != null ? String(tx.unit_price) : '',
+    total_cost:       tx.total_cost != null ? String(tx.total_cost) : '',
+    supplier:         tx.supplier || '',
+    docket_number:    tx.docket_number || '',
+    notes:            tx.notes || '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  function set(k, v) {
+    setForm(prev => {
+      const next = { ...prev, [k]: v }
+      if ((k === 'unit_price' || k === 'litres') && next.unit_price && next.litres) {
+        next.total_cost = (Number(next.unit_price) * Number(next.litres)).toFixed(2)
+      }
+      if (k === 'vehicle_id' && v) next.equipment_id = ''
+      if (k === 'equipment_id' && v) next.vehicle_id = ''
+      return next
+    })
+  }
+
+  async function handleSave() {
+    if (!form.litres || isNaN(form.litres) || Number(form.litres) <= 0) {
+      showToast('Enter valid litres', 'red'); return
+    }
+    setSaving(true)
+    try {
+      const payload = {
+        transaction_date: form.transaction_date,
+        tank_id:          form.tank_id || null,
+        litres:           Number(form.litres),
+        vehicle_id:       form.vehicle_id || null,
+        equipment_id:     form.equipment_id || null,
+        operator_id:      form.operator_id || null,
+        pump_id:          form.pump_id || null,
+        meter_start:      form.meter_start ? Number(form.meter_start) : null,
+        meter_end:        form.meter_end ? Number(form.meter_end) : null,
+        unit_price:       form.unit_price ? Number(form.unit_price) : null,
+        total_cost:       form.total_cost ? Number(form.total_cost) : null,
+        supplier:         form.supplier.trim() || null,
+        docket_number:    form.docket_number.trim() || null,
+        notes:            form.notes.trim() || null,
+      }
+      await onSave(tx.id, payload)
+      showToast('Transaction updated — tank balance recalculated', 'green')
+      onClose()
+    } catch (err) {
+      showToast(err.message || 'Failed to update', 'red')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const isIssuance = tx.transaction_type === 'issuance'
+  const isDelivery = tx.transaction_type === 'delivery'
+  const activeTanks = tanks.filter(t => t.status === 'active' && !t.is_archived)
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ background: THEME.surface, borderRadius: '14px', width: '560px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: THEME.surface, zIndex: 1, borderRadius: '14px 14px 0 0' }}>
+          <div>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Edit Transaction</div>
+            <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px', fontFamily: 'monospace' }}>{tx.transaction_number}</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: THEME.textMed, padding: '4px' }}>
+            <Icon name="close" size={20} />
+          </button>
+        </div>
+
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 14px', borderRadius: '10px', background: THEME.statusWarningBg, border: `1px solid ${THEME.warning}33`, fontSize: '12px', color: THEME.statusWarningText, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Icon name="info" size={14} style={{ color: 'inherit', flexShrink: 0 }} />
+            Editing this transaction will create an audit log entry and recalculate the affected tank balance.
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <EditField label="Date">
+              <input type="date" value={form.transaction_date} onChange={e => set('transaction_date', e.target.value)} style={editInputStyle} />
+            </EditField>
+            <EditField label="Tank">
+              <select value={form.tank_id} onChange={e => set('tank_id', e.target.value)} style={editInputStyle}>
+                <option value="">— Select —</option>
+                {activeTanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </EditField>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <EditField label="Litres">
+              <input type="number" step="0.001" value={form.litres} onChange={e => set('litres', e.target.value)} style={editInputStyle} />
+            </EditField>
+            <EditField label="Docket / Reference">
+              <input type="text" value={form.docket_number} onChange={e => set('docket_number', e.target.value)} style={editInputStyle} />
+            </EditField>
+          </div>
+
+          {isIssuance && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <EditField label="Vehicle">
+                  <select value={form.vehicle_id} onChange={e => set('vehicle_id', e.target.value)} style={editInputStyle}>
+                    <option value="">— None —</option>
+                    {vehicles.filter(v => !v.is_archived).map(v => <option key={v.id} value={v.id}>{v.fleet_number}{v.registration ? ' · ' + v.registration : ''}</option>)}
+                  </select>
+                </EditField>
+                <EditField label="Equipment">
+                  <select value={form.equipment_id} onChange={e => set('equipment_id', e.target.value)} style={editInputStyle}>
+                    <option value="">— None —</option>
+                    {equipment.filter(e => !e.is_archived).map(eq => <option key={eq.id} value={eq.id}>{eq.name}</option>)}
+                  </select>
+                </EditField>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <EditField label="Operator">
+                  <select value={form.operator_id} onChange={e => set('operator_id', e.target.value)} style={editInputStyle}>
+                    <option value="">— None —</option>
+                    {operators.filter(o => o.is_active).map(o => <option key={o.id} value={o.id}>{o.employees?.name || o.id}</option>)}
+                  </select>
+                </EditField>
+                <EditField label="Pump">
+                  <select value={form.pump_id} onChange={e => set('pump_id', e.target.value)} style={editInputStyle}>
+                    <option value="">— None —</option>
+                    {pumps.filter(p => !p.is_archived).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </EditField>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <EditField label="Meter Start">
+                  <input type="number" step="0.1" value={form.meter_start} onChange={e => set('meter_start', e.target.value)} style={editInputStyle} />
+                </EditField>
+                <EditField label="Meter End">
+                  <input type="number" step="0.1" value={form.meter_end} onChange={e => set('meter_end', e.target.value)} style={editInputStyle} />
+                </EditField>
+              </div>
+            </>
+          )}
+
+          {isDelivery && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <EditField label="Supplier">
+                <input type="text" value={form.supplier} onChange={e => set('supplier', e.target.value)} style={editInputStyle} />
+              </EditField>
+              <EditField label="Unit Price">
+                <input type="number" step="0.0001" value={form.unit_price} onChange={e => set('unit_price', e.target.value)} style={editInputStyle} />
+              </EditField>
+            </div>
+          )}
+
+          {(isDelivery || tx.total_cost) && (
+            <EditField label="Total Cost">
+              <input type="number" step="0.01" value={form.total_cost} onChange={e => set('total_cost', e.target.value)} style={editInputStyle} />
+            </EditField>
+          )}
+
+          <EditField label="Notes">
+            <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3} style={{ ...editInputStyle, resize: 'vertical' }} />
+          </EditField>
+        </div>
+
+        <div style={{ padding: '16px 24px', borderTop: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'flex-end', gap: '8px', position: 'sticky', bottom: 0, background: THEME.surface, borderRadius: '0 0 14px 14px' }}>
+          <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: '8px', border: `1px solid ${THEME.outline}`, background: THEME.surfaceVar, color: THEME.textMed, cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 500 }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '9px 18px', borderRadius: '8px', border: 'none', background: FUEL_CLR, color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 600, opacity: saving ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Icon name="save" size={14} style={{ color: '#fff' }} /> {saving ? 'Saving…' : 'Save Changes'}
+          </button>
         </div>
       </div>
     </div>
@@ -210,7 +416,7 @@ function printTable(filtered, tanks, operators, siteName) {
 export default function FuelTransactions({ setPage }) {
   const { can }        = usePermissions()
   const { currentSite } = useSite()
-  const { tanks, operators, pumps, vehicles, equipment, transactions, fuelTypes, loading } = useFuel()
+  const { tanks, operators, pumps, vehicles, equipment, transactions, fuelTypes, loading, updateTransaction } = useFuel()
 
   const [dateFrom,    setDateFrom]    = useState('')
   const [dateTo,      setDateTo]      = useState('')
@@ -224,6 +430,7 @@ export default function FuelTransactions({ setPage }) {
   const [search,      setSearch]      = useState('')
   const [selected,    setSelected]    = useState(null)
   const [quickKey,    setQuickKey]    = useState('')
+  const [editing,     setEditing]     = useState(null)
 
   if (!can('fuel.view')) return (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
@@ -499,7 +706,20 @@ export default function FuelTransactions({ setPage }) {
         )}
       </div>
 
-      <DetailPanel tx={selected} tanks={tanks} operators={operators} pumps={pumps} onClose={() => setSelected(null)} />
+      <DetailPanel tx={selected} tanks={tanks} operators={operators} pumps={pumps} canEdit={can('fuel.edit')} onClose={() => setSelected(null)} onEdit={(tx) => { setSelected(null); setEditing(tx) }} />
+
+      {editing && (
+        <EditTransactionModal
+          tx={editing}
+          tanks={tanks}
+          vehicles={vehicles}
+          equipment={equipment}
+          operators={operators}
+          pumps={pumps}
+          onClose={() => setEditing(null)}
+          onSave={updateTransaction}
+        />
+      )}
     </div>
   )
 }

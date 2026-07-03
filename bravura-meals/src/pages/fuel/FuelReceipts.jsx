@@ -223,12 +223,14 @@ export default function FuelReceipts() {
             total_cost:           payload.total_cost,
             dip_before:           payload.dip_before,
             dip_after:            payload.dip_after,
+            receiving_officer:    form.receiving_officer?.trim() || null,
             notes:                payload.notes,
+            updated_by:           user?.id || null,
           })
           .eq('id', editId)
           .eq('site_id', currentSiteId)
         if (error) throw error
-        showToast('Delivery updated', 'green')
+        showToast('Delivery updated — audit log entry created', 'green')
       } else {
         payload.delivery_number = deliveryNumber
 

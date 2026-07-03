@@ -432,11 +432,119 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
   )
 }
 
+// ── Edit Dip Modal ───────────────────────────────────────────────────────────
+function EditDipModal({ reading, tanks, operators, onClose, onSave }) {
+  const [form, setForm] = useState({
+    reading_date:  reading.reading_date || '',
+    reading_time:  reading.reading_time || '',
+    shift:         reading.shift || '',
+    tank_id:       reading.tank_id || '',
+    dip_mm:        reading.dip_mm != null ? String(reading.dip_mm) : '',
+    level_litres:  reading.level_litres != null ? String(reading.level_litres) : '',
+    read_by:       reading.read_by || '',
+    notes:         reading.notes || '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const inputStyle = { padding: '8px 10px', borderRadius: '8px', border: `1px solid ${THEME.outline}`, background: THEME.surfaceVar, color: THEME.text, fontSize: '13px', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }
+  const Field = ({ label, children }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <label style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>{label}</label>
+      {children}
+    </div>
+  )
+
+  async function save() {
+    if (!form.level_litres || isNaN(form.level_litres)) return
+    setSaving(true)
+    try {
+      await onSave(reading.id, {
+        reading_date: form.reading_date,
+        reading_time: form.reading_time || null,
+        shift:        form.shift || null,
+        tank_id:      form.tank_id,
+        dip_mm:       form.dip_mm ? parseFloat(form.dip_mm) : null,
+        level_litres: parseFloat(form.level_litres),
+        read_by:      form.read_by || null,
+        notes:        form.notes || null,
+      })
+      onClose()
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', width: '480px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Edit Dip Reading</div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: THEME.textMed }}>
+            <Icon name="close" size={20} />
+          </button>
+        </div>
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 14px', borderRadius: '10px', background: THEME.statusWarningBg, fontSize: '12px', color: THEME.statusWarningText, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Icon name="info" size={14} style={{ color: 'inherit', flexShrink: 0 }} />
+            This edit will be recorded in the audit log with a before/after snapshot.
+          </div>
+          <Field label="Tank">
+            <select value={form.tank_id} onChange={e => setForm(p => ({ ...p, tank_id: e.target.value }))} style={inputStyle}>
+              {tanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Field label="Date">
+              <input type="date" value={form.reading_date} onChange={e => setForm(p => ({ ...p, reading_date: e.target.value }))} style={inputStyle} />
+            </Field>
+            <Field label="Time">
+              <input type="time" value={form.reading_time} onChange={e => setForm(p => ({ ...p, reading_time: e.target.value }))} style={inputStyle} />
+            </Field>
+          </div>
+          <Field label="Shift">
+            <select value={form.shift} onChange={e => setForm(p => ({ ...p, shift: e.target.value }))} style={inputStyle}>
+              <option value="">— None —</option>
+              <option value="morning">Morning</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="night">Night</option>
+            </select>
+          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Field label="Dip (mm)">
+              <input type="number" step="0.1" value={form.dip_mm} onChange={e => setForm(p => ({ ...p, dip_mm: e.target.value }))} style={inputStyle} />
+            </Field>
+            <Field label="Level (litres)">
+              <input type="number" step="0.001" value={form.level_litres} onChange={e => setForm(p => ({ ...p, level_litres: e.target.value }))} style={inputStyle} />
+            </Field>
+          </div>
+          <Field label="Read By">
+            <select value={form.read_by} onChange={e => setForm(p => ({ ...p, read_by: e.target.value }))} style={inputStyle}>
+              <option value="">— None —</option>
+              {operators.map(o => <option key={o.id} value={o.id}>{o.employees?.name || o.id}</option>)}
+            </select>
+          </Field>
+          <Field label="Notes">
+            <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+          </Field>
+        </div>
+        <div style={{ padding: '16px 24px', borderTop: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button onClick={onClose} style={{ ...btn({ background: THEME.surfaceVar, color: THEME.textMed }) }}>Cancel</button>
+          <button onClick={save} disabled={saving} style={{ ...btn({ background: COLOR, color: '#fff', opacity: saving ? 0.5 : 1 }) }}>
+            <Icon name="save" size={15} /> {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function DipReadings() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
-  const { tanks, operators, transactions } = useFuel()
+  const { tanks, operators, transactions, updateDipReading } = useFuel()
 
   const [readings, setReadings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -446,6 +554,7 @@ export default function DipReadings() {
   const [filterTo, setFilterTo] = useState('')
   const [showRecord, setShowRecord] = useState(false)
   const [calibTank, setCalibTank] = useState(null)
+  const [editDip, setEditDip] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -591,7 +700,8 @@ export default function DipReadings() {
                 {derived.map(({ r, dipStartCm, dipEndCm, fuelStart, fuelEnd, actual, fmIssued, error, errorPct }) => {
                   const clr = errColor(errorPct)
                   return (
-                    <tr key={r.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}
+                    <tr key={r.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: can('fuel.edit') ? 'pointer' : 'default' }}
+                      onClick={() => can('fuel.edit') && setEditDip(r)}
                       onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
@@ -643,6 +753,16 @@ export default function DipReadings() {
         <TankCalibrationPanel
           tank={calibTank}
           onClose={() => setCalibTank(null)}
+        />
+      )}
+
+      {editDip && (
+        <EditDipModal
+          reading={editDip}
+          tanks={tanks}
+          operators={operators}
+          onClose={() => setEditDip(null)}
+          onSave={async (id, data) => { await updateDipReading(id, data); load(); setEditDip(null) }}
         />
       )}
     </div>

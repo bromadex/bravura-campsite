@@ -14,6 +14,9 @@ const TABLE_LABELS = {
   stock_transfers:           'Stock Transfers',
   user_roles:                'User Roles',
   user_sites:                'User Sites',
+  fuel_transactions:         'Fuel Transactions',
+  fuel_deliveries:           'Fuel Deliveries',
+  fuel_dip_readings:         'Fuel Dip Readings',
 }
 
 const ACTION_COLORS = {

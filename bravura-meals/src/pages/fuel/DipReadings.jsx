@@ -239,9 +239,12 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [time, setTime] = useState(new Date().toTimeString().slice(0, 5))
   const [shift, setShift] = useState('')
-  const [dipMm, setDipMm] = useState('')
-  const [levelLitres, setLevelLitres] = useState('')
-  const [manualLitres, setManualLitres] = useState(false)
+  const [dipStartMm, setDipStartMm] = useState('')
+  const [dipEndMm, setDipEndMm] = useState('')
+  const [levelStartLitres, setLevelStartLitres] = useState('')
+  const [levelEndLitres, setLevelEndLitres] = useState('')
+  const [manualStartLitres, setManualStartLitres] = useState(false)
+  const [manualEndLitres, setManualEndLitres] = useState(false)
   const [notes, setNotes] = useState('')
   const [readBy, setReadBy] = useState('')
   const [calibration, setCalibration] = useState([])
@@ -249,7 +252,8 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
   const [acknowledged, setAcknowledged] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const calcedLitres = calibration.length > 0 && dipMm !== '' ? interpolate(calibration, parseFloat(dipMm)) : null
+  const calcedStartLitres = calibration.length > 0 && dipStartMm !== '' ? interpolate(calibration, parseFloat(dipStartMm)) : null
+  const calcedEndLitres = calibration.length > 0 && dipEndMm !== '' ? interpolate(calibration, parseFloat(dipEndMm)) : null
 
   useEffect(() => {
     if (!tankId) return
@@ -260,22 +264,30 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
   }, [tankId])
 
   useEffect(() => {
-    if (!manualLitres && calcedLitres !== null) {
-      setLevelLitres(calcedLitres.toFixed(1))
+    if (!manualStartLitres && calcedStartLitres !== null) {
+      setLevelStartLitres(calcedStartLitres.toFixed(1))
     }
-  }, [calcedLitres, manualLitres])
+  }, [calcedStartLitres, manualStartLitres])
 
-  const displayLitres = parseFloat(levelLitres)
-  const variance = (!isNaN(displayLitres) && systemLevel != null) ? displayLitres - systemLevel : null
+  useEffect(() => {
+    if (!manualEndLitres && calcedEndLitres !== null) {
+      setLevelEndLitres(calcedEndLitres.toFixed(1))
+    }
+  }, [calcedEndLitres, manualEndLitres])
+
+  const displayEndLitres = parseFloat(levelEndLitres)
+  const displayStartLitres = parseFloat(levelStartLitres)
+  const variance = (!isNaN(displayEndLitres) && systemLevel != null) ? displayEndLitres - systemLevel : null
   const variancePct = (variance != null && systemLevel > 0) ? (variance / systemLevel) * 100 : null
   const highVariance = variancePct != null && Math.abs(variancePct) > 5
 
-  const canSave = tankId && date && levelLitres !== '' && !isNaN(displayLitres) && (!highVariance || (acknowledged && notes.trim()))
+  const canSave = tankId && date && levelEndLitres !== '' && !isNaN(displayEndLitres) && (!highVariance || (acknowledged && notes.trim()))
 
   const save = async () => {
     setSaving(true)
-    const level = parseFloat(levelLitres)
-    const varL = systemLevel != null ? level - systemLevel : null
+    const levelEnd = parseFloat(levelEndLitres)
+    const levelStart = levelStartLitres !== '' ? parseFloat(levelStartLitres) : null
+    const varL = systemLevel != null ? levelEnd - systemLevel : null
     const varP = (varL != null && systemLevel > 0) ? (varL / systemLevel) * 100 : null
     const { error } = await supabase.from('fuel_dip_readings').insert({
       site_id: currentSiteId,
@@ -283,8 +295,12 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
       reading_date: date,
       reading_time: time || null,
       shift: shift || null,
-      dip_mm: dipMm !== '' ? parseFloat(dipMm) : null,
-      level_litres: level,
+      dip_mm: dipEndMm !== '' ? parseFloat(dipEndMm) : null,
+      level_litres: levelEnd,
+      dip_start_mm: dipStartMm !== '' ? parseFloat(dipStartMm) : null,
+      dip_end_mm: dipEndMm !== '' ? parseFloat(dipEndMm) : null,
+      level_start_litres: levelStart,
+      level_end_litres: levelEnd,
       system_level_litres: systemLevel,
       variance_litres: varL,
       variance_percent: varP,
@@ -341,35 +357,70 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
             </select>
           </Field>
 
-          <Field label="Dip Reading (mm)">
-            <input
-              type="number" step="0.1" value={dipMm}
-              onChange={e => setDipMm(e.target.value)}
-              placeholder="e.g. 850"
-              style={inputStyle}
-            />
-            {calibration.length === 0 && dipMm && (
-              <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table — litres will not auto-calculate</div>
-            )}
-          </Field>
-
-          <Field label="Level (litres)">
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input
-                type="number" step="0.001" value={levelLitres}
-                onChange={e => setLevelLitres(e.target.value)}
-                readOnly={!manualLitres && calcedLitres !== null}
-                style={{ ...inputStyle, flex: 1, background: !manualLitres && calcedLitres !== null ? THEME.surfaceVar : undefined }}
-              />
-              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: THEME.textMed, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                <input type="checkbox" checked={manualLitres} onChange={e => { setManualLitres(e.target.checked); if (!e.target.checked && calcedLitres !== null) setLevelLitres(calcedLitres.toFixed(1)) }} />
-                Manual
-              </label>
+          <div style={{ padding: '10px 14px', borderRadius: '10px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}` }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '12px' }}>Dip Start (beginning of shift)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Field label="Dip Start (mm)">
+                <input
+                  type="number" step="0.1" value={dipStartMm}
+                  onChange={e => setDipStartMm(e.target.value)}
+                  placeholder="e.g. 920"
+                  style={inputStyle}
+                />
+              </Field>
+              <Field label="Fuel Start (litres)">
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <input
+                    type="number" step="0.001" value={levelStartLitres}
+                    onChange={e => setLevelStartLitres(e.target.value)}
+                    readOnly={!manualStartLitres && calcedStartLitres !== null}
+                    style={{ ...inputStyle, flex: 1, background: !manualStartLitres && calcedStartLitres !== null ? THEME.surfaceVar : undefined }}
+                  />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: THEME.textMed, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <input type="checkbox" checked={manualStartLitres} onChange={e => { setManualStartLitres(e.target.checked); if (!e.target.checked && calcedStartLitres !== null) setLevelStartLitres(calcedStartLitres.toFixed(1)) }} />
+                    Manual
+                  </label>
+                </div>
+              </Field>
             </div>
-            {!manualLitres && calcedLitres !== null && (
-              <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '2px' }}>Auto-calculated from calibration table</div>
+            {calibration.length === 0 && dipStartMm && (
+              <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '4px' }}>No calibration table — litres will not auto-calculate</div>
             )}
-          </Field>
+          </div>
+
+          <div style={{ padding: '10px 14px', borderRadius: '10px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}` }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '12px' }}>Dip End (end of shift)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Field label="Dip End (mm)">
+                <input
+                  type="number" step="0.1" value={dipEndMm}
+                  onChange={e => setDipEndMm(e.target.value)}
+                  placeholder="e.g. 850"
+                  style={inputStyle}
+                />
+              </Field>
+              <Field label="Fuel End (litres)">
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <input
+                    type="number" step="0.001" value={levelEndLitres}
+                    onChange={e => setLevelEndLitres(e.target.value)}
+                    readOnly={!manualEndLitres && calcedEndLitres !== null}
+                    style={{ ...inputStyle, flex: 1, background: !manualEndLitres && calcedEndLitres !== null ? THEME.surfaceVar : undefined }}
+                  />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: THEME.textMed, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <input type="checkbox" checked={manualEndLitres} onChange={e => { setManualEndLitres(e.target.checked); if (!e.target.checked && calcedEndLitres !== null) setLevelEndLitres(calcedEndLitres.toFixed(1)) }} />
+                    Manual
+                  </label>
+                </div>
+              </Field>
+            </div>
+            {calibration.length === 0 && dipEndMm && (
+              <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '4px' }}>No calibration table — litres will not auto-calculate</div>
+            )}
+            {!manualEndLitres && calcedEndLitres !== null && (
+              <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>Auto-calculated from calibration table</div>
+            )}
+          </div>
 
           {variance !== null && (
             <div style={{
@@ -435,14 +486,16 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
 // ── Edit Dip Modal ───────────────────────────────────────────────────────────
 function EditDipModal({ reading, tanks, operators, onClose, onSave }) {
   const [form, setForm] = useState({
-    reading_date:  reading.reading_date || '',
-    reading_time:  reading.reading_time || '',
-    shift:         reading.shift || '',
-    tank_id:       reading.tank_id || '',
-    dip_mm:        reading.dip_mm != null ? String(reading.dip_mm) : '',
-    level_litres:  reading.level_litres != null ? String(reading.level_litres) : '',
-    read_by:       reading.read_by || '',
-    notes:         reading.notes || '',
+    reading_date:      reading.reading_date || '',
+    reading_time:      reading.reading_time || '',
+    shift:             reading.shift || '',
+    tank_id:           reading.tank_id || '',
+    dip_start_mm:      reading.dip_start_mm != null ? String(reading.dip_start_mm) : (reading.dip_mm != null ? '' : ''),
+    dip_end_mm:        reading.dip_end_mm != null ? String(reading.dip_end_mm) : (reading.dip_mm != null ? String(reading.dip_mm) : ''),
+    level_start_litres: reading.level_start_litres != null ? String(reading.level_start_litres) : '',
+    level_end_litres:  reading.level_end_litres != null ? String(reading.level_end_litres) : (reading.level_litres != null ? String(reading.level_litres) : ''),
+    read_by:           reading.read_by || '',
+    notes:             reading.notes || '',
   })
   const [saving, setSaving] = useState(false)
 
@@ -455,18 +508,22 @@ function EditDipModal({ reading, tanks, operators, onClose, onSave }) {
   )
 
   async function save() {
-    if (!form.level_litres || isNaN(form.level_litres)) return
+    if (!form.level_end_litres || isNaN(form.level_end_litres)) return
     setSaving(true)
     try {
       await onSave(reading.id, {
-        reading_date: form.reading_date,
-        reading_time: form.reading_time || null,
-        shift:        form.shift || null,
-        tank_id:      form.tank_id,
-        dip_mm:       form.dip_mm ? parseFloat(form.dip_mm) : null,
-        level_litres: parseFloat(form.level_litres),
-        read_by:      form.read_by || null,
-        notes:        form.notes || null,
+        reading_date:      form.reading_date,
+        reading_time:      form.reading_time || null,
+        shift:             form.shift || null,
+        tank_id:           form.tank_id,
+        dip_mm:            form.dip_end_mm ? parseFloat(form.dip_end_mm) : null,
+        level_litres:      parseFloat(form.level_end_litres),
+        dip_start_mm:      form.dip_start_mm ? parseFloat(form.dip_start_mm) : null,
+        dip_end_mm:        form.dip_end_mm ? parseFloat(form.dip_end_mm) : null,
+        level_start_litres: form.level_start_litres ? parseFloat(form.level_start_litres) : null,
+        level_end_litres:  parseFloat(form.level_end_litres),
+        read_by:           form.read_by || null,
+        notes:             form.notes || null,
       })
       onClose()
     } catch (err) {
@@ -478,7 +535,7 @@ function EditDipModal({ reading, tanks, operators, onClose, onSave }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: THEME.surface, borderRadius: '10px', width: '480px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }}>
+      <div style={{ background: THEME.surface, borderRadius: '10px', width: '500px', maxHeight: '90vh', overflowY: 'auto', boxShadow: THEME.shadow3 }}>
         <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Edit Dip Reading</div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: THEME.textMed }}>
@@ -511,14 +568,31 @@ function EditDipModal({ reading, tanks, operators, onClose, onSave }) {
               <option value="night">Night</option>
             </select>
           </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <Field label="Dip (mm)">
-              <input type="number" step="0.1" value={form.dip_mm} onChange={e => setForm(p => ({ ...p, dip_mm: e.target.value }))} style={inputStyle} />
-            </Field>
-            <Field label="Level (litres)">
-              <input type="number" step="0.001" value={form.level_litres} onChange={e => setForm(p => ({ ...p, level_litres: e.target.value }))} style={inputStyle} />
-            </Field>
+
+          <div style={{ padding: '10px 14px', borderRadius: '10px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}` }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '10px' }}>Dip Start (beginning of shift)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Field label="Dip Start (mm)">
+                <input type="number" step="0.1" value={form.dip_start_mm} onChange={e => setForm(p => ({ ...p, dip_start_mm: e.target.value }))} style={inputStyle} placeholder="e.g. 920" />
+              </Field>
+              <Field label="Fuel Start (litres)">
+                <input type="number" step="0.001" value={form.level_start_litres} onChange={e => setForm(p => ({ ...p, level_start_litres: e.target.value }))} style={inputStyle} />
+              </Field>
+            </div>
           </div>
+
+          <div style={{ padding: '10px 14px', borderRadius: '10px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}` }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '10px' }}>Dip End (end of shift)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <Field label="Dip End (mm)">
+                <input type="number" step="0.1" value={form.dip_end_mm} onChange={e => setForm(p => ({ ...p, dip_end_mm: e.target.value }))} style={inputStyle} placeholder="e.g. 850" />
+              </Field>
+              <Field label="Fuel End (litres)">
+                <input type="number" step="0.001" value={form.level_end_litres} onChange={e => setForm(p => ({ ...p, level_end_litres: e.target.value }))} style={inputStyle} />
+              </Field>
+            </div>
+          </div>
+
           <Field label="Read By">
             <select value={form.read_by} onChange={e => setForm(p => ({ ...p, read_by: e.target.value }))} style={inputStyle}>
               <option value="">— None —</option>
@@ -577,9 +651,9 @@ export default function DipReadings() {
 
   const fmtNum = (n, dec = 1) => n != null ? Number(n).toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—'
 
-  // Pair each reading with the previous reading of the same tank so the log
-  // reads like the old ERP's dipstick sheet: dip start/end, fuel start/end,
-  // actual drawn vs what the fuel module recorded in the same window.
+  // Build display rows. If the reading has stored start/end columns (migration
+  // 0052+), use those directly. Otherwise fall back to pairing consecutive
+  // readings per tank (legacy data).
   const derived = (() => {
     const key = r => `${r.reading_date} ${r.reading_time || '00:00'}`
     const byTank = new Map()
@@ -591,24 +665,32 @@ export default function DipReadings() {
     for (const list of byTank.values()) {
       for (let i = 0; i < list.length; i++) {
         const cur = list[i], prev = i > 0 ? list[i - 1] : null
-        const fuelStart = prev ? Number(prev.level_litres) : null
-        const fuelEnd   = Number(cur.level_litres)
-        const actual    = fuelStart != null ? fuelStart - fuelEnd : null
+
+        // Prefer stored start/end; fall back to pairing with previous reading
+        const hasStoredStart = cur.dip_start_mm != null || cur.level_start_litres != null
+        const dipStartCm = hasStoredStart
+          ? (cur.dip_start_mm != null ? Number(cur.dip_start_mm) / 10 : null)
+          : (prev?.dip_mm != null ? Number(prev.dip_mm) / 10 : null)
+        const dipEndCm = cur.dip_end_mm != null
+          ? Number(cur.dip_end_mm) / 10
+          : (cur.dip_mm != null ? Number(cur.dip_mm) / 10 : null)
+        const fuelStart = hasStoredStart
+          ? (cur.level_start_litres != null ? Number(cur.level_start_litres) : null)
+          : (prev ? Number(prev.level_litres) : null)
+        const fuelEnd = cur.level_end_litres != null ? Number(cur.level_end_litres) : Number(cur.level_litres)
+        const actual = fuelStart != null ? fuelStart - fuelEnd : null
+
         let fmIssued = null
-        if (prev) {
+        if (hasStoredStart || prev) {
+          const fromDate = hasStoredStart ? cur.reading_date : prev.reading_date
           fmIssued = transactions
             .filter(t => t.transaction_type === 'issuance' && t.tank_id === cur.tank_id
-              && t.transaction_date > prev.reading_date && t.transaction_date <= cur.reading_date)
+              && t.transaction_date >= fromDate && t.transaction_date <= cur.reading_date)
             .reduce((s, t) => s + Number(t.litres), 0)
         }
         const error = (actual != null && fmIssued != null) ? fmIssued - actual : null
         const errorPct = (error != null && actual) ? (error / Math.abs(actual)) * 100 : null
-        rows.push({
-          r: cur,
-          dipStartCm: prev?.dip_mm != null ? Number(prev.dip_mm) / 10 : null,
-          dipEndCm:   cur.dip_mm  != null ? Number(cur.dip_mm)  / 10 : null,
-          fuelStart, fuelEnd, actual, fmIssued, error, errorPct,
-        })
+        rows.push({ r: cur, dipStartCm, dipEndCm, fuelStart, fuelEnd, actual, fmIssued, error, errorPct })
       }
     }
     return rows.sort((a, b) => key(b.r).localeCompare(key(a.r)))

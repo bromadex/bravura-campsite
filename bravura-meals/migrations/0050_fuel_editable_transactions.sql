@@ -100,57 +100,48 @@ CREATE TRIGGER trg_fuel_dip_readings_audit
   AFTER UPDATE ON fuel_dip_readings
   FOR EACH ROW EXECUTE FUNCTION _fuel_audit_edit();
 
--- ─── 5. Recalculate tank level after transaction edit ────────────────────────
--- When a fuel_transaction row is updated (litres changed, tank changed, etc.)
--- we recalculate the tank's current_level_litres from scratch.
--- This is the authoritative "replay all transactions" approach.
+-- ─── 5. Adjust tank level after transaction edit (delta approach) ────────────
+-- Uses the difference between OLD and NEW values so we never lose the
+-- tank's initial/existing level.  Handles litres changes, type changes,
+-- and tank reassignment.
 
 CREATE OR REPLACE FUNCTION _fuel_recalc_tank_level()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  _tank_id UUID;
-  _new_level NUMERIC(12,3);
+  _old_effect NUMERIC(12,3);
+  _new_effect NUMERIC(12,3);
 BEGIN
-  -- Recalc for the NEW tank
-  _tank_id := NEW.tank_id;
+  -- Calculate the signed effect of the OLD row
+  _old_effect := CASE
+    WHEN OLD.transaction_type = 'issuance' THEN -OLD.litres
+    WHEN OLD.transaction_type IN ('delivery', 'adjustment', 'dip_correction') THEN OLD.litres
+    ELSE 0
+  END;
 
-  SELECT COALESCE(
-    (SELECT ft.capacity_litres FROM fuel_tanks ft WHERE ft.id = _tank_id),
-    0
-  ) INTO _new_level;
+  -- Calculate the signed effect of the NEW row
+  _new_effect := CASE
+    WHEN NEW.transaction_type = 'issuance' THEN -NEW.litres
+    WHEN NEW.transaction_type IN ('delivery', 'adjustment', 'dip_correction') THEN NEW.litres
+    ELSE 0
+  END;
 
-  -- Sum all transactions for this tank
-  SELECT COALESCE(SUM(
-    CASE
-      WHEN t.transaction_type IN ('delivery', 'adjustment') THEN t.litres
-      WHEN t.transaction_type = 'issuance' THEN -t.litres
-      ELSE 0
-    END
-  ), 0)
-  INTO _new_level
-  FROM fuel_transactions t
-  WHERE t.tank_id = _tank_id;
-
-  UPDATE fuel_tanks
-  SET current_level_litres = GREATEST(0, _new_level)
-  WHERE id = _tank_id;
-
-  -- If the tank changed, also recalc the OLD tank
-  IF TG_OP = 'UPDATE' AND OLD.tank_id IS DISTINCT FROM NEW.tank_id THEN
-    SELECT COALESCE(SUM(
-      CASE
-        WHEN t.transaction_type IN ('delivery', 'adjustment') THEN t.litres
-        WHEN t.transaction_type = 'issuance' THEN -t.litres
-        ELSE 0
-      END
-    ), 0)
-    INTO _new_level
-    FROM fuel_transactions t
-    WHERE t.tank_id = OLD.tank_id;
+  IF OLD.tank_id IS DISTINCT FROM NEW.tank_id THEN
+    -- Tank changed: reverse old effect on old tank, apply new effect on new tank
+    UPDATE fuel_tanks
+    SET current_level_litres = GREATEST(0, current_level_litres - _old_effect),
+        updated_at = now()
+    WHERE id = OLD.tank_id;
 
     UPDATE fuel_tanks
-    SET current_level_litres = GREATEST(0, _new_level)
-    WHERE id = OLD.tank_id;
+    SET current_level_litres = GREATEST(0, current_level_litres + _new_effect),
+        updated_at = now()
+    WHERE id = NEW.tank_id;
+  ELSE
+    -- Same tank: apply the delta (reverse old, apply new)
+    UPDATE fuel_tanks
+    SET current_level_litres = GREATEST(0, current_level_litres + (_new_effect - _old_effect)),
+        updated_at = now()
+    WHERE id = NEW.tank_id;
   END IF;
 
   RETURN NEW;

@@ -78,7 +78,7 @@ const STATUS_MAP = {
 export default function FuelReceipts() {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
-  const { tanks, addTransaction, refresh: refreshFuel } = useFuel()
+  const { tanks, addTransaction, deleteDelivery, refresh: refreshFuel } = useFuel()
 
   const canCreate  = can('fuel.create')
   const canView    = can('fuel.view')
@@ -331,6 +331,24 @@ export default function FuelReceipts() {
     }
   }
 
+  async function permanentlyDeleteDelivery() {
+    if (!editId) return
+    if (!confirm('PERMANENTLY delete this delivery? This cannot be undone. The deletion will be recorded in the audit trail.')) return
+    setSaving(true)
+    try {
+      await deleteDelivery(editId)
+      showToast('Delivery permanently deleted', 'green')
+      setShowForm(false)
+      setEditId(null)
+      fetchDeliveries()
+      refreshFuel()
+    } catch (err) {
+      showToast(err.message || 'Failed to delete delivery', 'red')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // ── Filtering ────────────────────────────────────────────────────────────────
 
   const q = search.toLowerCase().trim()
@@ -537,13 +555,22 @@ export default function FuelReceipts() {
 
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', alignItems: 'center' }}>
             {editId && (
-              <button onClick={cancelDelivery} disabled={saving} style={{
-                padding: '10px 20px', borderRadius: '6px', border: `1px solid ${THEME.error}`,
-                background: 'transparent', color: THEME.error, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '6px',
-              }}>
-                <Icon name="delete" size={15} style={{ color: THEME.error }} /> Cancel Delivery
-              </button>
+              <div style={{ marginRight: 'auto', display: 'flex', gap: '8px' }}>
+                <button onClick={cancelDelivery} disabled={saving} style={{
+                  padding: '10px 20px', borderRadius: '6px', border: `1px solid ${THEME.error}`,
+                  background: 'transparent', color: THEME.error, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                }}>
+                  <Icon name="block" size={15} style={{ color: THEME.error }} /> Cancel
+                </button>
+                <button onClick={permanentlyDeleteDelivery} disabled={saving} style={{
+                  padding: '10px 20px', borderRadius: '6px', border: 'none',
+                  background: THEME.error, color: '#fff', fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                }}>
+                  <Icon name="delete_forever" size={15} style={{ color: '#fff' }} /> Delete
+                </button>
+              </div>
             )}
             <button onClick={() => { setShowForm(false); setEditId(null) }} style={{
               padding: '10px 20px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,

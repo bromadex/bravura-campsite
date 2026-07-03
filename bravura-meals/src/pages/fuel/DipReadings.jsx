@@ -484,7 +484,7 @@ function RecordDipModal({ tanks, operators, currentSiteId, onClose, onSaved }) {
 }
 
 // ── Edit Dip Modal ───────────────────────────────────────────────────────────
-function EditDipModal({ reading, tanks, operators, onClose, onSave }) {
+function EditDipModal({ reading, tanks, operators, onClose, onSave, onDelete }) {
   const [form, setForm] = useState({
     reading_date:      reading.reading_date || '',
     reading_time:      reading.reading_time || '',
@@ -603,11 +603,22 @@ function EditDipModal({ reading, tanks, operators, onClose, onSave }) {
             <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
           </Field>
         </div>
-        <div style={{ padding: '16px 24px', borderTop: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-          <button onClick={onClose} style={{ ...btn({ background: THEME.surfaceVar, color: THEME.textMed }) }}>Cancel</button>
-          <button onClick={save} disabled={saving} style={{ ...btn({ background: COLOR, color: '#fff', opacity: saving ? 0.5 : 1 }) }}>
-            <Icon name="save" size={15} /> {saving ? 'Saving…' : 'Save Changes'}
-          </button>
+        <div style={{ padding: '16px 24px', borderTop: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {onDelete ? (
+            <button onClick={() => {
+              if (!confirm('Permanently delete this dip reading? This action is logged in the audit trail and cannot be undone.')) return
+              setSaving(true)
+              onDelete(reading.id).then(onClose).catch(err => alert(err.message)).finally(() => setSaving(false))
+            }} disabled={saving} style={{ ...btn({ background: 'transparent', color: THEME.error, border: `1px solid ${THEME.error}` }) }}>
+              <Icon name="delete_forever" size={15} style={{ color: THEME.error }} /> Delete Reading
+            </button>
+          ) : <div />}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={onClose} style={{ ...btn({ background: THEME.surfaceVar, color: THEME.textMed }) }}>Cancel</button>
+            <button onClick={save} disabled={saving} style={{ ...btn({ background: COLOR, color: '#fff', opacity: saving ? 0.5 : 1 }) }}>
+              <Icon name="save" size={15} /> {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -618,7 +629,7 @@ function EditDipModal({ reading, tanks, operators, onClose, onSave }) {
 export default function DipReadings() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
-  const { tanks, operators, transactions, updateDipReading } = useFuel()
+  const { tanks, operators, transactions, updateDipReading, deleteDipReading } = useFuel()
 
   const [readings, setReadings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -845,6 +856,7 @@ export default function DipReadings() {
           operators={operators}
           onClose={() => setEditDip(null)}
           onSave={async (id, data) => { await updateDipReading(id, data); load(); setEditDip(null) }}
+          onDelete={async (id) => { await deleteDipReading(id); load(); setEditDip(null) }}
         />
       )}
     </div>

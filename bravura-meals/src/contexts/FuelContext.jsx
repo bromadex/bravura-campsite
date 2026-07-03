@@ -518,6 +518,33 @@ export function FuelProvider({ children }) {
     return row
   }
 
+  async function deleteDipReading(id) {
+    const reading = dipReadings.find(d => d.id === id)
+    const { error } = await supabase
+      .from('fuel_dip_readings')
+      .delete()
+      .eq('id', id)
+      .eq('site_id', currentSiteId)
+    if (error) throw error
+    setDipReadings(prev => prev.filter(d => d.id !== id))
+    if (reading) {
+      setTanks(prev => prev.map(t =>
+        t.id === reading.tank_id && t.last_dip_date === reading.reading_date
+          ? { ...t, last_dip_date: null, last_dip_reading: null }
+          : t
+      ))
+    }
+  }
+
+  async function deleteDelivery(id) {
+    const { error } = await supabase
+      .from('fuel_deliveries')
+      .delete()
+      .eq('id', id)
+      .eq('site_id', currentSiteId)
+    if (error) throw error
+  }
+
   return (
     <FuelContext.Provider value={{
       fuelTypes, tanks, pumps, vehicles, equipment, operators, employees, departments, transactions, dipReadings, profiles, loading,
@@ -540,7 +567,7 @@ export function FuelProvider({ children }) {
       // transaction ops
       addTransaction, updateTransaction,
       // dip ops
-      addDipReading, updateDipReading,
+      addDipReading, updateDipReading, deleteDipReading, deleteDelivery,
       refresh: fetchAll,
     }}>
       <SiteRequired moduleColor={MODULE_COLORS.fuel}>

@@ -488,9 +488,10 @@ export function FuelProvider({ children }) {
     if (error) throw error
     setDipReadings(prev => [row, ...prev])
     // Update tank snapshot (trigger does it in DB too)
+    const dipLevel = data.level_end_litres ?? data.level_litres
     setTanks(prev => prev.map(t =>
       t.id === data.tank_id && (!t.last_dip_date || data.reading_date >= t.last_dip_date)
-        ? { ...t, last_dip_date: data.reading_date, last_dip_reading: data.level_litres }
+        ? { ...t, last_dip_date: data.reading_date, last_dip_reading: dipLevel }
         : t
     ))
     return row
@@ -506,10 +507,11 @@ export function FuelProvider({ children }) {
       .single()
     if (error) throw error
     setDipReadings(prev => prev.map(d => d.id === id ? row : d))
-    if (data.level_litres != null) {
+    const updatedLevel = data.level_end_litres ?? data.level_litres
+    if (updatedLevel != null) {
       setTanks(prev => prev.map(t =>
         t.id === row.tank_id && (!t.last_dip_date || row.reading_date >= t.last_dip_date)
-          ? { ...t, last_dip_date: row.reading_date, last_dip_reading: row.level_litres }
+          ? { ...t, last_dip_date: row.reading_date, last_dip_reading: updatedLevel }
           : t
       ))
     }

@@ -66,7 +66,7 @@ function TankCard({ tank, balance, dip, daysRemaining }) {
     : daysRemaining < 7 ? THEME.warning
     : THEME.success
 
-  const variance = dip ? balance - Number(dip.level_litres) : null
+  const variance = dip ? balance - Number(dip.level_end_litres ?? dip.level_litres) : null
 
   return (
     <div style={{
@@ -119,7 +119,7 @@ function TankCard({ tank, balance, dip, daysRemaining }) {
           <div style={{ background: THEME.surfaceVar, borderRadius: '10px', padding: '8px 12px' }}>
             <div style={{ fontSize: '10px', color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.04em' }}>Last Dip</div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: dip ? THEME.text : THEME.textLow, lineHeight: 1.2 }}>
-              {dip ? `${Number(dip.level_litres).toFixed(0)} L` : '—'}
+              {dip ? `${Number(dip.level_end_litres ?? dip.level_litres).toFixed(0)} L` : '—'}
             </div>
             {dip && <div style={{ fontSize: '10px', color: THEME.textLow }}>{fmtDate(dip.reading_date)}</div>}
           </div>

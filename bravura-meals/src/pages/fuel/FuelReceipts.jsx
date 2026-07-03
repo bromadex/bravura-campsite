@@ -11,6 +11,21 @@ import { supabase } from '../../supabaseClient'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
+function interpolate(calibration, mm) {
+  if (!calibration || calibration.length === 0) return null
+  const sorted = [...calibration].sort((a, b) => a.dip_mm - b.dip_mm)
+  if (mm <= sorted[0].dip_mm) return sorted[0].level_litres
+  if (mm >= sorted[sorted.length - 1].dip_mm) return sorted[sorted.length - 1].level_litres
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const lo = sorted[i], hi = sorted[i + 1]
+    if (mm >= lo.dip_mm && mm <= hi.dip_mm) {
+      const t = (mm - lo.dip_mm) / (hi.dip_mm - lo.dip_mm)
+      return lo.level_litres + t * (hi.level_litres - lo.level_litres)
+    }
+  }
+  return null
+}
+
 const BLANK_FORM = {
   delivery_date:        new Date().toISOString().slice(0, 10),
   delivery_time:        new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
@@ -21,7 +36,9 @@ const BLANK_FORM = {
   quantity_delivered:   '',
   unit_price:           '',
   total_cost:           '',
+  dip_before_mm:        '',
   dip_before:           '',
+  dip_after_mm:         '',
   dip_after:            '',
   receiving_officer:    '',
   notes:                '',
@@ -55,6 +72,7 @@ const STATUS_MAP = {
   pending:   { bg: THEME.statusWarningBg,  text: THEME.statusWarningText,  label: 'Pending' },
   confirmed: { bg: THEME.statusSuccessBg,  text: THEME.statusSuccessText,  label: 'Confirmed' },
   queried:   { bg: THEME.statusErrorBg,    text: THEME.statusErrorText,    label: 'Queried' },
+  cancelled: { bg: '#f5f5f5',              text: THEME.textLow,            label: 'Cancelled' },
 }
 
 export default function FuelReceipts() {
@@ -69,6 +87,7 @@ export default function FuelReceipts() {
   const [showForm,   setShowForm]   = useState(false)
   const [form,       setForm]       = useState(BLANK_FORM)
   const [saving,     setSaving]     = useState(false)
+  const [calibration, setCalibration] = useState([])
 
   // Delivery history from fuel_deliveries table
   const [deliveries, setDeliveries] = useState([])
@@ -85,6 +104,13 @@ export default function FuelReceipts() {
   const [editId, setEditId] = useState(null)
 
   const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
+
+  // Load calibration table when tank changes
+  useEffect(() => {
+    if (!form.tank_id) { setCalibration([]); return }
+    supabase.from('tank_calibrations').select('dip_mm,level_litres').eq('tank_id', form.tank_id)
+      .then(({ data }) => setCalibration(data || []))
+  }, [form.tank_id])
 
   const fetchDeliveries = useCallback(async () => {
     if (!currentSiteId) return
@@ -149,6 +175,15 @@ export default function FuelReceipts() {
       if ((field === 'unit_price' || field === 'quantity_delivered') && next.unit_price && next.quantity_delivered) {
         next.total_cost = (Number(next.unit_price) * Number(next.quantity_delivered)).toFixed(2)
       }
+      // Auto-calculate litres from dip mm using calibration table
+      if (field === 'dip_before_mm' && value !== '') {
+        const litres = interpolate(calibration, parseFloat(value))
+        if (litres != null) next.dip_before = litres.toFixed(1)
+      }
+      if (field === 'dip_after_mm' && value !== '') {
+        const litres = interpolate(calibration, parseFloat(value))
+        if (litres != null) next.dip_after = litres.toFixed(1)
+      }
       return next
     })
   }
@@ -173,7 +208,9 @@ export default function FuelReceipts() {
       quantity_delivered:   del.quantity_delivered != null ? String(del.quantity_delivered) : '',
       unit_price:           del.unit_price != null ? String(del.unit_price) : '',
       total_cost:           del.total_cost != null ? String(del.total_cost) : '',
+      dip_before_mm:        del.dip_before_mm != null ? String(del.dip_before_mm) : '',
       dip_before:           del.dip_before != null ? String(del.dip_before) : '',
+      dip_after_mm:         del.dip_after_mm != null ? String(del.dip_after_mm) : '',
       dip_after:            del.dip_after != null ? String(del.dip_after) : '',
       receiving_officer:    del.receiving_officer || '',
       notes:                del.notes || '',
@@ -203,7 +240,9 @@ export default function FuelReceipts() {
         quantity_delivered:   Number(form.quantity_delivered),
         unit_price:           form.unit_price ? Number(form.unit_price) : null,
         total_cost:           form.total_cost ? Number(form.total_cost) : null,
+        dip_before_mm:        form.dip_before_mm ? Number(form.dip_before_mm) : null,
         dip_before:           form.dip_before ? Number(form.dip_before) : null,
+        dip_after_mm:         form.dip_after_mm ? Number(form.dip_after_mm) : null,
         dip_after:            form.dip_after ? Number(form.dip_after) : null,
         notes:                form.notes.trim() || null,
         created_by:           user?.id || null,
@@ -221,7 +260,9 @@ export default function FuelReceipts() {
             quantity_delivered:   payload.quantity_delivered,
             unit_price:           payload.unit_price,
             total_cost:           payload.total_cost,
+            dip_before_mm:        payload.dip_before_mm,
             dip_before:           payload.dip_before,
+            dip_after_mm:         payload.dip_after_mm,
             dip_after:            payload.dip_after,
             receiving_officer:    form.receiving_officer?.trim() || null,
             notes:                payload.notes,
@@ -261,6 +302,30 @@ export default function FuelReceipts() {
       refreshFuel()
     } catch (err) {
       showToast(err.message || 'Failed to save delivery', 'red')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function cancelDelivery() {
+    if (!editId) return
+    if (!confirm('Cancel this delivery? This will mark it as cancelled (it will not be deleted).')) return
+    setSaving(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { error } = await supabase
+        .from('fuel_deliveries')
+        .update({ status: 'cancelled', updated_by: user?.id || null })
+        .eq('id', editId)
+        .eq('site_id', currentSiteId)
+      if (error) throw error
+      showToast('Delivery cancelled', 'green')
+      setShowForm(false)
+      setEditId(null)
+      fetchDeliveries()
+      refreshFuel()
+    } catch (err) {
+      showToast(err.message || 'Failed to cancel delivery', 'red')
     } finally {
       setSaving(false)
     }
@@ -428,11 +493,15 @@ export default function FuelReceipts() {
             <FieldWrap label="Total Cost (USD)">
               <input type="number" min="0" step="0.01" value={form.total_cost} onChange={e => set('total_cost', e.target.value)} placeholder="Auto-calculated" style={inputStyle} />
             </FieldWrap>
-            <FieldWrap label="Dip Before Delivery (L)">
-              <input type="number" min="0" step="0.1" value={form.dip_before} onChange={e => set('dip_before', e.target.value)} placeholder="Tank dip reading" style={inputStyle} />
+            <FieldWrap label="Dip Before (mm)">
+              <input type="number" min="0" step="0.1" value={form.dip_before_mm} onChange={e => set('dip_before_mm', e.target.value)} placeholder="e.g. 850" style={inputStyle} />
+              {form.dip_before && <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>{Number(form.dip_before).toLocaleString(undefined, { maximumFractionDigits: 1 })} L</div>}
+              {calibration.length === 0 && form.dip_before_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table</div>}
             </FieldWrap>
-            <FieldWrap label="Dip After Delivery (L)">
-              <input type="number" min="0" step="0.1" value={form.dip_after} onChange={e => set('dip_after', e.target.value)} placeholder="Tank dip reading" style={inputStyle} />
+            <FieldWrap label="Dip After (mm)">
+              <input type="number" min="0" step="0.1" value={form.dip_after_mm} onChange={e => set('dip_after_mm', e.target.value)} placeholder="e.g. 1200" style={inputStyle} />
+              {form.dip_after && <div style={{ fontSize: '11px', color: THEME.success, marginTop: '4px', fontWeight: 600 }}>{Number(form.dip_after).toLocaleString(undefined, { maximumFractionDigits: 1 })} L → new tank level</div>}
+              {calibration.length === 0 && form.dip_after_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table</div>}
             </FieldWrap>
           </div>
 
@@ -466,7 +535,16 @@ export default function FuelReceipts() {
             )
           })()}
 
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', alignItems: 'center' }}>
+            {editId && (
+              <button onClick={cancelDelivery} disabled={saving} style={{
+                padding: '10px 20px', borderRadius: '6px', border: `1px solid ${THEME.error}`,
+                background: 'transparent', color: THEME.error, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                <Icon name="delete" size={15} style={{ color: THEME.error }} /> Cancel Delivery
+              </button>
+            )}
             <button onClick={() => { setShowForm(false); setEditId(null) }} style={{
               padding: '10px 20px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,
               background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
@@ -514,6 +592,7 @@ export default function FuelReceipts() {
             <option value="pending">Pending</option>
             <option value="confirmed">Confirmed</option>
             <option value="queried">Queried</option>
+            <option value="cancelled">Cancelled</option>
           </select>
         </div>
         {(dateFrom || dateTo || search || tankFilter || statusFilter) && (

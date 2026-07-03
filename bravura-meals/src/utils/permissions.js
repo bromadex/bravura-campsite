@@ -208,7 +208,7 @@ export function fuelNav(role, can) {
     { id: 'fuel_report_variance',     label: 'Variance Report',     section: 'Analytics & Reports', icon: 'compare_arrows',    show: can('fuel.view') },
     { id: 'fuel_cost_allocation',     label: 'Cost Allocation',     section: 'Analytics & Reports', icon: 'account_balance',   show: can('fuel.view') },
     { id: 'fuel_finance_export',      label: 'Finance Export',      section: 'Analytics & Reports', icon: 'receipt_long',      show: false },
-    { id: 'fuel_types',        label: 'Fuel Types',         section: 'Admin',    icon: 'oil_barrel',        show: can('fuel.edit') },
+    { id: 'fuel_types',        label: 'Fuel Types',         section: 'Admin',    icon: 'oil_barrel',        show: false },
     { id: 'fuel_settings',     label: 'Fuel Settings',      section: 'Admin',    icon: 'settings',          show: can('fuel.edit') },
   ].filter(item => item.show !== false)
 }

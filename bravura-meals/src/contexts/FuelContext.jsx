@@ -464,10 +464,9 @@ export function FuelProvider({ children }) {
   }
 
   async function updateTransaction(id, data) {
-    const { data: { user } } = await supabase.auth.getUser()
     const { data: row, error } = await supabase
       .from('fuel_transactions')
-      .update({ ...data, updated_by: user?.id || null })
+      .update(data)
       .eq('id', id)
       .eq('site_id', currentSiteId)
       .select('*, fuel_vehicles(id, fleet_number, registration), fuel_equipment(id, name, equipment_number), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
@@ -498,10 +497,9 @@ export function FuelProvider({ children }) {
   }
 
   async function updateDipReading(id, data) {
-    const { data: { user } } = await supabase.auth.getUser()
     const { data: row, error } = await supabase
       .from('fuel_dip_readings')
-      .update({ ...data, updated_by: user?.id || null })
+      .update(data)
       .eq('id', id)
       .eq('site_id', currentSiteId)
       .select()

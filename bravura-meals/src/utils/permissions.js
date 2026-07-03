@@ -189,7 +189,7 @@ export function fuelNav(role, can) {
     // Tank Management → Fuel Operations → Analytics & Reports → Admin
     { id: 'fuel_dashboard',    label: 'Dashboard',          section: 'Overview', icon: 'dashboard' },
     { id: 'fuel_tanks',         label: 'Fuel Tanks',         section: 'Tank Management', icon: 'water',             show: can('fuel.view')   },
-    { id: 'fuel_receipts',      label: 'Deliveries',         section: 'Tank Management', icon: 'local_shipping',    show: can('fuel.create') },
+    { id: 'fuel_receipts',      label: 'Tank Deliveries',    section: 'Tank Management', icon: 'local_shipping',    show: can('fuel.create') },
     { id: 'fuel_dips',          label: 'Dipstick Log',       section: 'Tank Management', icon: 'straighten',        show: can('fuel.create') },
     // Request form is reachable via the "New Request" button on the Fuel Requests list — no need for a separate nav item
     { id: 'fuel_request_form',  label: 'Request Fuel',       section: 'Fuel Operations', icon: 'send',              show: false },

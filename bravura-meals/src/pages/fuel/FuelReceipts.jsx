@@ -1,178 +1,452 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import {
-  PageHeader, Card, Button, Modal, Icon, SectionLabel,
+  PageHeader, Card, Button, Icon, SectionLabel,
   showToast, fmtDate, TableWrap, THead, Th, TRow, Td,
 } from '../../components/ui'
-import { parseTxnNotes } from './fuelDisplay'
+import { supabase } from '../../supabaseClient'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
-// Fuel transactions are IMMUTABLE — no edit or delete after creation.
-// A delivery that was entered incorrectly must be corrected via an adjustment.
-
 const BLANK_FORM = {
-  transaction_date: new Date().toISOString().slice(0, 10),
-  tank_id:          '',
-  litres:           '',
-  unit_price:       '',
-  total_cost:       '',
-  supplier:         '',
-  docket_number:    '',
-  notes:            '',
+  delivery_date:        new Date().toISOString().slice(0, 10),
+  delivery_time:        new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  supplier_name:        '',
+  delivery_note_number: '',
+  tank_id:              '',
+  quantity_ordered:     '',
+  quantity_delivered:   '',
+  unit_price:           '',
+  total_cost:           '',
+  dip_before:           '',
+  dip_after:            '',
+  receiving_officer:    '',
+  notes:                '',
+}
+
+const inputStyle = {
+  width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`,
+  borderRadius: '12px', fontSize: '14px', color: THEME.text,
+  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+  background: THEME.surface, display: 'block',
+}
+
+const filterInputStyle = {
+  padding: '9px 12px', border: `1px solid ${THEME.outline}`,
+  borderRadius: '10px', fontSize: '13px', color: THEME.text,
+  fontFamily: 'inherit', outline: 'none', background: THEME.surface,
+}
+
+function FieldWrap({ label, required, children, span }) {
+  return (
+    <div style={{ gridColumn: span ? `span ${span}` : undefined }}>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+        {label}{required && <span style={{ color: THEME.error, marginLeft: '3px' }}>*</span>}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+const STATUS_MAP = {
+  pending:   { bg: THEME.statusWarningBg,  text: THEME.statusWarningText,  label: 'Pending' },
+  confirmed: { bg: THEME.statusSuccessBg,  text: THEME.statusSuccessText,  label: 'Confirmed' },
+  queried:   { bg: THEME.statusErrorBg,    text: THEME.statusErrorText,    label: 'Queried' },
 }
 
 export default function FuelReceipts() {
   const { can } = usePermissions()
-  const { currentSite } = useSite()
-  const { tanks, receipts, addTransaction, loading } = useFuel()
+  const { currentSiteId, currentSite } = useSite()
+  const { tanks, addTransaction, refresh: refreshFuel } = useFuel()
 
-  const canDeliver = can('fuel.create')
+  const canCreate  = can('fuel.create')
   const canView    = can('fuel.view')
+  const canApprove = can('fuel.approve')
 
-  const [modal,    setModal]    = useState(false)
-  const [form,     setForm]     = useState(BLANK_FORM)
-  const [saving,   setSaving]   = useState(false)
+  const [showForm,   setShowForm]   = useState(false)
+  const [form,       setForm]       = useState(BLANK_FORM)
+  const [saving,     setSaving]     = useState(false)
+
+  // Delivery history from fuel_deliveries table
+  const [deliveries, setDeliveries] = useState([])
+  const [loadingDel, setLoadingDel] = useState(true)
+
+  // Filters
+  const [search,   setSearch]   = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo,   setDateTo]   = useState('')
-  const [search,   setSearch]   = useState('')
+  const [tankFilter, setTankFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+
+  // Edit row
+  const [editId, setEditId] = useState(null)
+
+  const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
+
+  const fetchDeliveries = useCallback(async () => {
+    if (!currentSiteId) return
+    setLoadingDel(true)
+    const { data, error } = await supabase
+      .from('fuel_deliveries')
+      .select('*, fuel_tanks(id, name, fuel_types(name)), confirmed_profile:profiles!fuel_deliveries_confirmed_by_fkey(id, full_name), created_profile:profiles!fuel_deliveries_created_by_fkey(id, full_name)')
+      .eq('site_id', currentSiteId)
+      .order('delivery_date', { ascending: false })
+      .order('created_at', { ascending: false })
+    if (!error && data) setDeliveries(data)
+    setLoadingDel(false)
+  }, [currentSiteId])
+
+  useEffect(() => { fetchDeliveries() }, [fetchDeliveries])
 
   if (!canView) return null
 
-  function openAdd() {
-    setForm({ ...BLANK_FORM, transaction_date: new Date().toISOString().slice(0, 10) })
-    setModal(true)
+  function set(field, value) {
+    setForm(prev => {
+      const next = { ...prev, [field]: value }
+      if ((field === 'unit_price' || field === 'quantity_delivered') && next.unit_price && next.quantity_delivered) {
+        next.total_cost = (Number(next.unit_price) * Number(next.quantity_delivered)).toFixed(2)
+      }
+      return next
+    })
   }
 
-  function set(field, value) { setForm(prev => ({ ...prev, [field]: value })) }
+  function openAdd() {
+    setEditId(null)
+    setForm({ ...BLANK_FORM, delivery_date: new Date().toISOString().slice(0, 10), delivery_time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) })
+    setShowForm(true)
+  }
+
+  function openEdit(del) {
+    if (!canCreate && !canApprove) return
+    setEditId(del.id)
+    setForm({
+      delivery_date:        del.delivery_date || '',
+      delivery_time:        '',
+      supplier_name:        del.supplier_name || '',
+      delivery_note_number: del.delivery_note_number || '',
+      tank_id:              del.tank_id || '',
+      quantity_ordered:     del.quantity_ordered != null ? String(del.quantity_ordered) : '',
+      quantity_delivered:   del.quantity_delivered != null ? String(del.quantity_delivered) : '',
+      unit_price:           del.unit_price != null ? String(del.unit_price) : '',
+      total_cost:           del.total_cost != null ? String(del.total_cost) : '',
+      dip_before:           del.dip_before != null ? String(del.dip_before) : '',
+      dip_after:            del.dip_after != null ? String(del.dip_after) : '',
+      receiving_officer:    del.receiving_officer || '',
+      notes:                del.notes || '',
+    })
+    setShowForm(true)
+  }
 
   async function save() {
-    if (!form.tank_id)  { showToast('Select a tank', 'red'); return }
-    if (!form.litres || isNaN(form.litres) || Number(form.litres) <= 0) {
-      showToast('Enter a valid quantity in litres', 'red'); return
+    if (!form.tank_id) { showToast('Select a receiving tank', 'red'); return }
+    if (!form.supplier_name.trim()) { showToast('Enter the supplier name', 'red'); return }
+    if (!form.quantity_delivered || isNaN(form.quantity_delivered) || Number(form.quantity_delivered) <= 0) {
+      showToast('Enter a valid quantity delivered', 'red'); return
     }
+
     setSaving(true)
     try {
-      await addTransaction({
-        transaction_type: 'delivery',
-        transaction_date: form.transaction_date,
-        tank_id:          form.tank_id,
-        litres:           Number(form.litres),
-        unit_price:       form.unit_price ? Number(form.unit_price) : null,
-        total_cost:       form.total_cost ? Number(form.total_cost) : (form.unit_price && form.litres ? Number(form.unit_price) * Number(form.litres) : null),
-        supplier:         form.supplier.trim()      || null,
-        docket_number:    form.docket_number.trim() || null,
-        notes:            form.notes.trim()         || null,
-      })
-      showToast('Delivery recorded', 'green')
-      setModal(false)
+      const { data: { user } } = await supabase.auth.getUser()
+      const deliveryNumber = 'DEL-' + Date.now()
+
+      const payload = {
+        site_id:              currentSiteId,
+        delivery_date:        form.delivery_date,
+        supplier_name:        form.supplier_name.trim(),
+        delivery_note_number: form.delivery_note_number.trim() || null,
+        tank_id:              form.tank_id,
+        quantity_ordered:     form.quantity_ordered ? Number(form.quantity_ordered) : null,
+        quantity_delivered:   Number(form.quantity_delivered),
+        unit_price:           form.unit_price ? Number(form.unit_price) : null,
+        total_cost:           form.total_cost ? Number(form.total_cost) : null,
+        dip_before:           form.dip_before ? Number(form.dip_before) : null,
+        dip_after:            form.dip_after ? Number(form.dip_after) : null,
+        notes:                form.notes.trim() || null,
+        created_by:           user?.id || null,
+      }
+
+      if (editId) {
+        const { error } = await supabase
+          .from('fuel_deliveries')
+          .update({
+            delivery_date:        payload.delivery_date,
+            supplier_name:        payload.supplier_name,
+            delivery_note_number: payload.delivery_note_number,
+            tank_id:              payload.tank_id,
+            quantity_ordered:     payload.quantity_ordered,
+            quantity_delivered:   payload.quantity_delivered,
+            unit_price:           payload.unit_price,
+            total_cost:           payload.total_cost,
+            dip_before:           payload.dip_before,
+            dip_after:            payload.dip_after,
+            notes:                payload.notes,
+          })
+          .eq('id', editId)
+          .eq('site_id', currentSiteId)
+        if (error) throw error
+        showToast('Delivery updated', 'green')
+      } else {
+        payload.delivery_number = deliveryNumber
+
+        const { error } = await supabase
+          .from('fuel_deliveries')
+          .insert([payload])
+        if (error) throw error
+
+        // Also record in fuel_transactions to update tank level
+        await addTransaction({
+          transaction_type:  'delivery',
+          transaction_date:  form.delivery_date,
+          tank_id:           form.tank_id,
+          litres:            Number(form.quantity_delivered),
+          unit_price:        form.unit_price ? Number(form.unit_price) : null,
+          total_cost:        form.total_cost ? Number(form.total_cost) : null,
+          supplier:          form.supplier_name.trim(),
+          docket_number:     form.delivery_note_number.trim() || null,
+          notes:             form.receiving_officer ? `Received by: ${form.receiving_officer.trim()}${form.notes ? ' | ' + form.notes.trim() : ''}` : (form.notes.trim() || null),
+        })
+
+        showToast('Delivery recorded', 'green')
+      }
+
+      setShowForm(false)
+      setEditId(null)
+      fetchDeliveries()
+      refreshFuel()
     } catch (err) {
-      showToast(err.message || 'Failed to record delivery', 'red')
+      showToast(err.message || 'Failed to save delivery', 'red')
     } finally {
       setSaving(false)
     }
   }
 
-  const tankOf   = id => tanks.find(t => t.id === id)
-  const tankName = id => tankOf(id)?.name || '—'
+  // ── Filtering ────────────────────────────────────────────────────────────────
 
   const q = search.toLowerCase().trim()
-  const filtered = receipts.filter(r => {
-    if (dateFrom && r.transaction_date < dateFrom) return false
-    if (dateTo   && r.transaction_date > dateTo)   return false
+  const filtered = useMemo(() => deliveries.filter(r => {
+    if (dateFrom && r.delivery_date < dateFrom) return false
+    if (dateTo   && r.delivery_date > dateTo)   return false
+    if (tankFilter && r.tank_id !== tankFilter) return false
+    if (statusFilter && r.status !== statusFilter) return false
     if (q) {
-      const hay = `${r.supplier || ''} ${r.notes || ''} ${r.docket_number || ''} ${tankName(r.tank_id)}`.toLowerCase()
+      const hay = `${r.supplier_name || ''} ${r.delivery_note_number || ''} ${r.notes || ''} ${r.fuel_tanks?.name || ''}`.toLowerCase()
       if (!hay.includes(q)) return false
     }
     return true
-  })
+  }), [deliveries, dateFrom, dateTo, tankFilter, statusFilter, q])
+
+  // ── Export ───────────────────────────────────────────────────────────────────
 
   function exportCsv() {
-    const headers = ['Date', 'Tank', 'Fuel Type', 'Quantity (L)', 'Amount (USD)', 'Supplier', 'Docket #', 'Notes']
-    const lines = filtered.map(r => {
-      const tank = tankOf(r.tank_id)
-      return [
-        r.transaction_date,
-        tank?.name || '',
-        tank?.fuel_types?.name || 'Diesel',
-        Number(r.litres).toFixed(1),
-        r.total_cost != null ? Number(r.total_cost).toFixed(2) : '',
-        r.supplier || '',
-        r.docket_number || '',
-        r.notes || '',
-      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
-    })
+    const headers = ['Date', 'Tank', 'Fuel Type', 'Supplier', 'Qty Delivered (L)', 'Unit Price', 'Total Cost', 'Delivery Note', 'Dip Before (L)', 'Dip After (L)', 'Status', 'Recorded By', 'Notes']
+    const lines = filtered.map(r => [
+      r.delivery_date,
+      r.fuel_tanks?.name || '',
+      r.fuel_tanks?.fuel_types?.name || 'Diesel',
+      r.supplier_name || '',
+      Number(r.quantity_delivered).toFixed(1),
+      r.unit_price != null ? Number(r.unit_price).toFixed(4) : '',
+      r.total_cost != null ? Number(r.total_cost).toFixed(2) : '',
+      r.delivery_note_number || '',
+      r.dip_before != null ? Number(r.dip_before).toFixed(1) : '',
+      r.dip_after != null ? Number(r.dip_after).toFixed(1) : '',
+      r.status || '',
+      r.created_profile?.full_name || '',
+      r.notes || '',
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
     const blob = new Blob([[headers.join(','), ...lines].join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
-    a.download = `fuel-deliveries-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
+    a.href = url; a.download = `tank-deliveries-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
-  const activeTanks = tanks.filter(t => t.status === 'active' && !t.is_archived)
+  function printTable() {
+    const w = window.open('', '_blank', 'width=900,height=700')
+    if (!w) return
+    const rows = filtered.map((r, i) => `<tr>
+      <td>${i + 1}</td><td>${r.delivery_date}</td><td>${r.fuel_tanks?.name || ''}</td>
+      <td>${r.supplier_name || ''}</td><td>${r.fuel_tanks?.fuel_types?.name || 'Diesel'}</td>
+      <td style="text-align:right">${Number(r.quantity_delivered).toFixed(1)}</td>
+      <td style="text-align:right">${r.unit_price != null ? Number(r.unit_price).toFixed(4) : '—'}</td>
+      <td style="text-align:right">${r.total_cost != null ? Number(r.total_cost).toFixed(2) : '—'}</td>
+      <td>${r.delivery_note_number || '—'}</td>
+      <td>${(STATUS_MAP[r.status] || STATUS_MAP.pending).label}</td>
+    </tr>`).join('')
+    w.document.write(`<html><head><title>Tank Deliveries</title><style>body{font:11pt monospace;margin:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:4px 6px;text-align:left}th{background:#eee}</style></head><body>
+      <h2>Tank Deliveries — ${currentSite?.name || ''}</h2><p>${filtered.length} records · Printed ${new Date().toLocaleString()}</p>
+      <table><thead><tr><th>#</th><th>Date</th><th>Tank</th><th>Supplier</th><th>Fuel</th><th>Qty (L)</th><th>Unit Price</th><th>Total</th><th>Del Note</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></body></html>`)
+    w.document.close()
+    setTimeout(() => w.print(), 300)
+  }
 
-  // ── KPI strip ──────────────────────────────────────────────────────────
+  // ── KPIs ─────────────────────────────────────────────────────────────────────
+
   const kpis = useMemo(() => {
     const monthStart = new Date().toISOString().slice(0, 8) + '01'
-    let totalL = 0, monthL = 0, monthCount = 0, last = null
+    let totalL = 0, totalCost = 0, monthL = 0, monthCount = 0
     const suppliers = new Set()
-    for (const r of receipts) {
-      const l = Number(r.litres) || 0
+    for (const r of deliveries) {
+      const l = Number(r.quantity_delivered) || 0
       totalL += l
-      if (r.supplier) suppliers.add(r.supplier.trim().toLowerCase())
-      if (r.transaction_date >= monthStart) { monthL += l; monthCount++ }
-      if (!last || r.transaction_date > last.transaction_date) last = r
+      if (r.total_cost) totalCost += Number(r.total_cost)
+      if (r.supplier_name) suppliers.add(r.supplier_name.trim().toLowerCase())
+      if (r.delivery_date >= monthStart) { monthL += l; monthCount++ }
     }
-    return { totalL, monthL, monthCount, suppliers: suppliers.size, last }
-  }, [receipts])
+    return { totalL, totalCost, monthL, monthCount, suppliers: suppliers.size, count: deliveries.length }
+  }, [deliveries])
 
-  if (loading) return null
+  if (loadingDel) return null
 
   return (
     <div style={{ maxWidth: '1100px' }}>
       <PageHeader
-        title="Fuel Deliveries"
+        title="Tank Deliveries"
         site={currentSite}
         actions={
           <div style={{ display: 'flex', gap: '8px' }}>
             {filtered.length > 0 && (
-              <button onClick={exportCsv} style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500,
-                background: THEME.surfaceVar, color: FUEL_CLR, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                <Icon name="download" size={15} style={{ color: FUEL_CLR }} /> Export
-              </button>
+              <>
+                <button onClick={exportCsv} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: THEME.surfaceVar, color: FUEL_CLR, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <Icon name="download" size={15} style={{ color: FUEL_CLR }} /> Export
+                </button>
+                <button onClick={printTable} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: THEME.surfaceVar, color: THEME.textMed, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <Icon name="print" size={15} style={{ color: THEME.textMed }} /> Print
+                </button>
+              </>
             )}
-            {canDeliver && <Button onClick={openAdd} icon="local_gas_station">Add Delivery</Button>}
+            {canCreate && !showForm && <Button onClick={openAdd} icon="local_shipping">Record Delivery</Button>}
           </div>
         }
       />
 
       {/* ── KPI strip ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-        <DeliveryKpi icon="water_drop"  label="Total delivered"  value={`${kpis.totalL.toLocaleString()} L`} color={THEME.success} sub={`${receipts.length} deliver${receipts.length === 1 ? 'y' : 'ies'}`} />
-        <DeliveryKpi icon="bar_chart"   label="This month"       value={`${kpis.monthL.toLocaleString()} L`} color={FUEL_CLR} sub={kpis.monthCount ? `${kpis.monthCount} deliver${kpis.monthCount === 1 ? 'y' : 'ies'}` : 'None yet'} />
-        <DeliveryKpi icon="event"       label="Last delivery"    value={kpis.last ? fmtDate(kpis.last.transaction_date) : '—'} color={THEME.info} sub={kpis.last?.supplier || null} small />
-        <DeliveryKpi icon="storefront"  label="Suppliers"        value={kpis.suppliers || '—'} color="#5E35B1" />
+        <KpiCard icon="water_drop" label="Total delivered" value={`${kpis.totalL.toLocaleString(undefined, { maximumFractionDigits: 0 })} L`} color={THEME.success} sub={`${kpis.count} deliver${kpis.count === 1 ? 'y' : 'ies'}`} />
+        <KpiCard icon="bar_chart" label="This month" value={`${kpis.monthL.toLocaleString(undefined, { maximumFractionDigits: 0 })} L`} color={FUEL_CLR} sub={kpis.monthCount ? `${kpis.monthCount} deliver${kpis.monthCount === 1 ? 'y' : 'ies'}` : 'None yet'} />
+        <KpiCard icon="payments" label="Total cost" value={kpis.totalCost ? `$${kpis.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'} color={THEME.info} />
+        <KpiCard icon="storefront" label="Suppliers" value={kpis.suppliers || '—'} color="#5E35B1" />
       </div>
 
-      {/* Search + date range filter */}
+      {/* ── Delivery Form (inline, collapsible) ── */}
+      {showForm && canCreate && (
+        <Card style={{ marginBottom: '20px', padding: '24px', borderLeft: `4px solid ${FUEL_CLR}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>
+              {editId ? 'Edit Delivery' : 'Record New Delivery'}
+            </div>
+            <button onClick={() => { setShowForm(false); setEditId(null) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: '4px' }}>
+              <Icon name="close" size={20} />
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '14px' }}>
+            <FieldWrap label="Delivery Date" required>
+              <input type="date" value={form.delivery_date} onChange={e => set('delivery_date', e.target.value)} style={inputStyle} />
+            </FieldWrap>
+            <FieldWrap label="Time">
+              <input type="time" value={form.delivery_time} onChange={e => set('delivery_time', e.target.value)} style={inputStyle} />
+            </FieldWrap>
+            <FieldWrap label="Supplier" required>
+              <input value={form.supplier_name} onChange={e => set('supplier_name', e.target.value)} placeholder="e.g. NOIC, Zuva" style={inputStyle} />
+            </FieldWrap>
+            <FieldWrap label="Delivery Note Number">
+              <input value={form.delivery_note_number} onChange={e => set('delivery_note_number', e.target.value)} placeholder="e.g. DN-12345" style={inputStyle} />
+            </FieldWrap>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '14px' }}>
+            <FieldWrap label="Receiving Tank" required>
+              <select value={form.tank_id} onChange={e => set('tank_id', e.target.value)} style={inputStyle}>
+                <option value="">— Select tank —</option>
+                {activeTanks.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.fuel_types?.name || 'Diesel'})</option>
+                ))}
+              </select>
+            </FieldWrap>
+            <FieldWrap label="Fuel Type">
+              <input value={form.tank_id ? (tanks.find(t => t.id === form.tank_id)?.fuel_types?.name || 'Diesel') : ''} disabled style={{ ...inputStyle, opacity: 0.6 }} />
+            </FieldWrap>
+            <FieldWrap label="Qty Ordered (L)">
+              <input type="number" min="0" step="0.1" value={form.quantity_ordered} onChange={e => set('quantity_ordered', e.target.value)} placeholder="Optional" style={inputStyle} />
+            </FieldWrap>
+            <FieldWrap label="Qty Delivered (L)" required>
+              <input type="number" min="0.1" step="0.1" value={form.quantity_delivered} onChange={e => set('quantity_delivered', e.target.value)} placeholder="e.g. 5000" style={inputStyle} />
+            </FieldWrap>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '14px' }}>
+            <FieldWrap label="Unit Price (per litre)">
+              <input type="number" min="0" step="0.01" value={form.unit_price} onChange={e => set('unit_price', e.target.value)} placeholder="e.g. 1.85" style={inputStyle} />
+            </FieldWrap>
+            <FieldWrap label="Total Cost (USD)">
+              <input type="number" min="0" step="0.01" value={form.total_cost} onChange={e => set('total_cost', e.target.value)} placeholder="Auto-calculated" style={inputStyle} />
+            </FieldWrap>
+            <FieldWrap label="Dip Before Delivery (L)">
+              <input type="number" min="0" step="0.1" value={form.dip_before} onChange={e => set('dip_before', e.target.value)} placeholder="Tank dip reading" style={inputStyle} />
+            </FieldWrap>
+            <FieldWrap label="Dip After Delivery (L)">
+              <input type="number" min="0" step="0.1" value={form.dip_after} onChange={e => set('dip_after', e.target.value)} placeholder="Tank dip reading" style={inputStyle} />
+            </FieldWrap>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+            <FieldWrap label="Receiving Officer">
+              <input value={form.receiving_officer} onChange={e => set('receiving_officer', e.target.value)} placeholder="Name of person receiving" style={inputStyle} />
+            </FieldWrap>
+            <FieldWrap label="Notes">
+              <input value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Any additional notes…" style={inputStyle} />
+            </FieldWrap>
+          </div>
+
+          {/* Dip variance info */}
+          {form.dip_before && form.dip_after && form.quantity_delivered && (() => {
+            const actualGain = Number(form.dip_after) - Number(form.dip_before)
+            const expected = Number(form.quantity_delivered)
+            const variance = actualGain - expected
+            const pct = expected ? ((variance / expected) * 100).toFixed(1) : 0
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px',
+                background: Math.abs(variance) > expected * 0.02 ? THEME.statusWarningBg : THEME.statusSuccessBg,
+                border: `1px solid ${Math.abs(variance) > expected * 0.02 ? THEME.warning + '55' : THEME.success + '55'}`,
+                marginBottom: '14px', fontSize: '12px',
+              }}>
+                <Icon name={Math.abs(variance) > expected * 0.02 ? 'warning' : 'check_circle'} size={16} style={{ color: Math.abs(variance) > expected * 0.02 ? THEME.warning : THEME.success }} />
+                <span>
+                  Dip variance: {actualGain.toFixed(1)} L measured vs {expected.toFixed(1)} L delivered = <strong>{variance >= 0 ? '+' : ''}{variance.toFixed(1)} L ({pct}%)</strong>
+                </span>
+              </div>
+            )
+          })()}
+
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <button onClick={() => { setShowForm(false); setEditId(null) }} style={{
+              padding: '10px 20px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,
+              background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            }}>Cancel</button>
+            <button onClick={save} disabled={saving} style={{
+              padding: '10px 24px', borderRadius: '6px', border: 'none',
+              background: saving ? THEME.outline : FUEL_CLR, color: '#fff',
+              fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}>
+              {saving ? 'Saving…' : editId ? 'Update Delivery' : 'Record Delivery'}
+            </button>
+          </div>
+        </Card>
+      )}
+
+      {/* ── Filters ── */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 220px' }}>
+        <div style={{ flex: '1 1 200px' }}>
           <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Search</div>
           <div style={{ position: 'relative' }}>
             <Icon name="search" size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: THEME.textLow }} />
-            <input
-              type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Supplier, docket, notes…"
-              style={{ ...filterInputStyle, paddingLeft: '32px', width: '100%', boxSizing: 'border-box' }}
-            />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Supplier, note, tank…" style={{ ...filterInputStyle, paddingLeft: '32px', width: '100%', boxSizing: 'border-box' }} />
           </div>
         </div>
         <div>
@@ -183,93 +457,101 @@ export default function FuelReceipts() {
           <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>To</div>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={filterInputStyle} />
         </div>
-        {(dateFrom || dateTo || search) && (
-          <button onClick={() => { setDateFrom(''); setDateTo(''); setSearch('') }} style={clearBtnStyle}>Clear</button>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Tank</div>
+          <select value={tankFilter} onChange={e => setTankFilter(e.target.value)} style={filterInputStyle}>
+            <option value="">All tanks</option>
+            {activeTanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Status</div>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={filterInputStyle}>
+            <option value="">All</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="queried">Queried</option>
+          </select>
+        </div>
+        {(dateFrom || dateTo || search || tankFilter || statusFilter) && (
+          <button onClick={() => { setDateFrom(''); setDateTo(''); setSearch(''); setTankFilter(''); setStatusFilter('') }} style={{ background: 'none', border: `1px solid ${THEME.outline}`, borderRadius: '8px', padding: '9px 14px', cursor: 'pointer', fontSize: '12px', color: THEME.textMed, fontFamily: 'inherit', alignSelf: 'flex-end' }}>Clear</button>
         )}
         <div style={{ marginLeft: 'auto', fontSize: '12px', color: THEME.textLow, alignSelf: 'flex-end', paddingBottom: '2px' }}>
-          {filtered.length} delivery record{filtered.length !== 1 ? 's' : ''}
+          {filtered.length} record{filtered.length !== 1 ? 's' : ''}
         </div>
       </div>
 
+      {/* ── Delivery History Table ── */}
       <Card style={{ padding: 0 }}>
-        {receipts.length === 0 ? (
+        {deliveries.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', color: THEME.textLow }}>
-            <Icon name="local_gas_station" size={40} style={{ display: 'block', margin: '0 auto 10px', color: THEME.outline }} />
+            <Icon name="local_shipping" size={40} style={{ display: 'block', margin: '0 auto 10px', color: THEME.outline }} />
             <p style={{ fontSize: '14px', margin: 0 }}>No fuel deliveries recorded yet.</p>
+            {canCreate && <p style={{ fontSize: '13px', color: FUEL_CLR, cursor: 'pointer', marginTop: '8px' }} onClick={openAdd}>Record your first delivery</p>}
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', color: THEME.textLow }}>
             <Icon name="search_off" size={40} style={{ display: 'block', margin: '0 auto 10px', color: THEME.outline }} />
-            <p style={{ fontSize: '14px', margin: 0 }}>No deliveries in this date range.</p>
+            <p style={{ fontSize: '14px', margin: 0 }}>No deliveries match your filters.</p>
           </div>
         ) : (
           <TableWrap>
             <THead>
               <Th>Date</Th>
               <Th>Tank</Th>
+              <Th>Supplier</Th>
               <Th>Fuel Type</Th>
               <Th align="right">Quantity</Th>
-              <Th align="right">Amount (USD)</Th>
-              <Th>Supplier</Th>
-              <Th>Docket</Th>
-              <Th>Notes</Th>
+              <Th align="right">Unit Price</Th>
+              <Th align="right">Total Cost</Th>
+              <Th>Delivery Note</Th>
+              <Th>Status</Th>
+              <Th>Recorded By</Th>
             </THead>
             <tbody>
               {filtered.map((r, idx) => {
-                const parsed = parseTxnNotes(r.notes)
-                const tank = tankOf(r.tank_id)
+                const st = STATUS_MAP[r.status] || STATUS_MAP.pending
                 return (
-                  <TRow key={r.id} last={idx === filtered.length - 1}>
-                    <Td style={{ whiteSpace: 'nowrap' }}>{fmtDate(r.transaction_date)}</Td>
+                  <TRow key={r.id} last={idx === filtered.length - 1}
+                    onClick={() => openEdit(r)}
+                    style={{ cursor: (canCreate || canApprove) ? 'pointer' : 'default' }}
+                  >
+                    <Td style={{ whiteSpace: 'nowrap' }}>{fmtDate(r.delivery_date)}</Td>
                     <Td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Icon name="propane_tank" size={16} style={{ color: FUEL_CLR }} />
-                        <span style={{ fontWeight: 500 }}>{tankName(r.tank_id)}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Icon name="propane_tank" size={15} style={{ color: FUEL_CLR }} />
+                        <span style={{ fontWeight: 500 }}>{r.fuel_tanks?.name || '—'}</span>
                       </div>
                     </Td>
                     <Td>
-                      <span style={{
-                        padding: '2px 9px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
-                        background: THEME.surfaceVar, color: THEME.textMed, letterSpacing: '.04em',
-                        textTransform: 'uppercase',
-                      }}>
-                        {tank?.fuel_types?.name || 'Diesel'}
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: THEME.statusInfoBg, color: THEME.statusInfoText }}>
+                        {r.supplier_name}
+                      </span>
+                    </Td>
+                    <Td>
+                      <span style={{ padding: '2px 9px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, background: THEME.surfaceVar, color: THEME.textMed, letterSpacing: '.04em', textTransform: 'uppercase' }}>
+                        {r.fuel_tanks?.fuel_types?.name || 'Diesel'}
                       </span>
                     </Td>
                     <Td align="right" style={{ fontWeight: 700, color: THEME.success, whiteSpace: 'nowrap' }}>
-                      +{Number(r.litres).toLocaleString(undefined, { maximumFractionDigits: 1 })} L
+                      +{Number(r.quantity_delivered).toLocaleString(undefined, { maximumFractionDigits: 1 })} L
+                    </Td>
+                    <Td align="right" style={{ color: THEME.textMed, whiteSpace: 'nowrap' }}>
+                      {r.unit_price != null ? `$${Number(r.unit_price).toFixed(4)}` : '—'}
                     </Td>
                     <Td align="right" style={{ color: THEME.textMed, whiteSpace: 'nowrap' }}>
                       {r.total_cost != null ? `$${Number(r.total_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                     </Td>
+                    <Td style={{ fontFamily: 'monospace', fontSize: '12px', color: THEME.textMed }}>
+                      {r.delivery_note_number || '—'}
+                    </Td>
                     <Td>
-                      {r.supplier ? (
-                        <span style={{
-                          padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
-                          background: THEME.statusInfoBg, color: THEME.statusInfoText,
-                        }}>
-                          {r.supplier}
-                        </span>
-                      ) : <span style={{ color: THEME.textLow }}>—</span>}
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: 700, background: st.bg, color: st.text, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                        {st.label}
+                      </span>
                     </Td>
-                    <Td style={{ color: THEME.textMed, fontFamily: 'monospace', fontSize: '12px' }}>
-                      {r.docket_number || '—'}
-                    </Td>
-                    <Td style={{ maxWidth: '200px' }}>
-                      {parsed.legacy ? (
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '4px',
-                          padding: '3px 9px', borderRadius: '20px', fontSize: '10px', fontWeight: 600,
-                          background: THEME.surfaceVar, color: THEME.textLow,
-                        }}>
-                          <Icon name="history" size={11} style={{ color: THEME.textLow }} />
-                          Imported
-                        </span>
-                      ) : (
-                        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: THEME.textMed }}>
-                          {parsed.clean || '—'}
-                        </span>
-                      )}
+                    <Td style={{ fontSize: '12px', color: THEME.textMed }}>
+                      {r.created_profile?.full_name || '—'}
                     </Td>
                   </TRow>
                 )
@@ -278,103 +560,11 @@ export default function FuelReceipts() {
           </TableWrap>
         )}
       </Card>
-
-      {/* Record Delivery Modal */}
-      <Modal
-        open={modal}
-        onClose={() => setModal(false)}
-        title="Record Fuel Delivery"
-        footer={
-          <>
-            <Button onClick={() => setModal(false)} variant="text">Cancel</Button>
-            <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Record Delivery'}</Button>
-          </>
-        }
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 14px' }}>
-          <div>
-            <SectionLabel>Delivery Date</SectionLabel>
-            <input
-              type="date" value={form.transaction_date}
-              onChange={e => set('transaction_date', e.target.value)}
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <SectionLabel>Tank *</SectionLabel>
-            <select value={form.tank_id} onChange={e => set('tank_id', e.target.value)} style={inputStyle}>
-              <option value="">— Select tank —</option>
-              {activeTanks.map(t => (
-                <option key={t.id} value={t.id}>{t.name} ({t.fuel_types?.name || 'Diesel'})</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <SectionLabel>Quantity Received (Litres) *</SectionLabel>
-          <input
-            type="number" min="0.1" step="0.1"
-            value={form.litres}
-            onChange={e => set('litres', e.target.value)}
-            placeholder="e.g. 5000"
-            style={inputStyle}
-          />
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 14px' }}>
-          <div>
-            <SectionLabel>Unit Price (per litre)</SectionLabel>
-            <input
-              type="number" min="0" step="0.01"
-              value={form.unit_price}
-              onChange={e => {
-                set('unit_price', e.target.value)
-                if (e.target.value && form.litres) set('total_cost', String((Number(e.target.value) * Number(form.litres)).toFixed(2)))
-              }}
-              placeholder="e.g. 1.85"
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <SectionLabel>Total Cost (USD)</SectionLabel>
-            <input
-              type="number" min="0" step="0.01"
-              value={form.total_cost}
-              onChange={e => set('total_cost', e.target.value)}
-              placeholder="Auto-calculated or enter"
-              style={inputStyle}
-            />
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 14px' }}>
-          <div>
-            <SectionLabel>Supplier</SectionLabel>
-            <input value={form.supplier} onChange={e => set('supplier', e.target.value)} placeholder="e.g. NOIC" style={inputStyle} />
-          </div>
-          <div>
-            <SectionLabel>Delivery Docket / Reference</SectionLabel>
-            <input value={form.docket_number} onChange={e => set('docket_number', e.target.value)} placeholder="e.g. DN-12345" style={inputStyle} />
-          </div>
-        </div>
-
-        <div>
-          <SectionLabel>Notes</SectionLabel>
-          <textarea
-            value={form.notes}
-            onChange={e => set('notes', e.target.value)}
-            placeholder="Any additional notes…"
-            rows={2}
-            style={{ ...inputStyle, resize: 'vertical' }}
-          />
-        </div>
-      </Modal>
     </div>
   )
 }
 
-function DeliveryKpi({ icon, label, value, sub, color, small }) {
+function KpiCard({ icon, label, value, sub, color }) {
   return (
     <div style={{
       background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
@@ -390,37 +580,10 @@ function DeliveryKpi({ icon, label, value, sub, color, small }) {
         <Icon name={icon} size={18} style={{ color }} />
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '3px' }}>
-          {label}
-        </div>
-        <div style={{
-          fontSize: small ? '14px' : '20px', fontWeight: small ? 600 : 700,
-          color: THEME.text, lineHeight: 1.15,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {value}
-        </div>
+        <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '3px' }}>{label}</div>
+        <div style={{ fontSize: '20px', fontWeight: 700, color: THEME.text, lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
         {sub && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>{sub}</div>}
       </div>
     </div>
   )
-}
-
-const inputStyle = {
-  width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`,
-  borderRadius: '12px', fontSize: '14px', color: THEME.text,
-  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-  background: THEME.surface, marginBottom: '14px', display: 'block',
-}
-
-const filterInputStyle = {
-  padding: '9px 12px', border: `1px solid ${THEME.outline}`,
-  borderRadius: '10px', fontSize: '13px', color: THEME.text,
-  fontFamily: 'inherit', outline: 'none', background: THEME.surface,
-}
-
-const clearBtnStyle = {
-  background: 'none', border: `1px solid ${THEME.outline}`, borderRadius: '8px',
-  padding: '9px 14px', cursor: 'pointer', fontSize: '12px', color: THEME.textMed,
-  fontFamily: 'inherit', alignSelf: 'flex-end',
 }

@@ -204,7 +204,7 @@ export function fuelNav(role, can) {
     { id: 'fuel_reports',             label: 'Fuel Reports',        section: 'Analytics & Reports', icon: 'bar_chart',         show: can('fuel.view') },
     { id: 'fuel_report_daily',        label: 'Daily Transactions',  section: 'Analytics & Reports', icon: 'today',             show: can('fuel.view') },
     { id: 'fuel_report_monthly',      label: 'Monthly Consumption', section: 'Analytics & Reports', icon: 'calendar_month',    show: can('fuel.view') },
-    { id: 'fuel_report_deliveries',   label: 'Delivery Report',     section: 'Analytics & Reports', icon: 'local_shipping',    show: can('fuel.view') },
+    { id: 'fuel_report_deliveries',   label: 'Delivery Report',     section: 'Analytics & Reports', icon: 'local_shipping',    show: false },
     { id: 'fuel_report_variance',     label: 'Variance Report',     section: 'Analytics & Reports', icon: 'compare_arrows',    show: can('fuel.view') },
     { id: 'fuel_cost_allocation',     label: 'Cost Allocation',     section: 'Analytics & Reports', icon: 'account_balance',   show: can('fuel.view') },
     { id: 'fuel_finance_export',      label: 'Finance Export',      section: 'Analytics & Reports', icon: 'receipt_long',      show: false },

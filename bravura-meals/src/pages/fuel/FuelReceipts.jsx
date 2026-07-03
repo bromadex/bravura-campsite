@@ -18,6 +18,8 @@ const BLANK_FORM = {
   transaction_date: new Date().toISOString().slice(0, 10),
   tank_id:          '',
   litres:           '',
+  unit_price:       '',
+  total_cost:       '',
   supplier:         '',
   docket_number:    '',
   notes:            '',
@@ -59,6 +61,8 @@ export default function FuelReceipts() {
         transaction_date: form.transaction_date,
         tank_id:          form.tank_id,
         litres:           Number(form.litres),
+        unit_price:       form.unit_price ? Number(form.unit_price) : null,
+        total_cost:       form.total_cost ? Number(form.total_cost) : (form.unit_price && form.litres ? Number(form.unit_price) * Number(form.litres) : null),
         supplier:         form.supplier.trim()      || null,
         docket_number:    form.docket_number.trim() || null,
         notes:            form.notes.trim()         || null,
@@ -316,6 +320,32 @@ export default function FuelReceipts() {
             placeholder="e.g. 5000"
             style={inputStyle}
           />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 14px' }}>
+          <div>
+            <SectionLabel>Unit Price (per litre)</SectionLabel>
+            <input
+              type="number" min="0" step="0.01"
+              value={form.unit_price}
+              onChange={e => {
+                set('unit_price', e.target.value)
+                if (e.target.value && form.litres) set('total_cost', String((Number(e.target.value) * Number(form.litres)).toFixed(2)))
+              }}
+              placeholder="e.g. 1.85"
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <SectionLabel>Total Cost (USD)</SectionLabel>
+            <input
+              type="number" min="0" step="0.01"
+              value={form.total_cost}
+              onChange={e => set('total_cost', e.target.value)}
+              placeholder="Auto-calculated or enter"
+              style={inputStyle}
+            />
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 14px' }}>

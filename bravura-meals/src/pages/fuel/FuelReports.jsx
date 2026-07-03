@@ -15,8 +15,8 @@ const TANK_CLR = '#00897B'   // tank level line
 // ── SVG chart primitives ──────────────────────────────────────────────────────
 
 const CHART_W = 960
-const CHART_H = 240
-const PAD = { top: 12, right: 16, bottom: 52, left: 56 }
+const CHART_H = 260
+const PAD = { top: 12, right: 16, bottom: 72, left: 56 }
 
 function niceMax(v) {
   if (v <= 0) return 10
@@ -104,7 +104,7 @@ function BarChart({ bars, color, unit = 'L' }) {
               x={cx} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
               textAnchor="end" transform={`rotate(-25 ${cx} ${CHART_H - 8})`}
             >
-              {b.label.length > 20 ? b.label.slice(0, 19) + '…' : b.label}
+              {b.label.length > 14 ? b.label.slice(0, 13) + '…' : b.label}
             </text>
           </g>
         )

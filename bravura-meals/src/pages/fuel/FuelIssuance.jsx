@@ -175,20 +175,20 @@ function PrintDocket({ result, siteName, tankName, pumpName, assetLabel, operato
             </tbody>
           </table>
         </div>
-        {(result.meter_reading_start != null || result.meter_reading_end != null) && (
+        {(result.meter_start != null || result.meter_end != null) && (
           <div style={{ borderBottom: '1px solid black', padding: '8px 0', margin: '8px 0' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
-                {result.meter_reading_start != null && (
+                {result.meter_start != null && (
                   <tr>
                     <td style={{ padding: '3px 0', fontWeight: 'bold', width: '40%' }}>Meter Start:</td>
-                    <td style={{ padding: '3px 0' }}>{Number(result.meter_reading_start).toLocaleString(undefined, { minimumFractionDigits: 1 })} L</td>
+                    <td style={{ padding: '3px 0' }}>{Number(result.meter_start).toLocaleString(undefined, { minimumFractionDigits: 1 })} L</td>
                   </tr>
                 )}
-                {result.meter_reading_end != null && (
+                {result.meter_end != null && (
                   <tr>
                     <td style={{ padding: '3px 0', fontWeight: 'bold', width: '40%' }}>Meter End:</td>
-                    <td style={{ padding: '3px 0' }}>{Number(result.meter_reading_end).toLocaleString(undefined, { minimumFractionDigits: 1 })} L</td>
+                    <td style={{ padding: '3px 0' }}>{Number(result.meter_end).toLocaleString(undefined, { minimumFractionDigits: 1 })} L</td>
                   </tr>
                 )}
               </tbody>
@@ -317,6 +317,16 @@ export default function FuelIssuance({ setPage }) {
   const [resultMeta,    setResultMeta]  = useState(null)
   const [linkedRequest, setLinkedRequest] = useState(null)   // prefilled from FuelRequests
   const [requireApproval, setRequireApproval] = useState(false)
+
+  // ── Bulk issuance mode ─────────────────────────────────────────────────────
+  const [bulkMode, setBulkMode] = useState(false)
+  const BLANK_BULK_ROW = { time: '', transaction_date: new Date().toISOString().slice(0, 10), fuel_type_id: '', vehicle_id: '', litres: '', operator_id: '' }
+  const [bulkRows, setBulkRows] = useState([{ ...BLANK_BULK_ROW }, { ...BLANK_BULK_ROW }, { ...BLANK_BULK_ROW }])
+  const [bulkTankId, setBulkTankId] = useState('')
+  const [bulkAuth, setBulkAuth] = useState('')
+  const [bulkReason, setBulkReason] = useState('')
+  const [bulkSaving, setBulkSaving] = useState(false)
+  const [bulkResults, setBulkResults] = useState(null)
 
   // Load fuel settings and check require_approval flag
   useEffect(() => {
@@ -461,8 +471,8 @@ export default function FuelIssuance({ setPage }) {
         vehicle_id:        form.asset_type === 'vehicle'   ? form.vehicle_id || null   : null,
         equipment_id:      form.asset_type === 'equipment' ? form.equipment_id || null : null,
         operator_id:       form.operator_id || null,
-        meter_reading_start: form.use_meter && form.meter_start ? Number(form.meter_start) : null,
-        meter_reading_end:   form.use_meter && form.meter_end   ? Number(form.meter_end)   : null,
+        meter_start: form.use_meter && form.meter_start ? Number(form.meter_start) : null,
+        meter_end:   form.use_meter && form.meter_end   ? Number(form.meter_end)   : null,
         docket_number:     form.docket_number.trim() || null,
         notes:             form.notes.trim() || null,
         // Acknowledgement fields — pending review when unlinked.
@@ -510,7 +520,101 @@ export default function FuelIssuance({ setPage }) {
     }
   }
 
+  // ── Bulk submit ────────────────────────────────────────────────────────────
+
+  async function submitBulk(e) {
+    e.preventDefault()
+    if (!bulkTankId) { showToast('Select a tank for bulk issuance', 'red'); return }
+    if (!bulkAuth.trim()) { showToast('Enter who authorised this bulk issuance', 'red'); return }
+    if (!bulkReason.trim()) { showToast('Enter the reason / justification', 'red'); return }
+
+    const valid = bulkRows.filter(r => r.vehicle_id && Number(r.litres) > 0)
+    if (valid.length === 0) { showToast('Add at least one row with a vehicle and litres', 'red'); return }
+
+    const tank = tanks.find(t => t.id === bulkTankId)
+    const totalLitres = valid.reduce((s, r) => s + Number(r.litres), 0)
+    if (tank && totalLitres > Number(tank.current_level_litres)) {
+      showToast(`Total ${totalLitres.toFixed(1)} L exceeds tank level (${Number(tank.current_level_litres).toFixed(1)} L)`, 'red'); return
+    }
+
+    setBulkSaving(true)
+    const results = []
+    try {
+      for (const r of valid) {
+        const row = await addTransaction({
+          transaction_type:  'issuance',
+          transaction_date:  r.transaction_date,
+          tank_id:           bulkTankId,
+          litres:            Number(r.litres),
+          vehicle_id:        r.vehicle_id || null,
+          operator_id:       r.operator_id || null,
+          notes:             r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance',
+          authorised_by_name:     bulkAuth.trim(),
+          authorisation_reason:   bulkReason.trim(),
+          acknowledgement_status: 'pending',
+        })
+        results.push(row)
+      }
+      setBulkResults(results)
+      showToast(`${results.length} issuance${results.length > 1 ? 's' : ''} recorded`, 'green')
+    } catch (err) {
+      showToast(err.message || 'Failed during bulk issuance', 'red')
+    } finally {
+      setBulkSaving(false)
+    }
+  }
+
+  function addBulkRow() {
+    setBulkRows(prev => [...prev, { ...BLANK_BULK_ROW }])
+  }
+
+  function updateBulkRow(idx, field, value) {
+    setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r))
+  }
+
+  function removeBulkRow(idx) {
+    setBulkRows(prev => prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx))
+  }
+
   // ── Success state ─────────────────────────────────────────────────────────
+
+  if (bulkResults) {
+    return (
+      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '60px 24px 40px', textAlign: 'center' }}>
+        <div style={{
+          width: '72px', height: '72px', borderRadius: '50%', margin: '0 auto 20px',
+          background: THEME.statusSuccessBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="check_circle" size={40} style={{ color: THEME.success }} />
+        </div>
+        <div style={{ fontSize: '24px', fontWeight: 600, color: THEME.text, marginBottom: '8px' }}>Bulk Issuance Complete</div>
+        <div style={{ fontSize: '15px', color: THEME.textMed, marginBottom: '28px' }}>
+          {bulkResults.length} issuance{bulkResults.length > 1 ? 's' : ''} recorded — {bulkResults.reduce((s, r) => s + Number(r.litres), 0).toFixed(1)} L total
+        </div>
+        <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, padding: '16px', marginBottom: '28px', textAlign: 'left' }}>
+          {bulkResults.map((r, i) => {
+            const v = vehicles.find(x => x.id === r.vehicle_id)
+            return (
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < bulkResults.length - 1 ? `1px solid ${THEME.outlineVar}` : 'none', fontSize: '13px' }}>
+                <span style={{ color: THEME.text, fontWeight: 500 }}>{v ? `${v.fleet_number}${v.registration ? ' · ' + v.registration : ''}` : '—'}</span>
+                <span style={{ fontWeight: 700, color: FUEL_CLR }}>{Number(r.litres).toFixed(1)} L</span>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <button onClick={() => setPage('fuel_issues')} style={{
+            padding: '10px 24px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,
+            background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+          }}>View History</button>
+          <button onClick={() => { setBulkResults(null); setBulkRows([{ ...BLANK_BULK_ROW }, { ...BLANK_BULK_ROW }, { ...BLANK_BULK_ROW }]); setBulkAuth(''); setBulkReason('') }} style={{
+            padding: '10px 24px', borderRadius: '6px', border: 'none',
+            background: FUEL_CLR, color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Issue Another Batch</button>
+        </div>
+      </div>
+    )
+  }
 
   if (result) {
     return (
@@ -546,14 +650,152 @@ export default function FuelIssuance({ setPage }) {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  // ── Bulk issuance UI ────────────────────────────────────────────────────
+
+  if (bulkMode) {
+    const bulkTank = tanks.find(t => t.id === bulkTankId)
+    const bulkTotal = bulkRows.reduce((s, r) => s + (Number(r.litres) || 0), 0)
+    const bulkOverdraw = bulkTank && bulkTotal > Number(bulkTank.current_level_litres)
+
+    return (
+      <div style={{ maxWidth: '1100px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+          <div>
+            <div style={{ fontSize: '22px', fontWeight: 400, color: THEME.text }}>Bulk Fuel Issuance</div>
+            <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '4px' }}>Record multiple vehicle issuances at once — e.g. morning diesel run.</div>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: THEME.textMed, background: THEME.surfaceVar, padding: '8px 14px', borderRadius: '10px', border: `1px solid ${THEME.outlineVar}` }}>
+            <input type="checkbox" checked={bulkMode} onChange={() => setBulkMode(false)} style={{ accentColor: FUEL_CLR }} />
+            Bulk Mode
+          </label>
+        </div>
+
+        <form onSubmit={submitBulk}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginBottom: '20px' }}>
+            <FieldWrap label="Tank" required>
+              <select value={bulkTankId} onChange={e => setBulkTankId(e.target.value)} style={inp()}>
+                <option value="">— Select tank —</option>
+                {activeTanks.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} — {Number(t.current_level_litres).toFixed(0)} L</option>
+                ))}
+              </select>
+            </FieldWrap>
+            <FieldWrap label="Authorised By" required>
+              <input type="text" value={bulkAuth} onChange={e => setBulkAuth(e.target.value)} placeholder="Manager / supervisor name" style={inp()} />
+            </FieldWrap>
+            <FieldWrap label="Reason" required>
+              <input type="text" value={bulkReason} onChange={e => setBulkReason(e.target.value)} placeholder="e.g. Morning diesel run" style={inp()} />
+            </FieldWrap>
+          </div>
+
+          <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden', boxShadow: THEME.shadow1, marginBottom: '20px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '40px' }}>#</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Time</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Date</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Vehicle</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Litres</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Operator</th>
+                  <th style={{ padding: '10px 12px', width: '40px' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {bulkRows.map((row, idx) => (
+                  <tr key={idx} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                    <td style={{ padding: '8px 12px', color: THEME.textLow, fontWeight: 600 }}>{idx + 1}</td>
+                    <td style={{ padding: '8px 6px' }}>
+                      <input type="time" value={row.time} onChange={e => updateBulkRow(idx, 'time', e.target.value)} style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
+                    </td>
+                    <td style={{ padding: '8px 6px' }}>
+                      <input type="date" value={row.transaction_date} onChange={e => updateBulkRow(idx, 'transaction_date', e.target.value)} style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
+                    </td>
+                    <td style={{ padding: '8px 6px' }}>
+                      <select value={row.vehicle_id} onChange={e => updateBulkRow(idx, 'vehicle_id', e.target.value)} style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }}>
+                        <option value="">— Vehicle —</option>
+                        {activeVehicles.map(v => (
+                          <option key={v.id} value={v.id}>{v.fleet_number}{v.registration ? ' · ' + v.registration : ''}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ padding: '8px 6px' }}>
+                      <input type="number" step="0.1" min="0" value={row.litres} onChange={e => updateBulkRow(idx, 'litres', e.target.value)} placeholder="0" style={{ ...inp({ padding: '7px 8px', fontSize: '12px', width: '90px' }) }} />
+                    </td>
+                    <td style={{ padding: '8px 6px' }}>
+                      <select value={row.operator_id} onChange={e => updateBulkRow(idx, 'operator_id', e.target.value)} style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }}>
+                        <option value="">— Operator —</option>
+                        {activeOperators.map(op => (
+                          <option key={op.id} value={op.id}>{op.employees?.name || op.id}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ padding: '8px 6px', textAlign: 'center' }}>
+                      {bulkRows.length > 1 && (
+                        <button type="button" onClick={() => removeBulkRow(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: '4px' }}>
+                          <Icon name="close" size={15} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${THEME.outlineVar}` }}>
+              <button type="button" onClick={addBulkRow} style={{
+                background: 'none', border: `1px dashed ${THEME.outline}`, borderRadius: '8px',
+                padding: '6px 14px', cursor: 'pointer', fontSize: '12px', color: FUEL_CLR, fontWeight: 600, fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: '4px',
+              }}>
+                <Icon name="add" size={14} style={{ color: FUEL_CLR }} /> Add Row
+              </button>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: bulkOverdraw ? THEME.error : FUEL_CLR }}>
+                Total: {bulkTotal.toFixed(1)} L
+                {bulkTank && <span style={{ fontSize: '11px', color: THEME.textLow, marginLeft: '8px' }}>of {Number(bulkTank.current_level_litres).toFixed(0)} L available</span>}
+              </div>
+            </div>
+          </div>
+
+          {bulkOverdraw && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderRadius: '12px', background: THEME.statusErrorBg, border: `1px solid ${THEME.error}55`, marginBottom: '16px' }}>
+              <Icon name="warning" size={18} style={{ color: THEME.error, flexShrink: 0 }} />
+              <span style={{ fontSize: '13px', color: THEME.statusErrorText, fontWeight: 500 }}>
+                Total ({bulkTotal.toFixed(1)} L) exceeds tank level ({Number(bulkTank.current_level_litres).toFixed(1)} L).
+              </span>
+            </div>
+          )}
+
+          <button type="submit" disabled={bulkSaving || bulkOverdraw} style={{
+            width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
+            background: (bulkSaving || bulkOverdraw) ? THEME.outline : FUEL_CLR,
+            color: '#fff', fontSize: '15px', fontWeight: 700, cursor: (bulkSaving || bulkOverdraw) ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+          }}>
+            {bulkSaving ? (
+              <><Icon name="progress_activity" size={18} style={{ color: '#fff', animation: 'spin 1s linear infinite' }} /> Recording…</>
+            ) : (
+              <><Icon name="output" size={18} style={{ color: '#fff' }} /> Issue {bulkRows.filter(r => r.vehicle_id && Number(r.litres) > 0).length} Vehicle{bulkRows.filter(r => r.vehicle_id && Number(r.litres) > 0).length !== 1 ? 's' : ''}</>
+            )}
+          </button>
+        </form>
+      </div>
+    )
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px', maxWidth: '1000px', alignItems: 'start' }}>
 
       {/* ── Left: form ────────────────────────────────────────────────────── */}
       <div>
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ fontSize: '22px', fontWeight: 400, color: THEME.text }}>Issue Fuel</div>
-          <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '4px' }}>Fill in all required fields and submit to record the issuance.</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+          <div>
+            <div style={{ fontSize: '22px', fontWeight: 400, color: THEME.text }}>Issue Fuel</div>
+            <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '4px' }}>Fill in all required fields and submit to record the issuance.</div>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: THEME.textMed, background: THEME.surfaceVar, padding: '8px 14px', borderRadius: '10px', border: `1px solid ${THEME.outlineVar}` }}>
+            <input type="checkbox" checked={bulkMode} onChange={() => setBulkMode(true)} style={{ accentColor: FUEL_CLR }} />
+            Bulk Mode
+          </label>
         </div>
 
         <form onSubmit={submit}>

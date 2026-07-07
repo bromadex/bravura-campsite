@@ -93,7 +93,7 @@ const STATUS_MAP = {
 export default function FuelReceipts() {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
-  const { tanks, addTransaction, deleteDelivery, refresh: refreshFuel } = useFuel()
+  const { tanks, employees, addTransaction, deleteDelivery, refresh: refreshFuel } = useFuel()
 
   const canCreate  = can('fuel.create')
   const canView    = can('fuel.view')
@@ -637,7 +637,12 @@ export default function FuelReceipts() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
             <FieldWrap label="Receiving Officer">
-              <input value={form.receiving_officer} onChange={e => set('receiving_officer', e.target.value)} placeholder="Name of person receiving" style={inputStyle} />
+              <select value={form.receiving_officer} onChange={e => set('receiving_officer', e.target.value)} style={inputStyle}>
+                <option value="">— Select officer —</option>
+                {employees.filter(e => e.status === 'active').map(e => (
+                  <option key={e.id} value={e.name}>{e.name}</option>
+                ))}
+              </select>
             </FieldWrap>
             <FieldWrap label="Notes">
               <input value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Any additional notes…" style={inputStyle} />

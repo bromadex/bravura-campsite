@@ -121,11 +121,26 @@ export default function FuelReceipts() {
 
   const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
 
-  // Load calibration table when tank changes
+  // Load calibration table when tank changes, then auto-populate dip before for new deliveries
   useEffect(() => {
     if (!form.tank_id) { setCalibration([]); return }
     supabase.from('tank_calibrations').select('dip_mm,level_litres').eq('tank_id', form.tank_id)
-      .then(({ data }) => setCalibration(data || []))
+      .then(({ data }) => {
+        const cal = data || []
+        setCalibration(cal)
+        if (!editId && form.tank_id && showForm) {
+          const tank = tanks.find(t => t.id === form.tank_id)
+          if (tank && !form.dip_before_mm) {
+            const level = Number(tank.current_level_litres) || 0
+            const mm = reverseInterpolate(cal, level)
+            setForm(prev => ({
+              ...prev,
+              dip_before: level ? level.toFixed(1) : prev.dip_before,
+              dip_before_mm: mm != null ? Math.round(mm).toString() : prev.dip_before_mm,
+            }))
+          }
+        }
+      })
   }, [form.tank_id])
 
   const fetchDeliveries = useCallback(async () => {
@@ -185,18 +200,6 @@ export default function FuelReceipts() {
 
   if (!canView) return null
 
-  function autoPopulateDipBefore(tankId, formObj) {
-    const tank = tanks.find(t => t.id === tankId)
-    if (!tank) return formObj
-    const level = Number(tank.current_level_litres) || 0
-    const mm = reverseInterpolate(calibration, level)
-    return {
-      ...formObj,
-      dip_before: level ? level.toFixed(1) : '',
-      dip_before_mm: mm != null ? Math.round(mm).toString() : '',
-    }
-  }
-
   function set(field, value) {
     setForm(prev => {
       const next = { ...prev, [field]: value }
@@ -204,7 +207,12 @@ export default function FuelReceipts() {
         next.total_cost = (Number(next.unit_price) * Number(next.quantity_delivered)).toFixed(2)
       }
       if (field === 'tank_id' && value && !editId) {
-        return autoPopulateDipBefore(value, next)
+        const tank = tanks.find(t => t.id === value)
+        if (tank) {
+          const level = Number(tank.current_level_litres) || 0
+          next.dip_before = level ? level.toFixed(1) : ''
+          next.dip_before_mm = ''
+        }
       }
       if (field === 'dip_before_mm' && value !== '') {
         const litres = interpolate(calibration, parseFloat(value))
@@ -303,16 +311,20 @@ export default function FuelReceipts() {
           .eq('site_id', currentSiteId)
         if (error) throw error
 
-        // Update tank level to dip_after (the physical truth after delivery)
+        // Update tank level if dip_after provided and this is the latest reading
         if (payload.dip_after != null) {
-          await supabase
-            .from('fuel_tanks')
-            .update({ current_level_litres: payload.dip_after, last_dip_date: payload.delivery_date, last_dip_reading: payload.dip_after, updated_at: new Date().toISOString() })
-            .eq('id', payload.tank_id)
-            .eq('site_id', currentSiteId)
+          const tank = tanks.find(t => t.id === payload.tank_id)
+          const isLatest = !tank?.last_dip_date || payload.delivery_date >= tank.last_dip_date
+          if (isLatest) {
+            await supabase
+              .from('fuel_tanks')
+              .update({ current_level_litres: payload.dip_after, last_dip_date: payload.delivery_date, last_dip_reading: payload.dip_after, updated_at: new Date().toISOString() })
+              .eq('id', payload.tank_id)
+              .eq('site_id', currentSiteId)
+          }
         }
 
-        showToast('Delivery updated — tank level updated', 'green')
+        showToast('Delivery updated', 'green')
       } else {
         payload.delivery_number = deliveryNumber
 
@@ -334,35 +346,28 @@ export default function FuelReceipts() {
           notes:             form.receiving_officer ? `Received by: ${form.receiving_officer.trim()}${form.notes ? ' | ' + form.notes.trim() : ''}` : (form.notes.trim() || null),
         })
 
-        // Update tank level to dip_after (the physical truth after delivery)
-        if (payload.dip_after != null) {
+        // Auto-create dip reading for the dipstick log (this triggers fuel_update_dip_snapshot which sets tank level)
+        if (payload.dip_after_mm != null || payload.dip_after != null) {
           await supabase
-            .from('fuel_tanks')
-            .update({ current_level_litres: payload.dip_after, last_dip_date: payload.delivery_date, last_dip_reading: payload.dip_after, updated_at: new Date().toISOString() })
-            .eq('id', payload.tank_id)
-            .eq('site_id', currentSiteId)
+            .from('fuel_dip_readings')
+            .insert([{
+              site_id:            currentSiteId,
+              tank_id:            form.tank_id,
+              reading_date:       form.delivery_date,
+              reading_time:       form.delivery_time || null,
+              dip_start_mm:       payload.dip_before_mm,
+              dip_end_mm:         payload.dip_after_mm,
+              dip_mm:             payload.dip_after_mm,
+              level_litres:       payload.dip_after,
+              level_start_litres: payload.dip_before,
+              level_end_litres:   payload.dip_after,
+              read_by:            form.receiving_officer?.trim() || null,
+              notes:              `Auto-recorded from delivery ${deliveryNumber}`,
+              created_by:         user?.id || null,
+            }])
         }
 
-        // Auto-create dip reading for the dipstick log
-        await supabase
-          .from('fuel_dip_readings')
-          .insert([{
-            site_id:            currentSiteId,
-            tank_id:            form.tank_id,
-            reading_date:       form.delivery_date,
-            reading_time:       form.delivery_time || null,
-            dip_start_mm:       payload.dip_before_mm,
-            dip_end_mm:         payload.dip_after_mm,
-            dip_mm:             payload.dip_after_mm,
-            level_litres:       payload.dip_after,
-            level_start_litres: payload.dip_before,
-            level_end_litres:   payload.dip_after,
-            read_by:            form.receiving_officer?.trim() || null,
-            notes:              `Auto-recorded from delivery ${deliveryNumber}`,
-            created_by:         user?.id || null,
-          }])
-
-        showToast('Delivery recorded — tank level updated', 'green')
+        showToast('Delivery recorded', 'green')
       }
 
       setShowForm(false)

@@ -18,7 +18,7 @@ const ALL_MODULES = [
   { id: 'workforce', label: 'HR Management',        icon: 'badge',                color: MODULE_COLORS.workforce, access: moduleAccess.workforce },
   { id: 'fleet',     label: 'Fleet Management',     icon: 'directions_car',       color: MODULE_COLORS.fleet,     access: moduleAccess.fleet     },
   { id: 'admin',        label: 'Administration',       icon: 'admin_panel_settings', color: MODULE_COLORS.admin,        access: moduleAccess.admin        },
-  { id: 'procurement', label: 'Procurement',          icon: 'storefront',           color: MODULE_COLORS.procurement, access: moduleAccess.procurement, hqOnly: true },
+  { id: 'procurement', label: 'Procurement',          icon: 'storefront',           color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
   { id: 'feedback',    label: 'Feedback',             icon: 'forum',                color: MODULE_COLORS.feedback,    access: moduleAccess.feedback    },
 ]
 

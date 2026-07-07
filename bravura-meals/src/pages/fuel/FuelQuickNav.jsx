@@ -4,9 +4,14 @@ import { Icon } from '../../components/ui'
 const FUEL_CLR = MODULE_COLORS.fuel
 
 const PILLS = [
-  { id: 'fuel_forecasting',         label: 'Forecasting',  icon: 'trending_up',       color: '#00897B' },
+  { id: 'fuel_tanks',               label: 'Tanks',         icon: 'water',             color: '#0277BD' },
+  { id: 'fuel_receipts',            label: 'Deliveries',    icon: 'local_shipping',    color: '#2E7D32' },
+  { id: 'fuel_issuance',            label: 'Issuance',      icon: 'local_gas_station', color: '#E65100' },
+  { id: 'fuel_dips',                label: 'Dipstick Log',  icon: 'straighten',        color: '#00838F' },
+  { id: 'fuel_transactions',        label: 'Transactions',  icon: 'receipt_long',      color: '#4527A0' },
   { id: 'fuel_reports',             label: 'Reports',       icon: 'bar_chart',         color: '#E53935' },
   { id: 'fuel_vehicle_consumption', label: 'Consumption',   icon: 'speed',             color: '#1565C0' },
+  { id: 'fuel_forecasting',         label: 'Forecasting',   icon: 'trending_up',       color: '#00897B' },
   { id: 'fuel_reconciliation',      label: 'Reconciliation',icon: 'balance',           color: '#7C3AED' },
 ]
 

@@ -26,12 +26,8 @@ ALTER TABLE procurement_suppliers ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS procurement_suppliers_read ON procurement_suppliers;
 CREATE POLICY procurement_suppliers_read ON procurement_suppliers
-  FOR SELECT USING (site_id IN (SELECT site_id FROM user_sites WHERE user_id = auth.uid()));
+  FOR SELECT USING (user_in_site(site_id));
 
 DROP POLICY IF EXISTS procurement_suppliers_write ON procurement_suppliers;
 CREATE POLICY procurement_suppliers_write ON procurement_suppliers
-  FOR INSERT WITH CHECK (site_id IN (SELECT site_id FROM user_sites WHERE user_id = auth.uid()));
-
-DROP POLICY IF EXISTS procurement_suppliers_update ON procurement_suppliers;
-CREATE POLICY procurement_suppliers_update ON procurement_suppliers
-  FOR UPDATE USING (site_id IN (SELECT site_id FROM user_sites WHERE user_id = auth.uid()));
+  FOR ALL USING (user_in_site(site_id));

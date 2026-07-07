@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
@@ -26,8 +27,30 @@ function niceMax(v) {
   return nice * mag
 }
 
-function LineChart({ points, color, unit = 'L' }) {
+// Floating tooltip shown on hover, positioned via % of container (viewBox-relative).
+function ChartTooltip({ hover }) {
+  if (!hover) return null
+  return (
+    <div style={{
+      position: 'absolute',
+      left: `${hover.xPct}%`, top: `${hover.yPct}%`,
+      transform: 'translate(-50%, -115%)',
+      background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
+      borderRadius: '8px', padding: '8px 12px', boxShadow: THEME.shadow2,
+      pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 5,
+    }}>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: hover.color, marginBottom: '2px' }}>{hover.label}</div>
+      <div style={{ fontSize: '12px', color: THEME.textMed, display: 'flex', alignItems: 'center', gap: '5px' }}>
+        <span style={{ width: 9, height: 9, borderRadius: '2px', background: hover.color, display: 'inline-block' }} />
+        {hover.sub}
+      </div>
+    </div>
+  )
+}
+
+function LineChart({ points, color, unit = 'L', onPointClick }) {
   // points: [{ label, value }]
+  const [hover, setHover] = useState(null)
   if (!points.length) return <EmptyChart />
   const innerW = CHART_W - PAD.left - PAD.right
   const innerH = CHART_H - PAD.top - PAD.bottom
@@ -43,36 +66,45 @@ function LineChart({ points, color, unit = 'L' }) {
   const gridVals = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxV)
 
   return (
-    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
-      {gridVals.map(v => (
-        <g key={v}>
-          <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
-          <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow}>
-            {v >= 1000 ? `${(v / 1000).toLocaleString()}k` : v.toLocaleString()}
+    <div style={{ position: 'relative' }}>
+      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
+        {gridVals.map(v => (
+          <g key={v}>
+            <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
+            <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow}>
+              {v >= 1000 ? `${(v / 1000).toLocaleString()}k` : v.toLocaleString()}
+            </text>
+          </g>
+        ))}
+        <path d={area} fill={color} opacity="0.10" />
+        <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {points.map((p, i) => (
+          <circle
+            key={i} cx={x(i)} cy={y(p.value)} r={hover?.i === i ? 5.5 : 3.5} fill={color}
+            stroke={THEME.surface} strokeWidth="1.5"
+            style={{ cursor: onPointClick ? 'pointer' : 'default', transition: 'r .1s' }}
+            onMouseEnter={() => setHover({ i, xPct: (x(i) / CHART_W) * 100, yPct: (y(p.value) / CHART_H) * 100, label: p.label, sub: `${p.value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`, color })}
+            onMouseLeave={() => setHover(null)}
+            onClick={() => onPointClick?.(p, i)}
+          />
+        ))}
+        {points.map((p, i) => (i % step === 0 || i === points.length - 1) && (
+          <text
+            key={`l${i}`} x={x(i)} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
+            textAnchor="end" transform={`rotate(-35 ${x(i)} ${CHART_H - 8})`}
+          >
+            {p.label.length > 12 ? p.label.slice(0, 11) + '…' : p.label}
           </text>
-        </g>
-      ))}
-      <path d={area} fill={color} opacity="0.10" />
-      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      {points.map((p, i) => (
-        <circle key={i} cx={x(i)} cy={y(p.value)} r="3.5" fill={color} stroke={THEME.surface} strokeWidth="1.5">
-          <title>{`${p.label}: ${p.value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`}</title>
-        </circle>
-      ))}
-      {points.map((p, i) => (i % step === 0 || i === points.length - 1) && (
-        <text
-          key={`l${i}`} x={x(i)} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
-          textAnchor="end" transform={`rotate(-35 ${x(i)} ${CHART_H - 8})`}
-        >
-          {p.label.length > 12 ? p.label.slice(0, 11) + '…' : p.label}
-        </text>
-      ))}
-    </svg>
+        ))}
+      </svg>
+      <ChartTooltip hover={hover} />
+    </div>
   )
 }
 
-function BarChart({ bars, color, unit = 'L' }) {
+function BarChart({ bars, color, unit = 'L', onBarClick }) {
   // bars: [{ label, value }]
+  const [hover, setHover] = useState(null)
   if (!bars.length) return <EmptyChart />
   const innerW = CHART_W - PAD.left - PAD.right
   const innerH = CHART_H - PAD.top - PAD.bottom
@@ -83,33 +115,42 @@ function BarChart({ bars, color, unit = 'L' }) {
   const gridVals = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxV)
 
   return (
-    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
-      {gridVals.map(v => (
-        <g key={v}>
-          <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
-          <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow}>
-            {v >= 1000 ? `${(v / 1000).toLocaleString()}k` : v.toLocaleString()}
-          </text>
-        </g>
-      ))}
-      {bars.map((b, i) => {
-        const cx = PAD.left + slot * i + slot / 2
-        const h = (b.value / maxV) * innerH
-        return (
-          <g key={b.label}>
-            <rect x={cx - barW / 2} y={y(b.value)} width={barW} height={Math.max(2, h)} rx="4" fill={color}>
-              <title>{`${b.label}: ${b.value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`}</title>
-            </rect>
-            <text
-              x={cx} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
-              textAnchor="end" transform={`rotate(-25 ${cx} ${CHART_H - 8})`}
-            >
-              {b.label.length > 12 ? b.label.slice(0, 11) + '…' : b.label}
+    <div style={{ position: 'relative' }}>
+      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
+        {gridVals.map(v => (
+          <g key={v}>
+            <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
+            <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow}>
+              {v >= 1000 ? `${(v / 1000).toLocaleString()}k` : v.toLocaleString()}
             </text>
           </g>
-        )
-      })}
-    </svg>
+        ))}
+        {bars.map((b, i) => {
+          const cx = PAD.left + slot * i + slot / 2
+          const h = (b.value / maxV) * innerH
+          const isHover = hover?.i === i
+          return (
+            <g key={b.label}>
+              <rect
+                x={cx - barW / 2} y={y(b.value)} width={barW} height={Math.max(2, h)} rx="4"
+                fill={color} opacity={isHover ? 0.8 : 1}
+                style={{ cursor: onBarClick ? 'pointer' : 'default' }}
+                onMouseEnter={() => setHover({ i, xPct: (cx / CHART_W) * 100, yPct: (y(b.value) / CHART_H) * 100, label: b.label, sub: `${b.value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`, color })}
+                onMouseLeave={() => setHover(null)}
+                onClick={() => onBarClick?.(b, i)}
+              />
+              <text
+                x={cx} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
+                textAnchor="end" transform={`rotate(-25 ${cx} ${CHART_H - 8})`}
+              >
+                {b.label.length > 12 ? b.label.slice(0, 11) + '…' : b.label}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+      <ChartTooltip hover={hover} />
+    </div>
   )
 }
 
@@ -143,7 +184,8 @@ function ChartCard({ title, legend, legendColor, children, right }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export default function FuelReports() {
+export default function FuelReports({ setPage }) {
+  const navigate = useNavigate()
   const { currentSite } = useSite()
   const { tanks, transactions, dipReadings, tankBalance, loading } = useFuel()
 
@@ -277,6 +319,36 @@ export default function FuelReports() {
         }
       />
 
+      {/* ── Quick nav pills ── */}
+      {setPage && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+          {[
+            { id: 'fuel_dips',               label: 'Dipstick Log',     icon: 'straighten' },
+            { id: 'fuel_tanks',              label: 'Fuel Tanks',       icon: 'water' },
+            { id: 'fuel_receipts',           label: 'Deliveries',       icon: 'local_shipping' },
+            { id: 'fuel_requests_list',      label: 'Requests',         icon: 'assignment' },
+            { id: 'fuel_issuance',           label: 'Fuel Issuance',    icon: 'local_gas_station' },
+            { id: 'fuel_vehicle_consumption',label: 'Vehicle Consumption', icon: 'speed' },
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => setPage(item.id)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '6px 14px', borderRadius: '999px', fontSize: '12.5px', fontWeight: 500,
+                background: THEME.surface, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`,
+                cursor: 'pointer', fontFamily: 'inherit', transition: 'border-color .15s, color .15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = FUEL_CLR; e.currentTarget.style.color = FUEL_CLR }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = THEME.outlineVar; e.currentTarget.style.color = THEME.textMed }}
+            >
+              <Icon name={item.icon} size={14} style={{ color: 'inherit' }} />
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Predicted next order date banner ── */}
       {prediction && (
         <Card style={{ padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
@@ -307,7 +379,7 @@ export default function FuelReports() {
 
       {/* ── Top 10 consumers ── */}
       <ChartCard title="Fuel Issuance by Vehicle (Top 10)" legend="Litres Issued" legendColor={FUEL_CLR}>
-        <BarChart bars={top10} color={FUEL_CLR} />
+        <BarChart bars={top10} color={FUEL_CLR} onBarClick={() => setPage?.('fuel_vehicle_consumption')} />
       </ChartCard>
 
       {/* ── Tank level over time ── */}
@@ -364,7 +436,11 @@ export default function FuelReports() {
               {anomalies.map(({ tx, avg, excess }, idx) => {
                 const parsed = parseTxnNotes(tx.notes)
                 return (
-                  <TRow key={tx.id} last={idx === anomalies.length - 1} style={{ background: THEME.error + '06' }}>
+                  <TRow
+                    key={tx.id} last={idx === anomalies.length - 1}
+                    style={{ background: THEME.error + '06', cursor: setPage ? 'pointer' : 'default' }}
+                    onClick={() => setPage?.('fuel_vehicle_consumption')}
+                  >
                     <Td style={{ whiteSpace: 'nowrap', color: THEME.textMed }}>{tx.transaction_date}</Td>
                     <Td style={{ fontWeight: 600, color: THEME.text }}>{assetLabel(tx)}</Td>
                     <Td style={{ color: THEME.textMed }}>{parsed.driver || '—'}</Td>
@@ -415,7 +491,7 @@ export default function FuelReports() {
           </THead>
           <tbody>
             {monthlyRows.map((row, idx) => (
-              <TRow key={row.tank.id} last={idx === monthlyRows.length - 1}>
+              <TRow key={row.tank.id} last={idx === monthlyRows.length - 1} onClick={() => navigate(`/fuel/tanks/${row.tank.id}`)}>
                 <Td><span style={{ fontWeight: 500 }}>{row.tank.name}</span></Td>
                 <Td align="right" style={{ color: row.received > 0 ? THEME.success : THEME.textMed, fontWeight: row.received > 0 ? 600 : 400 }}>
                   {row.received > 0 ? `+${row.received.toFixed(1)}` : '—'}

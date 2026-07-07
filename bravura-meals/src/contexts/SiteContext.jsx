@@ -82,6 +82,7 @@ export function SiteProvider({ children }) {
   useEffect(() => { loadSiteAccess() }, [loadSiteAccess])
 
   const currentSite = allSites.find(s => s.id === currentSiteId) || null
+  const isHQ = currentSite?.site_type === 'head_office'
 
   function switchSite(siteId) {
     if (accessibleSites.some(s => s.id === siteId)) {
@@ -95,6 +96,7 @@ export function SiteProvider({ children }) {
       allSites,
       accessibleSites,
       hasAllSiteAccess,
+      isHQ,
       currentSiteId,
       currentSite,
       switchSite,

@@ -26,8 +26,8 @@ STANDING RULES (always enforced):
 - Theme locked to light mode
 
 ARCHITECTURE:
-- sites table has is_hq boolean column. Harare (is_hq = true) is the corporate HQ.
-- SiteContext exposes: currentSiteId, currentSite, isHQ, allSites, accessibleSites
+- sites table has site_type column ('head_office' | 'operational'). Harare (site_type = 'head_office') is the corporate HQ.
+- SiteContext exposes: currentSiteId, currentSite, isHQ (derived from site_type === 'head_office'), allSites, accessibleSites
 - When isHQ is true, contexts fetch data across ALL sites (no site_id filter) and join sites(name) for labelling
 - When isHQ is false, contexts filter by .eq('site_id', currentSiteId) as before
 - RLS function user_in_site() already supports global access via user_roles.site_id IS NULL
@@ -50,13 +50,13 @@ TABLES:
 TASK: Add HQ foundation to the multi-site architecture.
 
 1. MIGRATION — Add is_hq column to sites table:
-   - ALTER TABLE sites ADD COLUMN IF NOT EXISTS is_hq BOOLEAN NOT NULL DEFAULT false;
-   - UPDATE sites SET is_hq = true WHERE lower(name) LIKE '%harare%';
-   - Add CHECK constraint: only one site can have is_hq = true
+   - ALTER TABLE sites ADD COLUMN IF NOT EXISTS site_type TEXT NOT NULL DEFAULT 'operational' CHECK (site_type IN ('head_office', 'operational'));
+   - UPDATE sites SET site_type = 'head_office' WHERE lower(name) LIKE '%harare%';
+   - Add unique index: only one site can be head_office
 
 2. SITECONTEXT — Extend useSite() to expose isHQ:
    File: src/contexts/SiteContext.jsx
-   - After currentSite is resolved, derive: const isHQ = currentSite?.is_hq === true
+   - After currentSite is resolved, derive: const isHQ = currentSite?.site_type === 'head_office'
    - Expose isHQ in the context value
    - When fetching sites, include is_hq in the select: .select('*') already covers it
    - Update the SiteSwitcher component to show a small "HQ" badge next to Harare in the dropdown

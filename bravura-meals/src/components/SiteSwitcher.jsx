@@ -61,7 +61,12 @@ export default function SiteSwitcher() {
               onMouseEnter={e => { if (site.id !== currentSite?.id) e.currentTarget.style.background = THEME.surfaceHover }}
               onMouseLeave={e => { if (site.id !== currentSite?.id) e.currentTarget.style.background = THEME.surface }}
             >
-              {site.name}
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {site.name}
+                {site.site_type === 'head_office' && (
+                  <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#5C6BC0', color: '#fff', letterSpacing: '.04em' }}>HQ</span>
+                )}
+              </span>
               {site.id === currentSite?.id && (
                 <Icon name="check" size={15} />
               )}

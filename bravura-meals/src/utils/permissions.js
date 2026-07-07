@@ -82,8 +82,9 @@ export const MODULE_COLORS = {
   meals:     '#982329',  // maroon       – food/dining, matches the real logo anchor colour
   admin:     '#5C6BC0',  // indigo       – system/administration, distinct from the 3 business modules
   fuel:      '#D97706',  // amber        – petroleum/fuel association
-  fleet:     '#1A6B52',  // green        – fleet/transport
-  feedback:  '#6B7280',  // slate        – neutral, "system meta" feel
+  fleet:       '#1A6B52',  // green        – fleet/transport
+  procurement: '#7C3AED',  // violet       – purchasing/supply chain
+  feedback:    '#6B7280',  // slate        – neutral, "system meta" feel
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -116,6 +117,8 @@ export const moduleAccess = {
   // Fleet Management — all authenticated users can access; vehicle registry is
   // not sensitive operational data and is useful across roles.
   fleet:     r => !!r,
+  // Procurement — gated by procurement.view
+  procurement: (role, can) => can ? can('procurement.view') : false,
   // Feedback — always open to any signed-in user. This is where the whole
   // organisation reports bugs, gaps, and suggestions during the build phase.
   feedback:  r => !!r,
@@ -210,6 +213,12 @@ export function fuelNav(role, can) {
     { id: 'fuel_finance_export',      label: 'Finance Export',      section: 'Analytics & Reports', icon: 'receipt_long',      show: false },
     { id: 'fuel_types',        label: 'Fuel Types',         section: 'Admin',    icon: 'oil_barrel',        show: false },
     { id: 'fuel_settings',     label: 'Fuel Settings',      section: 'Admin',    icon: 'settings',          show: can('fuel.edit') },
+  ].filter(item => item.show !== false)
+}
+
+export function procurementNav(role, can) {
+  return [
+    { id: 'proc_suppliers', label: 'Suppliers', section: 'Registry', icon: 'business', show: can('procurement.view') },
   ].filter(item => item.show !== false)
 }
 

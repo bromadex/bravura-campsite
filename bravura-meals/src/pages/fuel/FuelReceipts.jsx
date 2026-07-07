@@ -121,6 +121,18 @@ export default function FuelReceipts() {
 
   const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
 
+  const [procSuppliers, setProcSuppliers] = useState([])
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase
+      .from('procurement_suppliers')
+      .select('id, supplier_name')
+      .eq('site_id', currentSiteId)
+      .eq('status', 'active')
+      .order('supplier_name')
+      .then(({ data }) => setProcSuppliers(data || []))
+  }, [currentSiteId])
+
   // Load calibration table when tank changes, then auto-populate dip before for new deliveries
   useEffect(() => {
     if (!form.tank_id) { setCalibration([]); return }
@@ -589,7 +601,12 @@ export default function FuelReceipts() {
               <input type="time" value={form.delivery_time} onChange={e => set('delivery_time', e.target.value)} style={inputStyle} />
             </FieldWrap>
             <FieldWrap label="Supplier" required>
-              <input value={form.supplier_name} onChange={e => set('supplier_name', e.target.value)} placeholder="e.g. NOIC, Zuva" style={inputStyle} />
+              <select value={form.supplier_name} onChange={e => set('supplier_name', e.target.value)} style={inputStyle}>
+                <option value="">— Select supplier —</option>
+                {procSuppliers.map(s => (
+                  <option key={s.id} value={s.supplier_name}>{s.supplier_name}</option>
+                ))}
+              </select>
             </FieldWrap>
             <FieldWrap label="Delivery Note Number">
               <input value={form.delivery_note_number} onChange={e => set('delivery_note_number', e.target.value)} placeholder="e.g. DN-12345" style={inputStyle} />

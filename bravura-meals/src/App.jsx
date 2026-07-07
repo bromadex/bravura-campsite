@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from '
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
 import { FuelProvider } from './contexts/FuelContext'
+import { ProcurementProvider } from './contexts/ProcurementContext'
 import { SiteProvider } from './contexts/SiteContext'
 import { PermissionsProvider, usePermissions } from './contexts/PermissionsContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -12,7 +13,7 @@ import ForcePasswordResetModal from './auth/ForcePasswordResetModal'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, feedbackNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const Employees       = lazy(() => import('./pages/workforce/Employees'))
@@ -80,6 +81,9 @@ const VehicleConsumption       = lazy(() => import('./pages/fuel/VehicleConsumpt
 const CostAllocation           = lazy(() => import('./pages/fuel/CostAllocation'))
 const FinanceExport            = lazy(() => import('./pages/fuel/FinanceExport'))
 
+// ── Procurement ───────────────────────────────────────────────────────────────
+const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
+
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
 
@@ -101,8 +105,9 @@ const MODULE_META = {
   meals:     { label: 'Meal Management',       icon: 'restaurant',       navFn: mealsNav     },
   admin:     { label: 'Administration',        icon: 'admin_panel_settings', navFn: adminNav },
   fuel:      { label: 'Fuel Management',       icon: 'local_gas_station',    navFn: fuelNav  },
-  fleet:     { label: 'Fleet Management',      icon: 'directions_car',   navFn: fleetNav     },
-  feedback:  { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav  },
+  fleet:       { label: 'Fleet Management',      icon: 'directions_car',   navFn: fleetNav        },
+  procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
+  feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
 
 // ── Route resolvers ───────────────────────────────────────────────────────────
@@ -237,6 +242,13 @@ function getFleetPage(page, setPage) {
   }
 }
 
+function getProcurementPage(page, can) {
+  switch (page) {
+    case 'proc_suppliers': return can('procurement.view') ? <ProcSuppliers /> : null
+    default:               return can('procurement.view') ? <ProcSuppliers /> : null
+  }
+}
+
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
@@ -251,8 +263,9 @@ const DEFAULT_PAGE = {
   meals:     'meals_dashboard',
   admin:     'admin_users',
   fuel:      'fuel_dashboard',
-  fleet:     'fleet_dashboard',
-  feedback:  'feedback_board',
+  fleet:       'fleet_dashboard',
+  procurement: 'proc_suppliers',
+  feedback:    'feedback_board',
 }
 
 // ── Module shell — resolves :moduleId/:pageId from the URL ────────────────────
@@ -284,6 +297,7 @@ function ModuleShell() {
   if (moduleId === 'admin')     content = getAdminPage(currentPage, can)
   if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
   if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
+  if (moduleId === 'procurement') content = getProcurementPage(currentPage, can)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 
   const AccessDenied = (
@@ -320,6 +334,9 @@ function ModuleShell() {
   }
   if (moduleId === 'fuel' || moduleId === 'fleet') {
     return <FuelProvider>{body}</FuelProvider>
+  }
+  if (moduleId === 'procurement') {
+    return <ProcurementProvider>{body}</ProcurementProvider>
   }
   return body
 }

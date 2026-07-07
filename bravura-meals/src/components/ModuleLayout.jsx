@@ -77,6 +77,8 @@ meals_finance_export: 'Meal Finance Export',
   fuel_vehicle_consumption:  'Vehicle Consumption Analysis',
   fuel_cost_allocation:      'Department Cost Allocation',
   fuel_finance_export:       'Finance Export',
+  // Procurement
+  proc_suppliers:            'Suppliers',
   // Feedback
   feedback_board:   'Feedback Board',
 }

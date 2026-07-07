@@ -43,7 +43,7 @@ export default function FuelTanks({ setPage }) {
   const navigate = useNavigate()
   const { can } = usePermissions()
   const { currentSite } = useSite()
-  const { fuelTypes, tanks, transactions, addTank, updateTank, archiveTank, deleteTank, tankBalance, addTransaction, refresh, loading } = useFuel()
+  const { fuelTypes, tanks, transactions, dipReadings, addTank, updateTank, archiveTank, deleteTank, tankBalance, addTransaction, refresh, loading } = useFuel()
 
   const openDetail = id => navigate(`/fuel/tanks/${id}`)
 
@@ -246,6 +246,42 @@ export default function FuelTanks({ setPage }) {
     }),
   [activeTanks, tankBalance, transactions])
 
+  // ── Top consumers by vehicle & operator ──────────────────────────────────
+  const issuances = useMemo(() => transactions.filter(t => t.transaction_type === 'issuance'), [transactions])
+  const totalIssued = useMemo(() => issuances.reduce((s, t) => s + Number(t.litres), 0), [issuances])
+
+  const topVehicles = useMemo(() => {
+    const m = new Map()
+    for (const t of issuances) {
+      const label = t.fuel_vehicles
+        ? (t.fuel_vehicles.registration || t.fuel_vehicles.fleet_number)
+        : t.asset_description || 'Other'
+      m.set(label, (m.get(label) || 0) + Number(t.litres))
+    }
+    return [...m.entries()].sort(([, a], [, b]) => b - a).slice(0, 8)
+  }, [issuances])
+
+  const topOperators = useMemo(() => {
+    const m = new Map()
+    for (const t of issuances) {
+      const label = t.fuel_operators
+        ? `${t.fuel_operators.first_name || ''} ${t.fuel_operators.last_name || ''}`.trim()
+        : '—'
+      m.set(label, (m.get(label) || 0) + Number(t.litres))
+    }
+    return [...m.entries()].sort(([, a], [, b]) => b - a).slice(0, 8)
+  }, [issuances])
+
+  // ── Dipstick history for selected tank ──────────────────────────────────
+  const [dipTankSel, setDipTankSel] = useState('')
+  const dipTankId = dipTankSel || activeTanks[0]?.id || ''
+  const dipHistory = useMemo(() =>
+    dipReadings
+      .filter(d => d.tank_id === dipTankId)
+      .sort((a, b) => a.reading_date.localeCompare(b.reading_date))
+      .slice(-30),
+  [dipReadings, dipTankId])
+
   const TABS = [
     { id: 'overview',  label: 'Overview',   icon: 'grid_view' },
     { id: 'analytics', label: 'Analytics',  icon: 'bar_chart' },
@@ -417,6 +453,86 @@ export default function FuelTanks({ setPage }) {
               No active tanks to analyse.
             </Card>
           )}
+
+          {/* ── By Vehicle / By Operator ── */}
+          {issuances.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+              <Card style={{ padding: '20px' }}>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, marginBottom: '16px' }}>By Vehicle (top 8)</div>
+                {topVehicles.map(([label, litres], i) => {
+                  const pct = totalIssued ? (litres / totalIssued) * 100 : 0
+                  const maxLitres = topVehicles[0]?.[1] || 1
+                  return (
+                    <div key={i} style={{ marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 500, color: THEME.text }}>{label}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, fontFamily: 'monospace' }}>
+                          {Math.round(litres).toLocaleString()} L ({pct.toFixed(0)}%)
+                        </span>
+                      </div>
+                      <div style={{ height: '6px', borderRadius: '3px', background: THEME.outlineVar }}>
+                        <div style={{ height: '100%', borderRadius: '3px', width: `${(litres / maxLitres) * 100}%`, background: '#00897B', transition: 'width .2s' }} />
+                      </div>
+                    </div>
+                  )
+                })}
+                {topVehicles.length === 0 && <div style={{ color: THEME.textLow, fontSize: '13px' }}>No vehicle issuances.</div>}
+              </Card>
+
+              <Card style={{ padding: '20px' }}>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, marginBottom: '16px' }}>By Driver / Operator (top 8)</div>
+                {topOperators.map(([label, litres], i) => {
+                  const pct = totalIssued ? (litres / totalIssued) * 100 : 0
+                  const maxLitres = topOperators[0]?.[1] || 1
+                  return (
+                    <div key={i} style={{ marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 500, color: THEME.text }}>{label}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, fontFamily: 'monospace' }}>
+                          {Math.round(litres).toLocaleString()} L ({pct.toFixed(0)}%)
+                        </span>
+                      </div>
+                      <div style={{ height: '6px', borderRadius: '3px', background: THEME.outlineVar }}>
+                        <div style={{ height: '100%', borderRadius: '3px', width: `${(litres / maxLitres) * 100}%`, background: FUEL_CLR, transition: 'width .2s' }} />
+                      </div>
+                    </div>
+                  )
+                })}
+                {topOperators.length === 0 && <div style={{ color: THEME.textLow, fontSize: '13px' }}>No operator issuances.</div>}
+              </Card>
+            </div>
+          )}
+
+          {/* ── Tank Level History (Dipstick) ── */}
+          <Card style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text }}>Tank Level History (Dipstick)</div>
+              {activeTanks.length > 1 && (
+                <select
+                  value={dipTankId}
+                  onChange={e => setDipTankSel(e.target.value)}
+                  style={{
+                    padding: '6px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '8px',
+                    fontSize: '12px', color: THEME.text, background: THEME.surface,
+                    fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
+                  }}
+                >
+                  {activeTanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              )}
+            </div>
+            <div style={{ fontSize: '12px', color: THEME.textLow, marginBottom: '16px' }}>End-of-day levels from dipstick readings</div>
+            {dipHistory.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: THEME.textLow, fontSize: '13px' }}>
+                No dip readings recorded yet.
+              </div>
+            ) : (
+              <DipBarChart readings={dipHistory} tank={activeTanks.find(t => t.id === dipTankId)} />
+            )}
+            <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '8px' }}>
+              Last {dipHistory.length} readings · hover to see value
+            </div>
+          </Card>
         </div>
       )}
 
@@ -976,6 +1092,72 @@ const trfInp = {
   borderRadius: '10px', fontSize: '14px', color: THEME.text,
   fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
   background: THEME.surface,
+}
+
+function DipBarChart({ readings, tank }) {
+  const [hover, setHover] = useState(null)
+  const cap = Number(tank?.capacity_litres) || 0
+  const minThresh = cap ? cap * (Number(tank?.min_threshold_percent || 20) / 100) : 0
+  const maxVal = Math.max(cap, ...readings.map(r => Number(r.level_litres)))
+  const W = 960, H = 260
+  const PAD = { top: 16, right: 16, bottom: 50, left: 54 }
+  const innerW = W - PAD.left - PAD.right
+  const innerH = H - PAD.top - PAD.bottom
+  const slot = innerW / readings.length
+  const barW = Math.min(28, slot * 0.65)
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
+        {/* threshold line */}
+        {minThresh > 0 && (
+          <>
+            <line
+              x1={PAD.left} x2={W - PAD.right}
+              y1={PAD.top + innerH - (minThresh / maxVal) * innerH}
+              y2={PAD.top + innerH - (minThresh / maxVal) * innerH}
+              stroke={THEME.error} strokeWidth="1" strokeDasharray="6 3" opacity="0.5"
+            />
+            <text x={PAD.left - 6} y={PAD.top + innerH - (minThresh / maxVal) * innerH + 3} textAnchor="end" fontSize="9" fill={THEME.error} fontFamily="inherit">
+              Low
+            </text>
+          </>
+        )}
+        {/* baseline */}
+        <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH} y2={PAD.top + innerH} stroke={THEME.outlineVar} strokeWidth="1" />
+        {readings.map((r, i) => {
+          const litres = Number(r.level_litres)
+          const h = (litres / maxVal) * innerH
+          const cx = PAD.left + slot * i + slot / 2
+          const y = PAD.top + innerH - h
+          const isLow = litres <= minThresh
+          const isHover = hover === i
+          return (
+            <g key={i}>
+              <rect
+                x={cx - barW / 2} y={y} width={barW} height={Math.max(2, h)} rx="3"
+                fill={isLow ? THEME.error : '#00897B'}
+                opacity={isHover ? 0.8 : 1}
+                onMouseEnter={() => setHover(i)}
+                onMouseLeave={() => setHover(null)}
+                style={{ cursor: 'default', transition: 'opacity .12s' }}
+              />
+              {isHover && (
+                <text x={cx} y={y - 6} textAnchor="middle" fontSize="10" fontWeight="700" fill={isLow ? THEME.error : '#00897B'} fontFamily="inherit">
+                  {Math.round(litres).toLocaleString()} L
+                </text>
+              )}
+              {(i % Math.max(1, Math.ceil(readings.length / 12)) === 0 || i === readings.length - 1) && (
+                <text x={cx} y={H - 6} textAnchor="middle" fontSize="9" fill={THEME.textLow} fontFamily="inherit">
+                  {r.reading_date?.slice(5)}
+                </text>
+              )}
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
 }
 
 function TankMiniPreview({ tank, balance, delta, color }) {

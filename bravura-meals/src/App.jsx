@@ -70,7 +70,6 @@ const TankDetail         = lazy(() => import('./pages/fuel/TankDetail'))
 const Vehicles           = lazy(() => import('./pages/fuel/Vehicles'))
 const Equipment          = lazy(() => import('./pages/fuel/Equipment'))
 const Operators          = lazy(() => import('./pages/fuel/Operators'))
-const FuelTransfer       = lazy(() => import('./pages/fuel/FuelTransfer'))
 const BowserDispatches   = lazy(() => import('./pages/fuel/BowserDispatches'))
 const Reconciliation     = lazy(() => import('./pages/fuel/Reconciliation'))
 const ShiftReport        = lazy(() => import('./pages/fuel/ShiftReport'))
@@ -214,7 +213,6 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_issuance':     return can('fuel.create') ? <FuelIssuance setPage={setPage} />     : null
     case 'fuel_transactions': return can('fuel.view')   ? <FuelTransactions setPage={setPage} /> : null
     case 'fuel_dips':          return can('fuel.create') ? <DipReadings />                           : null
-    case 'fuel_transfer':      return can('fuel.create') ? <FuelTransfer />                           : null
     case 'fuel_bowsers':       return can('fuel.view')   ? <BowserDispatches />                      : null
     case 'fuel_reconciliation':return can('fuel.create') ? <Reconciliation />                         : null
     case 'fuel_shift_report':  return can('fuel.view')   ? <ShiftReport />                            : null

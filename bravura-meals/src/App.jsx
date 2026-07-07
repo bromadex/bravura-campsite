@@ -78,6 +78,7 @@ const MonthlyConsumptionReport = lazy(() => import('./pages/fuel/reports/Monthly
 const DeliveryReport           = lazy(() => import('./pages/fuel/reports/DeliveryReport'))
 const VarianceReport           = lazy(() => import('./pages/fuel/reports/VarianceReport'))
 const VehicleConsumption       = lazy(() => import('./pages/fuel/VehicleConsumption'))
+const Forecasting              = lazy(() => import('./pages/fuel/Forecasting'))
 const CostAllocation           = lazy(() => import('./pages/fuel/CostAllocation'))
 const FinanceExport            = lazy(() => import('./pages/fuel/FinanceExport'))
 
@@ -220,6 +221,7 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_report_deliveries': return can('fuel.view') ? <DeliveryReport />                       : null
     case 'fuel_report_variance':   return can('fuel.view') ? <VarianceReport />                       : null
     case 'fuel_vehicle_consumption': return can('fuel.view') ? <VehicleConsumption />                 : null
+    case 'fuel_forecasting':   return can('fuel.view')     ? <Forecasting setPage={setPage} />        : null
     case 'fuel_cost_allocation':   return can('fuel.view') ? <CostAllocation />                       : null
     case 'fuel_finance_export':    return can('fuel.edit') ? <FinanceExport />                        : null
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports setPage={setPage} />   : null

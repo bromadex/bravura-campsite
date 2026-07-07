@@ -204,6 +204,7 @@ export function fuelNav(role, can) {
     { id: 'fuel_shift_report',  label: 'Shift Report',       section: 'Fuel Operations', icon: 'summarize',         show: false },
     { id: 'fuel_reconciliation',      label: 'Reconciliation',      section: 'Analytics & Reports', icon: 'balance',           show: can('fuel.create') },
     { id: 'fuel_vehicle_consumption', label: 'Vehicle Consumption', section: 'Analytics & Reports', icon: 'speed',             show: can('fuel.view') },
+    { id: 'fuel_forecasting',         label: 'Forecasting',         section: 'Analytics & Reports', icon: 'trending_up',       show: can('fuel.view') },
     { id: 'fuel_reports',             label: 'Fuel Reports',        section: 'Analytics & Reports', icon: 'bar_chart',         show: can('fuel.view') },
     { id: 'fuel_report_daily',        label: 'Daily Transactions',  section: 'Analytics & Reports', icon: 'today',             show: false },
     { id: 'fuel_report_monthly',      label: 'Monthly Consumption', section: 'Analytics & Reports', icon: 'calendar_month',    show: false },

@@ -102,6 +102,7 @@ export default function FuelReceipts() {
 
   // Edit row
   const [editId, setEditId] = useState(null)
+  const [editStatus, setEditStatus] = useState(null)
 
   const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
 
@@ -198,6 +199,7 @@ export default function FuelReceipts() {
     if (del._from_txn) return
     if (!canCreate && !canApprove) return
     setEditId(del.id)
+    setEditStatus(del.status || 'pending')
     setForm({
       delivery_date:        del.delivery_date || '',
       delivery_time:        '',
@@ -344,6 +346,30 @@ export default function FuelReceipts() {
       refreshFuel()
     } catch (err) {
       showToast(err.message || 'Failed to delete delivery', 'red')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function confirmDelivery() {
+    if (!editId) return
+    setSaving(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { error } = await supabase
+        .from('fuel_deliveries')
+        .update({ status: 'confirmed', confirmed_by: user?.id || null, confirmed_at: new Date().toISOString(), updated_by: user?.id || null })
+        .eq('id', editId)
+        .eq('site_id', currentSiteId)
+      if (error) throw error
+      showToast('Delivery confirmed', 'green')
+      setShowForm(false)
+      setEditId(null)
+      setEditStatus(null)
+      fetchDeliveries()
+      refreshFuel()
+    } catch (err) {
+      showToast(err.message || 'Failed to confirm delivery', 'red')
     } finally {
       setSaving(false)
     }
@@ -572,10 +598,20 @@ export default function FuelReceipts() {
                 </button>
               </div>
             )}
-            <button onClick={() => { setShowForm(false); setEditId(null) }} style={{
+            <button onClick={() => { setShowForm(false); setEditId(null); setEditStatus(null) }} style={{
               padding: '10px 20px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,
               background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
             }}>Cancel</button>
+            {editId && editStatus === 'pending' && (
+              <button onClick={confirmDelivery} disabled={saving} style={{
+                padding: '10px 24px', borderRadius: '6px', border: 'none',
+                background: saving ? THEME.outline : THEME.success, color: '#fff',
+                fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                <Icon name="check_circle" size={16} style={{ color: '#fff' }} /> Confirm Delivery
+              </button>
+            )}
             <button onClick={save} disabled={saving} style={{
               padding: '10px 24px', borderRadius: '6px', border: 'none',
               background: saving ? THEME.outline : FUEL_CLR, color: '#fff',

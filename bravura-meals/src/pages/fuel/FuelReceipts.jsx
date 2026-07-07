@@ -346,9 +346,9 @@ export default function FuelReceipts() {
           notes:             form.receiving_officer ? `Received by: ${form.receiving_officer.trim()}${form.notes ? ' | ' + form.notes.trim() : ''}` : (form.notes.trim() || null),
         })
 
-        // Auto-create dip reading for the dipstick log (this triggers fuel_update_dip_snapshot which sets tank level)
-        if (payload.dip_after_mm != null || payload.dip_after != null) {
-          await supabase
+        // Auto-create dip reading for the dipstick log (trigger sets tank level)
+        if (payload.dip_after != null) {
+          const { error: dipErr } = await supabase
             .from('fuel_dip_readings')
             .insert([{
               site_id:            currentSiteId,
@@ -361,10 +361,10 @@ export default function FuelReceipts() {
               level_litres:       payload.dip_after,
               level_start_litres: payload.dip_before,
               level_end_litres:   payload.dip_after,
-              read_by:            form.receiving_officer?.trim() || null,
+              recorded_by:        user?.id || null,
               notes:              `Auto-recorded from delivery ${deliveryNumber}`,
-              created_by:         user?.id || null,
             }])
+          if (dipErr) console.error('Dip reading auto-insert failed:', dipErr.message)
         }
 
         showToast('Delivery recorded', 'green')

@@ -44,6 +44,7 @@ export default function DailyTransactionReport() {
     const { data, error } = await supabase.from('fuel_transactions')
       .select('*, tank:fuel_tanks(name), vehicle:fuel_vehicles(fleet_number, registration), equipment:fuel_equipment(name), operator:fuel_operators(employees(name))')
       .eq('site_id', currentSiteId)
+      .eq('is_deleted', false)
       .eq('transaction_date', date)
       .order('created_at', { ascending: true })
     if (error) console.error('DailyTransactionReport query failed:', error)

@@ -54,6 +54,7 @@ export default function MonthlyConsumptionReport() {
       supabase.from('fuel_transactions')
         .select('*, tank:fuel_tanks(name, fuel_types(name)), vehicle:fuel_vehicles(fleet_number, registration, department_name), equipment:fuel_equipment(name)')
         .eq('site_id', currentSiteId)
+        .eq('is_deleted', false)
         .gte('transaction_date', start)
         .lte('transaction_date', end),
       supabase.from('fuel_tanks')

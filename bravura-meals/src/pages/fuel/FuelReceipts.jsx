@@ -173,6 +173,7 @@ export default function FuelReceipts() {
       .from('fuel_transactions')
       .select('*, fuel_tanks:tank_id(id, name, fuel_types(name))')
       .eq('site_id', currentSiteId)
+      .eq('is_deleted', false)
       .eq('transaction_type', 'delivery')
       .order('transaction_date', { ascending: false })
 

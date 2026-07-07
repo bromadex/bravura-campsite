@@ -78,6 +78,7 @@ export default function VehicleConsumption() {
       .from('fuel_transactions')
       .select('vehicle_id, equipment_id, litres, meter_start, meter_end, transaction_date, docket_number, notes, tank:fuel_tanks(name), vehicle:fuel_vehicles(fleet_number, registration, expected_consumption_lpkm, fuel_types(name)), equipment:fuel_equipment(name, equipment_number, fuel_types(name))')
       .eq('site_id', currentSiteId)
+      .eq('is_deleted', false)
       .eq('transaction_type', 'issuance')
       .gte('transaction_date', from)
       .lte('transaction_date', to)

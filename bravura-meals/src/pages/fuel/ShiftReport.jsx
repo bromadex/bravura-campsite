@@ -66,6 +66,7 @@ export default function ShiftReport() {
       supabase.from('fuel_transactions')
         .select('*, tank:fuel_tanks(tank_name), vehicle:fuel_vehicles(fleet_number, registration), equipment:fuel_equipment(name), operator:fuel_operators(full_name)')
         .eq('site_id', currentSiteId)
+        .eq('is_deleted', false)
         .eq('transaction_date', date)
         .then(r => {
           if (operatorId && r.data) {

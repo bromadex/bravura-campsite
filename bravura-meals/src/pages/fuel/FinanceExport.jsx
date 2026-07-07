@@ -132,6 +132,7 @@ export default function FinanceExport() {
         .from('fuel_transactions')
         .select('id, transaction_number, transaction_date, litres, unit_price, fuel_types(name)')
         .eq('site_id', currentSiteId)
+        .eq('is_deleted', false)
         .eq('transaction_type', 'delivery')
         .gte('transaction_date', from)
         .lte('transaction_date', to)
@@ -140,6 +141,7 @@ export default function FinanceExport() {
         .from('fuel_transactions')
         .select('id, transaction_date, litres, unit_price, vehicle:fuel_vehicles(department_id, departments(name)), equipment:fuel_equipment(department_id, departments(name))')
         .eq('site_id', currentSiteId)
+        .eq('is_deleted', false)
         .eq('transaction_type', 'issuance')
         .gte('transaction_date', from)
         .lte('transaction_date', to),

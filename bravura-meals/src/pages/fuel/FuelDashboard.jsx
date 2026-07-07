@@ -304,6 +304,7 @@ export default function FuelDashboard({ setPage }) {
     supabase.from('fuel_transactions')
       .select('litres, unit_price')
       .eq('site_id', currentSiteId)
+      .eq('is_deleted', false)
       .eq('transaction_type', 'delivery')
       .gte('transaction_date', start)
       .then(({ data }) => {
@@ -424,6 +425,7 @@ export default function FuelDashboard({ setPage }) {
     supabase.from('fuel_transactions')
       .select('id, transaction_date, tank:fuel_tanks(name), created_at')
       .eq('site_id', currentSiteId)
+      .eq('is_deleted', false)
       .eq('transaction_type', 'delivery')
       .is('approved_at', null)
       .lte('transaction_date', twoDaysAgo)

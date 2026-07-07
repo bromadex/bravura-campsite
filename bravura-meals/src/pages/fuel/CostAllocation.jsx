@@ -56,12 +56,14 @@ export default function CostAllocation() {
       supabase.from('fuel_transactions')
         .select('litres, unit_price, vehicle_id, equipment_id, vehicle:fuel_vehicles(department_id, fuel_types(name, id)), equipment:fuel_equipment(department_id, fuel_types(name, id))')
         .eq('site_id', currentSiteId)
+        .eq('is_deleted', false)
         .eq('transaction_type', 'issuance')
         .gte('transaction_date', from)
         .lte('transaction_date', to),
       supabase.from('fuel_transactions')
         .select('unit_price, fuel_types(name, id)')
         .eq('site_id', currentSiteId)
+        .eq('is_deleted', false)
         .eq('transaction_type', 'delivery')
         .not('unit_price', 'is', null)
         .order('transaction_date', { ascending: false }),

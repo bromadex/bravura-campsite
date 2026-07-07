@@ -144,6 +144,7 @@ function NewReconciliationForm({ tanks, currentSiteId, profileId, onSaved, onCan
     const { data: txns } = await supabase.from('fuel_transactions')
       .select('transaction_type, litres')
       .eq('site_id', currentSiteId)
+      .eq('is_deleted', false)
       .eq('tank_id', tankId)
       .gte('transaction_date', periodStart)
       .lte('transaction_date', periodEnd)

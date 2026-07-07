@@ -45,6 +45,7 @@ export default function DeliveryReport() {
       .from('fuel_transactions')
       .select('*, tank:fuel_tanks(name, fuel_types(name))')
       .eq('site_id', currentSiteId)
+      .eq('is_deleted', false)
       .eq('transaction_type', 'delivery')
       .gte('transaction_date', from)
       .lte('transaction_date', to)

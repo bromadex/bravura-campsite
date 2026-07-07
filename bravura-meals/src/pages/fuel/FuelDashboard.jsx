@@ -10,29 +10,112 @@ const FUEL_CLR = MODULE_COLORS.fuel
 const LOW_PCT  = 20
 const WARN_PCT = 40
 
-function StatCard({ label, value, sub, icon, color, onClick }) {
+function StatCard({ label, value, sub, icon, color, onClick, trend }) {
+  const trendColor = trend > 0 ? THEME.success : trend < 0 ? THEME.error : null
   return (
     <div
       onClick={onClick}
       style={{
         background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-        borderRadius: '10px', padding: '18px 20px', boxShadow: THEME.shadow1,
+        borderRadius: '12px', padding: '18px 20px', boxShadow: THEME.shadow1,
         display: 'flex', flexDirection: 'column', gap: '4px',
         cursor: onClick ? 'pointer' : 'default',
+        transition: 'box-shadow .15s, transform .15s',
       }}
-      onMouseEnter={e => { if (onClick) e.currentTarget.style.boxShadow = THEME.shadow2 }}
-      onMouseLeave={e => { if (onClick) e.currentTarget.style.boxShadow = THEME.shadow1 }}
+      onMouseEnter={e => { if (onClick) { e.currentTarget.style.boxShadow = THEME.shadow2; e.currentTarget.style.transform = 'translateY(-1px)' } }}
+      onMouseLeave={e => { if (onClick) { e.currentTarget.style.boxShadow = THEME.shadow1; e.currentTarget.style.transform = 'none' } }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '11px', fontWeight: 500, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.06em' }}>
           {label}
         </div>
-        <Icon name={icon} size={18} style={{ color: color || FUEL_CLR, opacity: .7 }} />
+        <div style={{
+          width: 30, height: 30, borderRadius: '8px', flexShrink: 0,
+          background: (color || FUEL_CLR) + '14',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name={icon} size={16} style={{ color: color || FUEL_CLR }} />
+        </div>
       </div>
-      <div style={{ fontSize: '28px', fontWeight: 400, color: color || FUEL_CLR, lineHeight: 1.1 }}>
+      <div style={{ fontSize: '26px', fontWeight: 700, color: color || FUEL_CLR, lineHeight: 1.1 }}>
         {value}
       </div>
-      {sub && <div style={{ fontSize: '11px', color: THEME.textLow }}>{sub}</div>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {sub && <div style={{ fontSize: '11px', color: THEME.textLow, flex: 1 }}>{sub}</div>}
+        {trend != null && trend !== 0 && (
+          <span style={{ fontSize: '10px', fontWeight: 600, color: trendColor, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+            <Icon name={trend > 0 ? 'trending_up' : 'trending_down'} size={12} style={{ color: trendColor }} />
+            {Math.abs(trend)}%
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Sparkline({ data, color, width = 120, height = 32 }) {
+  if (!data || data.length < 2) return null
+  const max = Math.max(...data, 1)
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * width
+    const y = height - (v / max) * (height - 4) - 2
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  return (
+    <svg width={width} height={height} style={{ display: 'block', overflow: 'visible' }}>
+      <defs>
+        <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`M${pts.join(' L')} L${width},${height} L0,${height} Z`} fill="url(#sparkGrad)" />
+      <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={parseFloat(pts[pts.length - 1])} cy={parseFloat(pts[pts.length - 1].split(',')[1])} r="2.5" fill={color} />
+    </svg>
+  )
+}
+
+function DonutChart({ segments, size = 110 }) {
+  const total = segments.reduce((s, seg) => s + seg.value, 0)
+  if (!total) return null
+  const r = (size - 14) / 2
+  const cx = size / 2
+  const circ = 2 * Math.PI * r
+  let offset = 0
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke={THEME.outlineVar} strokeWidth={10} />
+        {segments.map((seg, i) => {
+          const pct = seg.value / total
+          const dash = pct * circ
+          const el = (
+            <circle key={i} cx={cx} cy={cx} r={r} fill="none" stroke={seg.color} strokeWidth={10}
+              strokeDasharray={`${dash} ${circ - dash}`}
+              strokeDashoffset={-offset}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dasharray .4s, stroke-dashoffset .4s' }}
+            />
+          )
+          offset += dash
+          return el
+        })}
+        <text x={cx} y={cx} textAnchor="middle" dominantBaseline="central" fontSize="14" fontWeight="700" fill={THEME.text}
+          style={{ transform: 'rotate(90deg)', transformOrigin: `${cx}px ${cx}px` }}>
+          {total >= 1000 ? `${(total / 1000).toFixed(1)}k` : Math.round(total)}
+        </text>
+      </svg>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        {segments.map((seg, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: seg.color, flexShrink: 0 }} />
+            <span style={{ color: THEME.textMed, fontWeight: 500 }}>{seg.label}</span>
+            <span style={{ color: THEME.textLow, marginLeft: 'auto', fontWeight: 600 }}>{Math.round(seg.value).toLocaleString()} L</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -492,6 +575,43 @@ export default function FuelDashboard({ setPage }) {
     })
   }, [transactions])
 
+  // 14-day sparkline data for issuance trend
+  const sparkData = useMemo(() => {
+    return Array.from({ length: 14 }, (_, i) => {
+      const iso = new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10)
+      return transactions
+        .filter(t => t.transaction_type === 'issuance' && t.transaction_date === iso)
+        .reduce((s, t) => s + Number(t.litres), 0)
+    })
+  }, [transactions])
+
+  // Issuance trend: this week vs last week
+  const issuanceTrend = useMemo(() => {
+    const thisWeek = sevenDayData.reduce((s, d) => s + d.v, 0)
+    const prevWeekData = Array.from({ length: 7 }, (_, i) => {
+      const iso = new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10)
+      return transactions
+        .filter(t => t.transaction_type === 'issuance' && t.transaction_date === iso)
+        .reduce((s, t) => s + Number(t.litres), 0)
+    })
+    const lastWeek = prevWeekData.reduce((s, v) => s + v, 0)
+    if (!lastWeek) return null
+    return Math.round(((thisWeek - lastWeek) / lastWeek) * 100)
+  }, [sevenDayData, transactions])
+
+  // Fuel type breakdown (issuances this month)
+  const fuelTypeBreakdown = useMemo(() => {
+    const byType = new Map()
+    const colors = ['#D97706', '#1565C0', '#00897B', '#7C3AED', '#E53935']
+    for (const t of transactions) {
+      if (t.transaction_type !== 'issuance' || !t.transaction_date?.startsWith(thisMonth)) continue
+      const tank = tanks.find(tk => tk.id === t.tank_id)
+      const fuelName = tank?.fuel_types?.name || 'Unknown'
+      byType.set(fuelName, (byType.get(fuelName) || 0) + Number(t.litres))
+    }
+    return [...byType.entries()].map(([label, value], i) => ({ label, value, color: colors[i % colors.length] }))
+  }, [transactions, tanks, thisMonth])
+
   // Last 10 transactions for the feed
   const recent = useMemo(() => transactions.slice(0, 10), [transactions])
 
@@ -602,6 +722,7 @@ export default function FuelDashboard({ setPage }) {
           icon="output"
           color={THEME.warning}
           onClick={() => setPage('fuel_issues')}
+          trend={issuanceTrend}
         />
         <StatCard
           label="Delivered This Month"
@@ -628,12 +749,30 @@ export default function FuelDashboard({ setPage }) {
         />
       </div>
 
-      {/* 7-day bar chart */}
-      <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px', marginBottom: '24px', boxShadow: THEME.shadow1 }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '12px' }}>
-          Daily Issuance — Last 7 Days (L)
+      {/* Charts row: 7-day bar + fuel type donut */}
+      <div style={{ display: 'grid', gridTemplateColumns: fuelTypeBreakdown.length > 0 ? '1fr 320px' : '1fr', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, padding: '18px 22px', boxShadow: THEME.shadow1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+              Daily Issuance — Last 7 Days
+            </div>
+            <Sparkline data={sparkData} color={FUEL_CLR} />
+          </div>
+          <BarChart data={sevenDayData} color={FUEL_CLR} />
         </div>
-        <BarChart data={sevenDayData} color={FUEL_CLR} />
+        {fuelTypeBreakdown.length > 0 && (
+          <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, padding: '18px 22px', boxShadow: THEME.shadow1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '16px' }}>
+              Fuel Type Breakdown
+            </div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <DonutChart segments={fuelTypeBreakdown} />
+            </div>
+            <div style={{ fontSize: '10px', color: THEME.textLow, textAlign: 'center', marginTop: '8px' }}>
+              Issuances this month by fuel type
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick links */}
@@ -740,7 +879,7 @@ export default function FuelDashboard({ setPage }) {
       )}
 
       {/* Recent transactions */}
-      <div style={{ background: THEME.surface, borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px' }}>
+      <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, padding: '18px 22px', boxShadow: THEME.shadow1 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em' }}>
             Recent Transactions

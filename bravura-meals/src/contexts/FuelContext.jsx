@@ -449,16 +449,7 @@ export function FuelProvider({ children }) {
       .single()
     if (error) throw error
 
-    // Optimistically update tank level for deliveries only
-    // Issuances do NOT change tank level — dip readings are the source of truth
-    if (data.transaction_type !== 'issuance') {
-      const delta = Number(data.litres)
-      setTanks(prev => prev.map(t =>
-        t.id === data.tank_id
-          ? { ...t, current_level_litres: Math.max(0, Number(t.current_level_litres) + delta) }
-          : t
-      ))
-    }
+    // Tank level is updated by dip readings only — no optimistic adjustment
 
     setTransactions(prev => [row, ...prev])
     return row

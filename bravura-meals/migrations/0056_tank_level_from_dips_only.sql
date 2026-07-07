@@ -3,73 +3,28 @@
 -- Dip readings are the physical ground truth.
 -- Deliveries still add to tank level since they are measured quantities.
 
--- ─── 1. Replace fuel_update_tank_level() — skip issuance ───────────────────
+-- ─── 1. Replace fuel_update_tank_level() — no-op for all types ─────────────
+-- Tank level is set exclusively by dip readings now.
 
 CREATE OR REPLACE FUNCTION fuel_update_tank_level()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Issuances no longer affect tank level — dip readings are the source of truth
-  IF NEW.transaction_type = 'issuance' THEN
-    RETURN NEW;
-  END IF;
-
-  IF NEW.transaction_type = 'delivery' THEN
-    UPDATE fuel_tanks
-    SET current_level_litres = current_level_litres + NEW.litres,
-        updated_at           = now()
-    WHERE id = NEW.tank_id;
-
-  ELSIF NEW.transaction_type IN ('adjustment', 'dip_correction') THEN
-    UPDATE fuel_tanks
-    SET current_level_litres = current_level_litres + NEW.litres,
-        updated_at           = now()
-    WHERE id = NEW.tank_id;
-  END IF;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- ─── 2. Replace _fuel_recalc_tank_level() — skip issuance on edit ──────────
+-- ─── 2. Replace _fuel_recalc_tank_level() — no-op ──────────────────────────
 
 CREATE OR REPLACE FUNCTION _fuel_recalc_tank_level()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE
-  _old_effect NUMERIC(12,3);
-  _new_effect NUMERIC(12,3);
 BEGIN
-  _old_effect := CASE
-    WHEN OLD.transaction_type = 'issuance' THEN 0  -- no longer tracked
-    WHEN OLD.transaction_type IN ('delivery', 'adjustment', 'dip_correction') THEN OLD.litres
-    ELSE 0
-  END;
-
-  _new_effect := CASE
-    WHEN NEW.transaction_type = 'issuance' THEN 0  -- no longer tracked
-    WHEN NEW.transaction_type IN ('delivery', 'adjustment', 'dip_correction') THEN NEW.litres
-    ELSE 0
-  END;
-
-  IF OLD.tank_id IS DISTINCT FROM NEW.tank_id THEN
-    UPDATE fuel_tanks
-    SET current_level_litres = GREATEST(0, current_level_litres - _old_effect),
-        updated_at = now()
-    WHERE id = OLD.tank_id;
-
-    UPDATE fuel_tanks
-    SET current_level_litres = GREATEST(0, current_level_litres + _new_effect),
-        updated_at = now()
-    WHERE id = NEW.tank_id;
-  ELSE
-    UPDATE fuel_tanks
-    SET current_level_litres = GREATEST(0, current_level_litres + (_new_effect - _old_effect)),
-        updated_at = now()
-    WHERE id = NEW.tank_id;
-  END IF;
-
   RETURN NEW;
 END;
 $$;
+
+-- ─── 2b. Remove delivery reverse-on-delete trigger (no longer needed) ──────
+DROP TRIGGER IF EXISTS trg_fuel_delivery_reverse_delete ON fuel_deliveries;
+DROP FUNCTION IF EXISTS _fuel_delivery_reverse_on_delete();
 
 -- ─── 3. Replace fuel_bulk_issuance() — remove tank level update ────────────
 -- The bulk function currently sets current_level_litres directly.

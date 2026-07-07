@@ -26,12 +26,27 @@ function exportCsv(filename, headers, rows) {
   URL.revokeObjectURL(url)
 }
 
-function KpiTile({ icon, label, value, sub, color }) {
+function KpiTile({ icon, label, value, sub, color, onClick, active }) {
   return (
-    <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, padding: '16px 20px', boxShadow: THEME.shadow1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-        <Icon name={icon} size={16} style={{ color: color || THEME.textMed }} />
-        <span style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.07em' }}>{label}</span>
+    <div
+      onClick={onClick}
+      style={{
+        background: active ? (color || COLOR) + '10' : THEME.surface,
+        borderRadius: '12px',
+        border: `1.5px solid ${active ? (color || COLOR) : THEME.outlineVar}`,
+        padding: '16px 20px', boxShadow: THEME.shadow1,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'border-color .15s, background .15s',
+      }}
+      onMouseEnter={e => { if (onClick && !active) e.currentTarget.style.borderColor = (color || COLOR) + '80' }}
+      onMouseLeave={e => { if (onClick && !active) e.currentTarget.style.borderColor = THEME.outlineVar }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Icon name={icon} size={16} style={{ color: color || THEME.textMed }} />
+          <span style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.07em' }}>{label}</span>
+        </div>
+        {onClick && active && <Icon name="filter_alt" size={14} style={{ color: color || COLOR }} />}
       </div>
       <div style={{ fontSize: '26px', fontWeight: 700, color: color || THEME.text, lineHeight: 1.1 }}>{value}</div>
       {sub && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '3px' }}>{sub}</div>}
@@ -53,6 +68,7 @@ export default function VehicleConsumption() {
   const [expanded, setExpanded] = useState(null)
   const [sortKey, setSortKey] = useState('totalLitres')
   const [sortDir, setSortDir] = useState(-1)
+  const [statusFilter, setStatusFilter] = useState(null) // null | 'abnormal' | 'noKmData'
 
   const run = useCallback(async () => {
     if (!currentSiteId) return
@@ -114,18 +130,27 @@ export default function VehicleConsumption() {
 
   useEffect(() => { run() }, [run])
 
+  useEffect(() => {
+    if (statusFilter === 'abnormal' && rows) {
+      const firstAbnormal = rows.find(r => r.abnormal > 0)
+      if (firstAbnormal) setExpanded(firstAbnormal.assetId)
+    }
+  }, [statusFilter, rows])
+
   const visible = useMemo(() => {
     if (!rows) return []
     const q = filter.toLowerCase().trim()
-    const list = q
+    let list = q
       ? rows.filter(r => `${r.label} ${r.subLabel || ''}`.toLowerCase().includes(q))
       : rows
+    if (statusFilter === 'abnormal') list = list.filter(r => r.abnormal > 0)
+    if (statusFilter === 'noKmData') list = list.filter(r => r.lp100km == null)
     return [...list].sort((a, b) => {
       const av = a[sortKey] ?? -Infinity
       const bv = b[sortKey] ?? -Infinity
       return sortDir * (av < bv ? -1 : av > bv ? 1 : 0)
     })
-  }, [rows, filter, sortKey, sortDir])
+  }, [rows, filter, sortKey, sortDir, statusFilter])
 
   const kpis = useMemo(() => {
     if (!rows) return null
@@ -215,12 +240,39 @@ export default function VehicleConsumption() {
 
       {/* KPI tiles */}
       {kpis && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px', marginBottom: '20px' }}>
-          <KpiTile icon="directions_car" label="Total Vehicles" value={kpis.vehicles} />
-          <KpiTile icon="local_gas_station" label="Total Litres" value={`${kpis.totalLitres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L`} color={COLOR} />
-          <KpiTile icon="speed" label="Avg L/100km" value={kpis.fleetLp100 != null ? kpis.fleetLp100.toFixed(1) : '—'} sub="fleet average" />
-          <KpiTile icon="warning" label="Abnormal Fills" value={kpis.abnormal} color={kpis.abnormal > 0 ? THEME.error : THEME.text} sub={kpis.abnormal > 0 ? '≥ 2.5× vehicle average' : null} />
-        </div>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px', marginBottom: statusFilter ? '10px' : '20px' }}>
+            <KpiTile
+              icon="directions_car" label="Total Vehicles" value={kpis.vehicles}
+              active={statusFilter === null} onClick={() => setStatusFilter(null)}
+            />
+            <KpiTile icon="local_gas_station" label="Total Litres" value={`${kpis.totalLitres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L`} color={COLOR} />
+            <KpiTile
+              icon="speed" label="No Odometer Data" value={rows ? rows.filter(r => r.lp100km == null).length : 0}
+              sub="click to filter" color={THEME.textMed}
+              active={statusFilter === 'noKmData'} onClick={() => setStatusFilter(statusFilter === 'noKmData' ? null : 'noKmData')}
+            />
+            <KpiTile
+              icon="warning" label="Abnormal Fills" value={kpis.abnormal}
+              color={kpis.abnormal > 0 ? THEME.error : THEME.text}
+              sub={kpis.abnormal > 0 ? '≥ 2.5× vehicle average — click to view' : null}
+              active={statusFilter === 'abnormal'}
+              onClick={kpis.abnormal > 0 ? () => setStatusFilter(statusFilter === 'abnormal' ? null : 'abnormal') : undefined}
+            />
+          </div>
+          {statusFilter && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', fontSize: '12px', color: THEME.textMed }}>
+              <Icon name="filter_alt" size={14} style={{ color: COLOR }} />
+              Filtered: {statusFilter === 'abnormal' ? 'vehicles with abnormal fills' : 'vehicles with no odometer data'}
+              <button
+                onClick={() => setStatusFilter(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLOR, fontWeight: 600, fontSize: '12px', fontFamily: 'inherit', padding: 0 }}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Table */}

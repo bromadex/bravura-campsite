@@ -1,11 +1,11 @@
 -- ── 0059: Procurement permission codes ──────────────────────────────────────
 -- Seed the permission codes for the new Procurement module.
 
-INSERT INTO permissions (code, description, module) VALUES
-  ('procurement.view',   'View suppliers and procurement data', 'procurement'),
-  ('procurement.create', 'Create suppliers and requisitions',   'procurement'),
-  ('procurement.edit',   'Edit suppliers and requisitions',     'procurement'),
-  ('procurement.delete', 'Delete/deactivate procurement data',  'procurement')
+INSERT INTO permissions (code, module, action, description) VALUES
+  ('procurement.view',   'procurement', 'View',   'View suppliers and procurement data'),
+  ('procurement.create', 'procurement', 'Create', 'Create suppliers and requisitions'),
+  ('procurement.edit',   'procurement', 'Edit',   'Edit suppliers and requisitions'),
+  ('procurement.delete', 'procurement', 'Delete', 'Delete/deactivate procurement data')
 ON CONFLICT (code) DO NOTHING;
 
 -- Grant all procurement permissions to the System Admin role

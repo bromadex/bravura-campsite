@@ -157,6 +157,17 @@ function TankCard({ tank, balance, dip, daysRemaining }) {
   )
 }
 
+function relativeDayLabel(dateStr) {
+  if (!dateStr) return null
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const d = new Date(dateStr); d.setHours(0, 0, 0, 0)
+  const diffDays = Math.round((today - d) / 86400000)
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays > 1)   return `${diffDays} days ago`
+  return fmtDate(dateStr)
+}
+
 function TankHeroBar({ tank, balance }) {
   const cap = Number(tank.capacity_litres) || 0
   const pct = cap ? Math.min(100, Math.max(0, (balance / cap) * 100)) : null
@@ -166,6 +177,12 @@ function TankHeroBar({ tank, balance }) {
   const status = pct === null ? '—' : isLow ? 'Low' : isWarn ? 'Watch' : 'Normal'
   const statusBg = isLow ? THEME.statusErrorBg : isWarn ? THEME.statusWarningBg : THEME.statusSuccessBg
   const statusTx = isLow ? THEME.statusErrorText : isWarn ? THEME.statusWarningText : THEME.statusSuccessText
+
+  const lastDipRel = relativeDayLabel(tank.last_dip_date)
+  const staleDays = tank.last_dip_date
+    ? Math.round((new Date().setHours(0,0,0,0) - new Date(tank.last_dip_date).setHours(0,0,0,0)) / 86400000)
+    : null
+  const isStale = staleDays !== null && staleDays >= 2
 
   const meta = [
     tank.code,
@@ -183,6 +200,12 @@ function TankHeroBar({ tank, balance }) {
         <div>
           <div style={{ fontSize: '17px', fontWeight: 700, color: THEME.text }}>{tank.name}</div>
           <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>{meta}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px', fontSize: '11px', color: isStale ? THEME.warning : THEME.textLow, fontWeight: isStale ? 600 : 400 }}>
+            <Icon name="straighten" size={13} style={{ color: 'inherit' }} />
+            {tank.last_dip_date
+              ? <span>Last dip: {lastDipRel} ({fmtDate(tank.last_dip_date)})</span>
+              : <span>No dip reading recorded yet</span>}
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {pct !== null && <span style={{ fontSize: '26px', fontWeight: 700, color }}>{pct.toFixed(0)}%</span>}

@@ -26,6 +26,21 @@ function interpolate(calibration, mm) {
   return null
 }
 
+function reverseInterpolate(calibration, litres) {
+  if (!calibration || calibration.length === 0) return null
+  const sorted = [...calibration].sort((a, b) => a.level_litres - b.level_litres)
+  if (litres <= sorted[0].level_litres) return sorted[0].dip_mm
+  if (litres >= sorted[sorted.length - 1].level_litres) return sorted[sorted.length - 1].dip_mm
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const lo = sorted[i], hi = sorted[i + 1]
+    if (litres >= lo.level_litres && litres <= hi.level_litres) {
+      const t = (litres - lo.level_litres) / (hi.level_litres - lo.level_litres)
+      return lo.dip_mm + t * (hi.dip_mm - lo.dip_mm)
+    }
+  }
+  return null
+}
+
 const BLANK_FORM = {
   delivery_date:        new Date().toISOString().slice(0, 10),
   delivery_time:        new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
@@ -170,13 +185,27 @@ export default function FuelReceipts() {
 
   if (!canView) return null
 
+  function autoPopulateDipBefore(tankId, formObj) {
+    const tank = tanks.find(t => t.id === tankId)
+    if (!tank) return formObj
+    const level = Number(tank.current_level_litres) || 0
+    const mm = reverseInterpolate(calibration, level)
+    return {
+      ...formObj,
+      dip_before: level ? level.toFixed(1) : '',
+      dip_before_mm: mm != null ? Math.round(mm).toString() : '',
+    }
+  }
+
   function set(field, value) {
     setForm(prev => {
       const next = { ...prev, [field]: value }
       if ((field === 'unit_price' || field === 'quantity_delivered') && next.unit_price && next.quantity_delivered) {
         next.total_cost = (Number(next.unit_price) * Number(next.quantity_delivered)).toFixed(2)
       }
-      // Auto-calculate litres from dip mm using calibration table
+      if (field === 'tank_id' && value && !editId) {
+        return autoPopulateDipBefore(value, next)
+      }
       if (field === 'dip_before_mm' && value !== '') {
         const litres = interpolate(calibration, parseFloat(value))
         if (litres != null) next.dip_before = litres.toFixed(1)
@@ -273,7 +302,17 @@ export default function FuelReceipts() {
           .eq('id', editId)
           .eq('site_id', currentSiteId)
         if (error) throw error
-        showToast('Delivery updated — audit log entry created', 'green')
+
+        // Update tank level to dip_after (the physical truth after delivery)
+        if (payload.dip_after != null) {
+          await supabase
+            .from('fuel_tanks')
+            .update({ current_level_litres: payload.dip_after, last_dip_date: payload.delivery_date, last_dip_reading: payload.dip_after, updated_at: new Date().toISOString() })
+            .eq('id', payload.tank_id)
+            .eq('site_id', currentSiteId)
+        }
+
+        showToast('Delivery updated — tank level updated', 'green')
       } else {
         payload.delivery_number = deliveryNumber
 
@@ -282,7 +321,7 @@ export default function FuelReceipts() {
           .insert([payload])
         if (error) throw error
 
-        // Also record in fuel_transactions to update tank level
+        // Record in fuel_transactions for history
         await addTransaction({
           transaction_type:  'delivery',
           transaction_date:  form.delivery_date,
@@ -295,7 +334,35 @@ export default function FuelReceipts() {
           notes:             form.receiving_officer ? `Received by: ${form.receiving_officer.trim()}${form.notes ? ' | ' + form.notes.trim() : ''}` : (form.notes.trim() || null),
         })
 
-        showToast('Delivery recorded', 'green')
+        // Update tank level to dip_after (the physical truth after delivery)
+        if (payload.dip_after != null) {
+          await supabase
+            .from('fuel_tanks')
+            .update({ current_level_litres: payload.dip_after, last_dip_date: payload.delivery_date, last_dip_reading: payload.dip_after, updated_at: new Date().toISOString() })
+            .eq('id', payload.tank_id)
+            .eq('site_id', currentSiteId)
+        }
+
+        // Auto-create dip reading for the dipstick log
+        await supabase
+          .from('fuel_dip_readings')
+          .insert([{
+            site_id:            currentSiteId,
+            tank_id:            form.tank_id,
+            reading_date:       form.delivery_date,
+            reading_time:       form.delivery_time || null,
+            dip_start_mm:       payload.dip_before_mm,
+            dip_end_mm:         payload.dip_after_mm,
+            dip_mm:             payload.dip_after_mm,
+            level_litres:       payload.dip_after,
+            level_start_litres: payload.dip_before,
+            level_end_litres:   payload.dip_after,
+            read_by:            form.receiving_officer?.trim() || null,
+            notes:              `Auto-recorded from delivery ${deliveryNumber}`,
+            created_by:         user?.id || null,
+          }])
+
+        showToast('Delivery recorded — tank level updated', 'green')
       }
 
       setShowForm(false)
@@ -362,7 +429,17 @@ export default function FuelReceipts() {
         .eq('id', editId)
         .eq('site_id', currentSiteId)
       if (error) throw error
-      showToast('Delivery confirmed', 'green')
+
+      // Update tank level to dip_after on confirm
+      if (form.dip_after && form.tank_id) {
+        await supabase
+          .from('fuel_tanks')
+          .update({ current_level_litres: Number(form.dip_after), last_dip_date: form.delivery_date, last_dip_reading: Number(form.dip_after), updated_at: new Date().toISOString() })
+          .eq('id', form.tank_id)
+          .eq('site_id', currentSiteId)
+      }
+
+      showToast('Delivery confirmed — tank level updated', 'green')
       setShowForm(false)
       setEditId(null)
       setEditStatus(null)
@@ -539,7 +616,7 @@ export default function FuelReceipts() {
             </FieldWrap>
             <FieldWrap label="Dip Before (mm)">
               <input type="number" min="0" step="0.1" value={form.dip_before_mm} onChange={e => set('dip_before_mm', e.target.value)} placeholder="e.g. 850" style={inputStyle} />
-              {form.dip_before && <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>{Number(form.dip_before).toLocaleString(undefined, { maximumFractionDigits: 1 })} L</div>}
+              {form.dip_before && <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>{Number(form.dip_before).toLocaleString(undefined, { maximumFractionDigits: 1 })} L {!editId && form.tank_id ? '(current tank level)' : ''}</div>}
               {calibration.length === 0 && form.dip_before_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table</div>}
             </FieldWrap>
             <FieldWrap label="Dip After (mm)">

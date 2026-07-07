@@ -252,26 +252,35 @@ const TX_ICONS = {
 }
 
 function BarChart({ data, color }) {
-  const W = 480, H = 100, BAR_W = 32, GAP = 10
+  const W = 480, H = 120, BAR_W = 36, GAP = 10
   const max = Math.max(...data.map(d => d.v), 1)
   const total = data.length
   const slotW = (W - GAP) / total
 
   return (
-    <svg viewBox={`0 0 ${W} ${H + 28}`} style={{ width: '100%', maxWidth: W, overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${W} ${H + 30}`} style={{ width: '100%', maxWidth: W, overflow: 'visible' }}>
+      <defs>
+        <linearGradient id="dashBarGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="1" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.55" />
+        </linearGradient>
+      </defs>
+      {[0.25, 0.5, 0.75].map(f => (
+        <line key={f} x1={0} x2={W} y1={H - f * H} y2={H - f * H} stroke={THEME.outlineVar} strokeWidth="0.5" strokeDasharray="3 3" />
+      ))}
       {data.map((d, i) => {
         const barH = Math.max(2, (d.v / max) * H)
         const x = i * slotW + (slotW - BAR_W) / 2
         const y = H - barH
         return (
           <g key={d.label}>
-            <rect x={x} y={y} width={BAR_W} height={barH} rx={4} fill={color} opacity={d.v > 0 ? 1 : 0.15} />
+            <rect x={x} y={y} width={BAR_W} height={barH} rx={5} fill="url(#dashBarGrad)" opacity={d.v > 0 ? 1 : 0.12} />
             {d.v > 0 && (
-              <text x={x + BAR_W / 2} y={y - 4} textAnchor="middle" fontSize={9} fill={THEME.textMed}>
+              <text x={x + BAR_W / 2} y={y - 6} textAnchor="middle" fontSize={10} fontWeight="600" fill={color} fontFamily="inherit">
                 {d.v >= 1000 ? (d.v / 1000).toFixed(1) + 'k' : d.v.toFixed(0)}
               </text>
             )}
-            <text x={x + BAR_W / 2} y={H + 16} textAnchor="middle" fontSize={9} fill={THEME.textLow}>{d.label}</text>
+            <text x={x + BAR_W / 2} y={H + 18} textAnchor="middle" fontSize={10} fontWeight="500" fill={THEME.textLow} fontFamily="inherit">{d.label}</text>
           </g>
         )
       })}

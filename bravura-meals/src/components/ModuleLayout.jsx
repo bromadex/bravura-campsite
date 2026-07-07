@@ -440,7 +440,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 </span>
               )}
             </button>
-            {!isMobile && <SiteSwitcher />}
+            <SiteSwitcher />
             {!isMobile && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '5px',

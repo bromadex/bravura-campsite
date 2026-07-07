@@ -16,8 +16,8 @@ const TANK_CLR = '#00897B'   // tank level line
 // ── SVG chart primitives ──────────────────────────────────────────────────────
 
 const CHART_W = 960
-const CHART_H = 260
-const PAD = { top: 12, right: 16, bottom: 72, left: 56 }
+const CHART_H = 300
+const PAD = { top: 20, right: 20, bottom: 72, left: 60 }
 
 function niceMax(v) {
   if (v <= 0) return 10
@@ -27,30 +27,50 @@ function niceMax(v) {
   return nice * mag
 }
 
-// Floating tooltip shown on hover, positioned via % of container (viewBox-relative).
+function smoothPath(pts) {
+  if (pts.length < 3) return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[Math.min(pts.length - 1, i + 2)]
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6
+    d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`
+  }
+  return d
+}
+
 function ChartTooltip({ hover }) {
   if (!hover) return null
+  const flipLeft = hover.xPct > 85
+  const flipDown = hover.yPct < 15
   return (
     <div style={{
       position: 'absolute',
       left: `${hover.xPct}%`, top: `${hover.yPct}%`,
-      transform: 'translate(-50%, -115%)',
-      background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-      borderRadius: '8px', padding: '8px 12px', boxShadow: THEME.shadow2,
+      transform: `translate(${flipLeft ? '-95%' : '-50%'}, ${flipDown ? '15%' : '-120%'})`,
+      background: 'rgba(30,30,30,.92)', backdropFilter: 'blur(8px)',
+      borderRadius: '10px', padding: '10px 14px', boxShadow: '0 4px 20px rgba(0,0,0,.25)',
       pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 5,
     }}>
-      <div style={{ fontSize: '12px', fontWeight: 700, color: hover.color, marginBottom: '2px' }}>{hover.label}</div>
-      <div style={{ fontSize: '12px', color: THEME.textMed, display: 'flex', alignItems: 'center', gap: '5px' }}>
-        <span style={{ width: 9, height: 9, borderRadius: '2px', background: hover.color, display: 'inline-block' }} />
+      <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '3px' }}>{hover.label}</div>
+      <div style={{ fontSize: '13px', color: hover.color, display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: hover.color, display: 'inline-block', boxShadow: `0 0 6px ${hover.color}88` }} />
         {hover.sub}
       </div>
     </div>
   )
 }
 
+let gradId = 0
+
 function LineChart({ points, color, unit = 'L', onPointClick }) {
-  // points: [{ label, value }]
   const [hover, setHover] = useState(null)
+  const [gid] = useState(() => `lg${++gradId}`)
   if (!points.length) return <EmptyChart />
   const innerW = CHART_W - PAD.left - PAD.right
   const innerH = CHART_H - PAD.top - PAD.bottom
@@ -58,31 +78,42 @@ function LineChart({ points, color, unit = 'L', onPointClick }) {
   const x = i => PAD.left + (points.length === 1 ? innerW / 2 : (i / (points.length - 1)) * innerW)
   const y = v => PAD.top + innerH - (v / maxV) * innerH
 
-  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ')
-  const area = `${path} L${x(points.length - 1).toFixed(1)},${(PAD.top + innerH).toFixed(1)} L${x(0).toFixed(1)},${(PAD.top + innerH).toFixed(1)} Z`
+  const pts = points.map((p, i) => [x(i), y(p.value)])
+  const curve = smoothPath(pts)
+  const baseline = PAD.top + innerH
+  const area = `${curve} L${pts[pts.length - 1][0].toFixed(1)},${baseline} L${pts[0][0].toFixed(1)},${baseline} Z`
 
-  // x labels: at most ~12, evenly thinned
-  const step = Math.max(1, Math.ceil(points.length / 12))
+  const step = Math.max(1, Math.ceil(points.length / 14))
   const gridVals = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxV)
 
   return (
     <div style={{ position: 'relative' }}>
       <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
         {gridVals.map(v => (
           <g key={v}>
-            <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
-            <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow}>
+            <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" strokeDasharray={v === 0 ? 'none' : '4 3'} />
+            <text x={PAD.left - 10} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow} fontFamily="inherit">
               {v >= 1000 ? `${(v / 1000).toLocaleString()}k` : v.toLocaleString()}
             </text>
           </g>
         ))}
-        <path d={area} fill={color} opacity="0.10" />
-        <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={area} fill={`url(#${gid})`} />
+        <path d={curve} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        {hover !== null && (
+          <line x1={x(hover.i)} x2={x(hover.i)} y1={PAD.top} y2={baseline} stroke={color} strokeWidth="1" strokeDasharray="4 3" opacity="0.4" />
+        )}
         {points.map((p, i) => (
           <circle
-            key={i} cx={x(i)} cy={y(p.value)} r={hover?.i === i ? 5.5 : 3.5} fill={color}
-            stroke={THEME.surface} strokeWidth="1.5"
-            style={{ cursor: onPointClick ? 'pointer' : 'default', transition: 'r .1s' }}
+            key={i} cx={x(i)} cy={y(p.value)} r={hover?.i === i ? 6 : 3.5}
+            fill={hover?.i === i ? '#fff' : color}
+            stroke={color} strokeWidth={hover?.i === i ? 2.5 : 1.5}
+            style={{ cursor: onPointClick ? 'pointer' : 'default', transition: 'r .15s, fill .15s' }}
             onMouseEnter={() => setHover({ i, xPct: (x(i) / CHART_W) * 100, yPct: (y(p.value) / CHART_H) * 100, label: p.label, sub: `${p.value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`, color })}
             onMouseLeave={() => setHover(null)}
             onClick={() => onPointClick?.(p, i)}
@@ -90,8 +121,9 @@ function LineChart({ points, color, unit = 'L', onPointClick }) {
         ))}
         {points.map((p, i) => (i % step === 0 || i === points.length - 1) && (
           <text
-            key={`l${i}`} x={x(i)} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
-            textAnchor="end" transform={`rotate(-35 ${x(i)} ${CHART_H - 8})`}
+            key={`l${i}`} x={x(i)} y={CHART_H - 6} fontSize="10" fill={THEME.textLow}
+            textAnchor="end" transform={`rotate(-35 ${x(i)} ${CHART_H - 6})`}
+            fontFamily="inherit"
           >
             {p.label.length > 12 ? p.label.slice(0, 11) + '…' : p.label}
           </text>
@@ -103,24 +135,30 @@ function LineChart({ points, color, unit = 'L', onPointClick }) {
 }
 
 function BarChart({ bars, color, unit = 'L', onBarClick }) {
-  // bars: [{ label, value }]
   const [hover, setHover] = useState(null)
+  const [gid] = useState(() => `bg${++gradId}`)
   if (!bars.length) return <EmptyChart />
   const innerW = CHART_W - PAD.left - PAD.right
   const innerH = CHART_H - PAD.top - PAD.bottom
   const maxV = niceMax(Math.max(...bars.map(b => b.value)))
   const slot = innerW / bars.length
-  const barW = Math.min(56, slot * 0.55)
+  const barW = Math.min(52, slot * 0.6)
   const y = v => PAD.top + innerH - (v / maxV) * innerH
   const gridVals = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxV)
 
   return (
     <div style={{ position: 'relative' }}>
       <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="1" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.6" />
+          </linearGradient>
+        </defs>
         {gridVals.map(v => (
           <g key={v}>
-            <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
-            <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow}>
+            <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" strokeDasharray={v === 0 ? 'none' : '4 3'} />
+            <text x={PAD.left - 10} y={y(v) + 4} textAnchor="end" fontSize="11" fill={THEME.textLow} fontFamily="inherit">
               {v >= 1000 ? `${(v / 1000).toLocaleString()}k` : v.toLocaleString()}
             </text>
           </g>
@@ -132,16 +170,22 @@ function BarChart({ bars, color, unit = 'L', onBarClick }) {
           return (
             <g key={b.label}>
               <rect
-                x={cx - barW / 2} y={y(b.value)} width={barW} height={Math.max(2, h)} rx="4"
-                fill={color} opacity={isHover ? 0.8 : 1}
-                style={{ cursor: onBarClick ? 'pointer' : 'default' }}
+                x={cx - barW / 2} y={y(b.value)} width={barW} height={Math.max(2, h)} rx="5"
+                fill={`url(#${gid})`} opacity={isHover ? 0.85 : 1}
+                style={{ cursor: onBarClick ? 'pointer' : 'default', transition: 'opacity .15s' }}
                 onMouseEnter={() => setHover({ i, xPct: (cx / CHART_W) * 100, yPct: (y(b.value) / CHART_H) * 100, label: b.label, sub: `${b.value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`, color })}
                 onMouseLeave={() => setHover(null)}
                 onClick={() => onBarClick?.(b, i)}
               />
+              {h > 20 && (
+                <text x={cx} y={y(b.value) - 6} textAnchor="middle" fontSize="10" fontWeight="600" fill={color} fontFamily="inherit">
+                  {b.value >= 1000 ? `${(b.value / 1000).toFixed(1)}k` : Math.round(b.value).toLocaleString()}
+                </text>
+              )}
               <text
-                x={cx} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
-                textAnchor="end" transform={`rotate(-25 ${cx} ${CHART_H - 8})`}
+                x={cx} y={CHART_H - 6} fontSize="10" fill={THEME.textLow}
+                textAnchor="end" transform={`rotate(-30 ${cx} ${CHART_H - 6})`}
+                fontFamily="inherit"
               >
                 {b.label.length > 12 ? b.label.slice(0, 11) + '…' : b.label}
               </text>
@@ -156,7 +200,8 @@ function BarChart({ bars, color, unit = 'L', onBarClick }) {
 
 function EmptyChart() {
   return (
-    <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: THEME.textLow, fontSize: '13px' }}>
+    <div style={{ height: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: THEME.textLow, fontSize: '13px', gap: '8px' }}>
+      <Icon name="show_chart" size={36} style={{ color: THEME.outline, opacity: 0.5 }} />
       No data to plot yet.
     </div>
   )
@@ -165,13 +210,13 @@ function EmptyChart() {
 function ChartCard({ title, legend, legendColor, children, right }) {
   return (
     <Card style={{ padding: '20px 22px', marginBottom: '20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>{title}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           {right}
           {legend && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: THEME.textMed }}>
-              <span style={{ width: 22, height: 10, borderRadius: '3px', background: legendColor, display: 'inline-block' }} />
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: legendColor, display: 'inline-block', boxShadow: `0 0 4px ${legendColor}44` }} />
               {legend}
             </div>
           )}

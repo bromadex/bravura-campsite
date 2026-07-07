@@ -307,7 +307,7 @@ export default function FuelIssuance({ setPage }) {
   const { can }        = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const {
-    tanks, pumps, vehicles, equipment, operators,
+    tanks, pumps, vehicles, equipment, operators, employees,
     transactions, addTransaction, updatePump, refresh: refreshFuel,
   } = useFuel()
 
@@ -965,7 +965,12 @@ export default function FuelIssuance({ setPage }) {
               </select>
             </FieldWrap>
             <FieldWrap label="Authorised By" required>
-              <input type="text" value={bulkAuth} onChange={e => setBulkAuth(e.target.value)} placeholder="Manager / supervisor name" style={inp()} />
+              <select value={bulkAuth} onChange={e => setBulkAuth(e.target.value)} style={inp()}>
+                <option value="">— Select —</option>
+                {employees.filter(e => e.status === 'active').map(e => (
+                  <option key={e.id} value={e.name}>{e.name}</option>
+                ))}
+              </select>
             </FieldWrap>
             <FieldWrap label="Reason" required>
               <input type="text" value={bulkReason} onChange={e => setBulkReason(e.target.value)} placeholder="e.g. Morning diesel run" style={inp()} />
@@ -1409,13 +1414,16 @@ export default function FuelIssuance({ setPage }) {
                 an approver will acknowledge it after the fact.
               </InfoPanel>
               <FieldWrap label="Authorised By" required>
-                <input
-                  type="text"
+                <select
                   value={form.authorised_by_name}
                   onChange={e => set('authorised_by_name', e.target.value)}
-                  placeholder="Name of the manager / supervisor who authorised this"
                   style={inp()}
-                />
+                >
+                  <option value="">— Select —</option>
+                  {employees.filter(emp => emp.status === 'active').map(emp => (
+                    <option key={emp.id} value={emp.name}>{emp.name}</option>
+                  ))}
+                </select>
               </FieldWrap>
               <FieldWrap label="Reason / Emergency Justification" required>
                 <textarea

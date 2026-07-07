@@ -225,7 +225,7 @@ function NewReconciliationForm({ tanks, currentSiteId, profileId, onSaved, onCan
       <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <Field label="Tank">
           <select value={tankId} onChange={e => { setTankId(e.target.value); setCalc(null) }} style={inputStyle}>
-            {tanks.map(t => <option key={t.id} value={t.id}>{t.tank_name}</option>)}
+            {tanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </Field>
 
@@ -356,7 +356,7 @@ function ReviewModal({ recon, profileId, onClose, onSaved }) {
         <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>Review Reconciliation</div>
-            <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>{recon.reconciliation_number} — {recon.tank?.tank_name}</div>
+            <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>{recon.reconciliation_number} — {recon.tank?.name}</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: THEME.textMed }}><Icon name="close" size={20} /></button>
         </div>
@@ -471,7 +471,7 @@ export default function Reconciliation() {
     setLoading(true)
     let q = supabase
       .from('fuel_reconciliations')
-      .select('*, tank:fuel_tanks(tank_name), submitter:profiles!submitted_by(full_name), approver:profiles!approved_by(full_name)')
+      .select('*, tank:fuel_tanks(name), submitter:profiles!submitted_by(full_name), approver:profiles!approved_by(full_name)')
       .eq('site_id', currentSiteId)
       .order('period_end', { ascending: false })
     if (filterTank) q = q.eq('tank_id', filterTank)
@@ -518,7 +518,7 @@ export default function Reconciliation() {
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px', padding: '14px 16px', background: THEME.surfaceVar, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}` }}>
         <select value={filterTank} onChange={e => setFilterTank(e.target.value)} style={selStyle}>
           <option value="">All Tanks</option>
-          {tanks.map(t => <option key={t.id} value={t.id}>{t.tank_name}</option>)}
+          {tanks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={selStyle}>
           <option value="">All Statuses</option>
@@ -568,7 +568,7 @@ export default function Reconciliation() {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <td style={{ padding: '10px 14px', color: COLOR, fontWeight: 600 }}>{r.reconciliation_number}</td>
-                    <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{r.tank?.tank_name || '—'}</td>
+                    <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{r.tank?.name || '—'}</td>
                     <td style={{ padding: '10px 14px', color: THEME.text, whiteSpace: 'nowrap', fontSize: '12px' }}>
                       {fmtDate(r.period_start)}<br />
                       <span style={{ color: THEME.textMed }}>to {fmtDate(r.period_end)}</span>

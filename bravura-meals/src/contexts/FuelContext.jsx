@@ -179,7 +179,7 @@ export function FuelProvider({ children }) {
 
   // ── Transaction number generator ──────────────────────────────────────────────
   function nextTransactionNumber(type) {
-    const prefix = type === 'delivery' ? 'DEL' : type === 'issuance' ? 'ISS' : 'ADJ'
+    const prefix = type === 'delivery' ? 'DEL' : type === 'issuance' ? 'ISS' : type === 'transfer_out' || type === 'transfer_in' ? 'TRF' : 'ADJ'
     return `${prefix}-${Date.now()}`
   }
 

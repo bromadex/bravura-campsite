@@ -328,10 +328,12 @@ function TankHeroBar({ tank, balance }) {
 }
 
 const TX_ICONS = {
-  delivery:   { icon: 'arrow_downward', bg: THEME.statusSuccessBg, text: THEME.statusSuccessText, label: 'Delivery' },
-  issuance:   { icon: 'arrow_upward',   bg: THEME.statusWarningBg, text: THEME.statusWarningText, label: 'Issuance' },
-  adjustment: { icon: 'sync_alt',       bg: THEME.statusInfoBg,    text: THEME.statusInfoText,    label: 'Adjustment' },
-  dip:        { icon: 'straighten',     bg: THEME.statusNeutralBg, text: THEME.statusNeutralText, label: 'Dip' },
+  delivery:     { icon: 'arrow_downward', bg: THEME.statusSuccessBg, text: THEME.statusSuccessText, label: 'Delivery' },
+  issuance:     { icon: 'arrow_upward',   bg: THEME.statusWarningBg, text: THEME.statusWarningText, label: 'Issuance' },
+  transfer_out: { icon: 'swap_horiz',     bg: THEME.statusWarningBg, text: THEME.statusWarningText, label: 'Transfer Out' },
+  transfer_in:  { icon: 'swap_horiz',     bg: THEME.statusSuccessBg, text: THEME.statusSuccessText, label: 'Transfer In' },
+  adjustment:   { icon: 'sync_alt',       bg: THEME.statusInfoBg,    text: THEME.statusInfoText,    label: 'Adjustment' },
+  dip:          { icon: 'straighten',     bg: THEME.statusNeutralBg, text: THEME.statusNeutralText, label: 'Dip' },
 }
 
 function BarChart({ data, color }) {

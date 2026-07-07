@@ -200,12 +200,6 @@ function TankHeroBar({ tank, balance }) {
         <div>
           <div style={{ fontSize: '17px', fontWeight: 700, color: THEME.text }}>{tank.name}</div>
           <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>{meta}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px', fontSize: '11px', color: isStale ? THEME.warning : THEME.textLow, fontWeight: isStale ? 600 : 400 }}>
-            <Icon name="straighten" size={13} style={{ color: 'inherit' }} />
-            {tank.last_dip_date
-              ? <span>Last dip: {lastDipRel} ({fmtDate(tank.last_dip_date)})</span>
-              : <span>No dip reading recorded yet</span>}
-          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {pct !== null && <span style={{ fontSize: '26px', fontWeight: 700, color }}>{pct.toFixed(0)}%</span>}
@@ -213,6 +207,19 @@ function TankHeroBar({ tank, balance }) {
             {status}
           </span>
         </div>
+      </div>
+
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: '7px',
+        padding: '6px 14px', borderRadius: '8px', marginBottom: '12px',
+        background: isStale ? THEME.statusWarningBg : THEME.statusSuccessBg,
+        color: isStale ? THEME.statusWarningText : THEME.statusSuccessText,
+        fontSize: '13px', fontWeight: 700,
+      }}>
+        <Icon name="straighten" size={16} style={{ color: 'inherit' }} />
+        {tank.last_dip_date
+          ? <span>Last dip reading: {lastDipRel} — {fmtDate(tank.last_dip_date)}</span>
+          : <span>No dip reading recorded yet</span>}
       </div>
 
       <div style={{ position: 'relative', height: '30px', borderRadius: '6px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden' }}>

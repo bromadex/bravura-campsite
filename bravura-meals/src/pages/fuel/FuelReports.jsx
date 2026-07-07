@@ -43,7 +43,7 @@ function LineChart({ points, color, unit = 'L' }) {
   const gridVals = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxV)
 
   return (
-    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block' }}>
+    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
       {gridVals.map(v => (
         <g key={v}>
           <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
@@ -64,7 +64,7 @@ function LineChart({ points, color, unit = 'L' }) {
           key={`l${i}`} x={x(i)} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
           textAnchor="end" transform={`rotate(-35 ${x(i)} ${CHART_H - 8})`}
         >
-          {p.label}
+          {p.label.length > 12 ? p.label.slice(0, 11) + '…' : p.label}
         </text>
       ))}
     </svg>
@@ -83,7 +83,7 @@ function BarChart({ bars, color, unit = 'L' }) {
   const gridVals = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxV)
 
   return (
-    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block' }}>
+    <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
       {gridVals.map(v => (
         <g key={v}>
           <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
@@ -104,7 +104,7 @@ function BarChart({ bars, color, unit = 'L' }) {
               x={cx} y={CHART_H - 8} fontSize="10" fill={THEME.textLow}
               textAnchor="end" transform={`rotate(-25 ${cx} ${CHART_H - 8})`}
             >
-              {b.label.length > 14 ? b.label.slice(0, 13) + '…' : b.label}
+              {b.label.length > 12 ? b.label.slice(0, 11) + '…' : b.label}
             </text>
           </g>
         )

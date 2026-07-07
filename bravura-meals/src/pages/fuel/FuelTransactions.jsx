@@ -4,6 +4,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, fmtDate, showToast } from '../../components/ui'
+import FuelQuickNav from './FuelQuickNav'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -532,6 +533,7 @@ export default function FuelTransactions({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1200px' }}>
+      <FuelQuickNav setPage={setPage} current="fuel_transactions" />
       <PageHeader
         title="Transactions"
         site={currentSite}

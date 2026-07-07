@@ -3,6 +3,7 @@ import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Card, Icon, fmtDate } from '../../components/ui'
+import FuelQuickNav from './FuelQuickNav'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 const TANK_CLR = '#00897B'
@@ -91,6 +92,7 @@ export default function Forecasting({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1100px' }}>
+      <FuelQuickNav setPage={setPage} current="fuel_forecasting" />
       <PageHeader title="Fuel Forecasting" site={currentSite} />
 
       {activeTanks.length > 1 && (

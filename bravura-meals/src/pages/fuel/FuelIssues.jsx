@@ -4,6 +4,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { supabase } from '../../supabaseClient'
+import FuelQuickNav from './FuelQuickNav'
 import {
   PageHeader, Card, Button, Modal, Icon, SectionLabel,
   showToast, fmtDate, TableWrap, THead, Th, TRow, Td,
@@ -171,6 +172,7 @@ export default function FuelIssues({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1200px' }}>
+      <FuelQuickNav setPage={setPage} current="fuel_issues" />
       <PageHeader
         title="Issuance History"
         site={currentSite}

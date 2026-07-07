@@ -5,6 +5,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader, fmtDate } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
+import FuelQuickNav from './FuelQuickNav'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 const LOW_PCT  = 20
@@ -625,6 +626,7 @@ export default function FuelDashboard({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1100px' }}>
+      <FuelQuickNav setPage={setPage} current="fuel_dashboard" />
 
       {/* Low-fuel alert banner */}
       {lowTanks.length > 0 && !alertDismissed && (

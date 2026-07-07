@@ -200,7 +200,6 @@ export function fuelNav(role, can) {
     { id: 'fuel_issuance',      label: 'Fuel Issuance',      section: 'Fuel Operations', icon: 'local_gas_station', show: can('fuel.create') },
     { id: 'fuel_issues',        label: 'Issuance History',   section: 'Fuel Operations', icon: 'history',           show: can('fuel.view') },
     { id: 'fuel_transactions',  label: 'Transactions',       section: 'Fuel Operations', icon: 'receipt_long',      show: can('fuel.view')   },
-    { id: 'fuel_transfer',      label: 'Tank Transfer',      section: 'Fuel Operations', icon: 'swap_horiz',        show: can('fuel.create') },
     { id: 'fuel_bowsers',       label: 'Bowser Dispatch',    section: 'Fuel Operations', icon: 'rv_hookup',         show: false },
     { id: 'fuel_shift_report',  label: 'Shift Report',       section: 'Fuel Operations', icon: 'summarize',         show: false },
     { id: 'fuel_reconciliation',      label: 'Reconciliation',      section: 'Analytics & Reports', icon: 'balance',           show: can('fuel.create') },

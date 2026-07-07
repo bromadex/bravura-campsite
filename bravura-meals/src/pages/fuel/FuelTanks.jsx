@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -6,8 +6,9 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import {
   PageHeader, Card, Button, Modal, ConfirmModal, Icon, SectionLabel,
-  showToast, TableWrap, THead, Th, TRow, Td,
+  showToast, TableWrap, THead, Th, TRow, Td, fmtDate,
 } from '../../components/ui'
+import FuelQuickNav from './FuelQuickNav'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -38,11 +39,11 @@ const BLANK_FORM = {
   status:                'active',
 }
 
-export default function FuelTanks() {
+export default function FuelTanks({ setPage }) {
   const navigate = useNavigate()
   const { can } = usePermissions()
   const { currentSite } = useSite()
-  const { fuelTypes, tanks, addTank, updateTank, archiveTank, deleteTank, tankBalance, loading } = useFuel()
+  const { fuelTypes, tanks, transactions, addTank, updateTank, archiveTank, deleteTank, tankBalance, addTransaction, refresh, loading } = useFuel()
 
   const openDetail = id => navigate(`/fuel/tanks/${id}`)
 
@@ -55,6 +56,7 @@ export default function FuelTanks() {
   const [saving,     setSaving]     = useState(false)
   const [archiving,  setArchiving]  = useState(null)
   const [deleting,   setDeleting]   = useState(null)
+  const [tab,        setTab]        = useState('overview') // 'overview' | 'analytics' | 'transfers'
   const [view,       setView]       = useState('cards')   // 'cards' | 'table'
   const [filterFuel, setFilterFuel] = useState('all')
   const [filterType, setFilterType] = useState('all')
@@ -179,97 +181,357 @@ export default function FuelTanks() {
 
   if (loading) return null
 
+  // ── Transfer tab state ──────────────────────────────────────────────────────
+  const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
+  const [trfFrom, setTrfFrom]     = useState('')
+  const [trfTo, setTrfTo]         = useState('')
+  const [trfLitres, setTrfLitres] = useState('')
+  const [trfNotes, setTrfNotes]   = useState('')
+  const [trfDocket, setTrfDocket] = useState('')
+  const [trfSaving, setTrfSaving] = useState(false)
+
+  const trfFromTank = activeTanks.find(t => t.id === trfFrom)
+  const trfToTank   = activeTanks.find(t => t.id === trfTo)
+  const trfDestTanks = useMemo(() => {
+    if (!trfFromTank) return activeTanks
+    return activeTanks.filter(t => t.id !== trfFrom && t.fuel_type_id === trfFromTank.fuel_type_id)
+  }, [activeTanks, trfFrom, trfFromTank])
+  const trfFromBal = trfFromTank ? tankBalance(trfFromTank.id) : 0
+  const trfToBal   = trfToTank   ? tankBalance(trfToTank.id)   : 0
+  const trfLitresNum = Number(trfLitres) || 0
+  const trfCanSubmit = trfFrom && trfTo && trfLitresNum > 0 && trfLitresNum <= trfFromBal && !trfSaving
+
+  const handleTransfer = useCallback(async () => {
+    if (!trfCanSubmit) return
+    setTrfSaving(true)
+    try {
+      const outRow = await addTransaction({
+        tank_id: trfFrom,
+        transaction_type: 'transfer_out',
+        litres: trfLitresNum,
+        docket_number: trfDocket || null,
+        notes: trfNotes ? `Transfer to ${trfToTank.name}. ${trfNotes}` : `Transfer to ${trfToTank.name}`,
+      })
+      await addTransaction({
+        tank_id: trfTo,
+        transaction_type: 'transfer_in',
+        litres: trfLitresNum,
+        original_transaction_id: outRow.id,
+        docket_number: trfDocket || null,
+        notes: trfNotes ? `Transfer from ${trfFromTank.name}. ${trfNotes}` : `Transfer from ${trfFromTank.name}`,
+      })
+      showToast(`Transferred ${trfLitresNum.toLocaleString()} L from ${trfFromTank.name} to ${trfToTank.name}`, 'green')
+      setTrfLitres(''); setTrfNotes(''); setTrfDocket(''); setTrfFrom(''); setTrfTo('')
+      await refresh()
+    } catch (err) {
+      showToast(err.message || 'Transfer failed', 'red')
+    } finally {
+      setTrfSaving(false)
+    }
+  }, [trfCanSubmit, trfFrom, trfTo, trfLitresNum, trfDocket, trfNotes, trfFromTank, trfToTank, addTransaction, refresh])
+
+  const recentTransfers = useMemo(() =>
+    transactions.filter(t => t.transaction_type === 'transfer_out').slice(0, 20),
+  [transactions])
+
+  // ── Analytics tab data ────────────────────────────────────────────────────
+  const tankStats = useMemo(() =>
+    activeTanks.map(t => {
+      const bal = tankBalance(t.id)
+      const cap = Number(t.capacity_litres) || 0
+      const pct = cap ? Math.min(100, Math.max(0, (bal / cap) * 100)) : null
+      const monthIss = transactions.filter(tx => tx.transaction_type === 'issuance' && tx.tank_id === t.id && tx.transaction_date?.startsWith(new Date().toISOString().slice(0, 7))).reduce((s, tx) => s + Number(tx.litres), 0)
+      const monthDel = transactions.filter(tx => tx.transaction_type === 'delivery' && tx.tank_id === t.id && tx.transaction_date?.startsWith(new Date().toISOString().slice(0, 7))).reduce((s, tx) => s + Number(tx.litres), 0)
+      return { ...t, bal, cap, pct, monthIss, monthDel }
+    }),
+  [activeTanks, tankBalance, transactions])
+
+  const TABS = [
+    { id: 'overview',  label: 'Overview',   icon: 'grid_view' },
+    { id: 'analytics', label: 'Analytics',  icon: 'bar_chart' },
+    { id: 'transfers', label: 'Transfers',  icon: 'swap_horiz' },
+  ]
+
   return (
     <div style={{ padding: '20px', maxWidth: '1200px' }}>
+      <FuelQuickNav setPage={setPage} current="fuel_tanks" />
+
       <PageHeader
         title="Fuel Tanks"
         site={currentSite}
         actions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', background: THEME.surfaceVar, borderRadius: '10px', padding: '3px' }}>
-              {[
-                { id: 'cards', icon: 'grid_view',     label: 'Cards' },
-                { id: 'table', icon: 'table_rows',    label: 'Table' },
-              ].map(v => (
-                <button
-                  key={v.id}
-                  onClick={() => setView(v.id)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '5px',
-                    padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 500,
-                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    background: view === v.id ? THEME.surface : 'transparent',
-                    color:      view === v.id ? THEME.text    : THEME.textMed,
-                    boxShadow:  view === v.id ? THEME.shadow1 : 'none',
-                  }}
-                >
-                  <Icon name={v.icon} size={14} />
-                  {v.label}
-                </button>
-              ))}
-            </div>
-            {canEdit && <Button onClick={openAdd} icon="add">Add Tank</Button>}
+            {tab === 'overview' && (
+              <div style={{ display: 'flex', background: THEME.surfaceVar, borderRadius: '10px', padding: '3px' }}>
+                {[
+                  { id: 'cards', icon: 'grid_view',     label: 'Cards' },
+                  { id: 'table', icon: 'table_rows',    label: 'Table' },
+                ].map(v => (
+                  <button
+                    key={v.id}
+                    onClick={() => setView(v.id)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 500,
+                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      background: view === v.id ? THEME.surface : 'transparent',
+                      color:      view === v.id ? THEME.text    : THEME.textMed,
+                      boxShadow:  view === v.id ? THEME.shadow1 : 'none',
+                    }}
+                  >
+                    <Icon name={v.icon} size={14} />
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {tab === 'transfers' && can('fuel.create') && (
+              <Button variant="filled" icon="swap_horiz" onClick={handleTransfer} disabled={!trfCanSubmit} style={{ background: FUEL_CLR, borderColor: FUEL_CLR }}>
+                {trfSaving ? 'Transferring…' : 'Transfer'}
+              </Button>
+            )}
+            {canEdit && tab === 'overview' && <Button onClick={openAdd} icon="add">Add Tank</Button>}
           </div>
         }
       />
 
-      {/* ── Filter bar ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '18px', alignItems: 'center' }}>
-        <FilterSelect label="Fuel Type" value={filterFuel} onChange={setFilterFuel}>
-          <option value="all">All Fuels</option>
-          {fuelTypes.map(ft => <option key={ft.id} value={ft.id}>{ft.name}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Tank Type" value={filterType} onChange={setFilterType}>
-          <option value="all">All Types</option>
-          {TANK_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </FilterSelect>
-        <FilterSelect label="Status" value={filterStat} onChange={setFilterStat}>
-          <option value="all">All Statuses</option>
-          {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </FilterSelect>
-        {(filterFuel !== 'all' || filterType !== 'all' || filterStat !== 'active') && (
+      {/* ── Tabs ── */}
+      <div style={{ display: 'flex', gap: '0', borderBottom: `2px solid ${THEME.outlineVar}`, marginBottom: '20px' }}>
+        {TABS.map(t => (
           <button
-            onClick={() => { setFilterFuel('all'); setFilterType('all'); setFilterStat('active') }}
-            style={{ background: 'none', border: 'none', color: FUEL_CLR, fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '10px 20px', fontSize: '13px', fontWeight: tab === t.id ? 700 : 500,
+              color: tab === t.id ? FUEL_CLR : THEME.textMed,
+              background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              borderBottom: tab === t.id ? `2px solid ${FUEL_CLR}` : '2px solid transparent',
+              marginBottom: '-2px', transition: 'color .15s',
+            }}
           >
-            Reset filters
+            <Icon name={t.icon} size={16} style={{ color: 'inherit' }} />
+            {t.label}
           </button>
-        )}
-        <span style={{ marginLeft: 'auto', fontSize: '12px', color: THEME.textLow }}>
-          {displayed.length} of {tanks.length}
-        </span>
+        ))}
       </div>
 
-      {displayed.length === 0 ? (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: THEME.textLow }}>
-            <Icon name="propane_tank" size={40} style={{ display: 'block', margin: '0 auto 10px', color: THEME.outline }} />
-            <p style={{ fontSize: '14px', margin: '0 0 16px' }}>
-              {tanks.length === 0 ? 'No tanks configured yet.' : 'No tanks match the current filters.'}
-            </p>
-            {canEdit && tanks.length === 0 && <Button onClick={openAdd} icon="add">Add First Tank</Button>}
+      {/* ── Overview tab ── */}
+      {tab === 'overview' && (
+        <>
+          {/* Filter bar */}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '18px', alignItems: 'center' }}>
+            <FilterSelect label="Fuel Type" value={filterFuel} onChange={setFilterFuel}>
+              <option value="all">All Fuels</option>
+              {fuelTypes.map(ft => <option key={ft.id} value={ft.id}>{ft.name}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Tank Type" value={filterType} onChange={setFilterType}>
+              <option value="all">All Types</option>
+              {TANK_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Status" value={filterStat} onChange={setFilterStat}>
+              <option value="all">All Statuses</option>
+              {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </FilterSelect>
+            {(filterFuel !== 'all' || filterType !== 'all' || filterStat !== 'active') && (
+              <button
+                onClick={() => { setFilterFuel('all'); setFilterType('all'); setFilterStat('active') }}
+                style={{ background: 'none', border: 'none', color: FUEL_CLR, fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Reset filters
+              </button>
+            )}
+            <span style={{ marginLeft: 'auto', fontSize: '12px', color: THEME.textLow }}>
+              {displayed.length} of {tanks.length}
+            </span>
           </div>
-        </Card>
-      ) : view === 'cards' ? (
-        <TankCardGrid
-          tanks={displayed}
-          tankBalance={tankBalance}
-          canEdit={canEdit}
-          onOpen={openDetail}
-          onEdit={openEdit}
-          onStatus={setStatus}
-          onDecommission={t => setArchiving(t)}
-          onDelete={t => setDeleting(t)}
-        />
-      ) : (
-        <TankTable
-          tanks={displayed}
-          tankBalance={tankBalance}
-          canEdit={canEdit}
-          onOpen={openDetail}
-          onDecommission={t => setArchiving(t)}
-          onDelete={t => setDeleting(t)}
-        />
+
+          {displayed.length === 0 ? (
+            <Card>
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: THEME.textLow }}>
+                <Icon name="propane_tank" size={40} style={{ display: 'block', margin: '0 auto 10px', color: THEME.outline }} />
+                <p style={{ fontSize: '14px', margin: '0 0 16px' }}>
+                  {tanks.length === 0 ? 'No tanks configured yet.' : 'No tanks match the current filters.'}
+                </p>
+                {canEdit && tanks.length === 0 && <Button onClick={openAdd} icon="add">Add First Tank</Button>}
+              </div>
+            </Card>
+          ) : view === 'cards' ? (
+            <TankCardGrid
+              tanks={displayed}
+              tankBalance={tankBalance}
+              canEdit={canEdit}
+              onOpen={openDetail}
+              onEdit={openEdit}
+              onStatus={setStatus}
+              onDecommission={t => setArchiving(t)}
+              onDelete={t => setDeleting(t)}
+            />
+          ) : (
+            <TankTable
+              tanks={displayed}
+              tankBalance={tankBalance}
+              canEdit={canEdit}
+              onOpen={openDetail}
+              onDecommission={t => setArchiving(t)}
+              onDelete={t => setDeleting(t)}
+            />
+          )}
+        </>
+      )}
+
+      {/* ── Analytics tab ── */}
+      {tab === 'analytics' && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+            {tankStats.map(t => {
+              const levelClr = t.pct === null ? FUEL_CLR : t.pct <= 20 ? THEME.error : t.pct < 40 ? THEME.warning : THEME.success
+              return (
+                <Card key={t.id} style={{ padding: '16px 18px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text, marginBottom: '4px' }}>{t.name}</div>
+                  <div style={{ fontSize: '11px', color: THEME.textLow, marginBottom: '12px' }}>{t.fuel_types?.name || 'Fuel'} · {t.tank_type?.replace('_', ' ')}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '24px', fontWeight: 700, color: levelClr }}>{t.pct !== null ? `${t.pct.toFixed(0)}%` : '—'}</span>
+                    <span style={{ fontSize: '12px', color: THEME.textMed }}>{Math.round(t.bal).toLocaleString()} / {t.cap.toLocaleString()} L</span>
+                  </div>
+                  <div style={{ height: '6px', borderRadius: '3px', background: THEME.outlineVar, marginBottom: '12px' }}>
+                    <div style={{ height: '100%', borderRadius: '3px', width: `${t.pct || 0}%`, background: levelClr }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ background: THEME.surfaceVar, borderRadius: '8px', padding: '8px 10px' }}>
+                      <div style={{ fontSize: '10px', color: THEME.textLow, textTransform: 'uppercase' }}>Issued (month)</div>
+                      <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.warning }}>{Math.round(t.monthIss).toLocaleString()} L</div>
+                    </div>
+                    <div style={{ background: THEME.surfaceVar, borderRadius: '8px', padding: '8px 10px' }}>
+                      <div style={{ fontSize: '10px', color: THEME.textLow, textTransform: 'uppercase' }}>Delivered (month)</div>
+                      <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.success }}>{Math.round(t.monthDel).toLocaleString()} L</div>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+          {tankStats.length === 0 && (
+            <Card style={{ textAlign: 'center', padding: '40px', color: THEME.textLow }}>
+              <Icon name="bar_chart" size={36} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
+              No active tanks to analyse.
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Transfers tab ── */}
+      {tab === 'transfers' && (
+        <div>
+          {can('fuel.create') && (
+            <Card style={{ padding: '24px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '16px', alignItems: 'start', marginBottom: '20px' }}>
+                <div>
+                  <div style={trfLbl}>Source Tank</div>
+                  <select value={trfFrom} onChange={e => { setTrfFrom(e.target.value); setTrfTo('') }} style={{ ...trfInp, cursor: 'pointer' }}>
+                    <option value="">Select source tank…</option>
+                    {activeTanks.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} — {t.fuel_types?.name || 'Fuel'} ({Math.round(tankBalance(t.id)).toLocaleString()} L)</option>
+                    ))}
+                  </select>
+                  {trfFromTank && <TankMiniPreview tank={trfFromTank} balance={trfFromBal} delta={-trfLitresNum} color={THEME.warning} />}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '28px' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: FUEL_CLR + '14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="arrow_forward" size={22} style={{ color: FUEL_CLR }} />
+                  </div>
+                </div>
+                <div>
+                  <div style={trfLbl}>Destination Tank</div>
+                  <select value={trfTo} onChange={e => setTrfTo(e.target.value)} disabled={!trfFrom} style={{ ...trfInp, cursor: 'pointer' }}>
+                    <option value="">Select destination tank…</option>
+                    {trfDestTanks.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} — {t.fuel_types?.name || 'Fuel'} ({Math.round(tankBalance(t.id)).toLocaleString()} L)</option>
+                    ))}
+                  </select>
+                  {trfToTank && <TankMiniPreview tank={trfToTank} balance={trfToBal} delta={trfLitresNum} color={THEME.success} />}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                <div>
+                  <div style={trfLbl}>Volume (Litres)</div>
+                  <input type="number" min="0" step="0.1" value={trfLitres} onChange={e => setTrfLitres(e.target.value)} placeholder="Enter litres" style={trfInp} />
+                  {trfLitresNum > 0 && trfLitresNum > trfFromBal && (
+                    <div style={{ fontSize: '11px', color: THEME.error, marginTop: '4px', fontWeight: 600 }}>Exceeds available ({Math.round(trfFromBal).toLocaleString()} L)</div>
+                  )}
+                </div>
+                <div>
+                  <div style={trfLbl}>Docket (optional)</div>
+                  <input type="text" value={trfDocket} onChange={e => setTrfDocket(e.target.value)} placeholder="e.g. TRF-001" style={trfInp} />
+                </div>
+                <div>
+                  <div style={trfLbl}>Notes (optional)</div>
+                  <input type="text" value={trfNotes} onChange={e => setTrfNotes(e.target.value)} placeholder="Reason for transfer" style={trfInp} />
+                </div>
+              </div>
+
+              {trfCanSubmit && (
+                <Card style={{ background: FUEL_CLR + '08', borderColor: FUEL_CLR + '30', padding: '12px 16px', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: THEME.text }}>
+                    <Icon name="swap_horiz" size={20} style={{ color: FUEL_CLR }} />
+                    Transfer <strong style={{ color: FUEL_CLR }}>{trfLitresNum.toLocaleString()} L</strong> of{' '}
+                    <strong>{trfFromTank?.fuel_types?.name || 'fuel'}</strong> from{' '}
+                    <strong>{trfFromTank?.name}</strong> to <strong>{trfToTank?.name}</strong>
+                  </div>
+                </Card>
+              )}
+            </Card>
+          )}
+
+          {recentTransfers.length > 0 && (
+            <Card style={{ padding: 0 }}>
+              <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Icon name="history" size={18} style={{ color: FUEL_CLR }} />
+                <span style={{ fontSize: '15px', fontWeight: 600, color: THEME.text }}>Recent Transfers</span>
+              </div>
+              <TableWrap>
+                <THead>
+                  <Th>Date</Th>
+                  <Th>From Tank</Th>
+                  <Th>To Tank</Th>
+                  <Th align="right">Volume (L)</Th>
+                  <Th>Docket</Th>
+                  <Th>Notes</Th>
+                </THead>
+                <tbody>
+                  {recentTransfers.map((tx, idx) => {
+                    const linkedIn = transactions.find(t => t.original_transaction_id === tx.id && t.transaction_type === 'transfer_in')
+                    const srcTank = tanks.find(t => t.id === tx.tank_id)
+                    const dstTank = linkedIn ? tanks.find(t => t.id === linkedIn.tank_id) : null
+                    return (
+                      <TRow key={tx.id} last={idx === recentTransfers.length - 1}>
+                        <Td style={{ whiteSpace: 'nowrap', color: THEME.textMed }}>{fmtDate(tx.transaction_date)}</Td>
+                        <Td style={{ fontWeight: 600, color: THEME.text }}>{srcTank?.name || '—'}</Td>
+                        <Td>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: THEME.text }}>
+                            <Icon name="arrow_forward" size={14} style={{ color: FUEL_CLR }} />
+                            {dstTank?.name || '—'}
+                          </span>
+                        </Td>
+                        <Td align="right" style={{ fontWeight: 700, color: FUEL_CLR }}>{Number(tx.litres).toLocaleString(undefined, { maximumFractionDigits: 1 })}</Td>
+                        <Td style={{ color: THEME.textMed }}>{tx.docket_number || '—'}</Td>
+                        <Td style={{ color: THEME.textLow, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.notes || '—'}</Td>
+                      </TRow>
+                    )
+                  })}
+                </tbody>
+              </TableWrap>
+            </Card>
+          )}
+
+          {recentTransfers.length === 0 && (
+            <Card style={{ textAlign: 'center', padding: '40px', color: THEME.textLow }}>
+              <Icon name="swap_horiz" size={36} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
+              No transfers recorded yet.
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Add / Edit Modal */}
@@ -702,4 +964,40 @@ const inputStyle = {
   borderRadius: '12px', fontSize: '14px', color: THEME.text,
   fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
   background: THEME.surface, marginBottom: '14px', display: 'block',
+}
+
+const trfLbl = {
+  fontSize: '12px', fontWeight: 600, color: THEME.textMed,
+  marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.03em',
+}
+
+const trfInp = {
+  width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`,
+  borderRadius: '10px', fontSize: '14px', color: THEME.text,
+  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+  background: THEME.surface,
+}
+
+function TankMiniPreview({ tank, balance, delta, color }) {
+  const cap = Number(tank.capacity_litres) || 0
+  const after = Math.max(0, balance + delta)
+  const pctBefore = cap ? (balance / cap) * 100 : 0
+  const pctAfter  = cap ? (after / cap) * 100 : 0
+  return (
+    <div style={{ marginTop: '10px', padding: '10px 12px', background: THEME.surfaceVar, borderRadius: '8px' }}>
+      <div style={{ fontSize: '11px', color: THEME.textLow, marginBottom: '6px' }}>{tank.name}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+        <span style={{ fontWeight: 600, color: THEME.textMed }}>{Math.round(balance).toLocaleString()} L</span>
+        {delta !== 0 && (
+          <>
+            <Icon name="arrow_forward" size={14} style={{ color }} />
+            <span style={{ fontWeight: 700, color }}>{Math.round(after).toLocaleString()} L</span>
+          </>
+        )}
+      </div>
+      <div style={{ height: '4px', borderRadius: '2px', background: THEME.outlineVar, marginTop: '6px', position: 'relative' }}>
+        <div style={{ height: '100%', borderRadius: '2px', width: `${Math.min(100, pctAfter)}%`, background: color, transition: 'width .2s' }} />
+      </div>
+    </div>
+  )
 }

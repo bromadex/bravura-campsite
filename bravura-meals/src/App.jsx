@@ -227,7 +227,7 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_cost_allocation':   return can('fuel.view') ? <CostAllocation />                       : null
     case 'fuel_finance_export':    return can('fuel.edit') ? <FinanceExport />                        : null
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports setPage={setPage} />   : null
-    case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks />                       : null
+    case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks setPage={setPage} />     : null
     case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                          : null
     case 'fuel_settings':     return can('fuel.edit')   ? <FuelSettings />                           : null
     case 'fuel_request_form':  return can('fuel.view')   ? <FuelRequestForm setPage={setPage} />  : null

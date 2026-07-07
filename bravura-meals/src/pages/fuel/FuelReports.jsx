@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -8,6 +8,11 @@ import {
   TableWrap, THead, Th, TRow, Td,
 } from '../../components/ui'
 import { parseTxnNotes } from './fuelDisplay'
+import FuelQuickNav from './FuelQuickNav'
+
+const DailyTransactionReport   = lazy(() => import('./reports/DailyTransactionReport'))
+const MonthlyConsumptionReport = lazy(() => import('./reports/MonthlyConsumptionReport'))
+const DeliveryReport           = lazy(() => import('./reports/DeliveryReport'))
 
 const FUEL_CLR = MODULE_COLORS.fuel
 const LINE_CLR = '#1565C0'   // issuance-by-day line
@@ -333,6 +338,14 @@ export default function FuelReports({ setPage }) {
     })
   }, [tanks, receipts, issuances, selYear, selMonth, tankBalance])
 
+  const [reportTab, setReportTab] = useState('overview')
+  const REPORT_TABS = [
+    { id: 'overview',  label: 'Overview',             icon: 'dashboard' },
+    { id: 'daily',     label: 'Daily Transactions',   icon: 'today' },
+    { id: 'monthly',   label: 'Monthly Consumption',  icon: 'calendar_month' },
+    { id: 'delivery',  label: 'Delivery Report',      icon: 'local_shipping' },
+  ]
+
   if (loading) return null
 
   const assetLabel = tx => tx.fuel_vehicles
@@ -347,6 +360,8 @@ export default function FuelReports({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1100px' }}>
+      <FuelQuickNav setPage={setPage} current="fuel_reports" />
+
       <PageHeader
         title="Fuel Reports"
         site={currentSite}
@@ -364,36 +379,45 @@ export default function FuelReports({ setPage }) {
         }
       />
 
-      {/* ── Quick nav pills ── */}
-      {setPage && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
-          {[
-            { id: 'fuel_dips',               label: 'Dipstick Log',     icon: 'straighten' },
-            { id: 'fuel_tanks',              label: 'Fuel Tanks',       icon: 'water' },
-            { id: 'fuel_receipts',           label: 'Deliveries',       icon: 'local_shipping' },
-            { id: 'fuel_requests_list',      label: 'Requests',         icon: 'assignment' },
-            { id: 'fuel_issuance',           label: 'Fuel Issuance',    icon: 'local_gas_station' },
-            { id: 'fuel_vehicle_consumption',label: 'Vehicle Consumption', icon: 'speed' },
-          ].map(item => (
-            <button
-              key={item.id}
-              onClick={() => setPage(item.id)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '6px 14px', borderRadius: '999px', fontSize: '12.5px', fontWeight: 500,
-                background: THEME.surface, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`,
-                cursor: 'pointer', fontFamily: 'inherit', transition: 'border-color .15s, color .15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = FUEL_CLR; e.currentTarget.style.color = FUEL_CLR }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = THEME.outlineVar; e.currentTarget.style.color = THEME.textMed }}
-            >
-              <Icon name={item.icon} size={14} style={{ color: 'inherit' }} />
-              {item.label}
-            </button>
-          ))}
-        </div>
+      {/* ── Report tabs ── */}
+      <div style={{ display: 'flex', gap: '0', borderBottom: `2px solid ${THEME.outlineVar}`, marginBottom: '20px' }}>
+        {REPORT_TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setReportTab(t.id)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '10px 20px', fontSize: '13px', fontWeight: reportTab === t.id ? 700 : 500,
+              color: reportTab === t.id ? FUEL_CLR : THEME.textMed,
+              background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              borderBottom: reportTab === t.id ? `2px solid ${FUEL_CLR}` : '2px solid transparent',
+              marginBottom: '-2px', transition: 'color .15s',
+            }}
+          >
+            <Icon name={t.icon} size={16} style={{ color: 'inherit' }} />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Sub-report tabs ── */}
+      {reportTab === 'daily' && (
+        <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>}>
+          <DailyTransactionReport />
+        </Suspense>
+      )}
+      {reportTab === 'monthly' && (
+        <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>}>
+          <MonthlyConsumptionReport />
+        </Suspense>
+      )}
+      {reportTab === 'delivery' && (
+        <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>}>
+          <DeliveryReport />
+        </Suspense>
       )}
 
+      {reportTab === 'overview' && <>
       {/* ── Predicted next order date banner ── */}
       {prediction && (
         <Card style={{ padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
@@ -553,6 +577,7 @@ export default function FuelReports({ setPage }) {
           </tbody>
         </TableWrap>
       </Card>
+      </>}
     </div>
   )
 }

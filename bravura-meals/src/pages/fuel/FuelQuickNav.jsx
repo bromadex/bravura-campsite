@@ -8,7 +8,6 @@ const PILLS = [
   { id: 'fuel_reports',             label: 'Reports',       icon: 'bar_chart',         color: '#E53935' },
   { id: 'fuel_vehicle_consumption', label: 'Consumption',   icon: 'speed',             color: '#1565C0' },
   { id: 'fuel_reconciliation',      label: 'Reconciliation',icon: 'balance',           color: '#7C3AED' },
-  { id: 'fuel_shift_report',        label: 'Shifts',        icon: 'summarize',         color: '#F57C00' },
 ]
 
 export default function FuelQuickNav({ setPage, current }) {

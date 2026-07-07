@@ -74,17 +74,67 @@ $$;
 
 -- Re-create triggers (same as 0055 but with updated function)
 
--- fuel_transactions uses BEFORE so we can clear edit_reason from NEW
+-- Both triggers are BEFORE UPDATE. PostgreSQL fires same-timing triggers
+-- in alphabetical order by name. We need updated_at set BEFORE the audit
+-- trigger captures to_jsonb(NEW), so the names are chosen accordingly:
+--   trg_fuel_txn_a_updated_at  (fires first — sets updated_at on NEW)
+--   trg_fuel_txn_b_audit       (fires second — captures NEW with updated_at)
+
+DROP TRIGGER IF EXISTS trg_fuel_transactions_updated_at ON fuel_transactions;
+CREATE TRIGGER trg_fuel_txn_a_updated_at
+  BEFORE UPDATE ON fuel_transactions
+  FOR EACH ROW EXECUTE FUNCTION _fuel_set_updated_at();
+
 DROP TRIGGER IF EXISTS trg_fuel_transactions_audit ON fuel_transactions;
-CREATE TRIGGER trg_fuel_transactions_audit
+CREATE TRIGGER trg_fuel_txn_b_audit
   BEFORE UPDATE OR DELETE ON fuel_transactions
   FOR EACH ROW EXECUTE FUNCTION _fuel_audit_edit();
 
--- Ensure the updated_at trigger fires BEFORE the audit trigger
-DROP TRIGGER IF EXISTS trg_fuel_transactions_updated_at ON fuel_transactions;
-CREATE TRIGGER trg_fuel_transactions_updated_at
-  BEFORE UPDATE ON fuel_transactions
-  FOR EACH ROW EXECUTE FUNCTION _fuel_set_updated_at();
+-- ─── 4. Update recalc trigger to handle soft-delete ────────────────────────
+-- When is_deleted flips to true, the row's effect should be reversed (treated
+-- as if the transaction no longer exists). When is_deleted is true, NEW effect
+-- is zero regardless of litres/type.
+
+CREATE OR REPLACE FUNCTION _fuel_recalc_tank_level()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  _old_effect NUMERIC(12,3);
+  _new_effect NUMERIC(12,3);
+BEGIN
+  _old_effect := CASE
+    WHEN OLD.is_deleted THEN 0
+    WHEN OLD.transaction_type = 'issuance' THEN -OLD.litres
+    WHEN OLD.transaction_type IN ('delivery', 'adjustment', 'dip_correction') THEN OLD.litres
+    ELSE 0
+  END;
+
+  _new_effect := CASE
+    WHEN NEW.is_deleted THEN 0
+    WHEN NEW.transaction_type = 'issuance' THEN -NEW.litres
+    WHEN NEW.transaction_type IN ('delivery', 'adjustment', 'dip_correction') THEN NEW.litres
+    ELSE 0
+  END;
+
+  IF OLD.tank_id IS DISTINCT FROM NEW.tank_id THEN
+    UPDATE fuel_tanks
+    SET current_level_litres = GREATEST(0, current_level_litres - _old_effect),
+        updated_at = now()
+    WHERE id = OLD.tank_id;
+
+    UPDATE fuel_tanks
+    SET current_level_litres = GREATEST(0, current_level_litres + _new_effect),
+        updated_at = now()
+    WHERE id = NEW.tank_id;
+  ELSE
+    UPDATE fuel_tanks
+    SET current_level_litres = GREATEST(0, current_level_litres + (_new_effect - _old_effect)),
+        updated_at = now()
+    WHERE id = NEW.tank_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
 
 DROP TRIGGER IF EXISTS trg_fuel_deliveries_audit ON fuel_deliveries;
 CREATE TRIGGER trg_fuel_deliveries_audit

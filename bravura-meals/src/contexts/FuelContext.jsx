@@ -472,6 +472,7 @@ export function FuelProvider({ children }) {
   }
 
   async function softDeleteTransaction(id, reason) {
+    const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase
       .from('fuel_transactions')
       .update({

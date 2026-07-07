@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -23,7 +23,7 @@ const ASSET_TYPES = ['vehicle', 'equipment', 'other']
 export default function FuelIssues({ setPage }) {
   const { can } = usePermissions()
   const { currentSite, currentSiteId } = useSite()
-  const { tanks, issues, updateTransaction, softDeleteTransaction, loading, profiles } = useFuel()
+  const { tanks, issues, updateTransaction, softDeleteTransaction, loading } = useFuel()
 
   const canIssue     = can('fuel.create')
   const canEdit      = can('fuel.edit')
@@ -245,7 +245,7 @@ export default function FuelIssues({ setPage }) {
               {filtered.map((issue, idx) => {
                 const parsed     = parseTxnNotes(issue.notes)
                 const driver     = parsed.driver
-                const authorised = issue.authorised_by_name || issue.approved_by_name || parsed.authorised
+                const authorised = issue.approved_by_name || parsed.authorised
                 const hasEdits   = !!issue.updated_at
                 return (
                   <TRow key={issue.id} last={idx === filtered.length - 1}>

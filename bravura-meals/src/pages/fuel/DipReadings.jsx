@@ -572,6 +572,9 @@ export default function DipReadings() {
                       <td style={{ padding: '10px 12px', color: THEME.text, whiteSpace: 'nowrap' }}>
                         {r.reading_date}
                         {r.reading_time && <span style={{ color: THEME.textMed, marginLeft: '6px', fontSize: '11px' }}>{r.reading_time.slice(0, 5)}</span>}
+                        {r.notes?.startsWith('Auto-recorded from delivery') && (
+                          <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: '#FFF3E0', color: '#E65100', letterSpacing: '.03em' }}>DELIVERY</span>
+                        )}
                       </td>
                       <td style={{ padding: '10px 12px', color: THEME.text, fontWeight: 500, whiteSpace: 'nowrap' }}>{r.tank?.name || '—'}</td>
                       <td style={{ padding: '10px 12px', color: THEME.textMed, textAlign: 'right' }}>{dipStartMm != null ? fmtNum(dipStartMm, 1) : '—'}</td>

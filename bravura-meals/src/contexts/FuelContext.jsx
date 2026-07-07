@@ -83,6 +83,7 @@ export function FuelProvider({ children }) {
           .from('fuel_transactions')
           .select('*, fuel_vehicles(id, fleet_number, registration), fuel_equipment(id, name, equipment_number), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
           .eq('site_id', currentSiteId)
+          .eq('is_deleted', false)
           .order('transaction_date', { ascending: false })
           .order('created_at', { ascending: false }),
         supabase
@@ -456,9 +457,10 @@ export function FuelProvider({ children }) {
   }
 
   async function updateTransaction(id, data) {
+    const { data: { user } } = await supabase.auth.getUser()
     const { data: row, error } = await supabase
       .from('fuel_transactions')
-      .update(data)
+      .update({ ...data, updated_by: user?.id || null })
       .eq('id', id)
       .eq('site_id', currentSiteId)
       .select('*, fuel_vehicles(id, fleet_number, registration), fuel_equipment(id, name, equipment_number), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
@@ -467,6 +469,23 @@ export function FuelProvider({ children }) {
     setTransactions(prev => prev.map(t => t.id === id ? row : t))
     await fetchAll()
     return row
+  }
+
+  async function softDeleteTransaction(id, reason) {
+    const { error } = await supabase
+      .from('fuel_transactions')
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id || null,
+        updated_by: user?.id || null,
+        edit_reason: reason,
+      })
+      .eq('id', id)
+      .eq('site_id', currentSiteId)
+    if (error) throw error
+    setTransactions(prev => prev.filter(t => t.id !== id))
+    await fetchAll()
   }
 
   // ── Dip Readings ──────────────────────────────────────────────────────────────
@@ -557,7 +576,7 @@ export function FuelProvider({ children }) {
       // operator ops
       addOperator, updateOperator, deactivateOperator, reactivateOperator,
       // transaction ops
-      addTransaction, updateTransaction,
+      addTransaction, updateTransaction, softDeleteTransaction,
       // dip ops
       addDipReading, updateDipReading, deleteDipReading, deleteDelivery,
       refresh: fetchAll,

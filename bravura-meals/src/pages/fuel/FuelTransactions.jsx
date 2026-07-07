@@ -188,6 +188,7 @@ function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps
     notes:            tx.notes || '',
   })
   const [saving, setSaving] = useState(false)
+  const [editReason, setEditReason] = useState('')
 
   function set(k, v) {
     setForm(prev => {
@@ -204,6 +205,9 @@ function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps
   async function handleSave() {
     if (!form.litres || isNaN(form.litres) || Number(form.litres) <= 0) {
       showToast('Enter valid litres', 'red'); return
+    }
+    if (!editReason.trim()) {
+      showToast('Please provide a reason for this edit', 'red'); return
     }
     setSaving(true)
     try {
@@ -222,6 +226,7 @@ function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps
         supplier:         form.supplier.trim() || null,
         docket_number:    form.docket_number.trim() || null,
         notes:            form.notes.trim() || null,
+        edit_reason:      editReason.trim(),
       }
       await onSave(tx.id, payload)
       showToast('Transaction updated — tank balance recalculated', 'green')
@@ -337,6 +342,19 @@ function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps
 
           <EditField label="Notes">
             <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3} style={{ ...editInputStyle, resize: 'vertical' }} />
+          </EditField>
+
+          <EditField label="Reason for edit *">
+            <textarea
+              value={editReason}
+              onChange={e => setEditReason(e.target.value)}
+              placeholder="Explain why this transaction is being modified…"
+              rows={2}
+              style={{ ...editInputStyle, resize: 'vertical', borderColor: !editReason.trim() ? THEME.error : THEME.outline }}
+            />
+            <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
+              This reason will be recorded in the audit trail.
+            </div>
           </EditField>
         </div>
 
@@ -679,6 +697,15 @@ export default function FuelTransactions({ setPage }) {
                       <span style={{ fontFamily: 'monospace', fontSize: '12px', color: FUEL_CLR, fontWeight: 600 }}>
                         {tx.docket_number || tx.transaction_number}
                       </span>
+                      {tx.updated_at && (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '2px', marginLeft: '6px',
+                          padding: '1px 6px', borderRadius: '10px', fontSize: '9px', fontWeight: 600,
+                          background: THEME.statusWarningBg, color: THEME.statusWarningText,
+                        }}>
+                          <Icon name="edit_note" size={9} style={{ color: THEME.statusWarningText }} /> Edited
+                        </span>
+                      )}
                     </Td>
                     <Td>
                       <div style={{ fontSize: '12px', fontWeight: 500, color: THEME.text }}>{fmtDate(tx.transaction_date)}</div>

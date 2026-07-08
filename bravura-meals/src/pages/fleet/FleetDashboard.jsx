@@ -380,7 +380,10 @@ export default function FleetDashboard({ setPage }) {
       <SectionLabel>Quick Actions</SectionLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {[
-          { page: 'fleet_assets', icon: 'inventory_2', label: 'Asset Registry', desc: 'View and manage all fleet assets' },
+          { page: 'fleet_vehicles', icon: 'directions_car', label: 'Vehicles', desc: 'Vehicle registry with compliance tracking' },
+          { page: 'fleet_equipment', icon: 'construction', label: 'Heavy Equipment', desc: 'Excavators, loaders, graders, drills and more' },
+          { page: 'fleet_generators', icon: 'bolt', label: 'Generators', desc: 'Generator registry with run hours tracking' },
+          { page: 'fleet_assets', icon: 'inventory_2', label: 'All Assets', desc: 'Unified view of all fleet assets' },
           { page: 'fleet_assignments', icon: 'assignment_ind', label: 'Assignments', desc: 'Assign assets to operators and projects' },
           { page: 'fleet_inspections', icon: 'checklist', label: 'Inspections', desc: 'Pre-trip and periodic inspection checklists' },
           { page: 'fleet_trips', icon: 'route', label: 'Trip Logs', desc: 'Mileage, operating hours and trip tracking' },

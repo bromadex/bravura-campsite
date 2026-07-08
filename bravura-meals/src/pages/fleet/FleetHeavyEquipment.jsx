@@ -180,7 +180,7 @@ export default function FleetHeavyEquipment({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-      <FleetQuickNav setPage={setPage} current="fleet_heavy_equipment" />
+      <FleetQuickNav setPage={setPage} current="fleet_equipment" />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <div>

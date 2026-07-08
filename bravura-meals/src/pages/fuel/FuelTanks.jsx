@@ -1104,7 +1104,7 @@ function DipBarChart({ readings, tank }) {
   const innerW = W - PAD.left - PAD.right
   const innerH = H - PAD.top - PAD.bottom
   const slot = innerW / readings.length
-  const barW = Math.min(28, slot * 0.85)
+  const barW = Math.min(40, slot * 0.92)
 
   return (
     <div style={{ position: 'relative' }}>

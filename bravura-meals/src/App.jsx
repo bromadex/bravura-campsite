@@ -56,6 +56,12 @@ const FleetAssets         = lazy(() => import('./pages/fleet/FleetAssets'))
 const FleetVehicles       = lazy(() => import('./pages/fleet/FleetVehicles'))
 const FleetHeavyEquipment = lazy(() => import('./pages/fleet/FleetHeavyEquipment'))
 const FleetGenerators     = lazy(() => import('./pages/fleet/FleetGenerators'))
+const FleetAssignments    = lazy(() => import('./pages/fleet/FleetAssignments'))
+const FleetInspections    = lazy(() => import('./pages/fleet/FleetInspections'))
+const FleetTrips          = lazy(() => import('./pages/fleet/FleetTrips'))
+const FleetMaintenance    = lazy(() => import('./pages/fleet/FleetMaintenance'))
+const FleetCompliance     = lazy(() => import('./pages/fleet/FleetCompliance'))
+const FleetReports        = lazy(() => import('./pages/fleet/FleetReports'))
 
 // ── Fuel pages ────────────────────────────────────────────────────────────────
 const FuelDashboard = lazy(() => import('./pages/fuel/FuelDashboard'))
@@ -246,12 +252,12 @@ function getFleetPage(page, setPage) {
     case 'fleet_vehicles':    return <FleetVehicles setPage={setPage} />
     case 'fleet_equipment':   return <FleetHeavyEquipment setPage={setPage} />
     case 'fleet_generators':  return <FleetGenerators setPage={setPage} />
-    case 'fleet_assignments': return <FleetDashboard setPage={setPage} />
-    case 'fleet_inspections': return <FleetDashboard setPage={setPage} />
-    case 'fleet_trips':       return <FleetDashboard setPage={setPage} />
-    case 'fleet_maintenance': return <FleetDashboard setPage={setPage} />
-    case 'fleet_compliance':  return <FleetDashboard setPage={setPage} />
-    case 'fleet_reports':     return <FleetDashboard setPage={setPage} />
+    case 'fleet_assignments': return <FleetAssignments setPage={setPage} />
+    case 'fleet_inspections': return <FleetInspections setPage={setPage} />
+    case 'fleet_trips':       return <FleetTrips setPage={setPage} />
+    case 'fleet_maintenance': return <FleetMaintenance setPage={setPage} />
+    case 'fleet_compliance':  return <FleetCompliance setPage={setPage} />
+    case 'fleet_reports':     return <FleetReports setPage={setPage} />
     default:                  return <FleetDashboard setPage={setPage} />
   }
 }

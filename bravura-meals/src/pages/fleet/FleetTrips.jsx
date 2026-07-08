@@ -4,7 +4,7 @@ import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import FleetQuickNav from './FleetQuickNav'
-import supabase from '../../supabaseClient'
+import { supabase } from '../../supabaseClient'
 
 const color = MODULE_COLORS.fleet
 

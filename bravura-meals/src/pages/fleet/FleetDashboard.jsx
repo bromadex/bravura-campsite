@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useFleet } from '../../contexts/FleetContext'
 import FleetQuickNav from './FleetQuickNav'
+import FleetAssetDetail from './FleetAssetDetail'
 
 const color = MODULE_COLORS.fleet
 
@@ -104,6 +105,7 @@ export default function FleetDashboard({ setPage }) {
   } = useFleet()
 
   const [statusFilter, setStatusFilter] = useState(null)
+  const [detailAsset, setDetailAsset] = useState(null)
 
   const openWorkOrders = useMemo(() =>
     workOrders.filter(w => w.status === 'open' || w.status === 'in_progress'),
@@ -254,9 +256,10 @@ export default function FleetDashboard({ setPage }) {
                 {filteredAssets.length === 0 ? (
                   <div style={{ fontSize: '12px', color: THEME.textLow, padding: '8px' }}>No assets with this status</div>
                 ) : filteredAssets.map(a => (
-                  <div key={a.id} style={{
+                  <div key={a.id} onClick={() => setDetailAsset(a)} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '6px 8px', fontSize: '12px', borderBottom: `1px solid ${THEME.outlineVar}`,
+                    cursor: 'pointer',
                   }}>
                     <span style={{ fontWeight: 600, color: THEME.text }}>{a.asset_number}</span>
                     <span style={{ color: THEME.textMed }}>{a.description}</span>
@@ -414,6 +417,8 @@ export default function FleetDashboard({ setPage }) {
           </div>
         ))}
       </div>
+
+      {detailAsset && <FleetAssetDetail asset={detailAsset} onClose={() => setDetailAsset(null)} />}
     </div>
   )
 }

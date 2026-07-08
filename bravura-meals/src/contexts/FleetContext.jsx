@@ -34,7 +34,7 @@ export function FleetProvider({ children }) {
           .select('*, fleet_asset_types(id, name, category, icon), departments(id, name)')
           .eq('site_id', currentSiteId)
           .eq('is_archived', false)
-          .order('asset_code'),
+          .order('asset_number'),
         supabase
           .from('departments')
           .select('id, name')
@@ -47,30 +47,30 @@ export function FleetProvider({ children }) {
           .order('name'),
         supabase
           .from('fleet_assignments')
-          .select('*, fleet_assets(id, asset_code, display_name), employees(id, name)')
+          .select('*, fleet_assets(id, asset_number, description), employees(id, name)')
           .eq('site_id', currentSiteId)
           .order('assigned_date', { ascending: false }),
         supabase
           .from('fleet_inspections')
-          .select('*, fleet_assets(id, asset_code, display_name), employees(id, name)')
+          .select('*, fleet_assets(id, asset_number, description), employees(id, name)')
           .eq('site_id', currentSiteId)
           .order('inspection_date', { ascending: false })
           .limit(100),
         supabase
           .from('fleet_work_orders')
-          .select('*, fleet_assets(id, asset_code, display_name)')
+          .select('*, fleet_assets(id, asset_number, description)')
           .eq('site_id', currentSiteId)
           .order('created_at', { ascending: false })
           .limit(100),
         supabase
           .from('fleet_trips')
-          .select('*, fleet_assets(id, asset_code, display_name), employees(id, name)')
+          .select('*, fleet_assets(id, asset_number, description), employees(id, name)')
           .eq('site_id', currentSiteId)
           .order('trip_date', { ascending: false })
           .limit(200),
         supabase
           .from('fleet_compliance')
-          .select('*, fleet_assets(id, asset_code, display_name)')
+          .select('*, fleet_assets(id, asset_number, description)')
           .eq('site_id', currentSiteId)
           .order('expiry_date'),
       ])
@@ -101,7 +101,7 @@ export function FleetProvider({ children }) {
       .select('*, fleet_asset_types(id, name, category, icon), departments(id, name)')
       .single()
     if (error) throw error
-    setAssets(prev => [...prev, row].sort((a, b) => (a.asset_code || '').localeCompare(b.asset_code || '')))
+    setAssets(prev => [...prev, row].sort((a, b) => (a.asset_number || '').localeCompare(b.asset_code || '')))
     return row
   }
 

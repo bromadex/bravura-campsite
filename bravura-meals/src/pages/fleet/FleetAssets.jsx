@@ -37,9 +37,10 @@ function StatusBadge({ status }) {
 }
 
 const EMPTY_FORM = {
-  asset_type_id: '', asset_code: '', display_name: '', registration: '',
-  vin_serial: '', year: '', make: '', model: '', fuel_type: 'diesel',
-  tank_capacity_litres: '', department_id: '', status: 'operational', notes: '',
+  asset_type_id: '', asset_number: '', description: '', registration: '',
+  vin: '', serial_number: '', fleet_number: '',
+  year: '', make: '', model: '',
+  tank_capacity_litres: '', department_id: '', status: 'operational',
 }
 
 export default function FleetAssets({ setPage }) {
@@ -70,8 +71,8 @@ export default function FleetAssets({ setPage }) {
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(a =>
-        (a.asset_code || '').toLowerCase().includes(q) ||
-        (a.display_name || '').toLowerCase().includes(q) ||
+        (a.asset_number || '').toLowerCase().includes(q) ||
+        (a.description || '').toLowerCase().includes(q) ||
         (a.registration || '').toLowerCase().includes(q) ||
         (a.make || '').toLowerCase().includes(q) ||
         (a.model || '').toLowerCase().includes(q)
@@ -91,26 +92,26 @@ export default function FleetAssets({ setPage }) {
     setEditId(asset.id)
     setForm({
       asset_type_id: asset.asset_type_id || '',
-      asset_code: asset.asset_code || '',
-      display_name: asset.display_name || '',
+      asset_number: asset.asset_number || '',
+      description: asset.description || '',
       registration: asset.registration || '',
-      vin_serial: asset.vin_serial || '',
+      vin: asset.vin || '',
+      serial_number: asset.serial_number || '',
+      fleet_number: asset.fleet_number || '',
       year: asset.year || '',
       make: asset.make || '',
       model: asset.model || '',
-      fuel_type: asset.fuel_type || 'diesel',
       tank_capacity_litres: asset.tank_capacity_litres || '',
       department_id: asset.department_id || '',
       status: asset.status || 'operational',
-      notes: asset.notes || '',
     })
     setError('')
     setModalOpen(true)
   }
 
   async function handleSave() {
-    if (!form.asset_type_id || !form.display_name) {
-      setError('Asset type and display name are required')
+    if (!form.asset_type_id || !form.asset_number || !form.description) {
+      setError('Asset type, asset number, and description are required')
       return
     }
     setSaving(true)
@@ -247,10 +248,10 @@ export default function FleetAssets({ setPage }) {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {a.display_name}
+                      {a.description}
                     </div>
                     <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>
-                      {a.asset_code}{a.registration ? ` · ${a.registration}` : ''}
+                      {a.asset_number}{a.registration ? ` · ${a.registration}` : ''}
                     </div>
                   </div>
                   <StatusBadge status={a.status} />
@@ -280,7 +281,7 @@ export default function FleetAssets({ setPage }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: THEME.surfaceVar }}>
-                {['Code', 'Name', 'Type', 'Registration', 'Make/Model', 'Status', 'Department'].map(h => (
+                {['Number', 'Description', 'Type', 'Registration', 'Make/Model', 'Status', 'Department'].map(h => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: THEME.textMed, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: `1px solid ${THEME.outlineVar}` }}>
                     {h}
                   </th>
@@ -296,8 +297,8 @@ export default function FleetAssets({ setPage }) {
                   onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceHover}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                 >
-                  <td style={{ padding: '10px 14px', fontWeight: 600, color }}>{a.asset_code}</td>
-                  <td style={{ padding: '10px 14px', color: THEME.text }}>{a.display_name}</td>
+                  <td style={{ padding: '10px 14px', fontWeight: 600, color }}>{a.asset_number}</td>
+                  <td style={{ padding: '10px 14px', color: THEME.text }}>{a.description}</td>
                   <td style={{ padding: '10px 14px', color: THEME.textMed }}>{a.fleet_asset_types?.name || '—'}</td>
                   <td style={{ padding: '10px 14px', color: THEME.textMed }}>{a.registration || '—'}</td>
                   <td style={{ padding: '10px 14px', color: THEME.textMed }}>{[a.make, a.model].filter(Boolean).join(' ') || '—'}</td>
@@ -341,20 +342,28 @@ export default function FleetAssets({ setPage }) {
                 </select>
               </div>
               <div>
-                <div style={lbl}>Asset Code</div>
-                <input value={form.asset_code} onChange={e => setForm({ ...form, asset_code: e.target.value })} placeholder="FLT-001" style={inp} />
+                <div style={lbl}>Asset Number *</div>
+                <input value={form.asset_number} onChange={e => setForm({ ...form, asset_number: e.target.value })} placeholder="FA-001" style={inp} />
               </div>
               <div>
-                <div style={lbl}>Display Name *</div>
-                <input value={form.display_name} onChange={e => setForm({ ...form, display_name: e.target.value })} placeholder="Toyota Hilux D4D" style={inp} />
+                <div style={lbl}>Description *</div>
+                <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Toyota Hilux D4D" style={inp} />
               </div>
               <div>
                 <div style={lbl}>Registration</div>
                 <input value={form.registration} onChange={e => setForm({ ...form, registration: e.target.value })} placeholder="ABC 123 GP" style={inp} />
               </div>
               <div>
-                <div style={lbl}>VIN / Serial</div>
-                <input value={form.vin_serial} onChange={e => setForm({ ...form, vin_serial: e.target.value })} style={inp} />
+                <div style={lbl}>Fleet Number</div>
+                <input value={form.fleet_number} onChange={e => setForm({ ...form, fleet_number: e.target.value })} placeholder="FLT-001" style={inp} />
+              </div>
+              <div>
+                <div style={lbl}>VIN</div>
+                <input value={form.vin} onChange={e => setForm({ ...form, vin: e.target.value })} style={inp} />
+              </div>
+              <div>
+                <div style={lbl}>Serial Number</div>
+                <input value={form.serial_number} onChange={e => setForm({ ...form, serial_number: e.target.value })} style={inp} />
               </div>
               <div>
                 <div style={lbl}>Make</div>
@@ -367,14 +376,6 @@ export default function FleetAssets({ setPage }) {
               <div>
                 <div style={lbl}>Year</div>
                 <input type="number" value={form.year} onChange={e => setForm({ ...form, year: e.target.value })} placeholder="2023" style={inp} />
-              </div>
-              <div>
-                <div style={lbl}>Fuel Type</div>
-                <select value={form.fuel_type} onChange={e => setForm({ ...form, fuel_type: e.target.value })} style={inp}>
-                  {['diesel', 'petrol', 'electric', 'hybrid', 'lpg', 'none'].map(f => (
-                    <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>
-                  ))}
-                </select>
               </div>
               <div>
                 <div style={lbl}>Tank Capacity (L)</div>
@@ -392,10 +393,6 @@ export default function FleetAssets({ setPage }) {
                 <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={inp}>
                   {Object.entries(STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <div style={lbl}>Notes</div>
-                <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} style={{ ...inp, resize: 'vertical' }} />
               </div>
             </div>
 

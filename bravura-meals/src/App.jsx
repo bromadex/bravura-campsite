@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from '
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { CampsiteProvider } from './contexts/CampsiteContext'
 import { FuelProvider } from './contexts/FuelContext'
+import { FleetProvider } from './contexts/FleetContext'
 import { ProcurementProvider } from './contexts/ProcurementContext'
 import { SiteProvider } from './contexts/SiteContext'
 import { PermissionsProvider, usePermissions } from './contexts/PermissionsContext'
@@ -51,6 +52,7 @@ const AuditLogViewer = lazy(() => import('./pages/admin/AuditLogViewer'))
 
 // ── Fleet pages ───────────────────────────────────────────────────────────────
 const FleetDashboard = lazy(() => import('./pages/fleet/FleetDashboard'))
+const FleetAssets    = lazy(() => import('./pages/fleet/FleetAssets'))
 
 // ── Fuel pages ────────────────────────────────────────────────────────────────
 const FuelDashboard = lazy(() => import('./pages/fuel/FuelDashboard'))
@@ -236,11 +238,15 @@ function getFuelPage(page, setPage, can) {
 
 function getFleetPage(page, setPage) {
   switch (page) {
-    case 'fleet_dashboard': return <FleetDashboard setPage={setPage} />
-    case 'fleet_vehicles':  return <Vehicles />
-    case 'fleet_equipment': return <Equipment />
-    case 'fleet_operators': return <Operators />
-    default:                return <FleetDashboard setPage={setPage} />
+    case 'fleet_dashboard':   return <FleetDashboard setPage={setPage} />
+    case 'fleet_assets':      return <FleetAssets setPage={setPage} />
+    case 'fleet_assignments': return <FleetDashboard setPage={setPage} />
+    case 'fleet_inspections': return <FleetDashboard setPage={setPage} />
+    case 'fleet_trips':       return <FleetDashboard setPage={setPage} />
+    case 'fleet_maintenance': return <FleetDashboard setPage={setPage} />
+    case 'fleet_compliance':  return <FleetDashboard setPage={setPage} />
+    case 'fleet_reports':     return <FleetDashboard setPage={setPage} />
+    default:                  return <FleetDashboard setPage={setPage} />
   }
 }
 
@@ -334,8 +340,11 @@ function ModuleShell() {
   if (moduleId === 'campsite' || moduleId === 'workforce') {
     return <CampsiteProvider>{body}</CampsiteProvider>
   }
-  if (moduleId === 'fuel' || moduleId === 'fleet') {
+  if (moduleId === 'fuel') {
     return <FuelProvider>{body}</FuelProvider>
+  }
+  if (moduleId === 'fleet') {
+    return <FleetProvider>{body}</FleetProvider>
   }
   if (moduleId === 'procurement') {
     return <ProcurementProvider>{body}</ProcurementProvider>

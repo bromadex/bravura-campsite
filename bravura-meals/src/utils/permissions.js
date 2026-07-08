@@ -225,13 +225,16 @@ export function procurementNav(role, can) {
 
 export function fleetNav(role, can) {
   return [
-    { id: 'fleet_dashboard',   label: 'Dashboard',    section: 'Overview',     icon: 'dashboard' },
-    { id: 'fleet_assets',      label: 'Assets',       section: 'Registry',     icon: 'inventory_2' },
-    { id: 'fleet_assignments', label: 'Assignments',  section: 'Operations',   icon: 'assignment_ind' },
-    { id: 'fleet_inspections', label: 'Inspections',  section: 'Operations',   icon: 'checklist' },
-    { id: 'fleet_trips',       label: 'Trip Logs',    section: 'Operations',   icon: 'route' },
-    { id: 'fleet_maintenance', label: 'Maintenance',  section: 'Maintenance',  icon: 'build' },
-    { id: 'fleet_compliance',  label: 'Compliance',   section: 'Compliance',   icon: 'verified_user' },
-    { id: 'fleet_reports',     label: 'Reports',      section: 'Reports',      icon: 'bar_chart' },
+    { id: 'fleet_dashboard',   label: 'Dashboard',       section: 'Overview',     icon: 'dashboard' },
+    { id: 'fleet_vehicles',    label: 'Vehicles',        section: 'Registry',     icon: 'directions_car' },
+    { id: 'fleet_equipment',   label: 'Heavy Equipment', section: 'Registry',     icon: 'construction' },
+    { id: 'fleet_generators',  label: 'Generators',      section: 'Registry',     icon: 'bolt' },
+    { id: 'fleet_assets',      label: 'All Assets',      section: 'Registry',     icon: 'inventory_2' },
+    { id: 'fleet_assignments', label: 'Assignments',     section: 'Operations',   icon: 'assignment_ind' },
+    { id: 'fleet_inspections', label: 'Inspections',     section: 'Operations',   icon: 'checklist' },
+    { id: 'fleet_trips',       label: 'Trip Logs',       section: 'Operations',   icon: 'route' },
+    { id: 'fleet_maintenance', label: 'Maintenance',     section: 'Maintenance',  icon: 'build' },
+    { id: 'fleet_compliance',  label: 'Compliance',      section: 'Compliance',   icon: 'verified_user' },
+    { id: 'fleet_reports',     label: 'Reports',         section: 'Reports',      icon: 'bar_chart' },
   ]
 }

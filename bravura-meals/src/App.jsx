@@ -51,8 +51,11 @@ const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
 const AuditLogViewer = lazy(() => import('./pages/admin/AuditLogViewer'))
 
 // ── Fleet pages ───────────────────────────────────────────────────────────────
-const FleetDashboard = lazy(() => import('./pages/fleet/FleetDashboard'))
-const FleetAssets    = lazy(() => import('./pages/fleet/FleetAssets'))
+const FleetDashboard      = lazy(() => import('./pages/fleet/FleetDashboard'))
+const FleetAssets         = lazy(() => import('./pages/fleet/FleetAssets'))
+const FleetVehicles       = lazy(() => import('./pages/fleet/FleetVehicles'))
+const FleetHeavyEquipment = lazy(() => import('./pages/fleet/FleetHeavyEquipment'))
+const FleetGenerators     = lazy(() => import('./pages/fleet/FleetGenerators'))
 
 // ── Fuel pages ────────────────────────────────────────────────────────────────
 const FuelDashboard = lazy(() => import('./pages/fuel/FuelDashboard'))
@@ -240,6 +243,9 @@ function getFleetPage(page, setPage) {
   switch (page) {
     case 'fleet_dashboard':   return <FleetDashboard setPage={setPage} />
     case 'fleet_assets':      return <FleetAssets setPage={setPage} />
+    case 'fleet_vehicles':    return <FleetVehicles setPage={setPage} />
+    case 'fleet_equipment':   return <FleetHeavyEquipment setPage={setPage} />
+    case 'fleet_generators':  return <FleetGenerators setPage={setPage} />
     case 'fleet_assignments': return <FleetDashboard setPage={setPage} />
     case 'fleet_inspections': return <FleetDashboard setPage={setPage} />
     case 'fleet_trips':       return <FleetDashboard setPage={setPage} />

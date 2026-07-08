@@ -4,10 +4,13 @@ import { Icon } from '../../components/ui'
 const FLEET_CLR = MODULE_COLORS.fleet
 
 const PILLS = [
-  { id: 'fleet_assets',      label: 'Assets',       icon: 'inventory_2',    color: '#1A6B52' },
+  { id: 'fleet_vehicles',    label: 'Vehicles',      icon: 'directions_car', color: '#1A6B52' },
+  { id: 'fleet_equipment',   label: 'Equipment',     icon: 'construction',   color: '#5D4037' },
+  { id: 'fleet_generators',  label: 'Generators',    icon: 'bolt',           color: '#E65100' },
+  { id: 'fleet_assets',      label: 'All Assets',    icon: 'inventory_2',    color: '#455A64' },
   { id: 'fleet_assignments', label: 'Assignments',   icon: 'assignment_ind', color: '#2E7D32' },
   { id: 'fleet_inspections', label: 'Inspections',   icon: 'checklist',      color: '#0277BD' },
-  { id: 'fleet_trips',       label: 'Trip Logs',     icon: 'route',          color: '#E65100' },
+  { id: 'fleet_trips',       label: 'Trip Logs',     icon: 'route',          color: '#6A1B9A' },
   { id: 'fleet_maintenance', label: 'Maintenance',   icon: 'build',          color: '#6D4C41' },
   { id: 'fleet_compliance',  label: 'Compliance',    icon: 'verified_user',  color: '#00838F' },
   { id: 'fleet_reports',     label: 'Reports',       icon: 'bar_chart',      color: '#E53935' },

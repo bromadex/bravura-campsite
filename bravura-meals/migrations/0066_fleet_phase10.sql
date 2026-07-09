@@ -148,10 +148,14 @@ BEGIN
     'fleet_meter_readings', 'fleet_drivers', 'fleet_tyres',
     'fleet_accidents', 'fleet_settings'
   ]) LOOP
-    EXECUTE format('CREATE POLICY %I ON %I FOR SELECT TO authenticated USING (true)', tbl || '_read', tbl);
-    EXECUTE format('CREATE POLICY %I ON %I FOR INSERT TO authenticated WITH CHECK (true)', tbl || '_insert', tbl);
-    EXECUTE format('CREATE POLICY %I ON %I FOR UPDATE TO authenticated USING (true)', tbl || '_update', tbl);
-    EXECUTE format('CREATE POLICY %I ON %I FOR DELETE TO authenticated USING (true)', tbl || '_delete', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_read',   tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_insert', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_update', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_delete', tbl);
+    EXECUTE format('CREATE POLICY %I ON %I FOR SELECT TO authenticated USING (true)',          tbl || '_read',   tbl);
+    EXECUTE format('CREATE POLICY %I ON %I FOR INSERT TO authenticated WITH CHECK (true)',     tbl || '_insert', tbl);
+    EXECUTE format('CREATE POLICY %I ON %I FOR UPDATE TO authenticated USING (true)',          tbl || '_update', tbl);
+    EXECUTE format('CREATE POLICY %I ON %I FOR DELETE TO authenticated USING (true)',          tbl || '_delete', tbl);
   END LOOP;
 END $$;
 

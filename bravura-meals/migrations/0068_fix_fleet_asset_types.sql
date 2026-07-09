@@ -117,12 +117,27 @@ WHERE NOT EXISTS (
 )
 ON CONFLICT (site_id, asset_number) DO NOTHING;
 
--- ── 3. Patch any remaining null asset_type_id ─────────────────────────────────
+-- ── 3. Force all fuel_vehicles migrants to VEHICLE category ──────────────────
+-- The vehicle_type CASE above may not match real values in the DB,
+-- so we unconditionally set the correct type by legacy_source.
+UPDATE fleet_assets
+SET asset_type_id = (SELECT id FROM fleet_asset_types WHERE code = 'VEHICLE')
+WHERE legacy_source = 'fuel_vehicles';
+
+-- ── 4. Force fuel_equipment migrants that aren't generators to EXCAVATOR ──────
+UPDATE fleet_assets
+SET asset_type_id = (SELECT id FROM fleet_asset_types WHERE code = 'EXCAVATOR')
+WHERE legacy_source = 'fuel_equipment'
+  AND asset_type_id NOT IN (
+    SELECT id FROM fleet_asset_types WHERE code IN ('GENERATOR', 'COMPRESSOR', 'PUMP')
+  );
+
+-- ── 5. Patch any remaining null asset_type_id ─────────────────────────────────
 UPDATE fleet_assets
 SET asset_type_id = (SELECT id FROM fleet_asset_types WHERE code = 'VEHICLE')
 WHERE asset_type_id IS NULL;
 
--- ── 4. Normalise status values ────────────────────────────────────────────────
+-- ── 6. Normalise status values ────────────────────────────────────────────────
 UPDATE fleet_assets
 SET status = 'operational'
 WHERE status NOT IN ('operational','maintenance','grounded','awaiting_parts','decommissioned');

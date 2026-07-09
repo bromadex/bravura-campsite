@@ -76,7 +76,7 @@ export default function VehicleConsumption() {
     setExpanded(null)
     const { data: txns, error } = await supabase
       .from('fuel_transactions')
-      .select('vehicle_id, equipment_id, litres, meter_start, meter_end, transaction_date, docket_number, notes, tank:fuel_tanks(name), vehicle:fuel_vehicles(fleet_number, registration, expected_consumption_lpkm, fuel_types(name)), equipment:fuel_equipment(name, equipment_number, fuel_types(name))')
+      .select('fleet_asset_id, litres, meter_start, meter_end, transaction_date, docket_number, notes, tank:fuel_tanks(name), fleet_asset:fleet_assets(fleet_number, registration, asset_number, description, serial_number, expected_consumption_lpkm, fuel_types(name))')
       .eq('site_id', currentSiteId)
       .eq('is_deleted', false)
       .eq('transaction_type', 'issuance')
@@ -87,16 +87,16 @@ export default function VehicleConsumption() {
 
     const map = {}
     for (const t of (txns || [])) {
-      const key = t.vehicle_id || t.equipment_id
+      const key = t.fleet_asset_id
       if (!key) continue
       if (!map[key]) {
-        const v = t.vehicle, e = t.equipment
+        const a = t.fleet_asset
         map[key] = {
           assetId: key,
-          label: v ? (v.registration || v.fleet_number || key) : (e?.name || key),
-          subLabel: v ? v.fleet_number : e?.equipment_number,
-          fuelType: v?.fuel_types?.name || e?.fuel_types?.name || 'Diesel',
-          expectedLpkm: v?.expected_consumption_lpkm ? Number(v.expected_consumption_lpkm) : null,
+          label: a ? (a.registration || a.fleet_number || a.asset_number || key) : key,
+          subLabel: a?.fleet_number || a?.serial_number,
+          fuelType: a?.fuel_types?.name || 'Diesel',
+          expectedLpkm: a?.expected_consumption_lpkm ? Number(a.expected_consumption_lpkm) : null,
           totalLitres: 0, fills: 0, totalKm: 0,
           minFill: null, maxFill: null, lastOdometer: null,
           txns: [],

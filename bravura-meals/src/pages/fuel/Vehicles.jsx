@@ -130,7 +130,7 @@ export default function Vehicles() {
 
   // Live fuel usage per vehicle — the fleet registry talks to the fuel
   // module through the shared transactions list, no extra queries.
-  const fuelUsage = useMemo(() => fuelUsageByAsset(transactions, 'vehicle_id'), [transactions])
+  const fuelUsage = useMemo(() => fuelUsageByAsset(transactions, 'fleet_asset_id'), [transactions])
 
   if (loading) return null
 
@@ -371,7 +371,7 @@ function VehicleDetailModal({ vehicle, transactions, onClose }) {
     cutoff.setDate(cutoff.getDate() - 30)
     const cutoffStr = cutoff.toISOString().slice(0, 10)
     const rows = transactions
-      .filter(t => t.vehicle_id === vehicle.id)
+      .filter(t => t.fleet_asset_id === vehicle.id)
       .sort((a, b) => b.transaction_date.localeCompare(a.transaction_date))
     let total = 0, total30 = 0, count30 = 0
     for (const t of rows) {

@@ -42,7 +42,7 @@ export default function DailyTransactionReport() {
   const run = useCallback(async () => {
     setLoading(true)
     const { data, error } = await supabase.from('fuel_transactions')
-      .select('*, tank:fuel_tanks(name), vehicle:fuel_vehicles(fleet_number, registration), equipment:fuel_equipment(name), operator:fuel_operators(employees(name))')
+      .select('*, tank:fuel_tanks(name), fleet_asset:fleet_assets(fleet_number, registration, asset_number, description), operator:fuel_operators(employees(name))')
       .eq('site_id', currentSiteId)
       .eq('is_deleted', false)
       .eq('transaction_date', date)
@@ -78,7 +78,7 @@ export default function DailyTransactionReport() {
       t.docket_number || '',
       t.transaction_type,
       t.tank?.name || '',
-      t.vehicle ? `${t.vehicle.fleet_number}${t.vehicle.registration ? ` (${t.vehicle.registration})` : ''}` : t.equipment?.name || t.asset_description || '',
+      t.fleet_asset ? `${t.fleet_asset.fleet_number || t.fleet_asset.asset_number || ''}${t.fleet_asset.registration ? ` (${t.fleet_asset.registration})` : ''}`.trim() || t.fleet_asset.description || '' : t.asset_description || '',
       t.operator?.employees?.name || '',
       t.litres,
     ])
@@ -156,7 +156,7 @@ export default function DailyTransactionReport() {
                   </thead>
                   <tbody>
                     {g.txns.map(t => {
-                      const asset = t.vehicle ? `${t.vehicle.fleet_number}${t.vehicle.registration ? ` (${t.vehicle.registration})` : ''}` : t.equipment?.name || t.asset_description || '—'
+                      const asset = t.fleet_asset ? `${t.fleet_asset.fleet_number || t.fleet_asset.asset_number || ''}${t.fleet_asset.registration ? ` (${t.fleet_asset.registration})` : ''}`.trim() || t.fleet_asset.description || '—' : t.asset_description || '—'
                       return (
                         <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                           <td style={{ padding: '10px 16px', color: COLOR, fontWeight: 600 }}>{t.docket_number || '—'}</td>

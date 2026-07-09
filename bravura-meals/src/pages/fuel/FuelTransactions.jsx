@@ -74,10 +74,8 @@ function DetailPanel({ tx, tanks, operators, pumps, canEdit, onClose, onEdit }) 
   const operator = operators.find(o => o.id === tx.operator_id)
   const pump     = pumps.find(p => p.id === tx.pump_id)
 
-  const assetLabel = tx.fuel_vehicles?.fleet_number
-    ? `${tx.fuel_vehicles.fleet_number}${tx.fuel_vehicles.registration ? ' (' + tx.fuel_vehicles.registration + ')' : ''}`
-    : tx.fuel_equipment?.name
-    ? `${tx.fuel_equipment.name}${tx.fuel_equipment.equipment_number ? ' (' + tx.fuel_equipment.equipment_number + ')' : ''}`
+  const assetLabel = tx.fleet_asset
+    ? `${tx.fleet_asset.fleet_number || tx.fleet_asset.asset_number}${tx.fleet_asset.registration ? ' (' + tx.fleet_asset.registration + ')' : tx.fleet_asset.serial_number ? ' (' + tx.fleet_asset.serial_number + ')' : ''}`
     : tx.asset_description || '—'
 
   const rows = [
@@ -171,13 +169,12 @@ function EditField({ label, children }) {
   )
 }
 
-function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps, onClose, onSave }) {
+function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps, fleetAssets, onClose, onSave }) {
   const [form, setForm] = useState({
     transaction_date: tx.transaction_date || '',
     tank_id:          tx.tank_id || '',
     litres:           tx.litres != null ? String(tx.litres) : '',
-    vehicle_id:       tx.vehicle_id || '',
-    equipment_id:     tx.equipment_id || '',
+    fleet_asset_id:   tx.fleet_asset_id || '',
     operator_id:      tx.operator_id || '',
     pump_id:          tx.pump_id || '',
     meter_start:      tx.meter_start != null ? String(tx.meter_start) : '',
@@ -197,8 +194,7 @@ function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps
       if ((k === 'unit_price' || k === 'litres') && next.unit_price && next.litres) {
         next.total_cost = (Number(next.unit_price) * Number(next.litres)).toFixed(2)
       }
-      if (k === 'vehicle_id' && v) next.equipment_id = ''
-      if (k === 'equipment_id' && v) next.vehicle_id = ''
+      // fleet_asset_id is a single field — no mutual exclusion needed
       return next
     })
   }
@@ -216,8 +212,7 @@ function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps
         transaction_date: form.transaction_date,
         tank_id:          form.tank_id || null,
         litres:           Number(form.litres),
-        vehicle_id:       form.vehicle_id || null,
-        equipment_id:     form.equipment_id || null,
+        fleet_asset_id:   form.fleet_asset_id || null,
         operator_id:      form.operator_id || null,
         pump_id:          form.pump_id || null,
         meter_start:      form.meter_start ? Number(form.meter_start) : null,
@@ -285,20 +280,17 @@ function EditTransactionModal({ tx, tanks, vehicles, equipment, operators, pumps
 
           {isIssuance && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <EditField label="Vehicle">
-                  <select value={form.vehicle_id} onChange={e => set('vehicle_id', e.target.value)} style={editInputStyle}>
-                    <option value="">— None —</option>
-                    {vehicles.filter(v => !v.is_archived).map(v => <option key={v.id} value={v.id}>{v.fleet_number}{v.registration ? ' · ' + v.registration : ''}</option>)}
-                  </select>
-                </EditField>
-                <EditField label="Equipment">
-                  <select value={form.equipment_id} onChange={e => set('equipment_id', e.target.value)} style={editInputStyle}>
-                    <option value="">— None —</option>
-                    {equipment.filter(e => !e.is_archived).map(eq => <option key={eq.id} value={eq.id}>{eq.name}</option>)}
-                  </select>
-                </EditField>
-              </div>
+              <EditField label="Asset">
+                <select value={form.fleet_asset_id} onChange={e => set('fleet_asset_id', e.target.value)} style={editInputStyle}>
+                  <option value="">— None —</option>
+                  <optgroup label="Vehicles">
+                    {vehicles.filter(v => !v.is_archived).map(v => <option key={v.id} value={v.id}>{v.fleet_number || v.asset_number}{v.registration ? ' · ' + v.registration : ''}</option>)}
+                  </optgroup>
+                  <optgroup label="Equipment">
+                    {equipment.filter(e => !e.is_archived).map(eq => <option key={eq.id} value={eq.id}>{eq.description || eq.asset_number}{eq.serial_number ? ' · ' + eq.serial_number : ''}</option>)}
+                  </optgroup>
+                </select>
+              </EditField>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <EditField label="Operator">
                   <select value={form.operator_id} onChange={e => set('operator_id', e.target.value)} style={editInputStyle}>
@@ -377,9 +369,9 @@ function exportCsv(rows, tanks, operators) {
   const lines = rows.map(tx => {
     const tank = tanks.find(t => t.id === tx.tank_id)
     const op   = operators.find(o => o.id === tx.operator_id)
-    const asset = tx.fuel_vehicles?.fleet_number
-      ? tx.fuel_vehicles.fleet_number + (tx.fuel_vehicles.registration ? ' ' + tx.fuel_vehicles.registration : '')
-      : tx.fuel_equipment?.name || tx.asset_description || ''
+    const asset = tx.fleet_asset
+      ? (tx.fleet_asset.fleet_number || tx.fleet_asset.asset_number) + (tx.fleet_asset.registration ? ' ' + tx.fleet_asset.registration : '')
+      : tx.asset_description || ''
     return [
       tx.docket_number || '',
       tx.transaction_number,
@@ -412,9 +404,9 @@ function printTable(filtered, tanks, operators, siteName) {
   const rows = filtered.map((tx, i) => {
     const tank = tanks.find(t => t.id === tx.tank_id)
     const op = operators.find(o => o.id === tx.operator_id)
-    const asset = tx.fuel_vehicles?.fleet_number
-      ? tx.fuel_vehicles.fleet_number + (tx.fuel_vehicles.registration ? ' · ' + tx.fuel_vehicles.registration : '')
-      : tx.fuel_equipment?.name || tx.supplier || '—'
+    const asset = tx.fleet_asset
+      ? (tx.fleet_asset.fleet_number || tx.fleet_asset.asset_number) + (tx.fleet_asset.registration ? ' · ' + tx.fleet_asset.registration : '')
+      : tx.supplier || '—'
     return `<tr>
       <td>${i + 1}</td><td>${tx.transaction_date}</td><td>${tx.transaction_type}</td>
       <td>${tank?.name || '—'}</td><td>${tank?.fuel_types?.name || '—'}</td>
@@ -435,7 +427,7 @@ function printTable(filtered, tanks, operators, siteName) {
 export default function FuelTransactions({ setPage }) {
   const { can }        = usePermissions()
   const { currentSite } = useSite()
-  const { tanks, operators, pumps, vehicles, equipment, transactions, fuelTypes, loading, updateTransaction } = useFuel()
+  const { tanks, operators, pumps, vehicles, equipment, fleetAssets, transactions, fuelTypes, loading, updateTransaction } = useFuel()
 
   const [dateFrom,    setDateFrom]    = useState('')
   const [dateTo,      setDateTo]      = useState('')
@@ -476,8 +468,8 @@ export default function FuelTransactions({ setPage }) {
       if (dateTo   && tx.transaction_date > dateTo)   return false
       if (tankId   && tx.tank_id !== tankId)           return false
       if (txType   && tx.transaction_type !== txType)  return false
-      if (vehicleId   && tx.vehicle_id !== vehicleId)     return false
-      if (equipmentId && tx.equipment_id !== equipmentId) return false
+      if (vehicleId   && tx.fleet_asset_id !== vehicleId)     return false
+      if (equipmentId && tx.fleet_asset_id !== equipmentId) return false
       if (operatorId  && tx.operator_id !== operatorId)   return false
       if (suppFilter  && (tx.supplier || '').trim() !== suppFilter) return false
       if (fuelTypeId) {
@@ -487,8 +479,9 @@ export default function FuelTransactions({ setPage }) {
       if (q) {
         const hay = [
           tx.docket_number, tx.transaction_number,
-          tx.fuel_vehicles?.fleet_number, tx.fuel_vehicles?.registration,
-          tx.fuel_equipment?.name, tx.supplier, tx.notes,
+          tx.fleet_asset?.fleet_number, tx.fleet_asset?.asset_number,
+          tx.fleet_asset?.registration, tx.fleet_asset?.description,
+          tx.supplier, tx.notes,
         ].filter(Boolean).join(' ').toLowerCase()
         if (!hay.includes(q)) return false
       }
@@ -687,10 +680,8 @@ export default function FuelTransactions({ setPage }) {
               {filtered.map((tx, idx) => {
                 const tank     = tanks.find(t => t.id === tx.tank_id)
                 const operator = operators.find(o => o.id === tx.operator_id)
-                const asset    = tx.fuel_vehicles?.fleet_number
-                  ? `${tx.fuel_vehicles.fleet_number}${tx.fuel_vehicles.registration ? ' · ' + tx.fuel_vehicles.registration : ''}`
-                  : tx.fuel_equipment?.name
-                  ? `${tx.fuel_equipment.name}`
+                const asset    = tx.fleet_asset
+                  ? `${tx.fleet_asset.fleet_number || tx.fleet_asset.asset_number}${tx.fleet_asset.registration ? ' · ' + tx.fleet_asset.registration : ''}`
                   : tx.supplier || tx.asset_description || '—'
 
                 return (
@@ -745,6 +736,7 @@ export default function FuelTransactions({ setPage }) {
           equipment={equipment}
           operators={operators}
           pumps={pumps}
+          fleetAssets={fleetAssets}
           onClose={() => setEditing(null)}
           onSave={updateTransaction}
         />

@@ -131,7 +131,7 @@ export default function Equipment() {
   }, [equipment, filterFuel, filterDept, filterStat, filterType, query])
 
   // Live fuel usage per equipment item, from the shared transactions list.
-  const fuelUsage = useMemo(() => fuelUsageByAsset(transactions, 'equipment_id'), [transactions])
+  const fuelUsage = useMemo(() => fuelUsageByAsset(transactions, 'fleet_asset_id'), [transactions])
 
   if (loading) return null
 
@@ -351,7 +351,7 @@ function EquipmentDetailModal({ equipment, transactions, onClose }) {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 30)
     const cutoffStr = cutoff.toISOString().slice(0, 10)
-    return transactions.filter(t => t.equipment_id === equipment.id && t.transaction_date >= cutoffStr)
+    return transactions.filter(t => t.fleet_asset_id === equipment.id && t.transaction_date >= cutoffStr)
   }, [equipment, transactions])
 
   const total = recent.reduce((s, t) => s + Number(t.litres), 0)

@@ -139,7 +139,7 @@ export default function FinanceExport() {
         .order('transaction_date', { ascending: true }),
       supabase
         .from('fuel_transactions')
-        .select('id, transaction_date, litres, unit_price, vehicle:fuel_vehicles(department_id, departments(name)), equipment:fuel_equipment(department_id, departments(name))')
+        .select('id, transaction_date, litres, unit_price, fleet_asset:fleet_assets(department_id, departments(name))')
         .eq('site_id', currentSiteId)
         .eq('is_deleted', false)
         .eq('transaction_type', 'issuance')
@@ -155,8 +155,8 @@ export default function FinanceExport() {
     // Group issuances by department
     const byDept = new Map()
     for (const t of (aRes.data || [])) {
-      const deptName = t.vehicle?.departments?.name || t.equipment?.departments?.name || 'Unallocated'
-      const deptId = t.vehicle?.department_id || t.equipment?.department_id || null
+      const deptName = t.fleet_asset?.departments?.name || 'Unallocated'
+      const deptId = t.fleet_asset?.department_id || null
       const cost = Number(t.litres || 0) * Number(t.unit_price || 0)
       if (!byDept.has(deptId)) byDept.set(deptId, { department_id: deptId, department_name: deptName, litres: 0, total: 0, period_end: to })
       const row = byDept.get(deptId)

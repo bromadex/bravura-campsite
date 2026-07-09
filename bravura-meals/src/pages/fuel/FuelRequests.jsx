@@ -95,7 +95,7 @@ function ApproveModal({ req, onConfirm, onClose, saving }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             {[
               ['Requested By', req.requested_by_profile?.full_name || '—'],
-              ['Asset', req.fuel_vehicles ? req.fuel_vehicles.fleet_number : req.fuel_equipment?.name || '—'],
+              ['Asset', req.fleet_asset?.fleet_number || req.fleet_asset?.asset_number || req.fleet_asset?.description || '—'],
               ['Fuel Type', req.fuel_types?.name || '—'],
               ['Quantity', `${Number(req.quantity_requested).toLocaleString()} L`],
             ].map(([label, value]) => (
@@ -214,7 +214,7 @@ function DetailPanel({ req, onClose, onApprove, onReject, onIssue, canApprove, c
           {[
             ['Requested By', req.requested_by_profile?.full_name || '—'],
             ['Date', new Date(req.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })],
-            ['Asset', req.fuel_vehicles ? `${req.fuel_vehicles.fleet_number}${req.fuel_vehicles.registration ? ' (' + req.fuel_vehicles.registration + ')' : ''}` : req.fuel_equipment ? `${req.fuel_equipment.name} (${req.fuel_equipment.equipment_number || '—'})` : '—'],
+            ['Asset', req.fleet_asset ? `${req.fleet_asset.fleet_number || req.fleet_asset.asset_number || ''}${req.fleet_asset.registration ? ' (' + req.fleet_asset.registration + ')' : ''}`.trim() || req.fleet_asset.description || '—' : '—'],
             ['Fuel Type', req.fuel_types?.name || '—'],
             ['Quantity Requested', `${Number(req.quantity_requested).toLocaleString()} L`],
             ['Intended Use', req.intended_use || '—'],
@@ -274,9 +274,9 @@ function DetailPanel({ req, onClose, onApprove, onReject, onIssue, canApprove, c
 
 function RequestCard({ req, onClick, canApprove, canIssue, onApprove, onReject, onIssue }) {
   const s = STATUS_META[req.status] || STATUS_META.pending
-  const asset = req.fuel_vehicles
-    ? `${req.fuel_vehicles.fleet_number}${req.fuel_vehicles.registration ? ' · ' + req.fuel_vehicles.registration : ''}`
-    : req.fuel_equipment?.name || '—'
+  const asset = req.fleet_asset
+    ? `${req.fleet_asset.fleet_number || req.fleet_asset.asset_number || ''}${req.fleet_asset.registration ? ' · ' + req.fleet_asset.registration : ''}`.trim() || req.fleet_asset.description || '—'
+    : '—'
 
   return (
     <div
@@ -306,7 +306,7 @@ function RequestCard({ req, onClick, canApprove, canIssue, onApprove, onReject, 
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-        <Icon name={req.fuel_vehicles ? 'directions_car' : 'construction'} size={14} style={{ color: THEME.textLow }} />
+        <Icon name={req.fleet_asset ? 'directions_car' : 'construction'} size={14} style={{ color: THEME.textLow }} />
         <span style={{ fontSize: '12px', color: THEME.textMed }}>{asset}</span>
       </div>
 
@@ -352,7 +352,7 @@ function RequestSection({ title, icon, iconColor, rows, view, setDetailReq, canA
     return rows.filter(r => {
       const hay = [
         r.request_number, r.requested_by_profile?.full_name,
-        r.fuel_vehicles?.fleet_number, r.fuel_equipment?.name,
+        r.fleet_asset?.fleet_number, r.fleet_asset?.asset_number, r.fleet_asset?.description,
         r.fuel_types?.name, r.notes, r.intended_use,
       ].filter(Boolean).join(' ').toLowerCase()
       return hay.includes(q)
@@ -409,7 +409,7 @@ function RequestSection({ title, icon, iconColor, rows, view, setDetailReq, canA
               </thead>
               <tbody>
                 {filtered.map((req, i) => {
-                  const asset = req.fuel_vehicles ? req.fuel_vehicles.fleet_number : req.fuel_equipment?.name || '—'
+                  const asset = req.fleet_asset?.fleet_number || req.fleet_asset?.asset_number || req.fleet_asset?.description || '—'
                   const isHighPriority = req.priority !== 'normal'
                   const rowBg = req.status === 'pending' && isHighPriority
                     ? (req.priority === 'emergency' ? THEME.error + '08' : THEME.warning + '08')
@@ -501,8 +501,7 @@ export default function FuelRequests({ setPage }) {
         requested_by_profile:profiles!fuel_requests_requested_by_fkey(id, full_name),
         approved_by_profile:profiles!fuel_requests_approved_by_fkey(id, full_name),
         fuel_types(id, name, code),
-        fuel_vehicles(id, fleet_number, registration),
-        fuel_equipment(id, name, equipment_number)
+        fleet_asset:fleet_assets(id, asset_number, fleet_number, registration, description, serial_number)
       `)
       .eq('site_id', currentSiteId)
       .order('created_at', { ascending: false })
@@ -523,7 +522,7 @@ export default function FuelRequests({ setPage }) {
         const q = globalSearch.toLowerCase()
         const hay = [
           r.request_number, r.requested_by_profile?.full_name,
-          r.fuel_vehicles?.fleet_number, r.fuel_equipment?.name,
+          r.fleet_asset?.fleet_number, r.fleet_asset?.asset_number, r.fleet_asset?.description,
           r.fuel_types?.name,
         ].filter(Boolean).join(' ').toLowerCase()
         if (!hay.includes(q)) return false
@@ -578,8 +577,7 @@ export default function FuelRequests({ setPage }) {
   function handleIssue(req) {
     sessionStorage.setItem('fuel_request_prefill', JSON.stringify({
       request_id: req.id, request_number: req.request_number,
-      vehicle_id: req.vehicle_id || null, equipment_id: req.equipment_id || null,
-      asset_type: req.vehicle_id ? 'vehicle' : 'equipment',
+      fleet_asset_id: req.fleet_asset_id || null,
       quantity_requested: req.quantity_requested, fuel_type_id: req.fuel_type_id,
     }))
     setPage('fuel_issuance')

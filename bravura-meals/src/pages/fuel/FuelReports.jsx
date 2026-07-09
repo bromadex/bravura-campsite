@@ -256,9 +256,9 @@ export default function FuelReports({ setPage }) {
   const top10 = useMemo(() => {
     const m = new Map()
     for (const t of issuances) {
-      const label = t.fuel_vehicles
-        ? (t.fuel_vehicles.registration || t.fuel_vehicles.fleet_number)
-        : t.fuel_equipment?.name || t.asset_description || 'Other'
+      const label = t.fleet_asset
+        ? (t.fleet_asset.registration || t.fleet_asset.fleet_number || t.fleet_asset.asset_number)
+        : t.asset_description || 'Other'
       m.set(label, (m.get(label) || 0) + Number(t.litres))
     }
     return [...m.entries()].sort(([, a], [, b]) => b - a).slice(0, 10)
@@ -294,7 +294,7 @@ export default function FuelReports({ setPage }) {
   const anomalies = useMemo(() => {
     const byAsset = new Map()
     for (const t of issuances) {
-      const key = t.vehicle_id || t.equipment_id
+      const key = t.fleet_asset_id
       if (!key) continue
       if (!byAsset.has(key)) byAsset.set(key, [])
       byAsset.get(key).push(t)
@@ -348,9 +348,9 @@ export default function FuelReports({ setPage }) {
 
   if (loading) return null
 
-  const assetLabel = tx => tx.fuel_vehicles
-    ? (tx.fuel_vehicles.registration || tx.fuel_vehicles.fleet_number)
-    : tx.fuel_equipment?.name || tx.asset_description || '—'
+  const assetLabel = tx => tx.fleet_asset
+    ? (tx.fleet_asset.registration || tx.fleet_asset.fleet_number || tx.fleet_asset.asset_number)
+    : tx.asset_description || '—'
 
   const selStyle = {
     padding: '7px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px',

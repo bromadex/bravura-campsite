@@ -6,14 +6,16 @@ import { MODULE_COLORS } from '../utils/permissions'
 
 const FuelContext = createContext(null)
 
+const VEHICLE_CATEGORIES = ['vehicle']
+const EQUIPMENT_CATEGORIES = ['heavy_equipment', 'generator', 'pump', 'other']
+
 export function FuelProvider({ children }) {
   const { currentSiteId } = useSite()
 
   const [fuelTypes,    setFuelTypes]    = useState([])
   const [tanks,        setTanks]        = useState([])
   const [pumps,        setPumps]        = useState([])
-  const [vehicles,     setVehicles]     = useState([])
-  const [equipment,    setEquipment]    = useState([])
+  const [fleetAssets,  setFleetAssets]  = useState([])
   const [operators,    setOperators]    = useState([])
   const [employees,    setEmployees]    = useState([])
   const [departments,  setDepartments]  = useState([])
@@ -26,15 +28,14 @@ export function FuelProvider({ children }) {
     if (!currentSiteId) { setLoading(false); return }
     setTanks([])
     setPumps([])
-    setVehicles([])
-    setEquipment([])
+    setFleetAssets([])
     setOperators([])
     setEmployees([])
     setTransactions([])
     setDipReadings([])
     setLoading(true)
     try {
-      const [ftRes, tRes, pmRes, vRes, eqRes, opRes, empRes, deptRes, txRes, dRes, pRes] = await Promise.all([
+      const [ftRes, tRes, pmRes, faRes, opRes, empRes, deptRes, txRes, dRes, pRes] = await Promise.all([
         supabase
           .from('fuel_types')
           .select('*')
@@ -53,17 +54,11 @@ export function FuelProvider({ children }) {
           .eq('is_archived', false)
           .order('name'),
         supabase
-          .from('fuel_vehicles')
-          .select('*, fuel_types(id, name, code, colour)')
+          .from('fleet_assets')
+          .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name, code, colour)')
           .eq('site_id', currentSiteId)
           .eq('is_archived', false)
-          .order('fleet_number'),
-        supabase
-          .from('fuel_equipment')
-          .select('*, fuel_types(id, name, code, colour)')
-          .eq('site_id', currentSiteId)
-          .eq('is_archived', false)
-          .order('equipment_number'),
+          .order('asset_number'),
         supabase
           .from('fuel_operators')
           .select('*, employees(id, name, contractor:contractors(id, name, short_code))')
@@ -81,7 +76,7 @@ export function FuelProvider({ children }) {
           .order('name'),
         supabase
           .from('fuel_transactions')
-          .select('*, fuel_vehicles(id, fleet_number, registration), fuel_equipment(id, name, equipment_number), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
+          .select('*, fleet_asset:fleet_assets(id, asset_number, fleet_number, registration, description, serial_number, department_id, department_name), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
           .eq('site_id', currentSiteId)
           .eq('is_deleted', false)
           .order('transaction_date', { ascending: false })
@@ -99,8 +94,7 @@ export function FuelProvider({ children }) {
       setFuelTypes(ftRes.data || [])
       setTanks(tRes.data || [])
       setPumps(pmRes.data || [])
-      setVehicles(vRes.data || [])
-      setEquipment(eqRes.data || [])
+      setFleetAssets(faRes.data || [])
       setOperators(opRes.data || [])
       setEmployees(empRes.data || [])
       setDepartments(deptRes.data || [])
@@ -115,6 +109,17 @@ export function FuelProvider({ children }) {
   }, [currentSiteId])
 
   useEffect(() => { fetchAll() }, [fetchAll])
+
+  // ── Derived vehicle/equipment arrays from fleet_assets ─────────────────────
+  const vehicles = useMemo(() =>
+    fleetAssets.filter(a => VEHICLE_CATEGORIES.includes(a.fleet_asset_types?.category)),
+    [fleetAssets]
+  )
+
+  const equipment = useMemo(() =>
+    fleetAssets.filter(a => EQUIPMENT_CATEGORIES.includes(a.fleet_asset_types?.category)),
+    [fleetAssets]
+  )
 
   // ── Backward-compatible aliases for existing pages ────────────────────────────
   // Pages that used the old fuel_receipts / fuel_issues tables get shaped data
@@ -136,18 +141,23 @@ export function FuelProvider({ children }) {
   const issues = useMemo(() =>
     transactions
       .filter(t => t.transaction_type === 'issuance')
-      .map(t => ({
-        ...t,
-        quantity_litres:  t.litres,
-        issue_date:       t.transaction_date,
-        asset_type:       t.vehicle_id ? 'vehicle' : t.equipment_id ? 'equipment' : 'other',
-        asset_name:       t.fuel_vehicles?.fleet_number || t.fuel_equipment?.name || t.asset_description || 'Unknown',
-        asset_reg:        t.fuel_vehicles?.registration || t.fuel_equipment?.equipment_number || '',
-        purpose:          t.notes || '',
-        issued_by_name:   null,
-        approved_by_name: t.approved_by_profile?.full_name || null,
-        received_by:      null,
-      })),
+      .map(t => {
+        const cat = t.fleet_asset?.fleet_asset_types?.category
+        const assetType = VEHICLE_CATEGORIES.includes(cat) ? 'vehicle'
+          : EQUIPMENT_CATEGORIES.includes(cat) ? 'equipment' : 'other'
+        return {
+          ...t,
+          quantity_litres:  t.litres,
+          issue_date:       t.transaction_date,
+          asset_type:       assetType,
+          asset_name:       t.fleet_asset?.fleet_number || t.fleet_asset?.asset_number || t.fleet_asset?.description || t.asset_description || 'Unknown',
+          asset_reg:        t.fleet_asset?.registration || t.fleet_asset?.serial_number || '',
+          purpose:          t.notes || '',
+          issued_by_name:   null,
+          approved_by_name: t.approved_by_profile?.full_name || null,
+          received_by:      null,
+        }
+      }),
     [transactions]
   )
 
@@ -320,77 +330,77 @@ export function FuelProvider({ children }) {
     return row
   }
 
-  // ── Vehicles CRUD ─────────────────────────────────────────────────────────────
+  // ── Vehicles CRUD (now backed by fleet_assets) ─────────────────────────────
 
   async function addVehicle(data) {
     const { data: row, error } = await supabase
-      .from('fuel_vehicles')
+      .from('fleet_assets')
       .insert([{ ...data, site_id: currentSiteId }])
-      .select('*, fuel_types(id, name, code, colour)')
+      .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name, code, colour)')
       .single()
     if (error) throw error
-    setVehicles(prev => [...prev, row].sort((a, b) => a.fleet_number.localeCompare(b.fleet_number)))
+    setFleetAssets(prev => [...prev, row].sort((a, b) => (a.asset_number || '').localeCompare(b.asset_number || '')))
     return row
   }
 
   async function updateVehicle(id, data) {
     const { data: row, error } = await supabase
-      .from('fuel_vehicles')
+      .from('fleet_assets')
       .update(data)
       .eq('id', id)
-      .select('*, fuel_types(id, name, code, colour)')
+      .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name, code, colour)')
       .single()
     if (error) throw error
-    setVehicles(prev => prev.map(v => v.id === id ? row : v))
+    setFleetAssets(prev => prev.map(a => a.id === id ? row : a))
     return row
   }
 
   async function archiveVehicle(id) {
     const { data: row, error } = await supabase
-      .from('fuel_vehicles')
-      .update({ is_archived: true, archived_at: new Date().toISOString(), status: 'decommissioned' })
-      .eq('id', id)
-      .select()
-      .single()
-    if (error) throw error
-    setVehicles(prev => prev.filter(v => v.id !== id))
-    return row
-  }
-
-  // ── Equipment CRUD ────────────────────────────────────────────────────────────
-
-  async function addEquipment(data) {
-    const { data: row, error } = await supabase
-      .from('fuel_equipment')
-      .insert([{ ...data, site_id: currentSiteId }])
-      .select('*, fuel_types(id, name, code, colour)')
-      .single()
-    if (error) throw error
-    setEquipment(prev => [...prev, row].sort((a, b) => a.equipment_number.localeCompare(b.equipment_number)))
-    return row
-  }
-
-  async function updateEquipment(id, data) {
-    const { data: row, error } = await supabase
-      .from('fuel_equipment')
-      .update(data)
-      .eq('id', id)
-      .select('*, fuel_types(id, name, code, colour)')
-      .single()
-    if (error) throw error
-    setEquipment(prev => prev.map(e => e.id === id ? row : e))
-    return row
-  }
-
-  async function archiveEquipment(id) {
-    const { data: row, error } = await supabase
-      .from('fuel_equipment')
+      .from('fleet_assets')
       .update({ is_archived: true, status: 'decommissioned' })
       .eq('id', id)
       .select()
       .single()
     if (error) throw error
-    setEquipment(prev => prev.filter(e => e.id !== id))
+    setFleetAssets(prev => prev.filter(a => a.id !== id))
+    return row
+  }
+
+  // ── Equipment CRUD (now backed by fleet_assets) ────────────────────────────
+
+  async function addEquipment(data) {
+    const { data: row, error } = await supabase
+      .from('fleet_assets')
+      .insert([{ ...data, site_id: currentSiteId }])
+      .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name, code, colour)')
+      .single()
+    if (error) throw error
+    setFleetAssets(prev => [...prev, row].sort((a, b) => (a.asset_number || '').localeCompare(b.asset_number || '')))
+    return row
+  }
+
+  async function updateEquipment(id, data) {
+    const { data: row, error } = await supabase
+      .from('fleet_assets')
+      .update(data)
+      .eq('id', id)
+      .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name, code, colour)')
+      .single()
+    if (error) throw error
+    setFleetAssets(prev => prev.map(a => a.id === id ? row : a))
+    return row
+  }
+
+  async function archiveEquipment(id) {
+    const { data: row, error } = await supabase
+      .from('fleet_assets')
+      .update({ is_archived: true, status: 'decommissioned' })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    setFleetAssets(prev => prev.filter(a => a.id !== id))
     return row
   }
 
@@ -446,7 +456,7 @@ export function FuelProvider({ children }) {
     const { data: row, error } = await supabase
       .from('fuel_transactions')
       .insert([payload])
-      .select('*, fuel_vehicles(id, fleet_number, registration), fuel_equipment(id, name, equipment_number), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
+      .select('*, fleet_asset:fleet_assets(id, asset_number, fleet_number, registration, description, serial_number, department_id, department_name), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
       .single()
     if (error) throw error
 
@@ -463,7 +473,7 @@ export function FuelProvider({ children }) {
       .update({ ...data, updated_by: user?.id || null })
       .eq('id', id)
       .eq('site_id', currentSiteId)
-      .select('*, fuel_vehicles(id, fleet_number, registration), fuel_equipment(id, name, equipment_number), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
+      .select('*, fleet_asset:fleet_assets(id, asset_number, fleet_number, registration, description, serial_number, department_id, department_name), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
       .single()
     if (error) throw error
     setTransactions(prev => prev.map(t => t.id === id ? row : t))
@@ -559,7 +569,7 @@ export function FuelProvider({ children }) {
 
   return (
     <FuelContext.Provider value={{
-      fuelTypes, tanks, pumps, vehicles, equipment, operators, employees, departments, transactions, dipReadings, profiles, loading,
+      fuelTypes, tanks, pumps, vehicles, equipment, fleetAssets, operators, employees, departments, transactions, dipReadings, profiles, loading,
       // backward-compat aliases
       receipts, issues,
       // helpers

@@ -253,8 +253,8 @@ export default function FuelTanks({ setPage }) {
   const topVehicles = useMemo(() => {
     const m = new Map()
     for (const t of issuances) {
-      const label = t.fuel_vehicles
-        ? (t.fuel_vehicles.registration || t.fuel_vehicles.fleet_number)
+      const label = t.fleet_asset
+        ? (t.fleet_asset.registration || t.fleet_asset.fleet_number || t.fleet_asset.asset_number)
         : t.asset_description || 'Other'
       m.set(label, (m.get(label) || 0) + Number(t.litres))
     }

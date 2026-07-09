@@ -64,7 +64,7 @@ export default function ShiftReport() {
       dipQ,
       // All transactions for the date (operator filter if selected)
       supabase.from('fuel_transactions')
-        .select('*, tank:fuel_tanks(tank_name), vehicle:fuel_vehicles(fleet_number, registration), equipment:fuel_equipment(name), operator:fuel_operators(full_name)')
+        .select('*, tank:fuel_tanks(tank_name), fleet_asset:fleet_assets(fleet_number, registration, asset_number, description, serial_number), operator:fuel_operators(full_name)')
         .eq('site_id', currentSiteId)
         .eq('is_deleted', false)
         .eq('transaction_date', date)
@@ -258,7 +258,7 @@ export default function ShiftReport() {
                 </thead>
                 <tbody>
                   {report.issuances.map(t => {
-                    const asset = t.vehicle ? `${t.vehicle.fleet_number}${t.vehicle.registration ? ` (${t.vehicle.registration})` : ''}` : t.equipment?.name || t.asset_description || '—'
+                    const asset = t.fleet_asset ? `${t.fleet_asset.fleet_number || t.fleet_asset.asset_number || ''}${t.fleet_asset.registration ? ` (${t.fleet_asset.registration})` : ''}`.trim() || t.fleet_asset.description || '—' : t.asset_description || '—'
                     return (
                       <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                         <td style={{ padding: '9px 12px', color: COLOR, fontWeight: 600 }}>{t.docket_number || '—'}</td>

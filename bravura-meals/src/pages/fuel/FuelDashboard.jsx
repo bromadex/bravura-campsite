@@ -460,20 +460,20 @@ export default function FuelDashboard({ setPage }) {
 
     // 2. Vehicle excessive consumption — 7 days (compute from context transactions)
     const recentIssuances = transactions.filter(t =>
-      t.transaction_type === 'issuance' && t.vehicle_id && t.transaction_date >= sevenDaysAgo
+      t.transaction_type === 'issuance' && t.fleet_asset_id && t.transaction_date >= sevenDaysAgo
     )
     const vMap = {}
     for (const t of recentIssuances) {
-      if (!vMap[t.vehicle_id]) vMap[t.vehicle_id] = { litres: 0, km: 0, expected: null, label: '' }
-      vMap[t.vehicle_id].litres += Number(t.litres)
+      if (!vMap[t.fleet_asset_id]) vMap[t.fleet_asset_id] = { litres: 0, km: 0, expected: null, label: '' }
+      vMap[t.fleet_asset_id].litres += Number(t.litres)
       if (t.meter_start != null && t.meter_end != null) {
         const km = Number(t.meter_end) - Number(t.meter_start)
-        if (km > 0) vMap[t.vehicle_id].km += km
+        if (km > 0) vMap[t.fleet_asset_id].km += km
       }
-      if (!vMap[t.vehicle_id].label) {
-        const v = t.vehicle || t.fuel_vehicles
-        vMap[t.vehicle_id].label = v?.fleet_number || t.vehicle_id
-        vMap[t.vehicle_id].expected = v?.expected_consumption_lpkm ? Number(v.expected_consumption_lpkm) : null
+      if (!vMap[t.fleet_asset_id].label) {
+        const v = t.fleet_asset
+        vMap[t.fleet_asset_id].label = v?.fleet_number || v?.asset_number || t.fleet_asset_id
+        vMap[t.fleet_asset_id].expected = v?.expected_consumption_lpkm ? Number(v.expected_consumption_lpkm) : null
       }
     }
     for (const [, row] of Object.entries(vMap)) {
@@ -904,9 +904,9 @@ export default function FuelDashboard({ setPage }) {
           recent.map((tx, idx) => {
             const meta = TX_ICONS[tx.transaction_type] || TX_ICONS.adjustment
             const tank = tanks.find(t => t.id === tx.tank_id)
-            const assetName = tx.fuel_vehicles?.fleet_number
-              ? `${tx.fuel_vehicles.fleet_number}${tx.fuel_vehicles.registration ? ` (${tx.fuel_vehicles.registration})` : ''}`
-              : tx.fuel_equipment?.name || tx.asset_description || null
+            const assetName = tx.fleet_asset?.fleet_number
+              ? `${tx.fleet_asset.fleet_number}${tx.fleet_asset.registration ? ` (${tx.fleet_asset.registration})` : ''}`
+              : tx.fleet_asset?.description || tx.fleet_asset?.asset_number || tx.asset_description || null
 
             return (
               <div key={tx.id} style={{

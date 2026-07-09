@@ -54,7 +54,7 @@ export default function CostAllocation() {
     // Parallel: issuances + last delivery unit price per fuel type + departments
     const [{ data: txns }, { data: deliveries }, { data: depts }] = await Promise.all([
       supabase.from('fuel_transactions')
-        .select('litres, unit_price, vehicle_id, equipment_id, vehicle:fuel_vehicles(department_id, fuel_types(name, id)), equipment:fuel_equipment(department_id, fuel_types(name, id))')
+        .select('litres, unit_price, fleet_asset_id, fleet_asset:fleet_assets(department_id, fuel_types(name, id))')
         .eq('site_id', currentSiteId)
         .eq('is_deleted', false)
         .eq('transaction_type', 'issuance')
@@ -86,11 +86,11 @@ export default function CostAllocation() {
     // Group issuances: dept → fuelType → { litres, cost }
     const deptData = {}
     for (const t of (txns || [])) {
-      const deptId = t.vehicle?.department_id || t.equipment?.department_id || null
+      const deptId = t.fleet_asset?.department_id || null
       const deptKey = deptId || '__unassigned__'
       const deptLabel = deptId ? (deptMap[deptId] || deptId) : 'Unassigned'
-      const fuelTypeId = t.vehicle?.fuel_types?.id || t.equipment?.fuel_types?.id
-      const fuelTypeName = t.vehicle?.fuel_types?.name || t.equipment?.fuel_types?.name || 'Unknown'
+      const fuelTypeId = t.fleet_asset?.fuel_types?.id
+      const fuelTypeName = t.fleet_asset?.fuel_types?.name || 'Unknown'
 
       if (!deptData[deptKey]) deptData[deptKey] = { label: deptLabel, fuelTypes: {}, totalLitres: 0, totalCost: 0 }
       if (!deptData[deptKey].fuelTypes[fuelTypeName]) deptData[deptKey].fuelTypes[fuelTypeName] = { litres: 0, cost: 0 }

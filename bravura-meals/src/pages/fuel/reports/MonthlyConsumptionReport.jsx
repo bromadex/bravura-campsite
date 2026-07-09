@@ -52,7 +52,7 @@ export default function MonthlyConsumptionReport() {
 
     const [{ data: txns, error: txErr }, { data: tanks, error: tankErr }] = await Promise.all([
       supabase.from('fuel_transactions')
-        .select('*, tank:fuel_tanks(name, fuel_types(name)), vehicle:fuel_vehicles(fleet_number, registration, department_name), equipment:fuel_equipment(name)')
+        .select('*, tank:fuel_tanks(name, fuel_types(name)), fleet_asset:fleet_assets(fleet_number, registration, asset_number, description, department_name)')
         .eq('site_id', currentSiteId)
         .eq('is_deleted', false)
         .gte('transaction_date', start)
@@ -78,16 +78,17 @@ export default function MonthlyConsumptionReport() {
 
     // By vehicle
     const byVehicle = {}
-    for (const t of all.filter(t => t.transaction_type === 'issuance' && t.vehicle_id)) {
-      const label = t.vehicle ? `${t.vehicle.fleet_number}${t.vehicle.registration ? ` (${t.vehicle.registration})` : ''}` : t.vehicle_id
-      if (!byVehicle[label]) byVehicle[label] = { litres: 0, dept: t.vehicle?.department_name || '—' }
+    for (const t of all.filter(t => t.transaction_type === 'issuance' && t.fleet_asset_id)) {
+      const a = t.fleet_asset
+      const label = a ? `${a.fleet_number || a.asset_number || ''}${a.registration ? ` (${a.registration})` : ''}`.trim() || a.description || t.fleet_asset_id : t.fleet_asset_id
+      if (!byVehicle[label]) byVehicle[label] = { litres: 0, dept: a?.department_name || '—' }
       byVehicle[label].litres += Number(t.litres)
     }
 
     // By department
     const byDept = {}
     for (const t of all.filter(t => t.transaction_type === 'issuance')) {
-      const dept = t.vehicle?.department_name || 'Unassigned'
+      const dept = t.fleet_asset?.department_name || 'Unassigned'
       byDept[dept] = (byDept[dept] || 0) + Number(t.litres)
     }
 

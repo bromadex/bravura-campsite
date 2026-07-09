@@ -411,8 +411,8 @@ function TransactionsTab({ txns }) {
               t.transaction_type === 'delivery'   ? { bg: THEME.statusSuccessBg, fg: THEME.statusSuccessText, label: 'Delivery' }   :
               t.transaction_type === 'adjustment' ? { bg: THEME.statusWarningBg, fg: THEME.statusWarningText, label: 'Adjustment' } :
                                                     { bg: THEME.statusNeutralBg, fg: THEME.statusNeutralText, label: t.transaction_type }
-            const asset = t.fuel_vehicles?.fleet_number || t.fuel_equipment?.name || t.asset_description || '—'
-            const assetSub = t.fuel_vehicles?.registration || t.fuel_equipment?.equipment_number || ''
+            const asset = t.fleet_asset?.fleet_number || t.fleet_asset?.asset_number || t.fleet_asset?.description || t.asset_description || '—'
+            const assetSub = t.fleet_asset?.registration || t.fleet_asset?.serial_number || ''
             return (
               <TRow key={t.id} last={idx === txns.length - 1}>
                 <Td>{fmtDate(t.transaction_date)}</Td>

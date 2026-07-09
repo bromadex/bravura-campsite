@@ -130,9 +130,15 @@ export function FleetProvider({ children }) {
 
   // ── Computed helpers ──────────────────────────────────────────────────────────
 
-  const vehicles = useMemo(() => assets.filter(a => a.fleet_asset_types?.category === 'vehicle'), [assets])
-  const heavyEquipment = useMemo(() => assets.filter(a => a.fleet_asset_types?.category === 'heavy_equipment'), [assets])
-  const generators = useMemo(() => assets.filter(a => a.fleet_asset_types?.category === 'generator'), [assets])
+  const categoryOf = useCallback((asset) => {
+    if (asset.fleet_asset_types?.category) return asset.fleet_asset_types.category
+    const t = assetTypes.find(at => at.id === asset.asset_type_id)
+    return t?.category || null
+  }, [assetTypes])
+
+  const vehicles = useMemo(() => assets.filter(a => categoryOf(a) === 'vehicle'), [assets, categoryOf])
+  const heavyEquipment = useMemo(() => assets.filter(a => categoryOf(a) === 'heavy_equipment'), [assets, categoryOf])
+  const generators = useMemo(() => assets.filter(a => categoryOf(a) === 'generator'), [assets, categoryOf])
 
   const activeAssignments = useMemo(() =>
     assignments.filter(a => a.status === 'active'),

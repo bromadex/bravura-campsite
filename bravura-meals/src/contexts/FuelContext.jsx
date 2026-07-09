@@ -333,9 +333,15 @@ export function FuelProvider({ children }) {
   // ── Vehicles CRUD (now backed by fleet_assets) ─────────────────────────────
 
   async function addVehicle(data) {
+    // Resolve asset_type_id for 'Vehicle' type if not provided
+    let asset_type_id = data.asset_type_id
+    if (!asset_type_id) {
+      const { data: t } = await supabase.from('fleet_asset_types').select('id').eq('code', 'VEHICLE').single()
+      asset_type_id = t?.id
+    }
     const { data: row, error } = await supabase
       .from('fleet_assets')
-      .insert([{ ...data, site_id: currentSiteId }])
+      .insert([{ ...data, site_id: currentSiteId, asset_type_id }])
       .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name, code, colour)')
       .single()
     if (error) throw error
@@ -370,9 +376,15 @@ export function FuelProvider({ children }) {
   // ── Equipment CRUD (now backed by fleet_assets) ────────────────────────────
 
   async function addEquipment(data) {
+    // Resolve asset_type_id — prefer passed value, else fall back to first heavy_equipment type
+    let asset_type_id = data.asset_type_id
+    if (!asset_type_id) {
+      const { data: t } = await supabase.from('fleet_asset_types').select('id').in('category', EQUIPMENT_CATEGORIES).order('sort_order').limit(1).single()
+      asset_type_id = t?.id
+    }
     const { data: row, error } = await supabase
       .from('fleet_assets')
-      .insert([{ ...data, site_id: currentSiteId }])
+      .insert([{ ...data, site_id: currentSiteId, asset_type_id }])
       .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name, code, colour)')
       .single()
     if (error) throw error

@@ -59,7 +59,7 @@ const EMPTY_FORM = {
 
 export default function FleetCompliance({ setPage }) {
   const { can } = usePermissions()
-  const { currentSite } = useSite()
+  const { currentSiteId } = useSite()
   const { assets, compliance, expiringCompliance, loading, fetchAll } = useFleet()
 
   const [search, setSearch] = useState('')
@@ -138,7 +138,7 @@ export default function FleetCompliance({ setPage }) {
     setError('')
     try {
       const payload = {
-        site_id: currentSite?.id,
+        site_id: currentSiteId,
         asset_id: form.asset_id || null,
         compliance_type: form.compliance_type,
         document_number: form.document_number || null,
@@ -245,16 +245,46 @@ export default function FleetCompliance({ setPage }) {
           <div style={{ fontSize: '20px', fontWeight: 500, color: THEME.text }}>Compliance Records</div>
           <div style={{ fontSize: '12px', color: THEME.textMed }}>{filtered.length} record{filtered.length !== 1 ? 's' : ''}</div>
         </div>
-        {can('fleet.create') && (
-          <button onClick={openAdd} style={{
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => {
+            const rows = filtered.map(c => ({
+              Asset: c.fleet_assets?.asset_number || '',
+              Description: c.fleet_assets?.description || '',
+              Type: COMPLIANCE_TYPES[c.compliance_type] || c.compliance_type,
+              'Document #': c.document_number || '',
+              'Issue Date': c.issue_date || '',
+              'Expiry Date': c.expiry_date || '',
+              Status: expiryStatus(c.expiry_date) === 'expired' ? 'Expired' : expiryStatus(c.expiry_date) === 'critical' ? 'Critical' : expiryStatus(c.expiry_date) === 'warning' ? 'Warning' : 'Valid',
+              Authority: c.issuing_authority || '',
+            }))
+            if (!rows.length) return
+            const headers = Object.keys(rows[0])
+            const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`).join(','))].join('\n')
+            const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url; a.download = `fleet-compliance-${new Date().toISOString().slice(0,10)}.csv`
+            a.click(); URL.revokeObjectURL(url)
+          }} style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
-            background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+            background: THEME.surfaceVar, color: THEME.textMed,
+            border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit',
           }}>
-            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add</span>
-            Add Record
+            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>download</span>
+            Export CSV
           </button>
-        )}
+          {can('fleet.create') && (
+            <button onClick={openAdd} style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+              background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add</span>
+              Add Record
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>

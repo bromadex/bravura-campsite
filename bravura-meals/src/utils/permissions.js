@@ -235,6 +235,10 @@ export function fleetNav(role, can) {
     { id: 'fleet_trips',       label: 'Trip Logs',       section: 'Operations',   icon: 'route' },
     { id: 'fleet_maintenance', label: 'Maintenance',     section: 'Maintenance',  icon: 'build' },
     { id: 'fleet_compliance',  label: 'Compliance',      section: 'Compliance',   icon: 'verified_user' },
+    { id: 'fleet_drivers',     label: 'Drivers',         section: 'Operations',   icon: 'badge' },
+    { id: 'fleet_meter_readings', label: 'Meter Readings', section: 'Operations', icon: 'speed' },
+    { id: 'fleet_accidents',   label: 'Accidents',       section: 'Safety',       icon: 'car_crash' },
     { id: 'fleet_reports',     label: 'Reports',         section: 'Reports',      icon: 'bar_chart' },
+    { id: 'fleet_settings',    label: 'Settings',        section: 'Admin',        icon: 'settings' },
   ]
 }

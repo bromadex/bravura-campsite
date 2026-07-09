@@ -35,7 +35,7 @@ const EMPTY_FORM = {
 export default function FleetInspections({ setPage }) {
   const { can } = usePermissions()
   const { assets, employees, inspections, loading, fetchAll } = useFleet()
-  const { site } = useSite()
+  const { currentSiteId } = useSite()
 
   const [search, setSearch] = useState('')
   const [filterResult, setFilterResult] = useState('all')
@@ -114,7 +114,7 @@ export default function FleetInspections({ setPage }) {
         overall_score: form.overall_score !== '' ? Number(form.overall_score) : null,
         notes: form.notes || null,
         next_due_date: form.next_due_date || null,
-        site_id: site?.id,
+        site_id: currentSiteId,
       }
       if (editId) {
         const { error: err } = await supabase.from('fleet_inspections').update(payload).eq('id', editId)

@@ -30,7 +30,7 @@ const EMPTY_FORM = {
 export default function FleetAssignments({ setPage }) {
   const { can } = usePermissions()
   const { assets, departments, assignments, loading, fetchAll } = useFleet()
-  const { site } = useSite()
+  const { currentSiteId } = useSite()
 
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
@@ -126,7 +126,7 @@ export default function FleetAssignments({ setPage }) {
         const { error: err } = await supabase.from('fleet_assignments').update(payload).eq('id', editId)
         if (err) throw err
       } else {
-        const { error: err } = await supabase.from('fleet_assignments').insert({ ...payload, site_id: site.id })
+        const { error: err } = await supabase.from('fleet_assignments').insert({ ...payload, site_id: currentSiteId })
         if (err) throw err
       }
       await fetchAll()

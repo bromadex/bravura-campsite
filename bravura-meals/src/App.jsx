@@ -62,6 +62,10 @@ const FleetTrips          = lazy(() => import('./pages/fleet/FleetTrips'))
 const FleetMaintenance    = lazy(() => import('./pages/fleet/FleetMaintenance'))
 const FleetCompliance     = lazy(() => import('./pages/fleet/FleetCompliance'))
 const FleetReports        = lazy(() => import('./pages/fleet/FleetReports'))
+const FleetMeterReadings  = lazy(() => import('./pages/fleet/FleetMeterReadings'))
+const FleetDrivers        = lazy(() => import('./pages/fleet/FleetDrivers'))
+const FleetAccidents      = lazy(() => import('./pages/fleet/FleetAccidents'))
+const FleetSettings       = lazy(() => import('./pages/fleet/FleetSettings'))
 
 // ── Fuel pages ────────────────────────────────────────────────────────────────
 const FuelDashboard = lazy(() => import('./pages/fuel/FuelDashboard'))
@@ -258,6 +262,10 @@ function getFleetPage(page, setPage) {
     case 'fleet_maintenance': return <FleetMaintenance setPage={setPage} />
     case 'fleet_compliance':  return <FleetCompliance setPage={setPage} />
     case 'fleet_reports':     return <FleetReports setPage={setPage} />
+    case 'fleet_meter_readings': return <FleetMeterReadings setPage={setPage} />
+    case 'fleet_drivers':     return <FleetDrivers setPage={setPage} />
+    case 'fleet_accidents':   return <FleetAccidents setPage={setPage} />
+    case 'fleet_settings':    return <FleetSettings setPage={setPage} />
     default:                  return <FleetDashboard setPage={setPage} />
   }
 }

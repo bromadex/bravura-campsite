@@ -39,7 +39,7 @@ const EMPTY_FORM = {
 export default function FleetTrips({ setPage }) {
   const { can } = usePermissions()
   const { assets, employees, trips, loading, fetchAll } = useFleet()
-  const { site } = useSite()
+  const { currentSiteId } = useSite()
 
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -120,7 +120,7 @@ export default function FleetTrips({ setPage }) {
     setError('')
     try {
       const payload = {
-        site_id: site?.id,
+        site_id: currentSiteId,
         asset_id: form.asset_id,
         driver_id: form.driver_id,
         trip_date: form.trip_date,

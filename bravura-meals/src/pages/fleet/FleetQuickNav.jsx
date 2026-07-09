@@ -13,7 +13,11 @@ const PILLS = [
   { id: 'fleet_trips',       label: 'Trip Logs',     icon: 'route',          color: '#6A1B9A' },
   { id: 'fleet_maintenance', label: 'Maintenance',   icon: 'build',          color: '#6D4C41' },
   { id: 'fleet_compliance',  label: 'Compliance',    icon: 'verified_user',  color: '#00838F' },
+  { id: 'fleet_drivers',     label: 'Drivers',       icon: 'badge',          color: '#1565C0' },
+  { id: 'fleet_meter_readings', label: 'Meters',     icon: 'speed',          color: '#4527A0' },
+  { id: 'fleet_accidents',   label: 'Accidents',     icon: 'car_crash',      color: '#C62828' },
   { id: 'fleet_reports',     label: 'Reports',       icon: 'bar_chart',      color: '#E53935' },
+  { id: 'fleet_settings',    label: 'Settings',      icon: 'settings',       color: '#546E7A' },
 ]
 
 export default function FleetQuickNav({ setPage, current }) {

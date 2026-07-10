@@ -31,7 +31,7 @@ BEGIN
   -- via the roles/user_roles tables, so we default this to 'viewer' —
   -- the user will get real permissions once an admin assigns roles to them.
   INSERT INTO public.profiles (id, username, full_name, role, force_password_reset)
-  VALUES (NEW.id, v_username, v_full_name, 'viewer', true)
+  VALUES (NEW.id, v_username, v_full_name, 'meal_officer', true)
   ON CONFLICT (id) DO UPDATE
     SET force_password_reset = true
     WHERE profiles.force_password_reset IS DISTINCT FROM true

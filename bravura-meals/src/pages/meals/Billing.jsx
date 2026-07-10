@@ -92,12 +92,15 @@ export default function Billing() {
         const s = logs.filter(l => l.had_supper).length
         const p = priceFor(sub.date)
         const cost = b * Number(p.breakfast_usd) + l * Number(p.lunch_usd) + s * Number(p.supper_usd)
+        const isSat = new Date(sub.date + 'T00:00:00').getDay() === 6
         return {
           date: sub.date,
           status: sub.status,
+          is_saturday: isSat,
           breakfast_count: b,
           lunch_count: l,
           supper_count: s,
+          saturday_supper_count: isSat ? s : 0,
           total_meals: b + l + s,
           breakfast_usd: p.breakfast_usd,
           lunch_usd: p.lunch_usd,
@@ -110,8 +113,9 @@ export default function Billing() {
         b:    acc.b    + row.breakfast_count,
         l:    acc.l    + row.lunch_count,
         s:    acc.s    + row.supper_count,
+        sat_s: acc.sat_s + row.saturday_supper_count,
         cost: acc.cost + parseFloat(row.total_cost_usd),
-      }), { b: 0, l: 0, s: 0, cost: 0 })
+      }), { b: 0, l: 0, s: 0, sat_s: 0, cost: 0 })
 
       setData({ rows, totals, start, end })
     } catch (err) {
@@ -215,6 +219,8 @@ export default function Billing() {
             <StatCard label="Breakfasts" value={data.totals.b} color="#C55A11" />
             <StatCard label="Lunches"    value={data.totals.l} color="#00897B" />
             <StatCard label="Suppers"    value={data.totals.s} color="#5E35B1" />
+            <StatCard label="Saturday Special Suppers" value={data.totals.sat_s} color="#8E24AA"
+              sub={data.totals.sat_s > 0 ? 'priced separately' : ''} />
             <StatCard label="Total Meals" value={data.totals.b+data.totals.l+data.totals.s} color="#C00000" />
             <StatCard label="Total Cost"  value={`$${data.totals.cost.toFixed(2)}`} color={THEME.primary}
               sub={tab !== 'daily' ? `${data.rows.length} day(s)` : ''} />
@@ -233,6 +239,7 @@ export default function Billing() {
                   <Th align="center">Breakfast</Th>
                   <Th align="center">Lunch</Th>
                   <Th align="center">Supper</Th>
+                  <Th align="center">Sat Special</Th>
                   <Th align="center">Total Meals</Th>
                   <Th align="right">Cost (USD)</Th>
                 </THead>
@@ -252,6 +259,9 @@ export default function Billing() {
                       <Td align="center">{row.breakfast_count}</Td>
                       <Td align="center">{row.lunch_count}</Td>
                       <Td align="center">{row.supper_count}</Td>
+                      <Td align="center" style={{ color: row.is_saturday ? '#8E24AA' : THEME.textLow, fontWeight: row.is_saturday ? 700 : 400 }}>
+                        {row.is_saturday ? row.saturday_supper_count : '—'}
+                      </Td>
                       <Td align="center" style={{ fontWeight: 700 }}>{row.total_meals}</Td>
                       <Td align="right" style={{ fontWeight: 700, color: THEME.primary }}>
                         ${parseFloat(row.total_cost_usd || 0).toFixed(2)}
@@ -263,6 +273,7 @@ export default function Billing() {
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.b}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.l}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.s}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.sat_s}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.b+data.totals.l+data.totals.s}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '16px' }}>
                       ${data.totals.cost.toFixed(2)}

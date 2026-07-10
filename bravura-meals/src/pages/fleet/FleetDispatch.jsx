@@ -414,17 +414,17 @@ function DispatchModal({ assets, employees, activeAssignments, assetsOnTrip, cur
       await supabase.from('fleet_assignments').insert([{
         site_id: currentSiteId,
         asset_id: assetId,
-        employee_id: driverId,
+        operator_id: driverId,
         assignment_type: 'temporary',
-        status: 'active',
-        assigned_date: todayStr,
+        is_active: true,
+        start_date: todayStr,
       }])
 
       // Create trip
       await supabase.from('fleet_trips').insert([{
         site_id: currentSiteId,
         asset_id: assetId,
-        employee_id: driverId,
+        operator_id: driverId,
         trip_date: todayStr,
         start_time: now,
         destination,

@@ -92,7 +92,7 @@ export default function FleetTyres({ setPage }) {
     setLoading(true)
     const { data, error: err } = await supabase
       .from('fleet_tyres')
-      .select('*, fleet_assets(id, asset_number, description, current_km)')
+      .select('*, fleet_assets(id, asset_number, description, current_odometer_km)')
       .eq('site_id', currentSiteId)
       .order('created_at', { ascending: false })
     if (!err) setTyres(data || [])
@@ -241,7 +241,7 @@ export default function FleetTyres({ setPage }) {
 
   function kmTravelled(t) {
     if (t.removal_km && t.fitment_km) return Math.max(0, Number(t.removal_km) - Number(t.fitment_km))
-    if (t.fitment_km && t.fleet_assets?.current_km) return Math.max(0, Number(t.fleet_assets.current_km) - Number(t.fitment_km))
+    if (t.fitment_km && t.fleet_assets?.current_odometer_km) return Math.max(0, Number(t.fleet_assets.current_odometer_km) - Number(t.fitment_km))
     return null
   }
 

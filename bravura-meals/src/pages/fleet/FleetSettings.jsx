@@ -31,7 +31,7 @@ export default function FleetSettings({ setPage }) {
   useEffect(() => {
     if (!currentSiteId) return
     setLoading(true)
-    supabase.from('fleet_settings').select('*').eq('site_id', currentSiteId).single()
+    supabase.from('fleet_settings').select('*').eq('site_id', currentSiteId).maybeSingle()
       .then(({ data, error }) => {
         if (data) {
           setForm({

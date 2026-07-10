@@ -112,7 +112,7 @@ export default function DailyEntry() {
     // a submitted/approved entry so the officer can correct what was flagged.
     if (sub?.id) {
       const { data: flags } = await supabase.from('flags')
-        .select('id, reason, question, raised_by, raised_at')
+        .select('id, reason, message, raised_by, created_at')
         .eq('submission_id', sub.id)
         .eq('status', 'open')
       setOpenFlags(flags || [])
@@ -144,6 +144,7 @@ export default function DailyEntry() {
     // the whole point of raising a flag: getting it fixed at source.
     if (openFlags.length > 0 && can('meals.edit')) return true
     if (submission.status === 'draft')     return can('meals.edit')
+    if (submission.status === 'queried')   return can('meals.edit')
     if (submission.status === 'submitted') return can('meals.approve')
     if (submission.status === 'approved')  return can('meals.delete')
     return false
@@ -506,7 +507,7 @@ export default function DailyEntry() {
             </div>
             {openFlags.slice(0, 3).map(f => (
               <div key={f.id} style={{ fontSize: '12px', marginTop: '2px', color: THEME.text }}>
-                • {f.reason || f.question || 'No reason given'}
+                • {f.message || f.reason || 'No reason given'}
               </div>
             ))}
             {openFlags.length > 3 && (

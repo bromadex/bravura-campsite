@@ -35,7 +35,7 @@ export default function Billing() {
 
       // daily_billing view has no site_id — query daily_submissions directly
       // scoped to the current site, then join meal_logs for counts.
-      const [subsRes, pricesRes] = await Promise.all([
+      const [subsRes, pricesRes, overridesRes] = await Promise.all([
         supabase
           .from('daily_submissions')
           .select('id, date, status, meal_logs(had_breakfast, had_lunch, had_supper)')
@@ -49,16 +49,34 @@ export default function Billing() {
           .eq('site_id', currentSiteId)
           .lte('effective_date', end)
           .order('effective_date', { ascending: false }),
+        supabase
+          .from('meal_price_overrides')
+          .select('effective_date, day_of_week, meal_type, price_usd')
+          .eq('site_id', currentSiteId)
+          .eq('is_active', true)
+          .lte('effective_date', end)
+          .order('effective_date', { ascending: false }),
       ])
 
       if (subsRes.error) throw subsRes.error
       if (pricesRes.error) throw pricesRes.error
 
       const priceRows = pricesRes.data || []
+      const overrideRows = overridesRes?.data || []
 
       function priceFor(date) {
         const p = priceRows.find(r => r.effective_date <= date)
-        return p || { breakfast_usd: 0, lunch_usd: 0, supper_usd: 0 }
+        const base = p || { breakfast_usd: 0, lunch_usd: 0, supper_usd: 0 }
+        // Apply day-of-week overrides
+        const dow = new Date(date + 'T00:00:00').getDay()   // 0=Sun ... 6=Sat
+        const applied = { ...base }
+        for (const mealType of ['breakfast', 'lunch', 'supper']) {
+          const ov = overrideRows.find(o =>
+            o.day_of_week === dow && o.meal_type === mealType && o.effective_date <= date
+          )
+          if (ov) applied[`${mealType}_usd`] = ov.price_usd
+        }
+        return applied
       }
 
       const rows = (subsRes.data || []).map(sub => {

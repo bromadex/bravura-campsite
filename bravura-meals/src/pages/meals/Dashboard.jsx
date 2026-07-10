@@ -95,27 +95,30 @@ export default function Dashboard({ setPage }) {
       const empMap = {}
       employees.forEach(e => { empMap[e.id] = e.contractor_id })
       const coAgg = {}
-      contractors.forEach(c => { coAgg[c.id] = { name: c.name, b:0, l:0, s:0 } })
+      // s_sat = supper count on Saturdays (priced via meal_price_overrides)
+      contractors.forEach(c => { coAgg[c.id] = { name: c.name, b:0, l:0, s:0, s_sat:0 } })
       monthLogsAll.forEach(log => {
         const cid = empMap[log.employee_id]
         if (cid && coAgg[cid]) {
+          const isSat = new Date(log.date + 'T00:00:00').getDay() === 6
           if (log.had_breakfast) coAgg[cid].b++
           if (log.had_lunch)     coAgg[cid].l++
-          if (log.had_supper)    coAgg[cid].s++
+          if (log.had_supper)  { coAgg[cid].s++; if (isSat) coAgg[cid].s_sat++ }
         }
       })
       setCoBreakdown(Object.values(coAgg).filter(c => c.b+c.l+c.s > 0))
 
-      // Billing by contractor (only if user can see costs) — meal_prices
-      // now filtered by site too, matching the fix already made to the
-      // standalone Pricing page.
       if (showCosts) {
-        const { data: priceRow } = await supabase.from('meal_prices').select('*').eq('site_id', currentSiteId).lte('effective_date',td).order('effective_date',{ascending:false}).limit(1)
-        if (priceRow?.[0]) {
-          const p = priceRow[0]
+        const [priceRes, overrideRes] = await Promise.all([
+          supabase.from('meal_prices').select('*').eq('site_id', currentSiteId).lte('effective_date',td).order('effective_date',{ascending:false}).limit(1),
+          supabase.from('meal_price_overrides').select('price_usd').eq('site_id', currentSiteId).eq('day_of_week', 6).eq('meal_type', 'supper').eq('is_active', true).lte('effective_date', td).order('effective_date', { ascending: false }).limit(1),
+        ])
+        if (priceRes?.data?.[0]) {
+          const p = priceRes.data[0]
+          const satSupperPrice = Number(overrideRes?.data?.[0]?.price_usd ?? p.supper_usd)
           setCoBilling(Object.values(coAgg).filter(c => c.b+c.l+c.s > 0).map(c => ({
             ...c,
-            cost: c.b*p.breakfast_usd + c.l*p.lunch_usd + c.s*p.supper_usd,
+            cost: c.b*p.breakfast_usd + c.l*p.lunch_usd + (c.s - c.s_sat)*p.supper_usd + c.s_sat*satSupperPrice,
           })))
         } else {
           setCoBilling([])

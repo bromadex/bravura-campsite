@@ -113,6 +113,24 @@ export default function MealFinanceExport() {
       logs = data || []
     }
 
+    // Fetch day-of-week overrides (e.g. Saturday supper special)
+    const { data: overrideRows } = await supabase
+      .from('meal_price_overrides')
+      .select('effective_date, day_of_week, meal_type, price_usd')
+      .eq('site_id', currentSiteId)
+      .eq('is_active', true)
+      .lte('effective_date', to)
+      .order('effective_date', { ascending: false })
+
+    function priceFor(dateStr, mealType) {
+      const dow = new Date(dateStr + 'T00:00:00').getDay()
+      const ov = (overrideRows || []).find(o =>
+        o.day_of_week === dow && o.meal_type === mealType && o.effective_date <= dateStr
+      )
+      if (ov) return Number(ov.price_usd)
+      return Number(price?.[`${mealType}_usd`] || 0)
+    }
+
     const byCo = new Map()
     for (const c of (contractors || [])) {
       byCo.set(c.id, { id: c.id, name: c.name, b: 0, l: 0, s: 0, total: 0 })
@@ -121,15 +139,9 @@ export default function MealFinanceExport() {
       const cid = empToCo[log.employee_id]
       const row = byCo.get(cid)
       if (!row) continue
-      if (log.had_breakfast) row.b++
-      if (log.had_lunch)     row.l++
-      if (log.had_supper)    row.s++
-    }
-    // Cost per contractor
-    if (price) {
-      for (const row of byCo.values()) {
-        row.total = row.b * (price.breakfast_usd || 0) + row.l * (price.lunch_usd || 0) + row.s * (price.supper_usd || 0)
-      }
+      if (log.had_breakfast) { row.b++; row.total += priceFor(log.date, 'breakfast') }
+      if (log.had_lunch)     { row.l++; row.total += priceFor(log.date, 'lunch') }
+      if (log.had_supper)    { row.s++; row.total += priceFor(log.date, 'supper') }
     }
     const arr = [...byCo.values()].filter(r => (r.b + r.l + r.s) > 0).sort((a, b) => b.total - a.total)
     setPerContractor(arr)

@@ -13,12 +13,58 @@ export default function Pricing() {
   const [form,    setForm]    = useState({ effective_date: '', breakfast_usd: '', lunch_usd: '', supper_usd: '', notes: '' })
   const [saving,  setSaving]  = useState(false)
 
+  // Saturday Supper special pricing (day_of_week=6, meal_type='supper')
+  const [satOverride, setSatOverride] = useState(null)
+  const [satForm,     setSatForm]     = useState({ price_usd: '', label: 'Saturday Special Supper', notes: '' })
+  const [satSaving,   setSatSaving]   = useState(false)
+
   // Re-fetched whenever the selected site changes — meal_prices has had
   // site_id since the original migration, but this page never actually
   // filtered by it. Found while building site-specific meal providers,
   // fixed in the same pass since the two are directly related — a
   // different caterer very plausibly means different agreed rates too.
-  useEffect(() => { if (currentSiteId) fetchPrices() }, [currentSiteId])
+  useEffect(() => { if (currentSiteId) { fetchPrices(); fetchSatOverride() } }, [currentSiteId])
+
+  async function fetchSatOverride() {
+    const { data } = await supabase
+      .from('meal_price_overrides')
+      .select('*, set_by_profile:profiles(full_name, username)')
+      .eq('site_id', currentSiteId)
+      .eq('day_of_week', 6)
+      .eq('meal_type', 'supper')
+      .eq('is_active', true)
+      .order('effective_date', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (data) {
+      setSatOverride(data)
+      setSatForm({
+        price_usd: data.price_usd,
+        label: data.label || 'Saturday Special Supper',
+        notes: data.notes || '',
+      })
+    }
+  }
+
+  async function saveSatOverride() {
+    const price = parseFloat(satForm.price_usd)
+    if (isNaN(price) || price < 0) { showToast('Enter a valid price', 'red'); return }
+    setSatSaving(true)
+    const { error } = await supabase.from('meal_price_overrides').insert({
+      site_id: currentSiteId,
+      day_of_week: 6,
+      meal_type: 'supper',
+      price_usd: price,
+      label: satForm.label.trim() || 'Saturday Special Supper',
+      notes: satForm.notes.trim() || null,
+      set_by: profile.id,
+      effective_date: new Date().toISOString().slice(0, 10),
+    })
+    setSatSaving(false)
+    if (error) { showToast(error.message, 'red'); return }
+    showToast('Saturday supper price saved', 'green')
+    fetchSatOverride()
+  }
 
   async function fetchPrices() {
     setLoading(true)
@@ -115,6 +161,59 @@ export default function Pricing() {
           </div>
         </Card>
       )}
+
+      {/* Saturday Supper Special */}
+      <Card style={{ marginBottom: '20px', border: `1px solid ${THEME.supperClr}55`, background: THEME.supperClr + '08' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+          <Icon name="celebration" size={20} style={{ color: THEME.supperClr }} />
+          <div style={{ fontWeight: 700, fontSize: '15px', color: THEME.text }}>Saturday Supper — Special Meal</div>
+        </div>
+        <div style={{ fontSize: '13px', color: THEME.textLow, marginBottom: '14px' }}>
+          Applied automatically on Saturdays instead of the regular supper price.
+          {satOverride && <>{' '}Currently: <strong style={{ color: THEME.supperClr }}>${Number(satOverride.price_usd).toFixed(2)}</strong>{satOverride.label && <> — {satOverride.label}</>}</>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+          <div>
+            <SectionLabel>Special Price (USD)</SectionLabel>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: THEME.textLow, fontSize: '13px' }}>$</span>
+              <input
+                type="number" min="0" step="0.01"
+                value={satForm.price_usd}
+                onChange={e => setSatForm(f => ({ ...f, price_usd: e.target.value }))}
+                style={{
+                  width: '100%', padding: '9px 12px 9px 22px', border: `1px solid ${THEME.outline}`,
+                  borderRadius: '10px', fontSize: '14px', fontFamily: 'inherit', fontWeight: 700,
+                  color: THEME.supperClr, boxSizing: 'border-box', outline: 'none',
+                }}
+              />
+            </div>
+          </div>
+          <div>
+            <SectionLabel>Label</SectionLabel>
+            <input
+              type="text"
+              value={satForm.label}
+              onChange={e => setSatForm(f => ({ ...f, label: e.target.value }))}
+              placeholder="Saturday Special Supper"
+              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+            />
+          </div>
+          <div>
+            <SectionLabel>Notes (optional)</SectionLabel>
+            <input
+              type="text"
+              value={satForm.notes}
+              onChange={e => setSatForm(f => ({ ...f, notes: e.target.value }))}
+              placeholder="e.g. braai menu"
+              style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+            />
+          </div>
+        </div>
+        <Button onClick={saveSatOverride} variant="filled" icon="save" disabled={satSaving}>
+          {satSaving ? 'Saving…' : 'Save Saturday supper price'}
+        </Button>
+      </Card>
 
       {/* Set new prices */}
       <Card style={{ marginBottom: '20px' }}>

@@ -14,9 +14,10 @@ export default function Billing() {
   const [year,      setYear]      = useState(new Date().getFullYear())
   const [data,      setData]      = useState(null)
   const [loading,   setLoading]   = useState(false)
+  const [useCurrentPricing, setUseCurrentPricing] = useState(false)
 
   // Auto-load on tab/date/site change
-  useEffect(() => { if (currentSiteId) loadBilling() }, [tab, dailyDate, rangeStart, rangeEnd, month, year, currentSiteId])
+  useEffect(() => { if (currentSiteId) loadBilling() }, [tab, dailyDate, rangeStart, rangeEnd, month, year, currentSiteId, useCurrentPricing])
 
   async function loadBilling() {
     setLoading(true)
@@ -66,15 +67,19 @@ export default function Billing() {
       const overrideRows = overridesRes?.data || []
 
       function priceFor(date) {
-        const p = priceRows.find(r => r.effective_date <= date)
+        // If "use current pricing" is on, always use the latest price row (index 0)
+        // regardless of effective_date. Otherwise use the price effective on that day.
+        const p = useCurrentPricing
+          ? priceRows[0]
+          : priceRows.find(r => r.effective_date <= date)
         const base = p || { breakfast_usd: 0, lunch_usd: 0, supper_usd: 0 }
         // Apply day-of-week overrides
         const dow = new Date(date + 'T00:00:00').getDay()   // 0=Sun ... 6=Sat
         const applied = { ...base }
         for (const mealType of ['breakfast', 'lunch', 'supper']) {
-          const ov = overrideRows.find(o =>
-            o.day_of_week === dow && o.meal_type === mealType && o.effective_date <= date
-          )
+          const ov = useCurrentPricing
+            ? overrideRows.find(o => o.day_of_week === dow && o.meal_type === mealType)
+            : overrideRows.find(o => o.day_of_week === dow && o.meal_type === mealType && o.effective_date <= date)
           if (ov) applied[`${mealType}_usd`] = ov.price_usd
         }
         return applied
@@ -185,6 +190,20 @@ export default function Billing() {
           <Button onClick={loadBilling} variant="primary">Refresh</Button>
           <Button onClick={() => window.print()} variant="ghost">🖨️ Print</Button>
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', padding: '10px 12px', background: useCurrentPricing ? THEME.primary + '14' : THEME.surfaceVar, border: `1px solid ${useCurrentPricing ? THEME.primary : THEME.outlineVar}`, borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>
+          <input
+            type="checkbox"
+            checked={useCurrentPricing}
+            onChange={e => setUseCurrentPricing(e.target.checked)}
+            style={{ cursor: 'pointer' }}
+          />
+          <span style={{ fontWeight: 600, color: useCurrentPricing ? THEME.primary : THEME.text }}>
+            Use current pricing for all dates
+          </span>
+          <span style={{ color: THEME.textLow, fontSize: '12px' }}>
+            (recalculate old bills using today's rates instead of the price effective on each day)
+          </span>
+        </label>
       </Card>
 
       {loading ? (

@@ -47,12 +47,12 @@ export function FleetProvider({ children }) {
           .order('name'),
         supabase
           .from('fleet_assignments')
-          .select('*, fleet_assets(id, asset_number, description), employees(id, name)')
+          .select('*, fleet_assets(id, asset_number, description)')
           .eq('site_id', currentSiteId)
           .order('assigned_date', { ascending: false }),
         supabase
           .from('fleet_inspections')
-          .select('*, fleet_assets(id, asset_number, description), employees(id, name)')
+          .select('*, fleet_assets(id, asset_number, description)')
           .eq('site_id', currentSiteId)
           .order('inspection_date', { ascending: false })
           .limit(100),
@@ -64,7 +64,7 @@ export function FleetProvider({ children }) {
           .limit(100),
         supabase
           .from('fleet_trips')
-          .select('*, fleet_assets(id, asset_number, description), employees(id, name)')
+          .select('*, fleet_assets(id, asset_number, description)')
           .eq('site_id', currentSiteId)
           .order('trip_date', { ascending: false })
           .limit(200),

@@ -49,7 +49,7 @@ export function FleetProvider({ children }) {
           .from('fleet_assignments')
           .select('*, fleet_assets(id, asset_number, description)')
           .eq('site_id', currentSiteId)
-          .order('assigned_date', { ascending: false }),
+          .order('start_date', { ascending: false }),
         supabase
           .from('fleet_inspections')
           .select('*, fleet_assets(id, asset_number, description)')
@@ -141,7 +141,7 @@ export function FleetProvider({ children }) {
   const generators = useMemo(() => assets.filter(a => categoryOf(a) === 'generator'), [assets, categoryOf])
 
   const activeAssignments = useMemo(() =>
-    assignments.filter(a => a.status === 'active'),
+    assignments.filter(a => a.is_active === true),
     [assignments]
   )
 

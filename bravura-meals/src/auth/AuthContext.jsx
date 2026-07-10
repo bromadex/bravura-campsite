@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single()
+      .maybeSingle()
     if (error) {
       // Surfaced clearly rather than silently leaving profile null forever
       // — a transient failure here used to be indistinguishable from "not

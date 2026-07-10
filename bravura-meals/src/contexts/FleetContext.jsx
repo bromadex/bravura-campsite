@@ -31,7 +31,7 @@ export function FleetProvider({ children }) {
           .order('name'),
         supabase
           .from('fleet_assets')
-          .select('*, fleet_asset_types(id, name, category, icon), departments(id, name)')
+          .select('*, fleet_asset_types(id, name, category, icon)')
           .eq('site_id', currentSiteId)
           .eq('is_archived', false)
           .order('asset_number'),
@@ -98,7 +98,7 @@ export function FleetProvider({ children }) {
     const { data: row, error } = await supabase
       .from('fleet_assets')
       .insert([{ ...data, site_id: currentSiteId }])
-      .select('*, fleet_asset_types(id, name, category, icon), departments(id, name)')
+      .select('*, fleet_asset_types(id, name, category, icon)')
       .single()
     if (error) throw error
     setAssets(prev => [...prev, row].sort((a, b) => (a.asset_number || '').localeCompare(b.asset_code || '')))
@@ -111,7 +111,7 @@ export function FleetProvider({ children }) {
       .update(data)
       .eq('id', id)
       .eq('site_id', currentSiteId)
-      .select('*, fleet_asset_types(id, name, category, icon), departments(id, name)')
+      .select('*, fleet_asset_types(id, name, category, icon)')
       .single()
     if (error) throw error
     setAssets(prev => prev.map(a => a.id === id ? row : a))

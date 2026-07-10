@@ -57,6 +57,12 @@ export function AuthProvider({ children }) {
   async function signIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    // Fresh login: reset the persisted site so we land on Kamativi by default,
+    // and set a flag so SiteContext shows the "you can change site" hint toast.
+    try {
+      localStorage.removeItem('bravura_current_site_id')
+      sessionStorage.setItem('bravura_just_logged_in', '1')
+    } catch { /* private browsing etc — non-fatal */ }
     return data
   }
 

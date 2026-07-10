@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
+import { showToast } from '../components/ui'
 
 // ── SiteContext ────────────────────────────────────────────────────────────────
 // Phase scope (deliberately narrow): know which sites exist, know which sites
@@ -72,6 +73,14 @@ export function SiteProvider({ children }) {
         const kamativi = accessible.find(s => s.code === 'KAM')
         return kamativi?.id || accessible[0]?.id || null
       })
+
+      // Fresh-login hint: shown once, only after a successful sign-in flow.
+      try {
+        if (sessionStorage.getItem('bravura_just_logged_in') === '1') {
+          sessionStorage.removeItem('bravura_just_logged_in')
+          setTimeout(() => showToast('Signed in to Kamativi. To change site, use the site picker at the top right.'), 400)
+        }
+      } catch { /* non-fatal */ }
     } catch (err) {
       console.error('SiteContext load error:', err)
     } finally {

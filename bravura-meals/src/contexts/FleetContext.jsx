@@ -101,7 +101,7 @@ export function FleetProvider({ children }) {
       .select('*, fleet_asset_types(id, name, category, icon)')
       .single()
     if (error) throw error
-    setAssets(prev => [...prev, row].sort((a, b) => (a.asset_number || '').localeCompare(b.asset_code || '')))
+    setAssets(prev => [...prev, row].sort((a, b) => (a.asset_number || '').localeCompare(b.asset_number || '')))
     return row
   }
 

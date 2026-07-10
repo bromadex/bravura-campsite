@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useFleet } from '../../contexts/FleetContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -107,6 +108,7 @@ export default function FleetDashboard({ setPage }) {
   } = useFleet()
 
   const { currentSiteId } = useSite()
+  const navigate = useNavigate()
   const [statusFilter, setStatusFilter] = useState(null)
   const [detailAsset, setDetailAsset] = useState(null)
   const [overConsumers, setOverConsumers] = useState([])
@@ -300,7 +302,7 @@ export default function FleetDashboard({ setPage }) {
               </div>
             </div>
             <button
-              onClick={() => setPage('fuel_vehicle_consumption')}
+              onClick={() => navigate('/fuel/fuel_vehicle_consumption')}
               style={{
                 background: 'transparent', border: `1px solid ${THEME.outlineVar}`,
                 borderRadius: '8px', padding: '6px 14px', cursor: 'pointer',

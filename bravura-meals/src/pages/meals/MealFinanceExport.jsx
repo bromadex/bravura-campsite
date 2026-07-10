@@ -59,13 +59,6 @@ export default function MealFinanceExport() {
   const { can } = usePermissions()
   const { currentSite, currentSiteId } = useSite()
 
-  if (!can('meals.approve')) return (
-    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
-      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
-      Access denied — requires meals approve permission.
-    </div>
-  )
-
   const [from, setFrom] = useState(firstOfMonth(todayISO()))
   const [to,   setTo]   = useState(todayISO())
   const [loading, setLoading] = useState(false)
@@ -179,6 +172,16 @@ export default function MealFinanceExport() {
   }
 
   const inp = { padding: '8px 12px', borderRadius: '6px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, fontSize: '13px', fontFamily: 'inherit', height: '36px' }
+
+  // Permission gate lives AFTER every hook so the hook count is stable
+  // across renders (early-returning before hooks crashes React when the
+  // permission changes mid-session).
+  if (!can('meals.approve')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires meals approve permission.
+    </div>
+  )
 
   return (
     <div style={{ maxWidth: '1150px', margin: '0 auto' }}>

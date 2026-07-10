@@ -43,6 +43,10 @@ export default function Pricing() {
         label: data.label || 'Saturday Special Supper',
         notes: data.notes || '',
       })
+    } else {
+      // Site switch to a site with no override — clear the previous site's values
+      setSatOverride(null)
+      setSatForm({ price_usd: '', label: 'Saturday Special Supper', notes: '' })
     }
   }
 

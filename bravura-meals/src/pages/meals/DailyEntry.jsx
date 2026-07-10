@@ -266,10 +266,12 @@ export default function DailyEntry() {
         if (ensureErr) throw ensureErr
         subId = newId
       }
-      // If the submission is submitted/approved but has open flags, unlock it
-      // back to draft first so save_meal_logs (which requires status='draft')
-      // can proceed. previous_counts is snapshotted server-side for audit.
-      if (submission && submission.status !== 'draft' && openFlags.length > 0) {
+      // If the submission is non-draft but editable (open flag, or 'queried'
+      // status which only arises from a kitchen flag), unlock it back to draft
+      // first so save_meal_logs (which requires status='draft') can proceed.
+      // previous_counts is snapshotted server-side for the audit trail.
+      if (submission && submission.status !== 'draft' &&
+          (openFlags.length > 0 || submission.status === 'queried')) {
         const { error: reopenErr } = await supabase.rpc('reopen_meal_submission_for_flag', {
           p_submission_id: subId,
         })
@@ -299,6 +301,8 @@ export default function DailyEntry() {
 
   async function submitForApproval() {
     if (!submission?.id) { showToast('Save entries first', 'red'); return }
+    // Guard the Ctrl+Enter shortcut too — the RPC only accepts drafts.
+    if (submission.status !== 'draft') { showToast(`Already ${submission.status}`, 'red'); return }
     setSaving(true)
     // SECURITY DEFINER RPC — verifies meals.create on site and flips
     // status to submitted with auth.uid() as submitted_by, so RLS on
@@ -383,8 +387,10 @@ export default function DailyEntry() {
           rows.push({ icon: 'upload', color: THEME.info, label: 'Submitted', who: nameOf(submission.submitted_by_profile), when: submission.submitted_at })
         }
         if (submission.previous_counts) {
+          const viaFlag = submission.previous_counts.reason === 'reopened_via_flag'
           rows.push({
-            icon: 'undo', color: THEME.warning, label: 'Returned',
+            icon: viaFlag ? 'flag' : 'undo', color: THEME.warning,
+            label: viaFlag ? 'Reopened (flag)' : 'Returned',
             who: nameOf(submission.returned_by_profile),
             when: submission.previous_counts.at,
             note: submission.previous_counts.note,

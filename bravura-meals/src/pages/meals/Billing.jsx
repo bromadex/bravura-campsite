@@ -228,7 +228,7 @@ export default function Billing() {
             <StatCard label="Suppers"    value={data.totals.s} color="#5E35B1" />
             <StatCard label="Saturday Special Suppers" value={data.totals.sat_s} color="#8E24AA"
               sub={data.totals.sat_s > 0 ? 'priced separately' : ''} />
-            <StatCard label="Total Meals" value={data.totals.b+data.totals.l+data.totals.s} color="#C00000" />
+            <StatCard label="Total Meals" value={data.totals.b+data.totals.l+data.totals.s+data.totals.sat_s} color="#C00000" />
             <StatCard label="Total Cost"  value={`$${data.totals.cost.toFixed(2)}`} color={THEME.primary}
               sub={tab !== 'daily' ? `${data.rows.length} day(s)` : ''} />
           </div>
@@ -281,7 +281,7 @@ export default function Billing() {
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.l}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.s}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.sat_s}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.b+data.totals.l+data.totals.s}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{data.totals.b+data.totals.l+data.totals.s+data.totals.sat_s}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '16px' }}>
                       ${data.totals.cost.toFixed(2)}
                     </td>
@@ -298,7 +298,11 @@ export default function Billing() {
                 {[
                   { label: 'Breakfast', count: data.rows[0].breakfast_count, price: data.rows[0].breakfast_usd, c: THEME.breakfastClr },
                   { label: 'Lunch',     count: data.rows[0].lunch_count,     price: data.rows[0].lunch_usd,     c: THEME.lunchClr },
-                  { label: 'Supper',    count: data.rows[0].supper_count,    price: data.rows[0].supper_usd,    c: THEME.supperClr },
+                  // On Saturdays the supper count lives in saturday_supper_count and
+                  // supper_usd already carries the override price from priceFor().
+                  data.rows[0].is_saturday
+                    ? { label: 'Saturday Special Supper', count: data.rows[0].saturday_supper_count, price: data.rows[0].supper_usd, c: '#8E24AA' }
+                    : { label: 'Supper', count: data.rows[0].supper_count, price: data.rows[0].supper_usd, c: THEME.supperClr },
                 ].map(x => (
                   <div key={x.label} style={{ background: THEME.surfaceVar, borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
                     <div style={{ fontSize: '22px', fontWeight: 700, color: x.c }}>{x.count}</div>

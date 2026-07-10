@@ -197,7 +197,7 @@ export default function FleetDispatch({ setPage }) {
             </button>
           </div>
         </div>
-        {can('create_fleet_trips') && (
+        {can('fleet.create') && (
           <button onClick={() => setShowDispatchModal(true)} style={{
             background: color, color: '#fff', border: 'none', borderRadius: '10px',
             padding: '10px 20px', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
@@ -282,20 +282,20 @@ export default function FleetDispatch({ setPage }) {
                   {/* Quick actions */}
                   {isSelected && (
                     <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
-                      {!trip && effectiveStatus === 'operational' && can('create_fleet_trips') && (
+                      {!trip && effectiveStatus === 'operational' && can('fleet.create') && (
                         <ActionBtn icon="play_arrow" label="Start Trip" onClick={(e) => { e.stopPropagation(); setShowDispatchModal(true) }} />
                       )}
-                      {trip && can('create_fleet_trips') && (
+                      {trip && can('fleet.create') && (
                         <ActionBtn icon="stop" label="End Trip" onClick={async (e) => {
                           e.stopPropagation()
                           await supabase.from('fleet_trips').update({ end_time: new Date().toISOString() }).eq('id', trip.id).eq('site_id', currentSiteId)
                           doRefresh()
                         }} />
                       )}
-                      {can('create_fleet_work_orders') && (
+                      {can('fleet.create') && (
                         <ActionBtn icon="report" label="Report Issue" onClick={(e) => { e.stopPropagation(); setPage('fleet_maintenance') }} />
                       )}
-                      {can('create_fleet_meter_readings') && (
+                      {can('fleet.create') && (
                         <ActionBtn icon="speed" label="Log Meter" onClick={(e) => { e.stopPropagation(); setPage('fleet_meter_readings') }} />
                       )}
                     </div>

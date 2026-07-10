@@ -347,24 +347,29 @@ export default function FuelIssuance({ setPage }) {
       .then(({ data }) => setRequireApproval(Boolean(data?.require_approval)))
   }, [currentSiteId])
 
-  // Check sessionStorage for a request prefill (set by FuelRequests "Issue" button)
+  // Check sessionStorage for a request prefill (set by FuelRequests "Issue" button).
+  // The request carries fleet_asset_id — wait until assets have loaded so we can
+  // classify it as vehicle vs equipment, then consume the prefill exactly once.
   useEffect(() => {
     const raw = sessionStorage.getItem('fuel_request_prefill')
     if (!raw) return
+    if (vehicles.length === 0 && equipment.length === 0) return   // assets still loading
     sessionStorage.removeItem('fuel_request_prefill')
     try {
       const req = JSON.parse(raw)
       setLinkedRequest(req)
+      const assetId = req.fleet_asset_id || req.vehicle_id || req.equipment_id || ''
+      const isVehicle = assetId ? vehicles.some(v => v.id === assetId) : true
       setFormState(prev => ({
         ...prev,
-        asset_type:    req.asset_type    || 'vehicle',
-        vehicle_id:    req.vehicle_id    || '',
-        equipment_id:  req.equipment_id  || '',
+        asset_type:    isVehicle ? 'vehicle' : 'equipment',
+        vehicle_id:    isVehicle ? assetId : '',
+        equipment_id:  isVehicle ? '' : assetId,
         litres_manual: req.quantity_requested ? String(req.quantity_requested) : '',
         use_meter:     false,
       }))
     } catch { /* ignore malformed data */ }
-  }, [])
+  }, [vehicles, equipment])
 
   if (!can('fuel.create')) return (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
@@ -482,8 +487,12 @@ export default function FuelIssuance({ setPage }) {
         tank_id:           form.tank_id,
         pump_id:           form.pump_id || null,
         litres:            litres,
-        vehicle_id:        form.asset_type === 'vehicle'   ? form.vehicle_id || null   : null,
-        equipment_id:      form.asset_type === 'equipment' ? form.equipment_id || null : null,
+        // vehicles/equipment are fleet_assets rows now — write the bridge
+        // column, NOT the legacy vehicle_id/equipment_id FKs (those point at
+        // fuel_vehicles/fuel_equipment and would reject newly created assets).
+        fleet_asset_id:    form.asset_type === 'vehicle' ? (form.vehicle_id || null)
+                         : form.asset_type === 'equipment' ? (form.equipment_id || null)
+                         : null,
         operator_id:       form.operator_id || null,
         meter_start: form.use_meter && form.meter_start ? Number(form.meter_start) : null,
         meter_end:   form.use_meter && form.meter_end   ? Number(form.meter_end)   : null,
@@ -666,8 +675,9 @@ export default function FuelIssuance({ setPage }) {
       const batchId = crypto.randomUUID()
       const rpcRows = valid.map(r => ({
         transaction_date: r.transaction_date,
-        vehicle_id:       r.asset_type === 'vehicle'   ? (r.vehicle_id || null)   : null,
-        equipment_id:     r.asset_type === 'equipment' ? (r.equipment_id || null) : null,
+        fleet_asset_id:   r.asset_type === 'vehicle' ? (r.vehicle_id || null)
+                        : r.asset_type === 'equipment' ? (r.equipment_id || null)
+                        : null,
         litres:           Number(r.litres),
         operator_id:      r.operator_id || null,
         notes:            r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance',
@@ -707,8 +717,9 @@ export default function FuelIssuance({ setPage }) {
               transaction_date:  r.transaction_date,
               tank_id:           bulkTankId,
               litres:            Number(r.litres),
-              vehicle_id:        r.asset_type === 'vehicle'   ? (r.vehicle_id || null)   : null,
-              equipment_id:      r.asset_type === 'equipment' ? (r.equipment_id || null) : null,
+              fleet_asset_id:    r.asset_type === 'vehicle' ? (r.vehicle_id || null)
+                               : r.asset_type === 'equipment' ? (r.equipment_id || null)
+                               : null,
               operator_id:       r.operator_id || null,
               notes:             r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance',
               authorised_by_name:     bulkAuth.trim(),
@@ -725,8 +736,7 @@ export default function FuelIssuance({ setPage }) {
               id:                r.id,
               transaction_number: r.transaction_number,
               litres:            Number(r.litres),
-              vehicle_id:        r.vehicle_id,
-              equipment_id:      r.equipment_id,
+              fleet_asset_id:    r.fleet_asset_id,
               operator_id:       r.operator_id,
               transaction_date:  r.transaction_date,
             })),
@@ -797,9 +807,10 @@ export default function FuelIssuance({ setPage }) {
             </thead>
             <tbody>
               {br.rows.map((r, i) => {
-                const v = vehicles.find(x => x.id === r.vehicle_id)
-                const eq = equipment.find(x => x.id === r.equipment_id)
-                const label = v ? `${v.fleet_number}${v.registration ? ' (' + v.registration + ')' : ''}` : eq ? eq.name : '—'
+                const assetId = r.fleet_asset_id || r.vehicle_id || r.equipment_id
+                const v = vehicles.find(x => x.id === assetId)
+                const eq = equipment.find(x => x.id === assetId)
+                const label = v ? `${v.fleet_number}${v.registration ? ' (' + v.registration + ')' : ''}` : eq ? (eq.description || eq.fleet_number || eq.asset_number) : '—'
                 return (
                   <tr key={r.id || i} style={{ borderBottom: '1px solid black' }}>
                     <td style={{ padding: '3px 6px', borderRight: '1px solid black' }}>{i + 1}</td>

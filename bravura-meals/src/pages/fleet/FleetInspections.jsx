@@ -9,9 +9,9 @@ import { supabase } from '../../supabaseClient'
 const color = MODULE_COLORS.fleet
 
 const RESULT_MAP = {
-  pass:        { label: 'Pass',        bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
-  fail:        { label: 'Fail',        bg: THEME.statusErrorBg,   text: THEME.statusErrorText },
-  conditional: { label: 'Conditional', bg: THEME.statusWarningBg, text: THEME.statusWarningText },
+  pass:              { label: 'Pass',              bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
+  pass_with_defects: { label: 'Pass w/ Defects',   bg: THEME.statusWarningBg, text: THEME.statusWarningText },
+  unsafe:            { label: 'Unsafe',            bg: THEME.statusErrorBg,   text: THEME.statusErrorText },
 }
 
 function ResultBadge({ result }) {
@@ -28,8 +28,8 @@ function ResultBadge({ result }) {
 }
 
 const EMPTY_FORM = {
-  asset_id: '', inspector_id: '', inspection_date: '', odometer_km: '',
-  hours: '', result: 'pass', overall_score: '', notes: '', next_due_date: '',
+  asset_id: '', operator_id: '', inspection_date: '', odometer_reading: '',
+  hours_reading: '', overall_result: 'pass', notes: '',
 }
 
 export default function FleetInspections({ setPage }) {
@@ -49,7 +49,7 @@ export default function FleetInspections({ setPage }) {
 
   const filtered = useMemo(() => {
     let list = inspections || []
-    if (filterResult !== 'all') list = list.filter(i => i.result === filterResult)
+    if (filterResult !== 'all') list = list.filter(i => i.overall_result === filterResult)
     if (dateFrom) list = list.filter(i => i.inspection_date >= dateFrom)
     if (dateTo) list = list.filter(i => i.inspection_date <= dateTo)
     if (search.trim()) {
@@ -66,9 +66,9 @@ export default function FleetInspections({ setPage }) {
     const all = inspections || []
     return {
       total: all.length,
-      pass: all.filter(i => i.result === 'pass').length,
-      fail: all.filter(i => i.result === 'fail').length,
-      conditional: all.filter(i => i.result === 'conditional').length,
+      pass: all.filter(i => i.overall_result === 'pass').length,
+      unsafe: all.filter(i => i.overall_result === 'unsafe').length,
+      withDefects: all.filter(i => i.overall_result === 'pass_with_defects').length,
     }
   }, [inspections])
 
@@ -83,21 +83,19 @@ export default function FleetInspections({ setPage }) {
     setEditId(insp.id)
     setForm({
       asset_id: insp.asset_id || '',
-      inspector_id: insp.inspector_id || '',
+      operator_id: insp.operator_id || '',
       inspection_date: insp.inspection_date || '',
-      odometer_km: insp.odometer_km ?? '',
-      hours: insp.hours ?? '',
-      result: insp.result || 'pass',
-      overall_score: insp.overall_score ?? '',
+      odometer_reading: insp.odometer_reading ?? '',
+      hours_reading: insp.hours_reading ?? '',
+      overall_result: insp.overall_result || 'pass',
       notes: insp.notes || '',
-      next_due_date: insp.next_due_date || '',
     })
     setError('')
     setModalOpen(true)
   }
 
   async function handleSave() {
-    if (!form.asset_id || !form.inspection_date || !form.result) {
+    if (!form.asset_id || !form.inspection_date || !form.overall_result) {
       setError('Asset, inspection date, and result are required')
       return
     }
@@ -106,14 +104,12 @@ export default function FleetInspections({ setPage }) {
     try {
       const payload = {
         asset_id: form.asset_id,
-        inspector_id: form.inspector_id || null,
+        operator_id: form.operator_id || null,
         inspection_date: form.inspection_date,
-        odometer_km: form.odometer_km ? Number(form.odometer_km) : null,
-        hours: form.hours ? Number(form.hours) : null,
-        result: form.result,
-        overall_score: form.overall_score !== '' ? Number(form.overall_score) : null,
+        odometer_reading: form.odometer_reading ? Number(form.odometer_reading) : null,
+        hours_reading: form.hours_reading ? Number(form.hours_reading) : null,
+        overall_result: form.overall_result,
         notes: form.notes || null,
-        next_due_date: form.next_due_date || null,
         site_id: currentSiteId,
       }
       if (editId) {
@@ -153,8 +149,8 @@ export default function FleetInspections({ setPage }) {
   const kpiCards = [
     { label: 'Total Inspections', value: kpis.total, icon: 'checklist', bg: color + '14', fg: color },
     { label: 'Passed', value: kpis.pass, icon: 'check_circle', bg: THEME.statusSuccessBg, fg: THEME.statusSuccessText },
-    { label: 'Failed', value: kpis.fail, icon: 'cancel', bg: THEME.statusErrorBg, fg: THEME.statusErrorText },
-    { label: 'Conditional', value: kpis.conditional, icon: 'warning', bg: THEME.statusWarningBg, fg: THEME.statusWarningText },
+    { label: 'Pass w/ Defects', value: kpis.withDefects, icon: 'warning', bg: THEME.statusWarningBg, fg: THEME.statusWarningText },
+    { label: 'Unsafe', value: kpis.unsafe, icon: 'cancel', bg: THEME.statusErrorBg, fg: THEME.statusErrorText },
   ]
 
   const thStyle = {
@@ -217,11 +213,11 @@ export default function FleetInspections({ setPage }) {
           onChange={e => setSearch(e.target.value)}
           style={{ ...inp, maxWidth: '220px' }}
         />
-        <select value={filterResult} onChange={e => setFilterResult(e.target.value)} style={{ ...inp, maxWidth: '150px' }}>
+        <select value={filterResult} onChange={e => setFilterResult(e.target.value)} style={{ ...inp, maxWidth: '180px' }}>
           <option value="all">All Results</option>
           <option value="pass">Pass</option>
-          <option value="fail">Fail</option>
-          <option value="conditional">Conditional</option>
+          <option value="pass_with_defects">Pass w/ Defects</option>
+          <option value="unsafe">Unsafe</option>
         </select>
         <input
           type="date"
@@ -253,11 +249,9 @@ export default function FleetInspections({ setPage }) {
                 <tr>
                   <th style={thStyle}>Date</th>
                   <th style={thStyle}>Asset</th>
-                  <th style={thStyle}>Inspector</th>
+                  <th style={thStyle}>Operator</th>
                   <th style={thStyle}>Odometer / Hours</th>
                   <th style={thStyle}>Result</th>
-                  <th style={thStyle}>Score</th>
-                  <th style={thStyle}>Next Due</th>
                 </tr>
               </thead>
               <tbody>
@@ -273,12 +267,10 @@ export default function FleetInspections({ setPage }) {
                     <td style={tdStyle}>{i.fleet_assets?.asset_number || '-'}</td>
                     <td style={tdStyle}>{i.employees?.name || '-'}</td>
                     <td style={tdStyle}>
-                      {i.odometer_km != null ? Number(i.odometer_km).toLocaleString() + ' km' : '-'}
-                      {i.hours != null ? ' / ' + Number(i.hours).toLocaleString() + ' hrs' : ''}
+                      {i.odometer_reading != null ? Number(i.odometer_reading).toLocaleString() + ' km' : '-'}
+                      {i.hours_reading != null ? ' / ' + Number(i.hours_reading).toLocaleString() + ' hrs' : ''}
                     </td>
-                    <td style={tdStyle}><ResultBadge result={i.result} /></td>
-                    <td style={tdStyle}>{i.overall_score != null ? i.overall_score : '-'}</td>
-                    <td style={tdStyle}>{i.next_due_date || '-'}</td>
+                    <td style={tdStyle}><ResultBadge result={i.overall_result} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -323,9 +315,9 @@ export default function FleetInspections({ setPage }) {
                   </select>
                 </div>
                 <div style={fieldWrap}>
-                  <label style={lbl}>Inspector</label>
-                  <select style={inp} value={form.inspector_id} onChange={e => set('inspector_id', e.target.value)}>
-                    <option value="">-- Select Inspector --</option>
+                  <label style={lbl}>Operator</label>
+                  <select style={inp} value={form.operator_id} onChange={e => set('operator_id', e.target.value)}>
+                    <option value="">-- Select Operator --</option>
                     {(employees || []).map(e => (
                       <option key={e.id} value={e.id}>{e.name}</option>
                     ))}
@@ -337,27 +329,19 @@ export default function FleetInspections({ setPage }) {
                 </div>
                 <div style={fieldWrap}>
                   <label style={lbl}>Result *</label>
-                  <select style={inp} value={form.result} onChange={e => set('result', e.target.value)}>
+                  <select style={inp} value={form.overall_result} onChange={e => set('overall_result', e.target.value)}>
                     <option value="pass">Pass</option>
-                    <option value="fail">Fail</option>
-                    <option value="conditional">Conditional</option>
+                    <option value="pass_with_defects">Pass w/ Defects</option>
+                    <option value="unsafe">Unsafe</option>
                   </select>
                 </div>
                 <div style={fieldWrap}>
                   <label style={lbl}>Odometer (km)</label>
-                  <input style={inp} type="number" value={form.odometer_km} onChange={e => set('odometer_km', e.target.value)} />
+                  <input style={inp} type="number" value={form.odometer_reading} onChange={e => set('odometer_reading', e.target.value)} />
                 </div>
                 <div style={fieldWrap}>
                   <label style={lbl}>Hours</label>
-                  <input style={inp} type="number" value={form.hours} onChange={e => set('hours', e.target.value)} />
-                </div>
-                <div style={fieldWrap}>
-                  <label style={lbl}>Overall Score (0-100)</label>
-                  <input style={inp} type="number" min="0" max="100" value={form.overall_score} onChange={e => set('overall_score', e.target.value)} />
-                </div>
-                <div style={fieldWrap}>
-                  <label style={lbl}>Next Due Date</label>
-                  <input style={inp} type="date" value={form.next_due_date} onChange={e => set('next_due_date', e.target.value)} />
+                  <input style={inp} type="number" value={form.hours_reading} onChange={e => set('hours_reading', e.target.value)} />
                 </div>
                 <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
                   <label style={lbl}>Notes</label>

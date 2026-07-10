@@ -8,32 +8,11 @@ import { supabase } from '../../supabaseClient'
 
 const color = MODULE_COLORS.fleet
 
-const STATUS_MAP = {
-  completed:   { label: 'Completed',   bg: THEME.statusSuccessBg,  text: THEME.statusSuccessText },
-  in_progress: { label: 'In Progress', bg: THEME.statusTertiaryBg, text: THEME.statusTertiaryText },
-  planned:     { label: 'Planned',     bg: THEME.statusNeutralBg,  text: THEME.statusNeutralText },
-  cancelled:   { label: 'Cancelled',   bg: THEME.statusErrorBg,    text: THEME.statusErrorText },
-}
-
-function StatusBadge({ status }) {
-  const s = STATUS_MAP[status] || STATUS_MAP.planned
-  return (
-    <span style={{
-      display: 'inline-block', fontSize: '11px', fontWeight: 600,
-      padding: '2px 10px', borderRadius: '999px',
-      background: s.bg, color: s.text,
-    }}>
-      {s.label}
-    </span>
-  )
-}
-
 const EMPTY_FORM = {
-  asset_id: '', driver_id: '', trip_date: '', start_time: '', end_time: '',
-  origin: '', destination: '', purpose: '',
-  start_odometer_km: '', end_odometer_km: '',
-  passengers: '', cargo_description: '', fuel_used_litres: '',
-  status: 'planned', notes: '',
+  asset_id: '', operator_id: '', trip_date: '', start_time: '', end_time: '',
+  destination: '', purpose: '',
+  start_km: '', end_km: '',
+  notes: '',
 }
 
 export default function FleetTrips({ setPage }) {
@@ -42,7 +21,6 @@ export default function FleetTrips({ setPage }) {
   const { currentSiteId } = useSite()
 
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -53,31 +31,29 @@ export default function FleetTrips({ setPage }) {
 
   const filtered = useMemo(() => {
     let list = trips || []
-    if (filterStatus !== 'all') list = list.filter(t => t.status === filterStatus)
     if (dateFrom) list = list.filter(t => t.trip_date >= dateFrom)
     if (dateTo) list = list.filter(t => t.trip_date <= dateTo)
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(t =>
-        (t.origin || '').toLowerCase().includes(q) ||
         (t.destination || '').toLowerCase().includes(q) ||
         (t.purpose || '').toLowerCase().includes(q)
       )
     }
     return [...list].sort((a, b) => (b.trip_date || '').localeCompare(a.trip_date || ''))
-  }, [trips, filterStatus, dateFrom, dateTo, search])
+  }, [trips, dateFrom, dateTo, search])
 
   const kpis = useMemo(() => {
     const all = trips || []
     const totalDist = all.reduce((s, t) => s + (t.distance_km || 0), 0)
-    const totalFuel = all.reduce((s, t) => s + (t.fuel_used_litres || 0), 0)
     const tripsWithDist = all.filter(t => t.distance_km > 0)
     const avgDist = tripsWithDist.length ? totalDist / tripsWithDist.length : 0
+    const completed = all.filter(t => t.end_time).length
     return {
       total: all.length,
       totalDist,
       avgDist,
-      totalFuel,
+      completed,
     }
   }, [trips])
 
@@ -92,19 +68,14 @@ export default function FleetTrips({ setPage }) {
     setEditId(trip.id)
     setForm({
       asset_id: trip.asset_id || '',
-      driver_id: trip.driver_id || '',
+      operator_id: trip.operator_id || '',
       trip_date: trip.trip_date || '',
       start_time: trip.start_time || '',
       end_time: trip.end_time || '',
-      origin: trip.origin || '',
       destination: trip.destination || '',
       purpose: trip.purpose || '',
-      start_odometer_km: trip.start_odometer_km ?? '',
-      end_odometer_km: trip.end_odometer_km ?? '',
-      passengers: trip.passengers ?? '',
-      cargo_description: trip.cargo_description || '',
-      fuel_used_litres: trip.fuel_used_litres ?? '',
-      status: trip.status || 'planned',
+      start_km: trip.start_km ?? '',
+      end_km: trip.end_km ?? '',
       notes: trip.notes || '',
     })
     setError('')
@@ -112,8 +83,8 @@ export default function FleetTrips({ setPage }) {
   }
 
   async function handleSave() {
-    if (!form.asset_id || !form.driver_id || !form.trip_date) {
-      setError('Asset, driver, and trip date are required')
+    if (!form.asset_id || !form.operator_id || !form.trip_date) {
+      setError('Asset, operator, and trip date are required')
       return
     }
     setSaving(true)
@@ -122,19 +93,14 @@ export default function FleetTrips({ setPage }) {
       const payload = {
         site_id: currentSiteId,
         asset_id: form.asset_id,
-        driver_id: form.driver_id,
+        operator_id: form.operator_id,
         trip_date: form.trip_date,
         start_time: form.start_time || null,
         end_time: form.end_time || null,
-        origin: form.origin || null,
         destination: form.destination || null,
         purpose: form.purpose || null,
-        start_odometer_km: form.start_odometer_km !== '' ? Number(form.start_odometer_km) : null,
-        end_odometer_km: form.end_odometer_km !== '' ? Number(form.end_odometer_km) : null,
-        passengers: form.passengers !== '' ? Number(form.passengers) : null,
-        cargo_description: form.cargo_description || null,
-        fuel_used_litres: form.fuel_used_litres !== '' ? Number(form.fuel_used_litres) : null,
-        status: form.status,
+        start_km: form.start_km !== '' ? Number(form.start_km) : null,
+        end_km: form.end_km !== '' ? Number(form.end_km) : null,
         notes: form.notes || null,
       }
       if (editId) {
@@ -156,11 +122,11 @@ export default function FleetTrips({ setPage }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const calcDistance = useMemo(() => {
-    const s = Number(form.start_odometer_km)
-    const e = Number(form.end_odometer_km)
+    const s = Number(form.start_km)
+    const e = Number(form.end_km)
     if (s > 0 && e > 0 && e > s) return (e - s).toFixed(1)
     return null
-  }, [form.start_odometer_km, form.end_odometer_km])
+  }, [form.start_km, form.end_km])
 
   const inp = {
     width: '100%', padding: '8px 12px', borderRadius: '8px', fontSize: '13px',
@@ -182,7 +148,7 @@ export default function FleetTrips({ setPage }) {
     { label: 'Total Trips', value: kpis.total, icon: 'route', bg: color + '14', fg: color },
     { label: 'Total Distance', value: kpis.totalDist.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' km', icon: 'straighten', bg: THEME.statusSuccessBg, fg: THEME.statusSuccessText },
     { label: 'Avg Distance', value: kpis.avgDist.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' km', icon: 'speed', bg: THEME.statusWarningBg, fg: THEME.statusWarningText },
-    { label: 'Total Fuel Used', value: kpis.totalFuel.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' L', icon: 'local_gas_station', bg: THEME.statusTertiaryBg, fg: THEME.statusTertiaryText },
+    { label: 'Completed', value: kpis.completed, icon: 'check_circle', bg: THEME.statusTertiaryBg, fg: THEME.statusTertiaryText },
   ]
 
   function getAssetLabel(id) {
@@ -190,7 +156,7 @@ export default function FleetTrips({ setPage }) {
     return a ? (a.asset_number || a.description || 'Unknown') : '—'
   }
 
-  function getDriverLabel(id) {
+  function getOperatorLabel(id) {
     const e = (employees || []).find(x => x.id === id)
     return e ? e.name : '—'
   }
@@ -200,9 +166,9 @@ export default function FleetTrips({ setPage }) {
     return getAssetLabel(trip.asset_id)
   }
 
-  function getTripDriver(trip) {
+  function getTripOperator(trip) {
     if (trip.employees) return trip.employees.name || '—'
-    return getDriverLabel(trip.driver_id)
+    return getOperatorLabel(trip.operator_id)
   }
 
   const thStyle = {
@@ -260,15 +226,11 @@ export default function FleetTrips({ setPage }) {
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <input
-          placeholder="Search origin, destination, purpose..."
+          placeholder="Search destination, purpose..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ ...inp, maxWidth: '280px' }}
         />
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inp, maxWidth: '160px' }}>
-          <option value="all">All Statuses</option>
-          {Object.entries(STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
         <input
           type="date"
           value={dateFrom}
@@ -298,11 +260,10 @@ export default function FleetTrips({ setPage }) {
               <tr>
                 <th style={thStyle}>Date</th>
                 <th style={thStyle}>Asset</th>
-                <th style={thStyle}>Driver</th>
-                <th style={thStyle}>Route</th>
+                <th style={thStyle}>Operator</th>
+                <th style={thStyle}>Destination</th>
+                <th style={thStyle}>Purpose</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Distance (km)</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Fuel (L)</th>
-                <th style={thStyle}>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -316,17 +277,16 @@ export default function FleetTrips({ setPage }) {
                 >
                   <td style={tdStyle}>{t.trip_date || '—'}</td>
                   <td style={tdStyle}>{getTripAsset(t)}</td>
-                  <td style={tdStyle}>{getTripDriver(t)}</td>
+                  <td style={tdStyle}>{getTripOperator(t)}</td>
                   <td style={{ ...tdStyle, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {t.origin || '—'} → {t.destination || '—'}
+                    {t.destination || '—'}
+                  </td>
+                  <td style={{ ...tdStyle, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {t.purpose || '—'}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
                     {t.distance_km != null ? Number(t.distance_km).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    {t.fuel_used_litres != null ? Number(t.fuel_used_litres).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}
-                  </td>
-                  <td style={tdStyle}><StatusBadge status={t.status} /></td>
                 </tr>
               ))}
             </tbody>
@@ -370,9 +330,9 @@ export default function FleetTrips({ setPage }) {
                   </select>
                 </div>
                 <div style={fieldWrap}>
-                  <label style={lbl}>Driver *</label>
-                  <select style={inp} value={form.driver_id} onChange={e => set('driver_id', e.target.value)}>
-                    <option value="">-- Select Driver --</option>
+                  <label style={lbl}>Operator *</label>
+                  <select style={inp} value={form.operator_id} onChange={e => set('operator_id', e.target.value)}>
+                    <option value="">-- Select Operator --</option>
                     {(employees || []).map(e => (
                       <option key={e.id} value={e.id}>{e.name}</option>
                     ))}
@@ -383,10 +343,8 @@ export default function FleetTrips({ setPage }) {
                   <input style={inp} type="date" value={form.trip_date} onChange={e => set('trip_date', e.target.value)} />
                 </div>
                 <div style={fieldWrap}>
-                  <label style={lbl}>Status</label>
-                  <select style={inp} value={form.status} onChange={e => set('status', e.target.value)}>
-                    {Object.entries(STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                  </select>
+                  <label style={lbl}>Destination</label>
+                  <input style={inp} value={form.destination} onChange={e => set('destination', e.target.value)} />
                 </div>
                 <div style={fieldWrap}>
                   <label style={lbl}>Start Time</label>
@@ -396,25 +354,17 @@ export default function FleetTrips({ setPage }) {
                   <label style={lbl}>End Time</label>
                   <input style={inp} type="time" value={form.end_time} onChange={e => set('end_time', e.target.value)} />
                 </div>
-                <div style={fieldWrap}>
-                  <label style={lbl}>Origin</label>
-                  <input style={inp} value={form.origin} onChange={e => set('origin', e.target.value)} />
-                </div>
-                <div style={fieldWrap}>
-                  <label style={lbl}>Destination</label>
-                  <input style={inp} value={form.destination} onChange={e => set('destination', e.target.value)} />
-                </div>
                 <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
                   <label style={lbl}>Purpose</label>
                   <input style={inp} value={form.purpose} onChange={e => set('purpose', e.target.value)} />
                 </div>
                 <div style={fieldWrap}>
                   <label style={lbl}>Start Odometer (km)</label>
-                  <input style={inp} type="number" value={form.start_odometer_km} onChange={e => set('start_odometer_km', e.target.value)} />
+                  <input style={inp} type="number" value={form.start_km} onChange={e => set('start_km', e.target.value)} />
                 </div>
                 <div style={fieldWrap}>
                   <label style={lbl}>End Odometer (km)</label>
-                  <input style={inp} type="number" value={form.end_odometer_km} onChange={e => set('end_odometer_km', e.target.value)} />
+                  <input style={inp} type="number" value={form.end_km} onChange={e => set('end_km', e.target.value)} />
                 </div>
                 {calcDistance && (
                   <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
@@ -427,18 +377,6 @@ export default function FleetTrips({ setPage }) {
                     </div>
                   </div>
                 )}
-                <div style={fieldWrap}>
-                  <label style={lbl}>Passengers</label>
-                  <input style={inp} type="number" value={form.passengers} onChange={e => set('passengers', e.target.value)} />
-                </div>
-                <div style={fieldWrap}>
-                  <label style={lbl}>Fuel Used (L)</label>
-                  <input style={inp} type="number" step="0.1" value={form.fuel_used_litres} onChange={e => set('fuel_used_litres', e.target.value)} />
-                </div>
-                <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
-                  <label style={lbl}>Cargo Description</label>
-                  <input style={inp} value={form.cargo_description} onChange={e => set('cargo_description', e.target.value)} />
-                </div>
                 <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
                   <label style={lbl}>Notes</label>
                   <textarea

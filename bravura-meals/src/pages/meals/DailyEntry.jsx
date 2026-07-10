@@ -35,6 +35,7 @@ export default function DailyEntry() {
   const [ineligible,  setIneligible]  = useState({})    // { on_leave: n, terminated: m, ... }
   const [focusIdx,    setFocusIdx]    = useState(0)     // keyboard row cursor
   const [showKbHelp,  setShowKbHelp]  = useState(false)
+  const [openFlags,   setOpenFlags]   = useState([])    // flags on this submission
 
   // Sortable columns
   const [sortState, onSort] = useSortState('name', 'asc')
@@ -107,6 +108,18 @@ export default function DailyEntry() {
     }
     setSubmission(sub ? { ...sub, returned_by_profile: returnedBy } : sub)
 
+    // Load open flags on this submission — presence unlocks editing on
+    // a submitted/approved entry so the officer can correct what was flagged.
+    if (sub?.id) {
+      const { data: flags } = await supabase.from('flags')
+        .select('id, reason, question, raised_by, raised_at')
+        .eq('submission_id', sub.id)
+        .eq('status', 'open')
+      setOpenFlags(flags || [])
+    } else {
+      setOpenFlags([])
+    }
+
     const state = {}
     logsRes.data?.forEach(log => {
       state[log.employee_id] = { b: log.had_breakfast, l: log.had_lunch, s: log.had_supper }
@@ -126,6 +139,10 @@ export default function DailyEntry() {
   //   (super_admin only), since only System/Group Admin hold Delete on Meals
   const isEditable = () => {
     if (!submission) return true
+    // If there is an open flag on this submission, the meal officer can
+    // amend the entry regardless of its submitted/approved state — that's
+    // the whole point of raising a flag: getting it fixed at source.
+    if (openFlags.length > 0 && can('meals.edit')) return true
     if (submission.status === 'draft')     return can('meals.edit')
     if (submission.status === 'submitted') return can('meals.approve')
     if (submission.status === 'approved')  return can('meals.delete')
@@ -246,6 +263,15 @@ export default function DailyEntry() {
         })
         if (ensureErr) throw ensureErr
         subId = newId
+      }
+      // If the submission is submitted/approved but has open flags, unlock it
+      // back to draft first so save_meal_logs (which requires status='draft')
+      // can proceed. previous_counts is snapshotted server-side for audit.
+      if (submission && submission.status !== 'draft' && openFlags.length > 0) {
+        const { error: reopenErr } = await supabase.rpc('reopen_meal_submission_for_flag', {
+          p_submission_id: subId,
+        })
+        if (reopenErr) throw reopenErr
       }
       const payload = employees.map(e => ({
         employee_id:   e.id,
@@ -462,6 +488,33 @@ export default function DailyEntry() {
             </span>
           ))}
           <span style={{ color: THEME.textLow }}>hidden</span>
+        </div>
+      )}
+
+      {/* ── Open-flag banner: unlocks editing on submitted/approved entries ── */}
+      {openFlags.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: '10px',
+          padding: '12px 16px', marginBottom: '16px',
+          borderRadius: '10px', background: THEME.statusWarningBg,
+          border: `1px solid ${THEME.statusWarningText}44`,
+        }}>
+          <Icon name="flag" size={18} style={{ color: THEME.statusWarningText, flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ fontSize: '13px', color: THEME.statusWarningText }}>
+            <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+              {openFlags.length} open flag{openFlags.length > 1 ? 's' : ''} on this entry — editing is unlocked so you can correct it.
+            </div>
+            {openFlags.slice(0, 3).map(f => (
+              <div key={f.id} style={{ fontSize: '12px', marginTop: '2px', color: THEME.text }}>
+                • {f.reason || f.question || 'No reason given'}
+              </div>
+            ))}
+            {openFlags.length > 3 && (
+              <div style={{ fontSize: '12px', marginTop: '2px', color: THEME.textLow }}>
+                +{openFlags.length - 3} more…
+              </div>
+            )}
+          </div>
         </div>
       )}
 

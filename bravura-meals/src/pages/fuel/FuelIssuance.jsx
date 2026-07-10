@@ -408,6 +408,23 @@ export default function FuelIssuance({ setPage }) {
 
   const litres = form.use_meter ? litresFromMeter : (Number(form.litres_manual) || 0)
 
+  // Last known odometer for the selected vehicle — the max of the asset's
+  // headline current_odometer_km and any odometer captured on a previous
+  // fuel issuance. Used to catch typos before they poison the analytics.
+  const lastKnownOdometer = useMemo(() => {
+    if (form.asset_type !== 'vehicle' || !form.vehicle_id) return null
+    const v = vehicles.find(x => x.id === form.vehicle_id)
+    let last = v?.current_odometer_km != null && Number(v.current_odometer_km) > 0
+      ? Number(v.current_odometer_km) : null
+    for (const t of transactions) {
+      if (t.fleet_asset_id === form.vehicle_id && t.odometer_km != null) {
+        const o = Number(t.odometer_km)
+        if (last == null || o > last) last = o
+      }
+    }
+    return last
+  }, [form.asset_type, form.vehicle_id, vehicles, transactions])
+
   // Last delivery price per litre (from most recent delivery transaction for this tank's fuel type)
   const lastPricePerLitre = useMemo(() => {
     if (!selectedTank) return null
@@ -466,6 +483,24 @@ export default function FuelIssuance({ setPage }) {
     // there but that's a follow-up.
     if (form.asset_type === 'vehicle' && !form.odometer_km) {
       showToast('Enter the vehicle odometer reading (km)', 'red'); return
+    }
+    // Sanity-check the reading against the vehicle's last known odometer:
+    // below it = almost certainly a typo (block); an implausible jump
+    // (> 5,000 km since the last fill) needs an explicit confirm.
+    if (form.asset_type === 'vehicle' && form.odometer_km) {
+      const entered = Number(form.odometer_km)
+      const last = lastKnownOdometer
+      if (last != null && entered < last) {
+        showToast(`Odometer ${entered.toLocaleString()} km is LOWER than the last recorded ${last.toLocaleString()} km — check for a typo`, 'red')
+        return
+      }
+      if (last != null && entered - last > 5000) {
+        const ok = window.confirm(
+          `This reading is ${(entered - last).toLocaleString()} km above the last recorded ${last.toLocaleString()} km. ` +
+          `That is unusually far for one fill. Save anyway?`
+        )
+        if (!ok) return
+      }
     }
     if (!form.operator_id) { showToast('Select an operator', 'red'); return }
     if (wouldOverdraw) { showToast(`Insufficient stock — only ${tankLevel.toFixed(1)} L available`, 'red'); return }
@@ -1313,11 +1348,23 @@ export default function FuelIssuance({ setPage }) {
                     value={form.odometer_km}
                     onChange={e => set('odometer_km', e.target.value)}
                     placeholder="e.g. 128450"
-                    style={inp({ borderColor: form.vehicle_id && !form.odometer_km ? THEME.error : THEME.outline })}
+                    style={inp({ borderColor:
+                      (form.vehicle_id && !form.odometer_km) ||
+                      (lastKnownOdometer != null && form.odometer_km && Number(form.odometer_km) < lastKnownOdometer)
+                        ? THEME.error : THEME.outline })}
                   />
-                  <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
-                    Read directly from the dashboard cluster. Used for L/100km monitoring.
-                  </div>
+                  {lastKnownOdometer != null && form.odometer_km && Number(form.odometer_km) < lastKnownOdometer ? (
+                    <div style={{ fontSize: '11px', color: THEME.error, marginTop: '4px', fontWeight: 600 }}>
+                      Below the last recorded reading ({lastKnownOdometer.toLocaleString()} km) — check for a typo.
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
+                      {lastKnownOdometer != null
+                        ? `Last recorded: ${lastKnownOdometer.toLocaleString()} km. `
+                        : ''}
+                      Read directly from the dashboard cluster. Used for L/100km monitoring.
+                    </div>
+                  )}
                 </div>
               </>
             )}

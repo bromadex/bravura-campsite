@@ -36,18 +36,34 @@ export default function DailyReport() {
   async function load() {
     setLoading(true)
     const employeeIds = employees.map(e => e.id)
-    const [logsRes, pricesRes] = await Promise.all([
+    const dow = new Date(date + 'T00:00:00').getDay()
+    const [logsRes, pricesRes, overrideRes] = await Promise.all([
       employeeIds.length > 0
         ? supabase.from('meal_logs').select('*').eq('date', date).in('employee_id', employeeIds)
         : Promise.resolve({ data: [] }),
       showCosts
         ? supabase.from('meal_prices').select('*').eq('site_id', currentSiteId).lte('effective_date', date).order('effective_date', { ascending: false }).limit(1)
         : { data: [] },
+      // Day-of-week override (e.g. Saturday special supper) so the Day Cost
+      // stat agrees with Billing / Finance Export.
+      showCosts
+        ? supabase.from('meal_price_overrides').select('meal_type, price_usd').eq('site_id', currentSiteId).eq('day_of_week', dow).eq('is_active', true).lte('effective_date', date).order('effective_date', { ascending: false })
+        : { data: [] },
     ])
     setLogs(logsRes.data || [])
     if (pricesRes.data?.[0]) {
       const p = pricesRes.data[0]
-      setPrices({ b: p.breakfast_usd, l: p.lunch_usd, s: p.supper_usd })
+      const next = { b: p.breakfast_usd, l: p.lunch_usd, s: p.supper_usd }
+      for (const ov of overrideRes.data || []) {
+        if (ov.meal_type === 'breakfast') { next.b = ov.price_usd; break }
+      }
+      for (const ov of overrideRes.data || []) {
+        if (ov.meal_type === 'lunch') { next.l = ov.price_usd; break }
+      }
+      for (const ov of overrideRes.data || []) {
+        if (ov.meal_type === 'supper') { next.s = ov.price_usd; break }
+      }
+      setPrices(next)
     }
     setLoading(false)
   }

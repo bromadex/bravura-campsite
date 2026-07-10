@@ -36,6 +36,7 @@ export default function DailyEntry() {
   const [focusIdx,    setFocusIdx]    = useState(0)     // keyboard row cursor
   const [showKbHelp,  setShowKbHelp]  = useState(false)
   const [openFlags,   setOpenFlags]   = useState([])    // flags on this submission
+  const [subEvents,   setSubEvents]   = useState([])    // immutable audit trail (0077)
 
   // Sortable columns
   const [sortState, onSort] = useSortState('name', 'asc')
@@ -84,6 +85,7 @@ export default function DailyEntry() {
     setLoading(true)
     setOpenFlags([])                    // reset before fetching so stale flags from
                                         // a previously-loaded date don't unlock editing
+    setSubEvents([])
     const employeeIds = employees.map(e => e.id)
     const [{ data: sub }, logsRes] = await Promise.all([
       supabase.from('daily_submissions')
@@ -113,12 +115,29 @@ export default function DailyEntry() {
     // Load open flags on this submission — presence unlocks editing on
     // a submitted/approved entry so the officer can correct what was flagged.
     if (sub?.id) {
-      const { data: flags, error: flagErr } = await supabase.from('flags')
-        .select('*')
-        .eq('submission_id', sub.id)
-        .eq('status', 'open')
+      const [{ data: flags, error: flagErr }, { data: events }] = await Promise.all([
+        supabase.from('flags')
+          .select('*')
+          .eq('submission_id', sub.id)
+          .eq('status', 'open'),
+        supabase.from('meal_submission_events')
+          .select('*')
+          .eq('submission_id', sub.id)
+          .order('created_at', { ascending: true }),
+      ])
       if (flagErr) console.error('flags load error:', flagErr)
       setOpenFlags(flags || [])
+      // Resolve actor names for the trail (no FK embed — actor is a bare uuid)
+      const evs = events || []
+      const actorIds = [...new Set(evs.map(e => e.actor).filter(Boolean))]
+      if (actorIds.length > 0) {
+        const { data: actors } = await supabase.from('profiles')
+          .select('id, full_name, username').in('id', actorIds)
+        const byId = Object.fromEntries((actors || []).map(a => [a.id, a]))
+        setSubEvents(evs.map(e => ({ ...e, actor_profile: byId[e.actor] || null })))
+      } else {
+        setSubEvents(evs)
+      }
     }
 
     const state = {}
@@ -379,25 +398,45 @@ export default function DailyEntry() {
       </PageHeader>
 
       {/* ── Audit trail: submitted / returned / approved by whom, when ── */}
-      {submission && (submission.submitted_at || submission.approved_at || submission.previous_counts) && (() => {
+      {submission && (subEvents.length > 0 || submission.submitted_at || submission.approved_at || submission.previous_counts) && (() => {
         const fmtWhen = ts => ts ? new Date(ts).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
         const nameOf  = p => p?.full_name || p?.username || '—'
-        const rows = []
-        if (submission.submitted_at || submission.submitted_by_profile) {
-          rows.push({ icon: 'upload', color: THEME.info, label: 'Submitted', who: nameOf(submission.submitted_by_profile), when: submission.submitted_at })
-        }
-        if (submission.previous_counts) {
-          const viaFlag = submission.previous_counts.reason === 'reopened_via_flag'
-          rows.push({
-            icon: viaFlag ? 'flag' : 'undo', color: THEME.warning,
-            label: viaFlag ? 'Reopened (flag)' : 'Returned',
-            who: nameOf(submission.returned_by_profile),
-            when: submission.previous_counts.at,
-            note: submission.previous_counts.note,
-          })
-        }
-        if (submission.approved_at || submission.approved_by_profile) {
-          rows.push({ icon: 'check_circle', color: THEME.success, label: 'Approved', who: nameOf(submission.approved_by_profile), when: submission.approved_at })
+        let rows = []
+        if (subEvents.length > 0) {
+          // Full immutable history from meal_submission_events (0077) —
+          // every transition survives, including multiple returns/reopens.
+          const META = {
+            created:           { icon: 'note_add',     color: THEME.textLow,  label: 'Created' },
+            submitted:         { icon: 'upload',       color: THEME.info,     label: 'Submitted' },
+            approved:          { icon: 'check_circle', color: THEME.success,  label: 'Approved' },
+            returned_to_draft: { icon: 'undo',         color: THEME.warning,  label: 'Returned' },
+            reopened_via_flag: { icon: 'flag',         color: THEME.warning,  label: 'Reopened (flag)' },
+            queried:           { icon: 'flag',         color: THEME.error,    label: 'Queried by kitchen' },
+          }
+          rows = subEvents
+            .filter(e => e.event_type !== 'created')
+            .map(e => {
+              const m = META[e.event_type] || { icon: 'history', color: THEME.textMed, label: e.event_type }
+              return { ...m, who: nameOf(e.actor_profile), when: e.created_at, note: e.note }
+            })
+        } else {
+          // Legacy fallback for submissions predating the events table.
+          if (submission.submitted_at || submission.submitted_by_profile) {
+            rows.push({ icon: 'upload', color: THEME.info, label: 'Submitted', who: nameOf(submission.submitted_by_profile), when: submission.submitted_at })
+          }
+          if (submission.previous_counts) {
+            const viaFlag = submission.previous_counts.reason === 'reopened_via_flag'
+            rows.push({
+              icon: viaFlag ? 'flag' : 'undo', color: THEME.warning,
+              label: viaFlag ? 'Reopened (flag)' : 'Returned',
+              who: nameOf(submission.returned_by_profile),
+              when: submission.previous_counts.at,
+              note: submission.previous_counts.note,
+            })
+          }
+          if (submission.approved_at || submission.approved_by_profile) {
+            rows.push({ icon: 'check_circle', color: THEME.success, label: 'Approved', who: nameOf(submission.approved_by_profile), when: submission.approved_at })
+          }
         }
         if (rows.length === 0) return null
         return (

@@ -440,6 +440,23 @@ export default function Approvals() {
                     Approved{selected.approved_at && ` on ${fmtDate(selected.approved_at.slice(0,10))}`}
                   </div>
                 )}
+                {selected.status === 'queried' && (
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '8px',
+                    padding: '10px 14px', borderRadius: '10px',
+                    background: THEME.statusWarningBg, color: THEME.statusWarningText,
+                    fontSize: '13px',
+                  }}>
+                    <Icon name="flag" size={16} style={{ color: THEME.statusWarningText, marginTop: '1px' }} />
+                    <div>
+                      <div style={{ fontWeight: 700 }}>Queried by the kitchen</div>
+                      <div style={{ marginTop: '2px' }}>
+                        Awaiting correction by the meals officer — they can edit this day on
+                        Daily Meal Entry and resubmit. See Flags &amp; Queries for the kitchen's reason.
+                      </div>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </Card>

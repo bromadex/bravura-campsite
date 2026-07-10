@@ -471,26 +471,6 @@ export default function DailyEntry() {
         </div>
       )}
 
-      {/* ── HR eligibility banner — non-active staff are excluded from entry ── */}
-      {Object.keys(ineligible).length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '9px 14px', marginBottom: '14px',
-          borderRadius: '8px',
-          background: THEME.statusInfoBg,
-          border: `1px solid ${THEME.info}22`,
-          fontSize: '12px', color: THEME.statusInfoText,
-        }}>
-          <Icon name="badge" size={14} style={{ color: THEME.info, flexShrink: 0 }} />
-          <span>Only <b>active</b> HR employees appear here.</span>
-          {Object.entries(ineligible).map(([status, n]) => (
-            <span key={status} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '1px 7px', background: THEME.surface, borderRadius: '4px', color: THEME.textMed, fontWeight: 600 }}>
-              {n} {status.replace(/_/g, ' ')}
-            </span>
-          ))}
-          <span style={{ color: THEME.textLow }}>hidden</span>
-        </div>
-      )}
 
       {/* ── Open-flag banner: unlocks editing on submitted/approved entries ── */}
       {openFlags.length > 0 && (

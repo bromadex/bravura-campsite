@@ -37,6 +37,24 @@ export default function Billing() {
 
       // daily_billing view has no site_id — query daily_submissions directly
       // scoped to the current site, then join meal_logs for counts.
+      // When "use current pricing" is on, don't filter by effective_date —
+      // we want the latest price even if it's dated after the billing period.
+      const pricesQuery = supabase
+        .from('meal_prices')
+        .select('effective_date, breakfast_usd, lunch_usd, supper_usd')
+        .eq('site_id', currentSiteId)
+        .order('effective_date', { ascending: false })
+      const overridesQuery = supabase
+        .from('meal_price_overrides')
+        .select('effective_date, day_of_week, meal_type, price_usd')
+        .eq('site_id', currentSiteId)
+        .eq('is_active', true)
+        .order('effective_date', { ascending: false })
+      if (!useCurrentPricing) {
+        pricesQuery.lte('effective_date', end)
+        overridesQuery.lte('effective_date', end)
+      }
+
       const [subsRes, pricesRes, overridesRes] = await Promise.all([
         supabase
           .from('daily_submissions')
@@ -45,19 +63,8 @@ export default function Billing() {
           .gte('date', start)
           .lte('date', end)
           .order('date', { ascending: false }),
-        supabase
-          .from('meal_prices')
-          .select('effective_date, breakfast_usd, lunch_usd, supper_usd')
-          .eq('site_id', currentSiteId)
-          .lte('effective_date', end)
-          .order('effective_date', { ascending: false }),
-        supabase
-          .from('meal_price_overrides')
-          .select('effective_date, day_of_week, meal_type, price_usd')
-          .eq('site_id', currentSiteId)
-          .eq('is_active', true)
-          .lte('effective_date', end)
-          .order('effective_date', { ascending: false }),
+        pricesQuery,
+        overridesQuery,
       ])
 
       if (subsRes.error) throw subsRes.error

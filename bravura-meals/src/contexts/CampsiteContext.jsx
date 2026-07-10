@@ -38,7 +38,7 @@ export function CampsiteProvider({ children }) {
         // in this same pass.
         supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').in('status', ['active','on_leave','long_leave']).eq('site_id', currentSiteId).order('name'),
         supabase.from('contractors').select('*').eq('status','Active').order('name'),
-        supabase.from('camp_visitors').select('*').order('created_at', { ascending: false }),
+        supabase.from('camp_visitors').select('*').eq('site_id', currentSiteId).order('created_at', { ascending: false }),
         supabase.from('camp_supply_balance').select('*').eq('site_id', currentSiteId),
       ])
 
@@ -395,7 +395,7 @@ export function CampsiteProvider({ children }) {
 
   // ── Visitors ───────────────────────────────────────────────────────────────
   async function addVisitor(data) {
-    const { data: created, error } = await supabase.from('camp_visitors').insert(data).select().single()
+    const { data: created, error } = await supabase.from('camp_visitors').insert({ ...data, site_id: currentSiteId }).select().single()
     if (error) throw error
     await fetchAll()
     return created

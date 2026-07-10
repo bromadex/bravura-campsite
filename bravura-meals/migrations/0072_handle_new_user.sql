@@ -27,14 +27,14 @@ BEGIN
     split_part(NEW.email, '@', 1)
   );
 
-  INSERT INTO public.profiles (id, username, full_name, force_password_reset)
-  VALUES (NEW.id, v_username, v_full_name, true)
+  -- profiles.role is a legacy NOT NULL text column; real access is granted
+  -- via the roles/user_roles tables, so we default this to 'viewer' —
+  -- the user will get real permissions once an admin assigns roles to them.
+  INSERT INTO public.profiles (id, username, full_name, role, force_password_reset)
+  VALUES (NEW.id, v_username, v_full_name, 'viewer', true)
   ON CONFLICT (id) DO UPDATE
     SET force_password_reset = true
     WHERE profiles.force_password_reset IS DISTINCT FROM true
-      -- Only flip the flag on if it wasn't explicitly cleared already —
-      -- prevents this trigger from re-locking an existing active user
-      -- if their auth.users row is ever re-inserted (never should be, but).
       AND profiles.username IS NULL;
 
   RETURN NEW;

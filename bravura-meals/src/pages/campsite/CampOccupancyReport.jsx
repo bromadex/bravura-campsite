@@ -8,15 +8,28 @@ export default function CampOccupancyReport() {
   const { currentSite } = useSite()
   const { blocks, rooms, assignments, loading } = useCampsite()
 
-  const blockStats = useMemo(() => blocks.map(block => {
-    const blockRooms     = rooms.filter(r => r.block_id === block.id)
-    const occupied       = blockRooms.filter(r => r.status === 'occupied').length
-    const available      = blockRooms.filter(r => r.status === 'available').length
-    const maintenance    = blockRooms.filter(r => r.status === 'maintenance').length
-    const totalResidents = assignments.filter(a => a.status === 'active' && a.room?.block_id === block.id).length
-    const pct            = blockRooms.length > 0 ? Math.round(occupied / blockRooms.length * 100) : 0
-    return { ...block, total: blockRooms.length, occupied, available, maintenance, totalResidents, pct }
-  }), [blocks, rooms, assignments])
+  const blockStats = useMemo(() => {
+    // Occupancy is derived from live assignments, not camp_rooms.status —
+    // assignRoom/transferRoom never write 'occupied' to the room row, so
+    // reading r.status here would report 0 occupied forever. Mirrors the
+    // getRoomStatus logic in CampsiteContext.
+    const occupiedRoomIds = new Set(
+      assignments.filter(a => a.status === 'active').map(a => a.room_id || a.room?.id).filter(Boolean)
+    )
+    return blocks.map(block => {
+      // Exclude non-residential rooms so this report agrees with the
+      // dashboard KPIs, which skip store/maintenance room types.
+      const blockRooms     = rooms.filter(r =>
+        r.block_id === block.id && r.room_type !== 'store' && r.room_type !== 'maintenance'
+      )
+      const occupied       = blockRooms.filter(r => occupiedRoomIds.has(r.id)).length
+      const maintenance    = blockRooms.filter(r => r.status === 'maintenance' && !occupiedRoomIds.has(r.id)).length
+      const available      = Math.max(0, blockRooms.length - occupied - maintenance)
+      const totalResidents = assignments.filter(a => a.status === 'active' && a.room?.block_id === block.id).length
+      const pct            = blockRooms.length > 0 ? Math.round(occupied / blockRooms.length * 100) : 0
+      return { ...block, total: blockRooms.length, occupied, available, maintenance, totalResidents, pct }
+    })
+  }, [blocks, rooms, assignments])
 
   const grandTotals = blockStats.reduce((acc, b) => ({
     total:     acc.total     + b.total,

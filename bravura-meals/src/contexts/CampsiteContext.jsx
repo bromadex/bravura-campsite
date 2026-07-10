@@ -70,7 +70,7 @@ export function CampsiteProvider({ children }) {
         const [aRes, bedsRes] = await Promise.all([
           supabase.from('room_assignments').select(`
             *,
-            employee:employees(id, name, status, leave_status, gender, contractor_id,
+            employee:employees(id, name, status, gender, contractor_id,
               contractor:contractors(id, name, short_code)),
             visitor:camp_visitors(id, name, gender, phone, purpose),
             room:camp_rooms(id, room_number, block_id, capacity,

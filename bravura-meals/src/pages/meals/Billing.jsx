@@ -29,8 +29,9 @@ export default function Billing() {
         start = rangeStart; end = rangeEnd
       } else {
         const pad = n => String(n).padStart(2,'0')
+        const lastDay = new Date(year, month + 1, 0).getDate()  // day 0 of next month = last day of this month
         start = `${year}-${pad(month+1)}-01`
-        end   = `${year}-${pad(month+1)}-31`
+        end   = `${year}-${pad(month+1)}-${pad(lastDay)}`
       }
 
       // daily_billing view has no site_id — query daily_submissions directly

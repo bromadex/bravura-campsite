@@ -82,6 +82,8 @@ export default function DailyEntry() {
   // behaving ambiguously.
   const loadDate = useCallback(async (d) => {
     setLoading(true)
+    setOpenFlags([])                    // reset before fetching so stale flags from
+                                        // a previously-loaded date don't unlock editing
     const employeeIds = employees.map(e => e.id)
     const [{ data: sub }, logsRes] = await Promise.all([
       supabase.from('daily_submissions')
@@ -111,13 +113,12 @@ export default function DailyEntry() {
     // Load open flags on this submission — presence unlocks editing on
     // a submitted/approved entry so the officer can correct what was flagged.
     if (sub?.id) {
-      const { data: flags } = await supabase.from('flags')
-        .select('id, reason, message, raised_by, created_at')
+      const { data: flags, error: flagErr } = await supabase.from('flags')
+        .select('*')
         .eq('submission_id', sub.id)
         .eq('status', 'open')
+      if (flagErr) console.error('flags load error:', flagErr)
       setOpenFlags(flags || [])
-    } else {
-      setOpenFlags([])
     }
 
     const state = {}

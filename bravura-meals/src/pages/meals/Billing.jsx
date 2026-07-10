@@ -106,7 +106,7 @@ export default function Billing() {
           is_saturday: isSat,
           breakfast_count: b,
           lunch_count: l,
-          supper_count: s,
+          supper_count: isSat ? 0 : s,        // regular suppers only
           saturday_supper_count: isSat ? s : 0,
           total_meals: b + l + s,
           breakfast_usd: p.breakfast_usd,

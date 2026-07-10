@@ -284,8 +284,12 @@ export default function FuelRequestForm({ setPage }) {
         request_number:     reqNum,
         requested_by:       profile.id,
         created_by:         profile.id,
-        vehicle_id:         form.asset_type === 'vehicle'   ? form.vehicle_id   : null,
-        equipment_id:       form.asset_type === 'equipment' ? form.equipment_id : null,
+        // Pickers are backed by fleet_assets — write the bridge column, not
+        // the legacy FKs (those point at fuel_vehicles/fuel_equipment and
+        // reject assets created after the fleet migration).
+        fleet_asset_id:     form.asset_type === 'vehicle' ? form.vehicle_id
+                          : form.asset_type === 'equipment' ? form.equipment_id
+                          : null,
         fuel_type_id:       derivedFuelTypeId,
         quantity_requested: Number(form.quantity_requested),
         intended_use:       form.intended_use.trim(),

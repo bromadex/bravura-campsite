@@ -272,10 +272,10 @@ export default function FleetDispatch({ setPage }) {
                     <div style={{
                       display: 'inline-block', marginTop: '6px', fontSize: '10px', fontWeight: 600,
                       padding: '2px 8px', borderRadius: '999px',
-                      background: insp.result === 'pass' ? '#2E7D3218' : insp.result === 'fail' ? '#C6282818' : '#F9A82518',
-                      color: insp.result === 'pass' ? '#2E7D32' : insp.result === 'fail' ? '#C62828' : '#F9A825',
+                      background: insp.overall_result === 'pass' ? '#2E7D3218' : insp.overall_result === 'unsafe' ? '#C6282818' : '#F9A82518',
+                      color: insp.overall_result === 'pass' ? '#2E7D32' : insp.overall_result === 'unsafe' ? '#C62828' : '#F9A825',
                     }}>
-                      {insp.result || 'inspected'}
+                      {insp.overall_result || 'inspected'}
                     </div>
                   )}
 

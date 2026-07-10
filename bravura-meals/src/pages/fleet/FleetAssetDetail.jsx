@@ -73,7 +73,7 @@ export default function FleetAssetDetail({ asset, onClose }) {
       // Try fleet_asset_id first, fall back to old FK columns
       let query = supabase
         .from('fuel_transactions')
-        .select('id, transaction_date, transaction_type, litres, unit_price, total_cost, docket_number, fuel_tanks(name), fuel_types:fuel_tanks(fuel_types(name))')
+        .select('id, transaction_date, transaction_type, litres, unit_price, total_cost, docket_number, fuel_tanks(name), tank:fuel_tanks(fuel_types(name))')
         .eq('site_id', currentSiteId)
         .order('transaction_date', { ascending: false })
         .limit(200)
@@ -417,9 +417,9 @@ function MaintenanceTab({ workOrders }) {
 
 function InspectionsTab({ inspections }) {
   const RESULT_CLR = {
-    pass:        { bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
-    fail:        { bg: THEME.statusErrorBg,   text: THEME.statusErrorText },
-    conditional: { bg: THEME.statusWarningBg, text: THEME.statusWarningText },
+    pass:              { bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
+    unsafe:            { bg: THEME.statusErrorBg,   text: THEME.statusErrorText },
+    pass_with_defects: { bg: THEME.statusWarningBg, text: THEME.statusWarningText },
   }
 
   if (!inspections.length) return (
@@ -441,12 +441,12 @@ function InspectionsTab({ inspections }) {
         </thead>
         <tbody>
           {inspections.map(ins => {
-            const rc = RESULT_CLR[ins.result] || RESULT_CLR.pass
+            const rc = RESULT_CLR[ins.overall_result] || RESULT_CLR.pass
             return (
               <tr key={ins.id} style={{ borderBottom: `1px solid ${THEME.outline}` }}>
                 <td style={{ padding: '7px 6px', color: THEME.text }}>{ins.inspection_date}</td>
                 <td style={{ padding: '7px 6px', color: THEME.text }}>{ins.employees?.name || '—'}</td>
-                <td style={{ padding: '7px 6px' }}><Badge label={ins.result} bg={rc.bg} color={rc.text} /></td>
+                <td style={{ padding: '7px 6px' }}><Badge label={ins.overall_result} bg={rc.bg} color={rc.text} /></td>
                 <td style={{ padding: '7px 6px', color: THEME.text, fontWeight: 600 }}>{ins.overall_score ?? '—'}</td>
                 <td style={{ padding: '7px 6px', color: THEME.textLow }}>{ins.next_due_date || '—'}</td>
               </tr>

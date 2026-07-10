@@ -52,7 +52,7 @@ export default function ShiftReport() {
     })()
 
     const dipQ = supabase.from('fuel_dip_readings')
-      .select('*, tank:fuel_tanks(tank_name, capacity_litres), operator:fuel_operators(full_name)')
+      .select('*, tank:fuel_tanks(name, capacity_litres), operator:fuel_operators(employees(name))')
       .eq('site_id', currentSiteId)
       .in('reading_date', shift === 'night' ? [date, nextDate] : [date])
       .order('reading_date', { ascending: true })
@@ -64,7 +64,7 @@ export default function ShiftReport() {
       dipQ,
       // All transactions for the date (operator filter if selected)
       supabase.from('fuel_transactions')
-        .select('*, tank:fuel_tanks(tank_name), fleet_asset:fleet_assets(fleet_number, registration, asset_number, description, serial_number), operator:fuel_operators(full_name)')
+        .select('*, tank:fuel_tanks(name), fleet_asset:fleet_assets(fleet_number, registration, asset_number, description, serial_number), operator:fuel_operators(employees(name))')
         .eq('site_id', currentSiteId)
         .eq('is_deleted', false)
         .eq('transaction_date', date)
@@ -111,7 +111,7 @@ export default function ShiftReport() {
 
     const selectedOp = operators.find(o => o.id === operatorId)
 
-    setReport({ date, shift, shiftMeta, operatorName: selectedOp?.full_name || 'All operators', tankSummaries, issuances, deliveries, totalIssued, totalDelivered, dips: dips || [] })
+    setReport({ date, shift, shiftMeta, operatorName: selectedOp?.employees?.name || 'All operators', tankSummaries, issuances, deliveries, totalIssued, totalDelivered, dips: dips || [] })
     setLoading(false)
   }, [currentSiteId, date, shift, operatorId, tanks, operators])
 
@@ -137,7 +137,7 @@ export default function ShiftReport() {
             <label style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Operator (optional)</label>
             <select value={operatorId} onChange={e => setOperatorId(e.target.value)} style={selStyle}>
               <option value="">All Operators</option>
-              {operators.map(o => <option key={o.id} value={o.id}>{o.full_name}</option>)}
+              {operators.map(o => <option key={o.id} value={o.id}>{o.employees?.name}</option>)}
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -224,7 +224,7 @@ export default function ShiftReport() {
                       : Math.abs(s.variance) < 50 ? THEME.warning : THEME.error
                     return (
                       <tr key={s.tank.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                        <td style={{ padding: '10px 12px', color: THEME.text, fontWeight: 500 }}>{s.tank.tank_name}</td>
+                        <td style={{ padding: '10px 12px', color: THEME.text, fontWeight: 500 }}>{s.tank.name}</td>
                         <td style={{ padding: '10px 12px', color: THEME.text, textAlign: 'right' }}>{fmt(s.openingLevel)}</td>
                         <td style={{ padding: '10px 12px', color: THEME.success, textAlign: 'right' }}>{s.delivered > 0 ? '+' + fmt(s.delivered) : '—'}</td>
                         <td style={{ padding: '10px 12px', color: THEME.warning, textAlign: 'right' }}>{s.issued > 0 ? '−' + fmt(s.issued) : '—'}</td>
@@ -262,9 +262,9 @@ export default function ShiftReport() {
                     return (
                       <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                         <td style={{ padding: '9px 12px', color: COLOR, fontWeight: 600 }}>{t.docket_number || '—'}</td>
-                        <td style={{ padding: '9px 12px', color: THEME.text }}>{t.tank?.tank_name || '—'}</td>
+                        <td style={{ padding: '9px 12px', color: THEME.text }}>{t.tank?.name || '—'}</td>
                         <td style={{ padding: '9px 12px', color: THEME.text }}>{asset}</td>
-                        <td style={{ padding: '9px 12px', color: THEME.textMed }}>{t.operator?.full_name || '—'}</td>
+                        <td style={{ padding: '9px 12px', color: THEME.textMed }}>{t.operator?.employees?.name || '—'}</td>
                         <td style={{ padding: '9px 12px', color: THEME.warning, fontWeight: 700, textAlign: 'right' }}>{fmt(t.litres)} L</td>
                       </tr>
                     )
@@ -294,7 +294,7 @@ export default function ShiftReport() {
                   {report.deliveries.map(t => (
                     <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                       <td style={{ padding: '9px 12px', color: COLOR, fontWeight: 600 }}>{t.docket_number || '—'}</td>
-                      <td style={{ padding: '9px 12px', color: THEME.text }}>{t.tank?.tank_name || '—'}</td>
+                      <td style={{ padding: '9px 12px', color: THEME.text }}>{t.tank?.name || '—'}</td>
                       <td style={{ padding: '9px 12px', color: THEME.textMed }}>{t.supplier || '—'}</td>
                       <td style={{ padding: '9px 12px', color: THEME.success, fontWeight: 700, textAlign: 'right' }}>{fmt(t.litres)} L</td>
                     </tr>
@@ -326,7 +326,7 @@ export default function ShiftReport() {
                     const vc = pct == null ? THEME.textLow : Math.abs(pct) > 5 ? THEME.error : Math.abs(pct) > 2 ? THEME.warning : THEME.success
                     return (
                       <tr key={d.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                        <td style={{ padding: '9px 12px', color: THEME.text, fontWeight: 500 }}>{d.tank?.tank_name || '—'}</td>
+                        <td style={{ padding: '9px 12px', color: THEME.text, fontWeight: 500 }}>{d.tank?.name || '—'}</td>
                         <td style={{ padding: '9px 12px', color: THEME.textMed }}>{d.reading_time?.slice(0, 5) || '—'}</td>
                         <td style={{ padding: '9px 12px', color: THEME.text }}>{d.dip_mm != null ? fmt(d.dip_mm) : '—'}</td>
                         <td style={{ padding: '9px 12px', color: THEME.text, fontWeight: 500 }}>{fmt(d.level_litres)} L</td>

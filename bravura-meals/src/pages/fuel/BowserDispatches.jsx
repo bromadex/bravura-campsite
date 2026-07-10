@@ -62,8 +62,8 @@ function DispatchModal({ bowsers, currentSiteId, profileId, onClose, onSaved }) 
   const [dispatchNo, setDispatchNo] = useState('')
 
   useEffect(() => {
-    supabase.from('employees').select('id, full_name, employee_number')
-      .eq('site_id', currentSiteId).eq('status', 'active').order('full_name')
+    supabase.from('employees').select('id, name')
+      .eq('site_id', currentSiteId).eq('status', 'active').order('name')
       .then(({ data }) => setEmployees(data || []))
 
     // Generate dispatch number
@@ -129,7 +129,7 @@ function DispatchModal({ bowsers, currentSiteId, profileId, onClose, onSaved }) 
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <Field label="Bowser">
             <select value={bowserId} onChange={e => setBowserId(e.target.value)} style={inputStyle}>
-              {bowsers.map(b => <option key={b.id} value={b.id}>{b.tank_name}</option>)}
+              {bowsers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </Field>
 
@@ -149,7 +149,7 @@ function DispatchModal({ bowsers, currentSiteId, profileId, onClose, onSaved }) 
           <Field label="Driver">
             <select value={driverId} onChange={e => setDriverId(e.target.value)} style={inputStyle}>
               <option value="">— Select driver (optional) —</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.full_name}{e.employee_number ? ` (${e.employee_number})` : ''}</option>)}
+              {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           </Field>
 
@@ -282,7 +282,7 @@ function ReturnModal({ dispatch, onClose, onSaved }) {
 export default function BowserDispatches() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
-  const { tanks, profile } = useFuel()
+  const { tanks, profile, employees: fuelEmployees } = useFuel()
 
   const bowsers = tanks.filter(t => t.tank_type === 'bowser')
 
@@ -299,7 +299,7 @@ export default function BowserDispatches() {
     setLoading(true)
     let q = supabase
       .from('bowser_dispatches')
-      .select('*, bowser:fuel_tanks(tank_name), driver:employees(full_name, employee_number)')
+      .select('*, bowser:fuel_tanks(name)')
       .eq('site_id', currentSiteId)
       .order('dispatch_date', { ascending: false })
       .order('dispatch_time', { ascending: false })
@@ -364,7 +364,7 @@ export default function BowserDispatches() {
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px', padding: '14px 16px', background: THEME.surfaceVar, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}` }}>
         <select value={filterBowser} onChange={e => setFilterBowser(e.target.value)} style={selStyle}>
           <option value="">All Bowsers</option>
-          {bowsers.map(b => <option key={b.id} value={b.id}>{b.tank_name}</option>)}
+          {bowsers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={selStyle}>
           <option value="">All Statuses</option>
@@ -408,7 +408,7 @@ export default function BowserDispatches() {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <td style={{ padding: '10px 14px', color: COLOR, fontWeight: 600 }}>{d.dispatch_number}</td>
-                    <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{d.bowser?.tank_name || '—'}</td>
+                    <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{d.bowser?.name || '—'}</td>
                     <td style={{ padding: '10px 14px', color: THEME.text }}>
                       {d.dispatched_to}
                       {d.dispatched_to_gps_lat && (
@@ -417,7 +417,7 @@ export default function BowserDispatches() {
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: '10px 14px', color: THEME.textMed }}>{d.driver?.full_name || '—'}</td>
+                    <td style={{ padding: '10px 14px', color: THEME.textMed }}>{(fuelEmployees || []).find(e => e.id === d.driver_id)?.name || '—'}</td>
                     <td style={{ padding: '10px 14px', color: THEME.text, whiteSpace: 'nowrap' }}>{fmtDate(d.dispatch_date)}</td>
                     <td style={{ padding: '10px 14px', color: THEME.text, whiteSpace: 'nowrap' }}>{fmtDate(d.return_date)}</td>
                     <td style={{ padding: '10px 14px', color: THEME.text }}>{fmt(d.litres_at_dispatch)} L</td>

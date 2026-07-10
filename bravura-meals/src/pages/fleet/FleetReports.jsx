@@ -112,7 +112,7 @@ export default function FleetReports({ setPage }) {
     const validCompliance = allCompliance.filter(c => c.expiry_date && new Date(c.expiry_date) > new Date()).length
     const complianceRate = allCompliance.length > 0 ? Math.round((validCompliance / allCompliance.length) * 100) : 0
     const allInspections = inspections || []
-    const passed = allInspections.filter(i => i.result === 'pass' || i.status === 'passed').length
+    const passed = allInspections.filter(i => i.overall_result === 'pass' || i.status === 'passed').length
     const inspectionRate = allInspections.length > 0 ? Math.round((passed / allInspections.length) * 100) : 0
     return { totalAssets, vCount, eCount, gCount, utilisationRate, complianceRate, inspectionRate }
   }, [assets, vehicles, heavyEquipment, generators, activeAssignments, compliance, inspections])
@@ -275,21 +275,21 @@ export default function FleetReports({ setPage }) {
       const dt = new Date(d)
       const k = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
       if (!buckets[k]) return
-      const r = (ins.result || ins.status || '').toLowerCase()
+      const r = (ins.overall_result || ins.status || '').toLowerCase()
       if (r === 'pass' || r === 'passed') buckets[k].pass++
-      else if (r === 'fail' || r === 'failed') buckets[k].fail++
+      else if (r === 'unsafe' || r === 'failed') buckets[k].fail++
       else buckets[k].conditional++
     })
     const allIns = inspections || []
-    const totalPass = allIns.filter(i => (i.result || i.status || '').toLowerCase().startsWith('pass')).length
+    const totalPass = allIns.filter(i => (i.overall_result || i.status || '').toLowerCase().startsWith('pass')).length
     const passRate = allIns.length > 0 ? Math.round((totalPass / allIns.length) * 100) : 0
     return { months, buckets, passRate, total: allIns.length }
   }, [inspections])
 
   const assignmentData = useMemo(() => {
     const sorted = [...(assignments || [])].sort((a, b) => {
-      const da = a.assigned_date || a.start_date || a.created_at || ''
-      const db = b.assigned_date || b.start_date || b.created_at || ''
+      const da = a.start_date || a.created_at || ''
+      const db = b.start_date || b.created_at || ''
       return db.localeCompare(da)
     })
     const rows = sorted.map(a => {
@@ -298,7 +298,7 @@ export default function FleetReports({ setPage }) {
         asset ? (asset.asset_number || asset.name || a.asset_id) : (a.asset_id || '-'),
         a.employee_name || a.assigned_to || '-',
         a.assignment_type || a.type || '-',
-        a.assigned_date || a.start_date || a.created_at || '-',
+        a.start_date || a.created_at || '-',
         a.end_date || '-',
         a.status || '-',
       ]

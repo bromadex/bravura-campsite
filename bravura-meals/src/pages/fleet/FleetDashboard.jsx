@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useFleet } from '../../contexts/FleetContext'
+import { useSite } from '../../contexts/SiteContext'
+import { supabase } from '../../supabaseClient'
 import FleetQuickNav from './FleetQuickNav'
 import FleetAssetDetail from './FleetAssetDetail'
 
@@ -104,13 +106,67 @@ export default function FleetDashboard({ setPage }) {
     workOrders, inspections, trips, loading,
   } = useFleet()
 
+  const { currentSiteId } = useSite()
   const [statusFilter, setStatusFilter] = useState(null)
   const [detailAsset, setDetailAsset] = useState(null)
+  const [overConsumers, setOverConsumers] = useState([])
+  const OVER_PCT_THRESHOLD = 20  // configurable later via fleet_settings
 
   const openWorkOrders = useMemo(() =>
     workOrders.filter(w => w.status === 'open' || w.status === 'in_progress'),
     [workOrders]
   )
+
+  // Top over-consuming vehicles this month — computed from fuel_transactions
+  // odometer readings vs the vehicle's expected_consumption_lpkm. Same math
+  // as the Vehicle Consumption page but only surfaces the worst offenders.
+  useEffect(() => {
+    if (!currentSiteId) return
+    let cancelled = false
+    async function load() {
+      const now = new Date()
+      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+      const { data: txns } = await supabase
+        .from('fuel_transactions')
+        .select('fleet_asset_id, litres, odometer_km, transaction_date, fleet_asset:fleet_assets(fleet_number, registration, asset_number, expected_consumption_lpkm)')
+        .eq('site_id', currentSiteId)
+        .eq('is_deleted', false)
+        .eq('transaction_type', 'issuance')
+        .gte('transaction_date', monthStart)
+        .not('odometer_km', 'is', null)
+        .order('transaction_date', { ascending: true })
+
+      const map = {}
+      for (const t of txns || []) {
+        const key = t.fleet_asset_id
+        if (!key || !t.fleet_asset?.expected_consumption_lpkm) continue
+        if (!map[key]) map[key] = {
+          id: key,
+          label: t.fleet_asset.registration || t.fleet_asset.fleet_number || t.fleet_asset.asset_number,
+          expected: Number(t.fleet_asset.expected_consumption_lpkm) * 100,   // L/100km
+          litres: 0, firstOdo: null, lastOdo: null,
+        }
+        const r = map[key]
+        r.litres += Number(t.litres)
+        const odo = Number(t.odometer_km)
+        if (r.firstOdo == null) r.firstOdo = odo
+        r.lastOdo = odo
+      }
+      const results = Object.values(map)
+        .map(r => {
+          const km = r.lastOdo != null && r.firstOdo != null && r.lastOdo > r.firstOdo ? r.lastOdo - r.firstOdo : 0
+          const actual = km > 0 ? (r.litres / km) * 100 : null
+          const overPct = actual && r.expected ? ((actual - r.expected) / r.expected) * 100 : null
+          return { ...r, km, actual, overPct }
+        })
+        .filter(r => r.overPct != null && r.overPct > OVER_PCT_THRESHOLD)
+        .sort((a, b) => b.overPct - a.overPct)
+        .slice(0, 5)
+      if (!cancelled) setOverConsumers(results)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [currentSiteId])
 
   const recentInspections = useMemo(() => {
     const cutoff = new Date()
@@ -223,6 +279,57 @@ export default function FleetDashboard({ setPage }) {
         <KpiTile icon="warning" label="Expiring Compliance" value={expiringCompliance.length} accent={expiringCompliance.length > 0 ? '#E65100' : color} sub="Within 30 days" />
         <KpiTile icon="checklist" label="Inspections (30d)" value={recentInspections.length} sub="Last 30 days" />
       </div>
+
+      {/* Fuel efficiency alert — top vehicles consuming above expected this month */}
+      {overConsumers.length > 0 && (
+        <div style={{
+          background: THEME.surface, borderRadius: '14px', padding: '20px',
+          border: `1px solid #C6282833`, borderLeft: `4px solid #C62828`,
+          marginBottom: '20px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '22px', color: '#C62828' }}>trending_up</span>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: THEME.text }}>
+                  Top Over-Consuming Vehicles This Month
+                </div>
+                <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>
+                  Consuming more than {OVER_PCT_THRESHOLD}% above their expected L/100km
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setPage('fuel_vehicle_consumption')}
+              style={{
+                background: 'transparent', border: `1px solid ${THEME.outlineVar}`,
+                borderRadius: '8px', padding: '6px 14px', cursor: 'pointer',
+                fontSize: '12px', fontWeight: 600, color: THEME.textMed, fontFamily: 'inherit',
+              }}
+            >
+              View all →
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+            {overConsumers.map(v => (
+              <div key={v.id} style={{
+                background: '#C6282808', borderRadius: '10px', padding: '12px',
+                border: `1px solid #C6282822`,
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.text, marginBottom: '4px' }}>
+                  {v.label}
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#C62828' }}>
+                  +{Math.round(v.overPct)}%
+                </div>
+                <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '3px' }}>
+                  {v.actual?.toFixed(1)} vs {v.expected.toFixed(1)} L/100km · {v.km.toLocaleString()} km
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 280px' }}>

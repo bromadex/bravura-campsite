@@ -26,6 +26,111 @@ function exportCsv(filename, headers, rows) {
   URL.revokeObjectURL(url)
 }
 
+// Monthly consumption trend — bins each vehicle's fills into calendar months,
+// computes L/100km per month using odometer deltas within that month, and
+// draws an inline SVG line chart. A dashed line marks the expected L/100km
+// so drift is visible at a glance (rising trend = engine wear or leaks).
+function MonthlyTrendChart({ row, expectedL100 }) {
+  const monthly = useMemo(() => {
+    const buckets = {}
+    // Walk chronologically so we can capture odometer delta per fill
+    let prevOdo = null
+    for (const t of row.txns) {
+      const ym = String(t.transaction_date).slice(0, 7)   // 'YYYY-MM'
+      if (!buckets[ym]) buckets[ym] = { ym, litres: 0, km: 0 }
+      buckets[ym].litres += Number(t.litres)
+      const thisOdo = t.odometer_km != null ? Number(t.odometer_km) : null
+      if (thisOdo != null && prevOdo != null && thisOdo > prevOdo) {
+        buckets[ym].km += thisOdo - prevOdo
+      }
+      if (thisOdo != null) prevOdo = thisOdo
+    }
+    return Object.values(buckets)
+      .sort((a, b) => a.ym.localeCompare(b.ym))
+      .map(b => ({ ...b, lp100: b.km > 0 ? (b.litres / b.km) * 100 : null }))
+  }, [row])
+
+  if (monthly.length < 2 || monthly.every(m => m.lp100 == null)) {
+    return (
+      <div style={{ padding: '10px 0', fontSize: '12px', color: THEME.textLow }}>
+        <Icon name="show_chart" size={14} style={{ verticalAlign: 'middle', marginRight: '4px', color: THEME.textLow }} />
+        Not enough monthly data yet — need at least 2 months of odometer readings for a trend.
+      </div>
+    )
+  }
+
+  const values = monthly.map(m => m.lp100).filter(v => v != null)
+  const maxV = Math.max(...values, expectedL100 || 0) * 1.15
+  const minV = 0
+  const W = 640, H = 140, pad = { l: 40, r: 12, t: 12, b: 26 }
+  const chartW = W - pad.l - pad.r
+  const chartH = H - pad.t - pad.b
+  const xFor = i => pad.l + (monthly.length === 1 ? chartW / 2 : (i / (monthly.length - 1)) * chartW)
+  const yFor = v => pad.t + chartH - ((v - minV) / (maxV - minV)) * chartH
+
+  const points = monthly
+    .map((m, i) => m.lp100 != null ? `${xFor(i)},${yFor(m.lp100)}` : null)
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '8px' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+          Monthly L/100km trend
+        </div>
+        {expectedL100 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: THEME.textLow }}>
+            <span style={{ display: 'inline-block', width: '14px', borderTop: `2px dashed ${THEME.textLow}` }} />
+            Expected: {expectedL100.toFixed(1)} L/100km
+          </div>
+        )}
+      </div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ background: THEME.surface, borderRadius: '8px', border: `1px solid ${THEME.outlineVar}`, maxWidth: '640px' }}>
+        {/* Y-axis grid */}
+        {[0.25, 0.5, 0.75, 1].map((f, i) => {
+          const y = pad.t + chartH * (1 - f)
+          const v = minV + (maxV - minV) * f
+          return (
+            <g key={i}>
+              <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke={THEME.outlineVar} strokeWidth="1" />
+              <text x={pad.l - 6} y={y + 3} textAnchor="end" fontSize="10" fill={THEME.textLow}>{v.toFixed(0)}</text>
+            </g>
+          )
+        })}
+        {/* Expected line */}
+        {expectedL100 && expectedL100 >= minV && expectedL100 <= maxV && (
+          <line
+            x1={pad.l} y1={yFor(expectedL100)} x2={W - pad.r} y2={yFor(expectedL100)}
+            stroke={THEME.textLow} strokeWidth="1.5" strokeDasharray="4 4"
+          />
+        )}
+        {/* Trend line */}
+        <polyline points={points} fill="none" stroke={COLOR} strokeWidth="2" />
+        {/* Data points */}
+        {monthly.map((m, i) => m.lp100 != null && (
+          <g key={m.ym}>
+            <circle
+              cx={xFor(i)} cy={yFor(m.lp100)} r="4"
+              fill={expectedL100 && m.lp100 > expectedL100 * 1.2 ? '#C62828' : COLOR}
+            />
+            <title>{m.ym}: {m.lp100.toFixed(1)} L/100km ({m.km} km, {m.litres.toFixed(1)} L)</title>
+          </g>
+        ))}
+        {/* X-axis labels */}
+        {monthly.map((m, i) => (
+          <text
+            key={m.ym + '_x'}
+            x={xFor(i)} y={H - 8} textAnchor="middle" fontSize="10" fill={THEME.textLow}
+          >
+            {m.ym.slice(2)}
+          </text>
+        ))}
+      </svg>
+    </div>
+  )
+}
+
 function KpiTile({ icon, label, value, sub, color, onClick, active }) {
   return (
     <div
@@ -68,7 +173,8 @@ export default function VehicleConsumption() {
   const [expanded, setExpanded] = useState(null)
   const [sortKey, setSortKey] = useState('totalLitres')
   const [sortDir, setSortDir] = useState(-1)
-  const [statusFilter, setStatusFilter] = useState(null) // null | 'abnormal' | 'noKmData'
+  const [statusFilter, setStatusFilter] = useState(null) // null | 'abnormal' | 'noKmData' | 'overExpected'
+  const [alertPct, setAlertPct] = useState(20)  // alert when actual > expected by this many %
 
   const run = useCallback(async () => {
     if (!currentSiteId) return
@@ -76,13 +182,14 @@ export default function VehicleConsumption() {
     setExpanded(null)
     const { data: txns, error } = await supabase
       .from('fuel_transactions')
-      .select('fleet_asset_id, litres, meter_start, meter_end, transaction_date, docket_number, notes, tank:fuel_tanks(name), fleet_asset:fleet_assets(fleet_number, registration, asset_number, description, serial_number, expected_consumption_lpkm, fuel_types(name))')
+      .select('fleet_asset_id, litres, odometer_km, transaction_date, docket_number, notes, tank:fuel_tanks(name), fleet_asset:fleet_assets(fleet_number, registration, asset_number, description, serial_number, expected_consumption_lpkm, fuel_types(name))')
       .eq('site_id', currentSiteId)
       .eq('is_deleted', false)
       .eq('transaction_type', 'issuance')
       .gte('transaction_date', from)
       .lte('transaction_date', to)
-      .order('transaction_date', { ascending: false })
+      .order('transaction_date', { ascending: true })   // ASC so odometer diffs work chronologically
+
     if (error) console.error('VehicleConsumption query failed:', error)
 
     const map = {}
@@ -98,7 +205,7 @@ export default function VehicleConsumption() {
           fuelType: a?.fuel_types?.name || 'Diesel',
           expectedLpkm: a?.expected_consumption_lpkm ? Number(a.expected_consumption_lpkm) : null,
           totalLitres: 0, fills: 0, totalKm: 0,
-          minFill: null, maxFill: null, lastOdometer: null,
+          minFill: null, maxFill: null, lastOdometer: null, firstOdometer: null,
           txns: [],
         }
       }
@@ -108,26 +215,37 @@ export default function VehicleConsumption() {
       row.fills += 1
       row.minFill = row.minFill == null ? litres : Math.min(row.minFill, litres)
       row.maxFill = row.maxFill == null ? litres : Math.max(row.maxFill, litres)
-      if (t.meter_start != null && t.meter_end != null) {
-        const km = Number(t.meter_end) - Number(t.meter_start)
-        if (km > 0) row.totalKm += km
-      }
-      if (t.meter_end != null) {
-        row.lastOdometer = row.lastOdometer == null ? Number(t.meter_end) : Math.max(row.lastOdometer, Number(t.meter_end))
+      // Vehicle odometer at this fill — used for distance calc.
+      const odo = t.odometer_km != null ? Number(t.odometer_km) : null
+      if (odo != null) {
+        if (row.firstOdometer == null) row.firstOdometer = odo
+        row.lastOdometer = odo
       }
       row.txns.push(t)
     }
 
     for (const row of Object.values(map)) {
+      // Distance travelled in the window = odometer at last fill - odometer at first fill
+      if (row.firstOdometer != null && row.lastOdometer != null && row.lastOdometer > row.firstOdometer) {
+        row.totalKm = row.lastOdometer - row.firstOdometer
+      }
       row.avgFill = row.fills > 0 ? row.totalLitres / row.fills : null
       row.lp100km = row.totalKm > 0 ? (row.totalLitres / row.totalKm) * 100 : null
+      // Over-expected alert: needs both an expected value and actual km data
+      const expectedL100 = row.expectedLpkm ? row.expectedLpkm * 100 : null
+      row.overThreshold = expectedL100 && row.lp100km
+        ? row.lp100km > expectedL100 * (1 + alertPct / 100)
+        : false
+      row.overPct = expectedL100 && row.lp100km
+        ? ((row.lp100km - expectedL100) / expectedL100) * 100
+        : null
       // abnormal fills: single draws ≥ 2.5× this asset's average
       row.abnormal = row.fills >= 3 ? row.txns.filter(t => Number(t.litres) >= 2.5 * row.avgFill).length : 0
     }
 
     setRows(Object.values(map))
     setLoading(false)
-  }, [currentSiteId, from, to])
+  }, [currentSiteId, from, to, alertPct])
 
   useEffect(() => { run() }, [run])
 
@@ -144,8 +262,9 @@ export default function VehicleConsumption() {
     let list = q
       ? rows.filter(r => `${r.label} ${r.subLabel || ''}`.toLowerCase().includes(q))
       : rows
-    if (statusFilter === 'abnormal') list = list.filter(r => r.abnormal > 0)
-    if (statusFilter === 'noKmData') list = list.filter(r => r.lp100km == null)
+    if (statusFilter === 'abnormal')     list = list.filter(r => r.abnormal > 0)
+    if (statusFilter === 'noKmData')     list = list.filter(r => r.lp100km == null)
+    if (statusFilter === 'overExpected') list = list.filter(r => r.overThreshold)
     return [...list].sort((a, b) => {
       const av = a[sortKey] ?? -Infinity
       const bv = b[sortKey] ?? -Infinity
@@ -158,11 +277,13 @@ export default function VehicleConsumption() {
     const totalLitres = rows.reduce((s, r) => s + r.totalLitres, 0)
     const totalKm     = rows.reduce((s, r) => s + r.totalKm, 0)
     const abnormal    = rows.reduce((s, r) => s + r.abnormal, 0)
+    const overCount   = rows.filter(r => r.overThreshold).length
     return {
       vehicles: rows.length,
       totalLitres,
       fleetLp100: totalKm > 0 ? (totalLitres / totalKm) * 100 : null,
       abnormal,
+      overCount,
     }
   }, [rows])
 
@@ -260,11 +381,32 @@ export default function VehicleConsumption() {
               active={statusFilter === 'abnormal'}
               onClick={kpis.abnormal > 0 ? () => setStatusFilter(statusFilter === 'abnormal' ? null : 'abnormal') : undefined}
             />
+            <KpiTile
+              icon="trending_up" label={`Over Expected (>${alertPct}%)`} value={kpis.overCount}
+              color={kpis.overCount > 0 ? '#C62828' : THEME.text}
+              sub={kpis.overCount > 0 ? 'consuming above rated — click to view' : 'all vehicles within tolerance'}
+              active={statusFilter === 'overExpected'}
+              onClick={kpis.overCount > 0 ? () => setStatusFilter(statusFilter === 'overExpected' ? null : 'overExpected') : undefined}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', fontSize: '12px', color: THEME.textMed }}>
+            <Icon name="tune" size={14} style={{ color: COLOR }} />
+            <span>Alert threshold: vehicles consuming more than <b>{alertPct}%</b> above expected L/100km</span>
+            <input
+              type="range" min="5" max="100" step="5"
+              value={alertPct}
+              onChange={e => setAlertPct(Number(e.target.value))}
+              style={{ flex: 1, maxWidth: '200px' }}
+            />
           </div>
           {statusFilter && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', fontSize: '12px', color: THEME.textMed }}>
               <Icon name="filter_alt" size={14} style={{ color: COLOR }} />
-              Filtered: {statusFilter === 'abnormal' ? 'vehicles with abnormal fills' : 'vehicles with no odometer data'}
+              Filtered: {
+                statusFilter === 'abnormal' ? 'vehicles with abnormal fills'
+                : statusFilter === 'overExpected' ? `vehicles consuming >${alertPct}% above expected`
+                : 'vehicles with no odometer data'
+              }
               <button
                 onClick={() => setStatusFilter(null)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLOR, fontWeight: 600, fontSize: '12px', fontFamily: 'inherit', padding: 0 }}
@@ -301,6 +443,8 @@ export default function VehicleConsumption() {
                 const isExpanded = expanded === row.assetId
                 const status = row.abnormal > 0
                   ? { label: `${row.abnormal} abnormal`, bg: THEME.statusErrorBg, color: THEME.statusErrorText }
+                  : row.overThreshold
+                  ? { label: `+${Math.round(row.overPct)}% over expected`, bg: '#C6282814', color: '#C62828' }
                   : row.lp100km == null
                   ? { label: 'No km data', bg: THEME.surfaceVar, color: THEME.textLow }
                   : { label: 'Normal', bg: THEME.statusSuccessBg, color: THEME.statusSuccessText }
@@ -342,18 +486,22 @@ export default function VehicleConsumption() {
                     </tr>
                     {isExpanded && (
                       <tr key={row.assetId + '_exp'} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                        <td colSpan={8} style={{ padding: '0 0 0 40px', background: THEME.surfaceVar }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <td colSpan={8} style={{ padding: '14px 20px 20px 40px', background: THEME.surfaceVar }}>
+                          {/* Monthly trend graph */}
+                          <MonthlyTrendChart row={row} expectedL100={row.expectedLpkm ? row.expectedLpkm * 100 : null} />
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginTop: '14px' }}>
                             <thead>
                               <tr style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                                {['Date', 'Docket #', 'Tank', 'Litres', 'Meter Start', 'Meter End', 'km'].map(h => (
-                                  <th key={h} style={{ padding: '7px 12px', textAlign: ['Litres', 'Meter Start', 'Meter End', 'km'].includes(h) ? 'right' : 'left', fontWeight: 600, color: THEME.textMed }}>{h}</th>
+                                {['Date', 'Docket #', 'Tank', 'Litres', 'Odometer (km)', 'km since prev'].map(h => (
+                                  <th key={h} style={{ padding: '7px 12px', textAlign: ['Litres', 'Odometer (km)', 'km since prev'].includes(h) ? 'right' : 'left', fontWeight: 600, color: THEME.textMed }}>{h}</th>
                                 ))}
                               </tr>
                             </thead>
                             <tbody>
                               {row.txns.map((t, i) => {
-                                const km = t.meter_start != null && t.meter_end != null ? Number(t.meter_end) - Number(t.meter_start) : null
+                                const prevOdo = i > 0 && row.txns[i - 1].odometer_km != null ? Number(row.txns[i - 1].odometer_km) : null
+                                const thisOdo = t.odometer_km != null ? Number(t.odometer_km) : null
+                                const km = prevOdo != null && thisOdo != null && thisOdo > prevOdo ? thisOdo - prevOdo : null
                                 const isAbnormal = row.avgFill != null && row.fills >= 3 && Number(t.litres) >= 2.5 * row.avgFill
                                 return (
                                   <tr key={i} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: isAbnormal ? THEME.error + '08' : 'transparent' }}>
@@ -363,8 +511,7 @@ export default function VehicleConsumption() {
                                     <td style={{ padding: '7px 12px', textAlign: 'right', fontWeight: 600, color: isAbnormal ? THEME.error : THEME.warning }}>
                                       {fmt(t.litres)} L{isAbnormal && ' ⚠'}
                                     </td>
-                                    <td style={{ padding: '7px 12px', textAlign: 'right', color: THEME.textMed }}>{t.meter_start != null ? Number(t.meter_start).toLocaleString() : '—'}</td>
-                                    <td style={{ padding: '7px 12px', textAlign: 'right', color: THEME.textMed }}>{t.meter_end != null ? Number(t.meter_end).toLocaleString() : '—'}</td>
+                                    <td style={{ padding: '7px 12px', textAlign: 'right', color: thisOdo != null ? THEME.text : THEME.textLow }}>{thisOdo != null ? thisOdo.toLocaleString() : '—'}</td>
                                     <td style={{ padding: '7px 12px', textAlign: 'right', color: km != null ? THEME.text : THEME.textLow }}>{km != null ? km.toLocaleString() + ' km' : '—'}</td>
                                   </tr>
                                 )

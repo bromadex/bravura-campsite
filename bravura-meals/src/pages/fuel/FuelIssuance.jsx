@@ -294,6 +294,7 @@ const BLANK = {
   use_meter:        true,
   meter_start:      '',
   meter_end:        '',
+  odometer_km:      '',    // vehicle odometer at fill time — required for vehicles
   litres_manual:    '',
   docket_number:    '',
   notes:            '',
@@ -455,6 +456,12 @@ export default function FuelIssuance({ setPage }) {
     }
     if (form.asset_type === 'vehicle'   && !form.vehicle_id)   { showToast('Select a vehicle', 'red'); return }
     if (form.asset_type === 'equipment' && !form.equipment_id) { showToast('Select equipment', 'red'); return }
+    // Odometer is required for vehicles so the L/100km analytics have a
+    // valid distance signal. Equipment doesn't have km — hours would apply
+    // there but that's a follow-up.
+    if (form.asset_type === 'vehicle' && !form.odometer_km) {
+      showToast('Enter the vehicle odometer reading (km)', 'red'); return
+    }
     if (!form.operator_id) { showToast('Select an operator', 'red'); return }
     if (wouldOverdraw) { showToast(`Insufficient stock — only ${tankLevel.toFixed(1)} L available`, 'red'); return }
 
@@ -480,6 +487,7 @@ export default function FuelIssuance({ setPage }) {
         operator_id:       form.operator_id || null,
         meter_start: form.use_meter && form.meter_start ? Number(form.meter_start) : null,
         meter_end:   form.use_meter && form.meter_end   ? Number(form.meter_end)   : null,
+        odometer_km: form.asset_type === 'vehicle' && form.odometer_km ? Number(form.odometer_km) : null,
         docket_number:     form.docket_number.trim() || null,
         notes:             form.notes.trim() || null,
         // Acknowledgement fields — pending review when unlinked.
@@ -1273,14 +1281,34 @@ export default function FuelIssuance({ setPage }) {
             </div>
 
             {form.asset_type === 'vehicle' && (
-              <SearchSelect
-                items={activeVehicles}
-                value={form.vehicle_id}
-                onSelect={id => set('vehicle_id', id)}
-                placeholder="Search by fleet # or registration…"
-                renderItem={v => `${v.fleet_number}${v.registration ? ' · ' + v.registration : ''}${v.fuel_types?.name ? ' · ' + v.fuel_types.name : ''}`}
-                renderSelected={v => `${v.fleet_number}${v.registration ? ' (' + v.registration + ')' : ''}`}
-              />
+              <>
+                <SearchSelect
+                  items={activeVehicles}
+                  value={form.vehicle_id}
+                  onSelect={id => set('vehicle_id', id)}
+                  placeholder="Search by fleet # or registration…"
+                  renderItem={v => `${v.fleet_number}${v.registration ? ' · ' + v.registration : ''}${v.fuel_types?.name ? ' · ' + v.fuel_types.name : ''}`}
+                  renderSelected={v => `${v.fleet_number}${v.registration ? ' (' + v.registration + ')' : ''}`}
+                />
+                <div style={{ marginTop: '10px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px' }}>
+                    Vehicle odometer reading (km) <span style={{ color: THEME.error }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.1"
+                    min="0"
+                    value={form.odometer_km}
+                    onChange={e => set('odometer_km', e.target.value)}
+                    placeholder="e.g. 128450"
+                    style={inp({ borderColor: form.vehicle_id && !form.odometer_km ? THEME.error : THEME.outline })}
+                  />
+                  <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
+                    Read directly from the dashboard cluster. Used for L/100km monitoring.
+                  </div>
+                </div>
+              </>
             )}
             {form.asset_type === 'equipment' && (
               <SearchSelect

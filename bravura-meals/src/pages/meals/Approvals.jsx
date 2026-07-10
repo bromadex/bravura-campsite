@@ -262,12 +262,12 @@ export default function Approvals() {
             ) : (
               <>
                 {/* Summary stats */}
-                {(() => { const s = mealSummary(logs); return (
+                {(() => { const s = mealSummary(logs); const isSat = selected?.date && new Date(selected.date + 'T00:00:00').getDay() === 6; return (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', marginBottom: '12px' }}>
                     {[
                       { label: 'Breakfasts', v: s.b, c: THEME.breakfastClr, k: 'b' },
                       { label: 'Lunches',    v: s.l, c: THEME.lunchClr,     k: 'l' },
-                      { label: 'Suppers',    v: s.s, c: THEME.supperClr,    k: 's' },
+                      { label: isSat ? 'Special Meals' : 'Suppers', v: s.s, c: isSat ? '#8E24AA' : THEME.supperClr, k: 's' },
                       { label: 'Total',      v: s.t, c: THEME.primary,      k: 't' },
                     ].map(x => {
                       const prev = selected.previous_counts

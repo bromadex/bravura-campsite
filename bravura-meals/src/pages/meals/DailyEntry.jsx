@@ -19,6 +19,11 @@ export default function DailyEntry() {
   const { currentSiteId, currentSite } = useSite()
 
   const [date,        setDate]        = useState(today())
+  const isSaturday = new Date(date + 'T00:00:00').getDay() === 6
+  const supperLabel = isSaturday ? 'Special Meal' : 'Supper'
+  const supperLabelPlural = isSaturday ? 'Special Meals' : 'Suppers'
+  const supperColor = isSaturday ? '#8E24AA' : THEME.supperClr
+  const supperIcon = isSaturday ? 'celebration' : 'bedtime'
   const [employees,   setEmployees]   = useState([])
   const [contractors, setContractors] = useState([])
   const [entryState,  setEntryState]  = useState({})
@@ -464,7 +469,7 @@ export default function DailyEntry() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
         <StatCard label="Breakfasts"  value={totals.b}                     color={THEME.breakfastClr} icon="wb_sunny" />
         <StatCard label="Lunches"     value={totals.l}                     color={THEME.lunchClr}     icon="light_mode" />
-        <StatCard label="Suppers"     value={totals.s}                     color={THEME.supperClr}    icon="bedtime" />
+        <StatCard label={supperLabelPlural} value={totals.s}               color={supperColor}        icon={supperIcon} />
         <StatCard label="Total meals" value={totals.b + totals.l + totals.s} color={THEME.primary}   icon="groups" />
       </div>
 
@@ -529,7 +534,7 @@ export default function DailyEntry() {
               {[
                 { meal: 'b', label: 'All Breakfast', color: THEME.breakfastClr },
                 { meal: 'l', label: 'All Lunch',     color: THEME.lunchClr },
-                { meal: 's', label: 'All Supper',    color: THEME.supperClr },
+                { meal: 's', label: isSaturday ? 'All Special Meal' : 'All Supper', color: supperColor },
               ].map(({ meal, label, color }) => (
                 <button
                   key={meal}
@@ -567,7 +572,7 @@ export default function DailyEntry() {
                   <SortTh label="Contractor" sortKey="contractor" sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
                   <SortTh label="Breakfast"  sortKey="b"          sortState={sortState} onSort={onSort} style={{ ...hStyleTintB, textAlign: 'center' }} />
                   <SortTh label="Lunch"      sortKey="l"          sortState={sortState} onSort={onSort} style={{ ...hStyleTintL, textAlign: 'center' }} />
-                  <SortTh label="Supper"     sortKey="s"          sortState={sortState} onSort={onSort} style={{ ...hStyleTintS, textAlign: 'center' }} />
+                  <SortTh label={supperLabel} sortKey="s"          sortState={sortState} onSort={onSort} style={{ ...hStyleTintS, textAlign: 'center' }} />
                   <SortTh label="Total"      sortKey="total"      sortState={sortState} onSort={onSort} style={{ ...hStyle, textAlign: 'center' }} />
                 </tr>
               </thead>

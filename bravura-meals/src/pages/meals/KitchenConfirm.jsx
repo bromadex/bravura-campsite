@@ -10,6 +10,9 @@ export default function KitchenConfirm() {
   const { currentSiteId, currentSite } = useSite()
 
   const [date, setDate] = useState(today())
+  const isSaturday = new Date(date + 'T00:00:00').getDay() === 6
+  const supperLabel = isSaturday ? 'Special Meal' : 'Supper'
+  const supperLabelSys = isSaturday ? 'Special Meal (system)' : 'Supper (system)'
   const [submission, setSubmission] = useState(null)
   const [counts, setCounts] = useState({ b: '', l: '', s: '' })
   const [prepared, setPrepared] = useState({ b: '', l: '', s: '' })
@@ -152,7 +155,7 @@ export default function KitchenConfirm() {
                 {[
                   { label: 'Breakfast', v: forecast.b, icon: 'wb_sunny' },
                   { label: 'Lunch',     v: forecast.l, icon: 'light_mode' },
-                  { label: 'Supper',    v: forecast.s, icon: 'bedtime' },
+                  { label: supperLabel, v: forecast.s, icon: isSaturday ? 'celebration' : 'bedtime' },
                 ].map(x => (
                   <div key={x.label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Icon name={x.icon} size={15} style={{ color: THEME.info }} />
@@ -175,7 +178,7 @@ export default function KitchenConfirm() {
               {[
                 { label: 'Breakfast (system)', v: submission.kitchen_count_b ?? '—', icon: 'wb_sunny',  c: THEME.breakfastClr },
                 { label: 'Lunch (system)',     v: submission.kitchen_count_l ?? '—', icon: 'light_mode', c: THEME.lunchClr },
-                { label: 'Supper (system)',    v: submission.kitchen_count_s ?? '—', icon: 'bedtime',    c: THEME.supperClr },
+                { label: supperLabelSys, v: submission.kitchen_count_s ?? '—', icon: isSaturday ? 'celebration' : 'bedtime', c: isSaturday ? '#8E24AA' : THEME.supperClr },
               ].map(x => (
                 <div key={x.label} style={{ background: THEME.surfaceVar, borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
                   <Icon name={x.icon} size={16} style={{ color: x.c }} />
@@ -191,7 +194,7 @@ export default function KitchenConfirm() {
               {['b','l','s'].map((k, i) => (
                 <div key={k}>
                   <label style={{ display: 'block', fontSize: '11px', color: THEME.textLow, marginBottom: '4px' }}>
-                    {['Breakfast','Lunch','Supper'][i]}
+                    {['Breakfast','Lunch',supperLabel][i]}
                   </label>
                   <input
                     type="number"
@@ -219,7 +222,7 @@ export default function KitchenConfirm() {
               {['b','l','s'].map((k, i) => (
                 <div key={k}>
                   <label style={{ display: 'block', fontSize: '11px', color: THEME.textLow, marginBottom: '4px' }}>
-                    {['Breakfast','Lunch','Supper'][i]}
+                    {['Breakfast','Lunch',supperLabel][i]}
                   </label>
                   <input
                     type="number"
@@ -247,7 +250,7 @@ export default function KitchenConfirm() {
                   return (
                     <div key={k} style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                        {['Breakfast','Lunch','Supper'][i]} waste
+                        {['Breakfast','Lunch',supperLabel][i]} waste
                       </div>
                       <div style={{ fontSize: '16px', fontWeight: 700, color, marginTop: '2px' }}>
                         {waste == null ? '—' : (waste > 0 ? '+' : '') + waste}
@@ -305,7 +308,7 @@ export default function KitchenConfirm() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                   {['b','l','s'].map((k,i) => (
                     <div key={k}>
-                      <label style={{ fontSize: '11px', color: THEME.textLow, display: 'block', marginBottom: '3px' }}>{['Breakfast','Lunch','Supper'][i]}</label>
+                      <label style={{ fontSize: '11px', color: THEME.textLow, display: 'block', marginBottom: '3px' }}>{['Breakfast','Lunch',supperLabel][i]}</label>
                       <input
                         type="number" min="0"
                         value={flagKitchen[k]}

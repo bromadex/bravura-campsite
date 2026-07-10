@@ -13,6 +13,10 @@ export default function DailyReport() {
   const showCosts = can('meals.approve')
 
   const [date,        setDate]        = useState(today())
+  const isSaturday = new Date(date + 'T00:00:00').getDay() === 6
+  const supperLabelPlural = isSaturday ? 'Special Meals' : 'Suppers'
+  const supperColor = isSaturday ? '#8E24AA' : THEME.supperClr
+  const supperIcon = isSaturday ? 'celebration' : 'bedtime'
   const [employees,   setEmployees]   = useState([])
   const [contractors, setContractors] = useState([])
   const [logs,        setLogs]        = useState([])
@@ -85,7 +89,7 @@ export default function DailyReport() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
         <StatCard label="Breakfasts" value={totB} color={THEME.breakfastClr} icon="wb_sunny" />
         <StatCard label="Lunches"    value={totL} color={THEME.lunchClr}     icon="light_mode" />
-        <StatCard label="Suppers"    value={totS} color={THEME.supperClr}    icon="bedtime" />
+        <StatCard label={supperLabelPlural} value={totS} color={supperColor} icon={supperIcon} />
         <StatCard label="Total"      value={totB+totL+totS} color={THEME.primary} icon="groups" />
         {showCosts && prices && (
           <StatCard label="Day Cost" value={`$${(totB*prices.b + totL*prices.l + totS*prices.s).toFixed(2)}`} color={THEME.info} icon="payments" />

@@ -15,6 +15,7 @@ Then paste the specific session prompt below it.
 
 ═══════════════════════════════════════════════════════════════════════════════
 MASTER CONTEXT — PASTE THIS AT THE START OF EVERY SESSION
+(rev 2 · July 2026 · supersedes the original — the ERP has grown a lot)
 ═══════════════════════════════════════════════════════════════════════════════
 
 You are developing the Bravura ERP platform. Read everything below before
@@ -22,8 +23,9 @@ writing a single line of code.
 
 REPOSITORY:   bromadex/bravura-campsite
 APP DIR:      bravura-meals/src/
+MIGRATIONS:   bravura-meals/migrations/   (applied BY HAND in Supabase SQL editor)
 STACK:        React 19 + Vite · Supabase (PostgREST + RLS) · React Router
-HOSTING:      Vercel (auto-deploys from main branch)
+HOSTING:      Vercel (auto-deploys from main branch — every push IS production)
 MY ROLE:      Tafara — HR Module Lead Developer
 
 ── ABSOLUTE RULES ─────────────────────────────────────────────────────────────
@@ -41,6 +43,9 @@ MY ROLE:      Tafara — HR Module Lead Developer
 
 4.  RBAC: NEVER hardcode role name checks. NEVER write: if role === 'anything'
     ALWAYS use: const { can } = usePermissions()  then  can('module.action')
+    Import for HR/workforce pages (this is the module convention):
+      import { usePermissions } from '../../contexts/PermissionsContext'
+    (fuel/fleet pages use '../../hooks/usePermissions' — do not copy that here)
     The 'approver' role is RETIRED — never reference it anywhere.
     Storekeeper does NOT have supplies.approve — never add it.
 
@@ -49,89 +54,196 @@ MY ROLE:      Tafara — HR Module Lead Developer
       any entity: set is_archived = true, archived_at = now()
 
 6.  EVERY SUPABASE QUERY must include .eq('site_id', currentSiteId)
-    Get currentSiteId from: const { currentSiteId } = useSite()
+    Get it from:  const { currentSiteId } = useSite()
+    useSite() exposes: currentSiteId, currentSite, allSites, accessibleSites,
+    switchSite, isHQ, hasAllSiteAccess, loading — NOTHING else. There is no
+    `site` or `activeSite` property; using them silently breaks pages.
 
 7.  INLINE STYLES ONLY. No CSS files, no Tailwind, no CSS modules.
     Use THEME tokens: import { THEME, MODULE_COLORS } from '../../utils/permissions'
-    HR module colour: MODULE_COLORS.hr = '#1558A6' (blue)
+    HR module colour: MODULE_COLORS.workforce = '#E07B39' (warm orange).
+    The HR module IS the existing 'workforce' module — extend it, do not
+    create a parallel 'hr' module id. Page ids are prefixed wf_.
+
+8.  MIGRATIONS — the rules that keep two developers from colliding:
+    a. YOUR RESERVED NUMBER RANGE IS 0100–0149. Clement continues below 0100.
+       Ignore any migration number written inside the session prompts below
+       (0018 etc. — they predate this system). First HR migration = 0100.
+    b. Every migration file ENDS with:
+         INSERT INTO public.schema_migrations (filename)
+         VALUES ('0100_your_file_name.sql') ON CONFLICT (filename) DO NOTHING;
+    c. Migrations are applied manually — after pushing, tell Clement exactly
+       which file(s) to run, in order. Code that depends on an unapplied
+       migration will 400 in production.
+    d. Wrap in BEGIN; … COMMIT;. Make re-runnable: IF NOT EXISTS everywhere,
+       DROP POLICY IF EXISTS before CREATE POLICY.
+
+9.  RLS — do NOT copy the fleet tables' `USING (true)` policies; that is a
+    known security hole being fixed. Every new HR table follows the meals
+    pattern (see migrations/0040_meals_rls_policies.sql): a SECURITY DEFINER
+    helper checking user_roles for the permission AND the site, used in every
+    policy. Sensitive HR data (salaries, medical, disciplinary) MUST have
+    real row security, not client-side filtering.
+
+10. T-CODES: every new page you create gets a transaction code in
+    src/utils/txnCodes.js IN THE SAME COMMIT (append-only — never renumber).
+    HR prefix is HR##; HR01–HR04 are taken (Employees, Contractors, Leave,
+    Reports). Continue from HR05. Also add the nav entry in workforceNav
+    (src/utils/permissions.js) and the route case in src/App.jsx.
+
+11. QUICK START GUIDE: when you ship a user-facing workflow (e.g. leave
+    requests), add a role-gated section to
+    src/pages/feedback/QuickStartGuide.jsx describing it in 3–5 steps.
+
+12. This is a MULTI-SITE system. Sites: Kamativi (KAM — where all real data
+    lives today), Selous, Manhizi, Harare. HARARE IS THE HEAD OFFICE
+    (sites.site_type = 'head_office'; isHQ from useSite()). HQ-only surfaces
+    render only when isHQ. Cross-site HR views (e.g. group headcount) belong
+    behind isHQ.
+
+13. AI INTEGRATION IS PLANNED. Prefer server-side RPCs/views for anything a
+    future AI layer would query or act on; keep write paths auditable.
+
+── HARD-WON PITFALLS (each of these broke production at least once) ──────────
+
+P1. PostgREST embeds REQUIRE a real FK. `other_table(col)` inside .select()
+    returns HTTP 400 if no foreign-key constraint links the tables — and the
+    app renders "0 rows" silently. Before writing any embed, confirm the FK
+    exists in the migration that created the table. No FK → fetch separately
+    and join in JS, or add the FK in your migration.
+
+P2. READ THE SCHEMA BEFORE WRITING QUERIES. Never guess column names from
+    what would be sensible — grep the CREATE TABLE in migrations/ first.
+    (Real examples: fleet_assignments has start_date NOT assigned_date,
+    is_active NOT status; fleet_inspections has overall_result NOT result.)
+
+P3. .single() on a query that can return zero rows = HTTP 406. Use
+    .maybeSingle() for settings/config/latest-row lookups.
+
+P4. Errors must be visible. The `console.error + empty array` pattern hides
+    failures as "no data". At minimum log the error AND show a toast/empty
+    state that says loading failed.
+
+P5. End-of-month: never hardcode day 31. Use
+    new Date(year, month + 1, 0).getDate().
+
+P6. INSERTs into site-scoped tables must include site_id: currentSiteId —
+    the DB will reject NOT NULL, or worse, RLS will silently drop it.
+
+P7. Rules of Hooks: never put `if (!can(...)) return` ABOVE useState/
+    useEffect/useMemo. Permission gates go after all hooks.
+
+P8. supabase is a NAMED export:  import { supabase } from '../../supabaseClient'
 
 ── EXISTING MODULES (DO NOT BREAK THESE) ──────────────────────────────────────
 
-workforce  — Employees, Contractors, Leave, Reports (already live)
-campsite   — Rooms, Blocks, Assignments, Supplies, Transfers (already live)
-meals      — Dashboard, Entry, Approvals, Kitchen, Reports, Billing (already live)
-admin      — Users and Roles, Audit Log (already live)
+meals       — Entry, Approvals, Kitchen Verify, Flags, Billing (Saturday
+              special supper pricing via meal_price_overrides), Reports,
+              Pricing, Finance Export. Immutable audit trail in
+              meal_submission_events (trigger-written).
+fuel        — Tanks, Dips, Requests, Issuance (odometer required for
+              vehicles + validated), Transactions, Consumption analytics,
+              Reconciliation, Reports. Asset link = fleet_asset_id.
+fleet       — 19 pages: assets registry, dispatch board, assignments,
+              inspections, trips, maintenance/WO, compliance, drivers,
+              meters, tyres, accidents, contractors, reports, settings.
+campsite    — Headcount, Floorplan, Rooms/Blocks, Assignments, Supplies,
+              Transfers, Occupancy report. camp_visitors is site-scoped.
+workforce   — Employees, Contractors, Leave, Reports (THIS IS YOUR MODULE —
+              you are extending it, and other modules depend on it).
+admin       — Users & Roles, Audit Log.
+procurement — Suppliers (HQ-only module).
+feedback    — Feedback Board + Quick Start Guide.
 
-── CURRENT EMPLOYEE DATA CONVENTIONS ──────────────────────────────────────────
+── WHO DEPENDS ON employees (change with extreme care) ────────────────────────
 
-employees.status values (lowercase, exact):
+- meals:    meal_logs.employee_id; DailyEntry lists status='active' only
+- fuel:     fuel_operators.employee_id (operators must be active employees)
+- fleet:    fleet_drivers.employee_id; assignments/trips via fuel_operators
+- campsite: room_assignments.employee_id
+Schema of employees today: id, site_id, name, status, gender, contractor_id,
+department fields, employment dates. status values (lowercase, exact):
   'active' | 'on_leave' | 'long_leave' | 'temporary_assignment' |
   'transferred' | 'terminated'
+contractors.status values (capitalised — intentional): 'Active' | 'Inactive'
+ADD columns to employees rather than renaming; NEVER rename or repurpose
+existing columns — four modules read them.
 
-contractors.status values (capitalised — intentional):
-  'Active' | 'Inactive'
+── USER ACCOUNTS / AUTH (for "create system account" tasks) ───────────────────
+
+- Inviting via Supabase creates auth.users → handle_new_user trigger creates
+  a profiles row (role='meal_officer' legacy default, force_password_reset
+  = true). On first login the app forces a password change.
+- Real access = rows in user_roles (role per site; site_id NULL = all sites).
+- profiles.role is a legacy CHECK-constrained column — do not build new
+  logic on it; use user_roles + can().
 
 ── SHARED COMPONENT IMPORTS ───────────────────────────────────────────────────
 
-import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td }
+import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, StatCard,
+         Button, showToast, fmtDate, today, MONTHS }
   from '../../components/ui'
 import { useSite } from '../../contexts/SiteContext'
-import { usePermissions } from '../../hooks/usePermissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 
 ── PERMISSION PATTERN ──────────────────────────────────────────────────────────
 
 const { can } = usePermissions()
+// gate AFTER all hooks (P7):
 if (!can('hr.view')) return <AccessDenied />
 {can('hr.employees.create') && <button>Add Employee</button>}
-{can('hr.employees.terminate') && <button>Terminate</button>}
+New hr.* permission codes must be seeded in a migration (copy the pattern in
+migrations/0059_procurement_permissions.sql) and granted to the right roles.
 
 ── STANDARD PAGE STRUCTURE ─────────────────────────────────────────────────────
 
 export default function PageName() {
   const { currentSiteId } = useSite()
   const { can } = usePermissions()
-  const [data, setData] = useState(null)
+  const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
-
-  if (!can('hr.view')) return <AccessDenied />
 
   useEffect(() => {
     if (!currentSiteId) return
+    let cancelled = false
     async function load() {
-      const { supabase } = await import('../../supabaseClient')
+      setLoading(true)
       const { data, error } = await supabase
-        .from('table_name')
-        .select('*')
+        .from('your_table')
+        .select('*')                       // add embeds ONLY per P1
         .eq('site_id', currentSiteId)
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false })
-      if (error) { console.error(error); return }
-      setData(data)
-      setLoading(false)
+      if (error) { console.error(error); showToast('Failed to load', 'red') }
+      if (!cancelled) { setRows(data || []); setLoading(false) }
     }
     load()
+    return () => { cancelled = true }
   }, [currentSiteId])
 
-  if (loading) return <LoadingSpinner />
-  return ( ... )
+  if (!can('hr.view')) return <AccessDenied />   // after hooks
+  ...
 }
 
-── MULTI-SITE RULE ─────────────────────────────────────────────────────────────
+── APPROVAL WORKFLOWS (leave requests etc.) ───────────────────────────────────
 
-No feature may assume a single site.
-All data is scoped by site_id.
-useSite() returns: { currentSiteId, currentSite, sites[] }
+Copy the meals pattern, it is battle-tested:
+- Status transitions through a SECURITY DEFINER RPC that re-checks the
+  permission server-side (see migrations/0039, 0036, 0071).
+- An immutable events table written by an AFTER UPDATE OF status trigger
+  (see meal_submission_events in migrations/0077) — never a single mutable
+  "last event" column.
+- Notifications: insert into the notifications table (recipient_id, type,
+  title, body, action_url) — the bell polls it. See migrations/0037 for the
+  fan-out trigger pattern.
 
-── INTEGRATION RULE ────────────────────────────────────────────────────────────
+── DEFINITION OF DONE (every session) ──────────────────────────────────────────
 
-HR is the foundation of the ERP. The employees table is shared with:
-- Fuel module (operators must be active HR employees)
-- Campsite module (employees have room assignments)
-- Meals module (active employees are meal recipients)
-- Future payroll, fleet, procurement, safety modules
-
-Never create HR features that break these relationships.
+□ npx vite build passes from bravura-meals/ (watch your cwd)
+□ New pages: nav entry + App.jsx route + T-code, same commit
+□ New tables: RLS per rule 9, site_id, soft-delete columns
+□ Migration ends with its schema_migrations INSERT; Clement told to run it
+□ New workflow → Quick Start Guide section
+□ Committed and pushed to BOTH branches
 
 ═══════════════════════════════════════════════════════════════════════════════
 END OF MASTER CONTEXT
@@ -154,7 +266,7 @@ and the first two management pages: Departments and Designations.
 
 ── TASK 1: DATABASE MIGRATION ──────────────────────────────────────────────────
 
-Create the file: bravura-meals/migrations/0010_hr_foundation.sql
+Create the file: bravura-meals/migrations/0100_hr_foundation.sql
 
 This migration must create the following tables:
 
@@ -239,7 +351,7 @@ Seed employment_types with: Permanent, Contract, Casual, Fixed-Term
 ── TASK 2: REGISTER HR MODULE IN THE APP ────────────────────────────────────────
 
 In bravura-meals/src/utils/permissions.js:
-  - Add to MODULE_COLORS: hr: '#1558A6'
+  - Use the existing MODULE_COLORS.workforce ('#E07B39') — the HR module IS workforce; do NOT add a new colour key
   - Add hrNav function returning the HR sidebar navigation items
 
 In bravura-meals/src/App.jsx (or wherever module routing lives):
@@ -265,7 +377,7 @@ This page must:
       Description
   - Cannot delete — only archive (soft delete with confirmation dialog)
   - Show archived toggle to view archived departments
-  - All THEME tokens for colours, no hardcoded hex values except MODULE_COLORS.hr
+  - All THEME tokens for colours, no hardcoded hex values except MODULE_COLORS.workforce
 
 ── TASK 4: DESIGNATIONS PAGE ────────────────────────────────────────────────
 
@@ -328,7 +440,7 @@ RECENT ACTIVITY:
   - Last 10 employee status changes from employee_status_history
   - Show: employee name, old status, new status, date, changed by
 
-Use MODULE_COLORS.hr (#1558A6) as the accent colour for this dashboard.
+Use MODULE_COLORS.workforce as the accent colour for this dashboard.
 All KPI cards use the same card style as the existing workforce/campsite dashboards.
 Gate the entire page: if (!can('hr.view')) return <AccessDenied />
 
@@ -511,7 +623,7 @@ Create: bravura-meals/src/pages/hr/EmployeeDetail.jsx
 This is a tabbed page. Route: /hr/employees/:id
 
 HEADER:
-  - Employee avatar (initials circle in MODULE_COLORS.hr)
+  - Employee avatar (initials circle in MODULE_COLORS.workforce)
   - Full Name, Employee Number, Designation, Department
   - Status badge
   - Quick action buttons (Edit, Change Status, Create Account if not yet done)
@@ -621,7 +733,7 @@ Management, HR Settings). Now we build leave management.
 
 ── TASK 1: DATABASE MIGRATION — LEAVE TABLES ────────────────────────────────
 
-Create: migrations/0012_hr_leave.sql
+Create: migrations/0102_hr_leave.sql
 
 leave_types(
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -829,7 +941,7 @@ Leave management is done. Now build employee documents and the org chart.
 
 ── TASK 1: DATABASE MIGRATION — DOCUMENTS ──────────────────────────────────
 
-Create: migrations/0013_hr_documents.sql
+Create: migrations/0103_hr_documents.sql
 
 document_types(
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -917,7 +1029,7 @@ Render as a collapsible tree:
 
 Do not use an external tree library.
 Build with nested div elements and inline styles.
-Use MODULE_COLORS.hr (#1558A6) for the connecting lines and avatar circles.
+Use MODULE_COLORS.workforce for the connecting lines and avatar circles.
 
 ── DONE WHEN ──────────────────────────────────────────────────────────────────
 
@@ -1050,7 +1162,7 @@ Phase 3 focuses on attendance, training, and employee self-service.
 
 ── TASK 1: DATABASE — SHIFTS AND ATTENDANCE ─────────────────────────────────
 
-Create: migrations/0016_hr_attendance.sql
+Create: migrations/0106_hr_attendance.sql
 
 shifts(
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -1151,7 +1263,7 @@ I am Tafara, HR module lead. HR Phase 3 Session 2.
 
 ── TASK 1: DATABASE — TRAINING AND SKILLS ───────────────────────────────────
 
-Create: migrations/0017_hr_training.sql
+Create: migrations/0107_hr_training.sql
 
 skills(
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -1325,7 +1437,7 @@ For now, payroll operates standalone and exports journal data for manual entry.
 
 ── TASK 1: SALARY STRUCTURE DATABASE ────────────────────────────────────────
 
-Create: migrations/0018_hr_payroll.sql
+Create: migrations/0108_hr_payroll.sql
 
 salary_grades(
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -1484,7 +1596,7 @@ Create: bravura-meals/src/pages/hr/payroll/SalarySlipsList.jsx
 
 ── TASK 2: PERFORMANCE APPRAISALS DATABASE ──────────────────────────────────
 
-Migration: migrations/0019_hr_performance.sql
+Migration: migrations/0109_hr_performance.sql
 
 appraisal_cycles(
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -1548,7 +1660,7 @@ I am Tafara, HR module lead. HR Phase 4 Session 3 — final HR phase.
 
 ── TASK 1: DISCIPLINARY MODULE ──────────────────────────────────────────────
 
-Migration: migrations/0020_hr_disciplinary.sql
+Migration: migrations/0110_hr_disciplinary.sql
 
 disciplinary_cases(
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

@@ -148,12 +148,15 @@ export default function HomeLauncher({ onEnterModule }) {
           <span className="material-symbols-rounded" style={{ fontSize: '18px', color: 'rgba(255,255,255,.55)' }}>search</span>
           <input
             type="text"
-            placeholder="Search modules, records, or type a command…"
+            placeholder="Type a T-code (FU07, ME02…) or search screens"
             className="topbar-search"
+            readOnly
+            onFocus={e => { e.target.blur(); window.dispatchEvent(new Event('open-command-palette')) }}
+            onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               color: '#fff', fontSize: '13px', fontFamily: 'inherit',
-              padding: 0,
+              padding: 0, cursor: 'pointer',
             }}
           />
           <style>{`.topbar-search::placeholder { color: rgba(255,255,255,.75); }`}</style>

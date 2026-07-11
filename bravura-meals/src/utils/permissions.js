@@ -128,6 +128,7 @@ export const moduleAccess = {
 export function feedbackNav() {
   return [
     { id: 'feedback_board', label: 'Feedback Board', section: 'Overview', icon: 'forum' },
+    { id: 'feedback_help',  label: 'Quick Start Guide', section: 'Help',  icon: 'help' },
   ]
 }
 

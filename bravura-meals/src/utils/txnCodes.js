@@ -87,8 +87,9 @@ export const TXN_CODES = [
   { code: 'AD02', path: '/admin/admin_audit', label: 'Audit Log',     module: 'admin' },
 
   // ── Procurement (PR) / Feedback (FB) ──────────────────────────────────────
-  { code: 'PR01', path: '/procurement/proc_suppliers', label: 'Suppliers',      module: 'procurement' },
-  { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board', module: 'feedback' },
+  { code: 'PR01', path: '/procurement/proc_suppliers', label: 'Suppliers',         module: 'procurement' },
+  { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
+  { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },
 ]
 
 // Mnemonic shortcuts for the highest-frequency screens. An alias resolves to
@@ -103,6 +104,7 @@ export const ALIASES = {
   KIT:  'ME04',
   DISP: 'FL06',   // dispatch board
   EMP:  'HR01',
+  HELP: 'FB02',   // quick start guide
 }
 
 // Resolve typed input to a single exact entry (code or alias), else null.

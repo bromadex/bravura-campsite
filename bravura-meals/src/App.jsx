@@ -106,6 +106,7 @@ const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
+const QuickStartGuide          = lazy(() => import('./pages/feedback/QuickStartGuide'))
 
 const PageLoader = (
   <div style={{
@@ -287,6 +288,7 @@ function getProcurementPage(page, can) {
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
+    case 'feedback_help':  return <QuickStartGuide />
     default:               return <FeedbackBoard />
   }
 }

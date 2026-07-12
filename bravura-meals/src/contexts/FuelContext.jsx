@@ -10,6 +10,9 @@ const FuelContext = createContext(null)
 const VEHICLE_CATEGORIES = ['vehicle']
 const EQUIPMENT_CATEGORIES = ['heavy_equipment', 'generator', 'pump', 'other']
 
+const defaultFrom = () => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+const defaultTo   = () => new Date().toISOString().slice(0, 10)
+
 export function FuelProvider({ children }) {
   const { currentSiteId } = useSite()
   const { profile } = useAuth()
@@ -26,19 +29,14 @@ export function FuelProvider({ children }) {
   const [dipReadings,  setDipReadings]  = useState([])
   const [profiles,     setProfiles]     = useState([])
   const [loading,      setLoading]      = useState(true)
+  const [txnDateFrom,  setTxnDateFrom]  = useState(defaultFrom)
+  const [txnDateTo,    setTxnDateTo]    = useState(defaultTo)
 
-  const fetchAll = useCallback(async () => {
+  const fetchRefData = useCallback(async () => {
     if (!currentSiteId) { setLoading(false); return }
-    setTanks([])
-    setPumps([])
-    setFleetAssets([])
-    setOperators([])
-    setEmployees([])
-    setTransactions([])
-    setDipReadings([])
     setLoading(true)
     try {
-      const [ftRes, tRes, pmRes, faRes, opRes, empRes, deptRes, txRes, dRes, pRes] = await Promise.all([
+      const [ftRes, tRes, pmRes, faRes, opRes, empRes, deptRes, pRes] = await Promise.all([
         supabase
           .from('fuel_types')
           .select('*')
@@ -78,19 +76,6 @@ export function FuelProvider({ children }) {
           .select('id, name')
           .order('name'),
         supabase
-          .from('fuel_transactions')
-          .select('*, fleet_asset:fleet_assets(id, asset_number, fleet_number, registration, description, serial_number, department_id, department_name), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
-          .eq('site_id', currentSiteId)
-          .eq('is_deleted', false)
-          .order('transaction_date', { ascending: false })
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('fuel_dip_readings')
-          .select('*')
-          .eq('site_id', currentSiteId)
-          .eq('is_archived', false)
-          .order('reading_date', { ascending: false }),
-        supabase
           .from('profiles')
           .select('id, full_name')
           .order('full_name'),
@@ -102,17 +87,51 @@ export function FuelProvider({ children }) {
       setOperators(opRes.data || [])
       setEmployees(empRes.data || [])
       setDepartments(deptRes.data || [])
-      setTransactions(txRes.data || [])
-      setDipReadings(dRes.data || [])
       setProfiles(pRes.data || [])
     } catch (err) {
-      console.error('FuelContext load error:', err)
+      console.error('FuelContext ref data load error:', err)
     } finally {
       setLoading(false)
     }
   }, [currentSiteId])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  const fetchTransactions = useCallback(async (from, to) => {
+    if (!currentSiteId) return
+    const [txRes, dRes] = await Promise.all([
+      supabase
+        .from('fuel_transactions')
+        .select('*, fleet_asset:fleet_assets(id, asset_number, fleet_number, registration, description, serial_number, department_id, department_name), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
+        .eq('site_id', currentSiteId)
+        .eq('is_deleted', false)
+        .gte('transaction_date', from)
+        .lte('transaction_date', to)
+        .order('transaction_date', { ascending: false })
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('fuel_dip_readings')
+        .select('*')
+        .eq('site_id', currentSiteId)
+        .eq('is_archived', false)
+        .gte('reading_date', from)
+        .lte('reading_date', to)
+        .order('reading_date', { ascending: false }),
+    ])
+    setTransactions(txRes.data || [])
+    setDipReadings(dRes.data || [])
+  }, [currentSiteId])
+
+  useEffect(() => { fetchRefData() }, [fetchRefData])
+  useEffect(() => { fetchTransactions(txnDateFrom, txnDateTo) }, [fetchTransactions, txnDateFrom, txnDateTo])
+
+  const setTxnDateRange = useCallback((from, to) => {
+    setTxnDateFrom(from)
+    setTxnDateTo(to)
+  }, [])
+
+  const fetchAll = useCallback(async () => {
+    await fetchRefData()
+    await fetchTransactions(txnDateFrom, txnDateTo)
+  }, [fetchRefData, fetchTransactions, txnDateFrom, txnDateTo])
 
   // ── Derived vehicle/equipment arrays from fleet_assets ─────────────────────
   const vehicles = useMemo(() =>
@@ -499,7 +518,7 @@ export function FuelProvider({ children }) {
         is_deleted: true,
         deleted_at: new Date().toISOString(),
         deleted_by: userId,
-        updated_by: user?.id || null,
+        updated_by: userId,
         edit_reason: reason,
       })
       .eq('id', id)
@@ -579,6 +598,7 @@ export function FuelProvider({ children }) {
 
   const value = useMemo(() => ({
     fuelTypes, tanks, pumps, vehicles, equipment, fleetAssets, operators, employees, departments, transactions, dipReadings, profiles, loading,
+    txnDateFrom, txnDateTo, setTxnDateRange, fetchTransactions,
     receipts, issues,
     tankBalance, latestDip, avgDailyConsumption,
     addFuelType, updateFuelType, deactivateFuelType,

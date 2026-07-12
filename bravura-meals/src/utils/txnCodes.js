@@ -77,10 +77,15 @@ export const TXN_CODES = [
   { code: 'CA08', path: '/campsite/camp_occ_report',  label: 'Occupancy Reports',       module: 'campsite' },
 
   // ── HR / Workforce (HR) ───────────────────────────────────────────────────
-  { code: 'HR01', path: '/workforce/wf_employees',   label: 'Employees',                module: 'workforce' },
-  { code: 'HR02', path: '/workforce/wf_contractors', label: 'Contractors',              module: 'workforce' },
-  { code: 'HR03', path: '/workforce/wf_leave',       label: 'Leave Management',         module: 'workforce' },
-  { code: 'HR04', path: '/workforce/wf_reports',     label: 'Employee Reports',         module: 'workforce' },
+  { code: 'HR01', path: '/workforce/wf_employees',     label: 'Employees',           module: 'workforce' },
+  { code: 'HR02', path: '/workforce/wf_contractors',   label: 'Contractors',         module: 'workforce' },
+  { code: 'HR03', path: '/workforce/wf_leave',         label: 'Leave Management',    module: 'workforce' },
+  { code: 'HR04', path: '/workforce/wf_reports',       label: 'Employee Reports',    module: 'workforce' },
+  { code: 'HR05', path: '/workforce/wf_dashboard',     label: 'HR Dashboard',        module: 'workforce' },
+  { code: 'HR06', path: '/workforce/wf_departments',   label: 'Departments',         module: 'workforce' },
+  { code: 'HR07', path: '/workforce/wf_designations',  label: 'Designations',        module: 'workforce' },
+  { code: 'HR08', path: '/workforce/wf_employee_form', label: 'New Employee',        module: 'workforce' },
+  { code: 'HR09', path: '/workforce/wf_settings',      label: 'HR Settings',         module: 'workforce' },
 
   // ── Admin (AD) ────────────────────────────────────────────────────────────
   { code: 'AD01', path: '/admin/admin_users', label: 'Users & Roles', module: 'admin' },

@@ -135,10 +135,14 @@ export function feedbackNav() {
 // ─── Per-module nav definitions ───────────────────────────────────────────────
 export function workforceNav(role) {
   return [
+    { id: 'wf_dashboard',    label: 'HR Dashboard',     section: 'Overview',     icon: 'dashboard' },
     { id: 'wf_employees',   label: 'Employees',        section: 'People',  icon: 'badge' },
     { id: 'wf_contractors', label: 'Contractors',      section: 'People',  icon: 'business' },
     { id: 'wf_leave',       label: 'Leave Management', section: 'People',  icon: 'flight_takeoff' },
+    { id: 'wf_departments',  label: 'Departments',      section: 'Organisation', icon: 'domain' },
+    { id: 'wf_designations', label: 'Designations',     section: 'Organisation', icon: 'military_tech' },
     { id: 'wf_reports',     label: 'Employee Reports', section: 'Reports', icon: 'bar_chart' },
+    { id: 'wf_settings',     label: 'HR Settings',      section: 'Admin',        icon: 'settings' },
   ].filter(item => item.show !== false)
 }
 

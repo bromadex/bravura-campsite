@@ -19,6 +19,13 @@ import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const Employees       = lazy(() => import('./pages/workforce/Employees'))
+const HRDashboard      = lazy(() => import('./pages/hr/HRDashboard'))
+const HRDepartments    = lazy(() => import('./pages/hr/Departments'))
+const HRDesignations   = lazy(() => import('./pages/hr/Designations'))
+const HRSettings       = lazy(() => import('./pages/hr/HRSettings'))
+const HREmployeesList  = lazy(() => import('./pages/hr/EmployeesList'))
+const HREmployeeForm   = lazy(() => import('./pages/hr/EmployeeForm'))
+const HREmployeeDetail = lazy(() => import('./pages/hr/EmployeeDetail'))
 const Contractors     = lazy(() => import('./pages/workforce/Contractors'))
 const WorkforceLeave  = lazy(() => import('./pages/workforce/WorkforceLeave'))
 const WorkforceReports= lazy(() => import('./pages/workforce/WorkforceReports'))
@@ -132,11 +139,23 @@ const MODULE_META = {
 }
 
 // ── Route resolvers ───────────────────────────────────────────────────────────
-function getWorkforcePage(page, role, can) {
-  switch (page) {
-    // All three swapped to real RBAC per the approved matrix — each verified
-    // against the current 5-account mapping before changing.
-    case 'wf_employees':   return can('employees.view') ? <Employees />     : null
+function getWorkforcePage(page, role, can, setPage) {
+  // Param-carrying pages encode their target as 'wf_employee_detail:<uuid>'.
+  const [base, param] = (page || '').split(':')
+  switch (base) {
+    case 'wf_dashboard':       return can('hr.view') || can('employees.view') ? <HRDashboard setPage={setPage} /> : null
+    case 'wf_departments':     return can('hr.view') ? <HRDepartments /> : null
+    case 'wf_designations':    return can('hr.view') ? <HRDesignations /> : null
+    case 'wf_settings':        return can('hr.view') ? <HRSettings /> : null
+    case 'wf_employee_form':   return can('hr.create') || can('hr.edit')
+      ? <HREmployeeForm setPage={setPage} employeeId={param || null} /> : null
+    case 'wf_employee_detail': return can('hr.view')
+      ? <HREmployeeDetail setPage={setPage} employeeId={param} /> : null
+    // Employee list: the Phase 1 HR list supersedes the original page but
+    // keeps the same id — bookmarks and the HR01 T-code keep working.
+    case 'wf_employees':
+      return can('hr.view') ? <HREmployeesList setPage={setPage} />
+        : can('employees.view') ? <Employees /> : null
     // contractors.view: granted to Admin, Camp Supervisor, Meal Officer —
     // exactly matches old behaviour, zero access change.
     case 'wf_contractors': return can('contractors.view') ? <Contractors /> : null
@@ -295,7 +314,7 @@ function getFeedbackPage(page) {
 
 // ── Default page per module ───────────────────────────────────────────────────
 const DEFAULT_PAGE = {
-  workforce: 'wf_employees',
+  workforce: 'wf_dashboard',
   campsite:  'camp_headcount',
   meals:     'meals_dashboard',
   admin:     'admin_users',
@@ -328,7 +347,7 @@ function ModuleShell() {
   const navItems = navFn(role, can)
 
   let content = null
-  if (moduleId === 'workforce') content = getWorkforcePage(currentPage, role, can)
+  if (moduleId === 'workforce') content = getWorkforcePage(currentPage, role, can, setPage)
   if (moduleId === 'campsite')  content = getCampsitePage(currentPage, role, setPage, can)
   if (moduleId === 'meals')     content = getMealsPage(currentPage, role, setPage, can)
   if (moduleId === 'admin')     content = getAdminPage(currentPage, can)

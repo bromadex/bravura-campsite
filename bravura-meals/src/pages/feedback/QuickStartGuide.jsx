@@ -167,6 +167,18 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* HR */}
+      {(can('hr.view') || can('hr.create')) && (
+        <Section icon="badge" color={MODULE_COLORS.workforce} title="HR — managing people">
+          <Steps items={[
+            <>The HR Dashboard (<Code>HR05</Code>) shows headcount, new starters and recent status changes.</>,
+            <>Add an employee with <Code>HR08</Code> — the employee number auto-generates, and at least one emergency contact is required.</>,
+            <>Change someone's status (leave, transfer, termination) from their detail page — every change needs a reason and is kept permanently in the status history.</>,
+            <>Departments (<Code>HR06</Code>) and Designations (<Code>HR07</Code>) are archive-only — nothing is ever deleted.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* T-code cheat table */}
       <Section icon="menu_book" color="#455A64" title="Your transaction codes">
         <div style={{ overflowX: 'auto' }}>

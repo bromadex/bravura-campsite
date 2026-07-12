@@ -86,7 +86,7 @@ export default function LeaveBalanceReport() {
   return (
     <div>
       <PageHeader title="Leave Balance Report" site={currentSite}
-        actions={can('hr.export') && <Button variant="outlined" icon="download" onClick={exportCsv}>CSV</Button>} />
+        actions={can('hr.view') && <Button variant="outlined" icon="download" onClick={exportCsv}>CSV</Button>} />
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <select style={selStyle} value={year} onChange={e => setYear(Number(e.target.value))}>

@@ -227,7 +227,7 @@ export default function EmployeeForm({ setPage, employeeId }) {
   if (loading) return <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
 
   const filteredDesignations = designations.filter(d => !form.department_id || !d.department_id || d.department_id === form.department_id)
-  const showAccountSection = !isEdit && can('hr.accounts') && settings.account_creation_enabled !== false
+  const showAccountSection = !isEdit && can('hr.edit') && settings.account_creation_enabled !== false
 
   return (
     <div style={{ maxWidth: '860px' }}>

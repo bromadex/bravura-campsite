@@ -123,7 +123,7 @@ export default function EmployeesList({ setPage }) {
         site={currentSite}
         actions={
           <div style={{ display: 'flex', gap: '8px' }}>
-            {can('hr.export') && <Button variant="outlined" icon="download" onClick={exportCsv}>CSV</Button>}
+            {can('hr.view') && <Button variant="outlined" icon="download" onClick={exportCsv}>CSV</Button>}
             {can('hr.create') && <Button icon="person_add" onClick={() => setPage('wf_employee_form')}>Add Employee</Button>}
           </div>
         }

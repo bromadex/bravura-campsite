@@ -122,7 +122,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
     setDocTypes(dtRes.data || [])
     setLeaveAlloc(laRes.data || [])
     setLeaveReqs(lrRes.data || [])
-    if (can('hr.medical')) {
+    if (can('hr.approve')) {
       const { data: med } = await supabase.from('medical_records')
         .select('*').eq('employee_id', employeeId).order('exam_date', { ascending: false })
       setMedical(med || [])
@@ -294,7 +294,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '18px', borderBottom: `2px solid ${THEME.outlineVar}` }}>
-        {['Overview', 'Employment', 'Documents', 'Leave', ...(can('hr.medical') ? ['Medical'] : []), 'History'].map(t => (
+        {['Overview', 'Employment', 'Documents', 'Leave', ...(can('hr.approve') ? ['Medical'] : []), 'History'].map(t => (
           <div key={t} onClick={() => setTab(t)} style={{
             padding: '9px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
             color: tab === t ? ACCENT : THEME.textMed,
@@ -448,7 +448,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
         </div>
       )}
 
-      {tab === 'Medical' && can('hr.medical') && (
+      {tab === 'Medical' && can('hr.approve') && (
         <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <div style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.06em', color: THEME.textLow }}>Medical Records</div>

@@ -23,7 +23,7 @@ export default function LeaveTypes() {
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
 
-  const canEdit = can('hr.settings')
+  const canEdit = can('hr.edit')
 
   async function load() {
     setLoading(true)

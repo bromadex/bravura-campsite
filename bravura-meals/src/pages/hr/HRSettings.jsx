@@ -48,7 +48,7 @@ export default function HRSettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  const canEdit = can('hr.settings')
+  const canEdit = can('hr.edit')
 
   useEffect(() => {
     if (!currentSiteId) return

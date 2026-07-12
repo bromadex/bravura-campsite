@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
+import { useAuth } from '../../auth/AuthContext'
 import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
@@ -20,6 +21,8 @@ export default function FleetMeterReadings({ setPage }) {
   const { can } = usePermissions()
   const { assets, loading } = useFleet()
   const { currentSiteId } = useSite()
+  const { profile } = useAuth()
+  const userId = profile?.id
 
   const [readings, setReadings] = useState([])
   const [loadingReadings, setLoadingReadings] = useState(true)
@@ -123,7 +126,6 @@ export default function FleetMeterReadings({ setPage }) {
     setSaving(true)
     setError('')
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       const asset = assetMap[form.asset_id]
       const current = form.reading_type === 'odometer' ? asset?.current_odometer_km : asset?.current_hours
       const isRegression = current != null && Number(form.reading_value) < Number(current)
@@ -139,7 +141,7 @@ export default function FleetMeterReadings({ setPage }) {
         is_flagged: isRegression,
         flag_reason: isRegression ? `Reading ${form.reading_value} is lower than current ${current}` : null,
         notes: form.notes || null,
-        recorded_by: user?.id || null,
+        recorded_by: userId,
       })
       if (insertErr) throw insertErr
 

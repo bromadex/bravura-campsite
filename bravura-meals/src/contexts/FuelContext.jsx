@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { useSite } from './SiteContext'
+import { useAuth } from '../auth/AuthContext'
 import SiteRequired from '../components/SiteRequired'
 import { MODULE_COLORS } from '../utils/permissions'
 
@@ -11,6 +12,8 @@ const EQUIPMENT_CATEGORIES = ['heavy_equipment', 'generator', 'pump', 'other']
 
 export function FuelProvider({ children }) {
   const { currentSiteId } = useSite()
+  const { profile } = useAuth()
+  const userId = profile?.id
 
   const [fuelTypes,    setFuelTypes]    = useState([])
   const [tanks,        setTanks]        = useState([])
@@ -418,8 +421,7 @@ export function FuelProvider({ children }) {
   // ── Operators CRUD ────────────────────────────────────────────────────────────
 
   async function addOperator(data) {
-    const { data: { user } } = await supabase.auth.getUser()
-    const payload = { ...data, site_id: currentSiteId, created_by: user?.id || null }
+    const payload = { ...data, site_id: currentSiteId, created_by: userId }
     const { data: row, error } = await supabase
       .from('fuel_operators')
       .insert([payload])
@@ -453,7 +455,6 @@ export function FuelProvider({ children }) {
   // ── Fuel Transactions ─────────────────────────────────────────────────────────
 
   async function addTransaction(data) {
-    const { data: { user } } = await supabase.auth.getUser()
     const levelBefore = tankBalance(data.tank_id)
 
     const payload = {
@@ -461,7 +462,7 @@ export function FuelProvider({ children }) {
       site_id:            currentSiteId,
       transaction_number: nextTransactionNumber(data.transaction_type),
       tank_level_before:  levelBefore,
-      created_by:         user?.id || null,
+      created_by:         userId,
     }
 
     const { data: row, error } = await supabase
@@ -478,10 +479,9 @@ export function FuelProvider({ children }) {
   }
 
   async function updateTransaction(id, data) {
-    const { data: { user } } = await supabase.auth.getUser()
     const { data: row, error } = await supabase
       .from('fuel_transactions')
-      .update({ ...data, updated_by: user?.id || null })
+      .update({ ...data, updated_by: userId })
       .eq('id', id)
       .eq('site_id', currentSiteId)
       .select('*, fleet_asset:fleet_assets(id, asset_number, fleet_number, registration, description, serial_number, department_id, department_name), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
@@ -493,13 +493,12 @@ export function FuelProvider({ children }) {
   }
 
   async function softDeleteTransaction(id, reason) {
-    const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase
       .from('fuel_transactions')
       .update({
         is_deleted: true,
         deleted_at: new Date().toISOString(),
-        deleted_by: user?.id || null,
+        deleted_by: userId,
         updated_by: user?.id || null,
         edit_reason: reason,
       })
@@ -578,31 +577,23 @@ export function FuelProvider({ children }) {
     if (error) throw error
   }
 
+  const value = useMemo(() => ({
+    fuelTypes, tanks, pumps, vehicles, equipment, fleetAssets, operators, employees, departments, transactions, dipReadings, profiles, loading,
+    receipts, issues,
+    tankBalance, latestDip, avgDailyConsumption,
+    addFuelType, updateFuelType, deactivateFuelType,
+    addTank, updateTank, archiveTank, deleteTank,
+    addPump, updatePump, archivePump,
+    addVehicle, updateVehicle, archiveVehicle,
+    addEquipment, updateEquipment, archiveEquipment,
+    addOperator, updateOperator, deactivateOperator, reactivateOperator,
+    addTransaction, updateTransaction, softDeleteTransaction,
+    addDipReading, updateDipReading, deleteDipReading, deleteDelivery,
+    refresh: fetchAll,
+  }), [fuelTypes, tanks, pumps, vehicles, equipment, fleetAssets, operators, employees, departments, transactions, dipReadings, profiles, loading])
+
   return (
-    <FuelContext.Provider value={{
-      fuelTypes, tanks, pumps, vehicles, equipment, fleetAssets, operators, employees, departments, transactions, dipReadings, profiles, loading,
-      // backward-compat aliases
-      receipts, issues,
-      // helpers
-      tankBalance, latestDip, avgDailyConsumption,
-      // fuel type ops
-      addFuelType, updateFuelType, deactivateFuelType,
-      // tank ops
-      addTank, updateTank, archiveTank, deleteTank,
-      // pump ops
-      addPump, updatePump, archivePump,
-      // vehicle ops
-      addVehicle, updateVehicle, archiveVehicle,
-      // equipment ops
-      addEquipment, updateEquipment, archiveEquipment,
-      // operator ops
-      addOperator, updateOperator, deactivateOperator, reactivateOperator,
-      // transaction ops
-      addTransaction, updateTransaction, softDeleteTransaction,
-      // dip ops
-      addDipReading, updateDipReading, deleteDipReading, deleteDelivery,
-      refresh: fetchAll,
-    }}>
+    <FuelContext.Provider value={value}>
       <SiteRequired moduleColor={MODULE_COLORS.fuel}>
         {children}
       </SiteRequired>

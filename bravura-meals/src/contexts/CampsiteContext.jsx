@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { useSite } from './SiteContext'
 
@@ -550,19 +550,22 @@ export function CampsiteProvider({ children }) {
     await fetchAll()
   }
 
+  const value = useMemo(() => ({
+    blocks, rooms, fixtures, beds, assignments, employees, contractors, visitors,
+    supplies, supplyTxns, loading, kpis,
+    getRoomStatus,
+    addBlock, updateBlock, deleteBlock,
+    addRoom, updateRoom, deleteRoom, setMaintenance,
+    assignRoom, transferRoom, releaseRoom,
+    addVisitor,
+    setLeaveStatus, returnFromLeave,
+    addSupplyItem, recordSupplyTxn, updateSupplyTxn, deleteSupplyTxn,
+    refresh: fetchAll,
+  }), [blocks, rooms, fixtures, beds, assignments, employees, contractors, visitors,
+       supplies, supplyTxns, loading, kpis])
+
   return (
-    <CampsiteContext.Provider value={{
-      blocks, rooms, fixtures, beds, assignments, employees, contractors, visitors,
-      supplies, supplyTxns, loading, kpis,
-      getRoomStatus,
-      addBlock, updateBlock, deleteBlock,
-      addRoom, updateRoom, deleteRoom, setMaintenance,
-      assignRoom, transferRoom, releaseRoom,
-      addVisitor,
-      setLeaveStatus, returnFromLeave,
-      addSupplyItem, recordSupplyTxn, updateSupplyTxn, deleteSupplyTxn,
-      refresh: fetchAll,
-    }}>
+    <CampsiteContext.Provider value={value}>
       {children}
     </CampsiteContext.Provider>
   )

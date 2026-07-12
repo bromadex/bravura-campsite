@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
+import { useAuth } from '../../auth/AuthContext'
 import { Card, Icon, PageHeader, Button, Modal, SectionLabel, showToast, fmtDate } from '../../components/ui'
 
 const ACCENT = MODULE_COLORS.workforce
@@ -49,6 +50,8 @@ const EXAM_TYPES = ['Pre-Employment', 'Annual', 'Exit', 'Specific']
 export default function EmployeeDetail({ setPage, employeeId }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  const { profile } = useAuth()
+  const userId = profile?.id
 
   const [emp, setEmp] = useState(null)
   const [contacts, setContacts] = useState([])
@@ -175,9 +178,8 @@ export default function EmployeeDetail({ setPage, employeeId }) {
   }
 
   async function verifyDoc(d) {
-    const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase.from('employee_documents')
-      .update({ is_verified: true, verified_by: user?.id || null, verified_at: new Date().toISOString() })
+      .update({ is_verified: true, verified_by: userId, verified_at: new Date().toISOString() })
       .eq('id', d.id)
     if (error) { showToast(error.message, 'red'); return }
     showToast('Document verified', 'green'); load()

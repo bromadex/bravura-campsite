@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
+import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import {
   PageHeader, Card, Button, Icon, SectionLabel,
@@ -93,6 +94,8 @@ const STATUS_MAP = {
 export default function FuelReceipts() {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const { profile } = useAuth()
+  const userId = profile?.id
   const { tanks, employees, addTransaction, deleteDelivery, refresh: refreshFuel } = useFuel()
 
   const canCreate  = can('fuel.create')
@@ -279,7 +282,6 @@ export default function FuelReceipts() {
 
     setSaving(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       const deliveryNumber = 'DEL-' + Date.now()
 
       const payload = {
@@ -297,7 +299,7 @@ export default function FuelReceipts() {
         dip_after_mm:         form.dip_after_mm ? Number(form.dip_after_mm) : null,
         dip_after:            form.dip_after ? Number(form.dip_after) : null,
         notes:                form.notes.trim() || null,
-        created_by:           user?.id || null,
+        created_by:           userId,
       }
 
       if (editId) {
@@ -399,10 +401,9 @@ export default function FuelReceipts() {
     if (!confirm('Cancel this delivery? This will mark it as cancelled (it will not be deleted).')) return
     setSaving(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       const { error } = await supabase
         .from('fuel_deliveries')
-        .update({ status: 'cancelled', updated_by: user?.id || null })
+        .update({ status: 'cancelled', updated_by: userId })
         .eq('id', editId)
         .eq('site_id', currentSiteId)
       if (error) throw error
@@ -440,10 +441,9 @@ export default function FuelReceipts() {
     if (!editId) return
     setSaving(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       const { error } = await supabase
         .from('fuel_deliveries')
-        .update({ status: 'confirmed', confirmed_by: user?.id || null, confirmed_at: new Date().toISOString(), updated_by: user?.id || null })
+        .update({ status: 'confirmed', confirmed_by: userId, confirmed_at: new Date().toISOString(), updated_by: userId })
         .eq('id', editId)
         .eq('site_id', currentSiteId)
       if (error) throw error

@@ -77,8 +77,8 @@ admin (AD), procurement (PR), feedback (FB). HR pages: `src/pages/hr/`
 5. ~~Add `site_id` to `beds` + `room_assignments`~~ (done — 0081 applied, .in() cascades eliminated)
 6. ~~Memoize CampsiteContext/FuelContext; replace getUser()~~ (done — 9 calls removed)
 7. ~~Shared utils~~ (done — `utils/csv.js`, `components/Denied.jsx`, `utils/friendlyError.js`)
-8. Smoke tests for RPCs + billing math; CI
-9. FuelContext pagination (fetch reference data only; paginate transactions)
+8. ~~Smoke tests for RPCs + billing math; CI~~ (done — vitest + 3 test suites, GitHub Actions CI)
+9. ~~FuelContext pagination~~ (done — ref data fetched once, transactions date-filtered 30 days default)
 10. Realtime/staleness handling for flags & approvals (later)
 
 ## Database access

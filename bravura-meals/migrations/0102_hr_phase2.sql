@@ -181,8 +181,9 @@ DO $$
 DECLARE perm TEXT;
 BEGIN
   FOREACH perm IN ARRAY ARRAY['hr.approve', 'hr.medical'] LOOP
-    INSERT INTO permissions (code)
-    SELECT perm WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE code = perm);
+    INSERT INTO permissions (code, module, action)
+    SELECT perm, 'hr', split_part(perm, '.', 2)
+    WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE code = perm);
   END LOOP;
   UPDATE permissions SET module = 'hr', description = 'Approve leave requests and site transfers' WHERE code = 'hr.approve';
   UPDATE permissions SET module = 'hr', description = 'View and record employee medical records'  WHERE code = 'hr.medical';

@@ -103,7 +103,7 @@ export default function EmployeeForm({ setPage, employeeId }) {
         }
       } else {
         // Auto-generate the next employee number from prefix + max suffix
-        const prefix = s.employee_number_prefix || 'EMP-'
+        const prefix = s.employee_number_prefix || 'BRA'
         const padding = Number(s.employee_number_padding) || 4
         const { data: existing } = await supabase.from('employees')
           .select('employee_number').eq('site_id', currentSiteId)

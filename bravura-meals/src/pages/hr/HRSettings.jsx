@@ -9,7 +9,7 @@ import { Card, Icon, PageHeader, Button, SectionLabel, showToast } from '../../c
 const ACCENT = MODULE_COLORS.workforce
 
 const DEFAULTS = {
-  employee_number_prefix:    'EMP-',
+  employee_number_prefix:    'BRA',
   employee_number_padding:   4,
   default_employment_type:   '',
   require_emergency_contact: true,

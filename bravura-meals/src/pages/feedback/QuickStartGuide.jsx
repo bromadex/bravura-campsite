@@ -175,6 +175,9 @@ export default function QuickStartGuide() {
             <>Add an employee with <Code>HR08</Code> — the employee number auto-generates, and at least one emergency contact is required.</>,
             <>Change someone's status (leave, transfer, termination) from their detail page — every change needs a reason and is kept permanently in the status history.</>,
             <>Departments (<Code>HR06</Code>) and Designations (<Code>HR07</Code>) are archive-only — nothing is ever deleted.</>,
+            <>Leave: allocate days per employee per year (<Code>HR12</Code>), then log requests in <Code>HR10</Code> — approving deducts the balance automatically. The calendar (<Code>HR11</Code>) shows who's away.</>,
+            <>Documents (IDs, contracts, licences) upload on the employee's Documents tab — expiring documents show amber within 30 days, red once expired.</>,
+            <>Moving someone between sites goes through Site Transfers (<Code>HR15</Code>) — the receiving site's HR approves before the record moves.</>,
           ]} />
         </Section>
       )}

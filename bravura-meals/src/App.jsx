@@ -26,6 +26,13 @@ const HRSettings       = lazy(() => import('./pages/hr/HRSettings'))
 const HREmployeesList  = lazy(() => import('./pages/hr/EmployeesList'))
 const HREmployeeForm   = lazy(() => import('./pages/hr/EmployeeForm'))
 const HREmployeeDetail = lazy(() => import('./pages/hr/EmployeeDetail'))
+const HRLeaveTypes     = lazy(() => import('./pages/hr/leave/LeaveTypes'))
+const HRLeaveAllocations = lazy(() => import('./pages/hr/leave/LeaveAllocations'))
+const HRLeaveRequests  = lazy(() => import('./pages/hr/leave/LeaveRequests'))
+const HRLeaveCalendar  = lazy(() => import('./pages/hr/leave/LeaveCalendar'))
+const HRLeaveBalances  = lazy(() => import('./pages/hr/leave/LeaveBalanceReport'))
+const HROrgChart       = lazy(() => import('./pages/hr/OrgChart'))
+const HRTransfers      = lazy(() => import('./pages/hr/Transfers'))
 const Contractors     = lazy(() => import('./pages/workforce/Contractors'))
 const WorkforceLeave  = lazy(() => import('./pages/workforce/WorkforceLeave'))
 const WorkforceReports= lazy(() => import('./pages/workforce/WorkforceReports'))
@@ -151,6 +158,13 @@ function getWorkforcePage(page, role, can, setPage) {
       ? <HREmployeeForm setPage={setPage} employeeId={param || null} /> : null
     case 'wf_employee_detail': return can('hr.view')
       ? <HREmployeeDetail setPage={setPage} employeeId={param} /> : null
+    case 'wf_leave_types':       return can('hr.view') ? <HRLeaveTypes /> : null
+    case 'wf_leave_allocations': return can('hr.view') ? <HRLeaveAllocations /> : null
+    case 'wf_leave_requests':    return can('hr.view') ? <HRLeaveRequests /> : null
+    case 'wf_leave_calendar':    return can('hr.view') ? <HRLeaveCalendar /> : null
+    case 'wf_leave_balances':    return can('hr.view') ? <HRLeaveBalances /> : null
+    case 'wf_org_chart':         return can('hr.view') ? <HROrgChart /> : null
+    case 'wf_transfers':         return can('hr.view') ? <HRTransfers /> : null
     // Employee list: the Phase 1 HR list supersedes the original page but
     // keeps the same id — bookmarks and the HR01 T-code keep working.
     case 'wf_employees':

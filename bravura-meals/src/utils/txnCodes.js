@@ -86,6 +86,13 @@ export const TXN_CODES = [
   { code: 'HR07', path: '/workforce/wf_designations',  label: 'Designations',        module: 'workforce' },
   { code: 'HR08', path: '/workforce/wf_employee_form', label: 'New Employee',        module: 'workforce' },
   { code: 'HR09', path: '/workforce/wf_settings',      label: 'HR Settings',         module: 'workforce' },
+  { code: 'HR10', path: '/workforce/wf_leave_requests',    label: 'Leave Requests',       module: 'workforce' },
+  { code: 'HR11', path: '/workforce/wf_leave_calendar',    label: 'Leave Calendar',       module: 'workforce' },
+  { code: 'HR12', path: '/workforce/wf_leave_allocations', label: 'Leave Allocations',    module: 'workforce' },
+  { code: 'HR13', path: '/workforce/wf_leave_types',       label: 'Leave Types',          module: 'workforce' },
+  { code: 'HR14', path: '/workforce/wf_org_chart',         label: 'Org Chart',            module: 'workforce' },
+  { code: 'HR15', path: '/workforce/wf_transfers',         label: 'Site Transfers',       module: 'workforce' },
+  { code: 'HR16', path: '/workforce/wf_leave_balances',    label: 'Leave Balance Report', module: 'workforce' },
 
   // ── Admin (AD) ────────────────────────────────────────────────────────────
   { code: 'AD01', path: '/admin/admin_users', label: 'Users & Roles', module: 'admin' },
@@ -109,6 +116,7 @@ export const ALIASES = {
   KIT:  'ME04',
   DISP: 'FL06',   // dispatch board
   EMP:  'HR01',
+  LEAVE:'HR10',   // leave requests
   HELP: 'FB02',   // quick start guide
 }
 

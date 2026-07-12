@@ -139,9 +139,16 @@ export function workforceNav(role) {
     { id: 'wf_employees',   label: 'Employees',        section: 'People',  icon: 'badge' },
     { id: 'wf_contractors', label: 'Contractors',      section: 'People',  icon: 'business' },
     { id: 'wf_leave',       label: 'Leave Management', section: 'People',  icon: 'flight_takeoff' },
+    { id: 'wf_transfers',    label: 'Site Transfers',   section: 'People',  icon: 'sync_alt' },
+    { id: 'wf_leave_requests',    label: 'Leave Requests',    section: 'Leave', icon: 'event_available' },
+    { id: 'wf_leave_calendar',    label: 'Leave Calendar',    section: 'Leave', icon: 'calendar_month' },
+    { id: 'wf_leave_allocations', label: 'Leave Allocations', section: 'Leave', icon: 'pie_chart' },
+    { id: 'wf_leave_types',       label: 'Leave Types',       section: 'Leave', icon: 'category' },
     { id: 'wf_departments',  label: 'Departments',      section: 'Organisation', icon: 'domain' },
     { id: 'wf_designations', label: 'Designations',     section: 'Organisation', icon: 'military_tech' },
+    { id: 'wf_org_chart',    label: 'Org Chart',        section: 'Organisation', icon: 'account_tree' },
     { id: 'wf_reports',     label: 'Employee Reports', section: 'Reports', icon: 'bar_chart' },
+    { id: 'wf_leave_balances', label: 'Leave Balances', section: 'Reports', icon: 'summarize' },
     { id: 'wf_settings',     label: 'HR Settings',      section: 'Admin',        icon: 'settings' },
   ].filter(item => item.show !== false)
 }

@@ -211,8 +211,8 @@ BEGIN
     'hr.view', 'hr.create', 'hr.edit', 'hr.terminate',
     'hr.export', 'hr.accounts', 'hr.settings'
   ] LOOP
-    INSERT INTO permissions (code)
-    SELECT perm WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE code = perm);
+    INSERT INTO permissions (code, module)
+    SELECT perm, 'hr' WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE code = perm);
   END LOOP;
 
   UPDATE permissions SET module = 'hr', description = 'View HR data (employees, departments, designations)' WHERE code = 'hr.view';

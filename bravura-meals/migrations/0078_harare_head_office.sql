@@ -6,6 +6,14 @@
 
 BEGIN;
 
+-- Widen the check constraint to allow 'head_office' before updating rows.
+ALTER TABLE public.sites
+  DROP CONSTRAINT IF EXISTS sites_site_type_check;
+
+ALTER TABLE public.sites
+  ADD CONSTRAINT sites_site_type_check
+  CHECK (site_type IN ('operational', 'head_office'));
+
 UPDATE public.sites SET site_type = 'operational'
 WHERE site_type IS DISTINCT FROM 'operational' AND name <> 'Harare';
 

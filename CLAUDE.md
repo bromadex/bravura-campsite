@@ -63,6 +63,7 @@ admin (AD), procurement (PR), feedback (FB). HR pages: `src/pages/hr/`
   site transfers) are **built and migrated** (0100, 0102, 0103 applied).
 - Employee numbers use prefix **BRA** (module_settings, per site).
 - Migration 0079 (fleet RLS lockdown) is **applied and verified** (2026-07-12).
+- Migrations 0080 (soft-delete columns) and 0081 (beds/assignments site_id) applied.
 - HR Phase 3 is next when the user asks: attendance (SINGLE shift only — no
   shift scheduling), training records, skills matrix. Phase 4: payroll prep.
   Phase 5: HR analytics/AI. See TAFARA_PROMPTS.txt.
@@ -71,19 +72,11 @@ admin (AD), procurement (PR), feedback (FB). HR pages: `src/pages/hr/`
 
 1. ~~Rotate leaked DB password~~ (done, user-side)
 2. ~~Fleet RLS lockdown~~ (done — 0079 applied and verified 2026-07-12)
-3. Soft-delete sweep: 18 hard `.delete()` call sites violate the soft-delete rule.
-   Worst: `pages/workforce/Employees.jsx` (hard-deletes employees, destroying
-   status history), `contexts/FuelContext.jsx` deleteTank (wipes dip readings /
-   calibrations / pumps with unchecked awaits). Others: contractors,
-   meal_providers, camp blocks/rooms/supply txns, fleet drivers/compliance,
-   user_roles, tank_calibrations, beds.
+3. ~~Soft-delete sweep~~ (done — 0080 applied, 15 hard deletes → archive, beds+user_roles kept)
 4. ~~PermissionsContext memoization~~ (done)
-5. Add `site_id` to `beds` + `room_assignments`, replace CampsiteContext `.in()`
-   cascades with direct site queries (414 URL-length crash risk)
-6. Memoize CampsiteContext/FuelContext provider values; replace
-   `supabase.auth.getUser()` in CRUD paths with AuthContext user (9 call sites)
-7. Shared utils: CSV export helper (BOM+escape duplicated ~10×), `<Denied />`
-   component, friendlyError that also reads err.details/err.hint
+5. ~~Add `site_id` to `beds` + `room_assignments`~~ (done — 0081 applied, .in() cascades eliminated)
+6. ~~Memoize CampsiteContext/FuelContext; replace getUser()~~ (done — 9 calls removed)
+7. ~~Shared utils~~ (done — `utils/csv.js`, `components/Denied.jsx`, `utils/friendlyError.js`)
 8. Smoke tests for RPCs + billing math; CI
 9. FuelContext pagination (fetch reference data only; paginate transactions)
 10. Realtime/staleness handling for flags & approvals (later)

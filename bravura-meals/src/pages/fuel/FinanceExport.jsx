@@ -4,22 +4,11 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Icon, TableWrap, THead, Th, TRow, Td, Card, Button, showToast } from '../../components/ui'
+import { exportCsv } from '../../utils/csv'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
 const fmtMoney = n => n == null ? '—' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-function exportCsv(filename, headers, rows) {
-  const lines = [
-    headers.join(','),
-    ...rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')),
-  ]
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = filename; a.click()
-  URL.revokeObjectURL(url)
-}
 
 // A journal line is one leg of a journal entry (debit XOR credit populated).
 function buildJournalLines({ deliveries, allocations, mappings, siteName }) {

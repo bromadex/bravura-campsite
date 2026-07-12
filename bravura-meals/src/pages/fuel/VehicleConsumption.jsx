@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { exportCsv } from '../../utils/csv'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -17,14 +18,6 @@ const btn = (extra = {}) => ({
 })
 
 const fmt = (n, dec = 1) => n != null ? Number(n).toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—'
-
-function exportCsv(filename, headers, rows) {
-  const lines = [headers.join(','), ...rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))]
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
-  URL.revokeObjectURL(url)
-}
 
 // Monthly consumption trend — bins each vehicle's fills into calendar months,
 // computes L/100km per month using odometer deltas within that month, and

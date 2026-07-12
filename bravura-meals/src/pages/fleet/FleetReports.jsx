@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from 'react'
+import { exportCsv } from '../../utils/csv'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -25,21 +26,7 @@ const REPORT_DEFS = [
   { key: 'assignments',   icon: 'history',       title: 'Assignment History',  desc: 'Operator assignments over time' },
 ]
 
-function downloadCsv(filename, headers, rows) {
-  const bom = '﻿'
-  const escape = v => {
-    const s = String(v == null ? '' : v)
-    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
-  }
-  const csv = bom + [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
+const downloadCsv = exportCsv
 
 function DataTable({ headers, rows, maxHeight }) {
   return (

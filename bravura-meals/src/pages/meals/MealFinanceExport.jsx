@@ -4,6 +4,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Icon, Card, Button, TableWrap, THead, Th, TRow, Td, showToast } from '../../components/ui'
+import { exportCsv } from '../../utils/csv'
 
 const CLR = MODULE_COLORS.meals
 
@@ -11,14 +12,6 @@ const fmtMoney = n => n == null ? '—' : Number(n).toLocaleString(undefined, { 
 
 function firstOfMonth(dISO) { return dISO.slice(0, 8) + '01' }
 function todayISO() { return new Date().toISOString().slice(0, 10) }
-
-function exportCsv(filename, headers, rows) {
-  const lines = [headers.join(','), ...rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))]
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
-  URL.revokeObjectURL(url)
-}
 
 function buildJournalLines({ perContractor, mappings, siteName, periodEnd }) {
   const lines = []

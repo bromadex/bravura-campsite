@@ -47,11 +47,11 @@ DO $$
 DECLARE
   tbl TEXT;
 BEGIN
-  -- fleet_status_history and fleet_maintenance_parts have no site_id in the
-  -- live schema — they are handled separately below via joins.
+  -- fleet_status_history, fleet_maintenance_parts and fleet_inspection_items
+  -- have no site_id in the live schema — handled separately below via joins.
   FOREACH tbl IN ARRAY ARRAY[
     'fleet_assets', 'fleet_assignments',
-    'fleet_inspection_templates', 'fleet_inspections', 'fleet_inspection_items',
+    'fleet_inspection_templates', 'fleet_inspections',
     'fleet_trips', 'fleet_work_orders', 'fleet_maintenance',
     'fleet_compliance', 'fleet_documents',
     'fleet_meter_readings', 'fleet_drivers', 'fleet_tyres',
@@ -100,6 +100,32 @@ CREATE POLICY fleet_status_history_insert ON fleet_status_history
   WITH CHECK (EXISTS (SELECT 1 FROM fleet_assets fa
                        WHERE fa.id = fleet_status_history.asset_id
                          AND public._has_permission('fleet.edit', fa.site_id)));
+
+-- fleet_inspection_items: site comes from the parent inspection
+DROP POLICY IF EXISTS fleet_inspection_items_read   ON fleet_inspection_items;
+DROP POLICY IF EXISTS fleet_inspection_items_insert ON fleet_inspection_items;
+DROP POLICY IF EXISTS fleet_inspection_items_update ON fleet_inspection_items;
+DROP POLICY IF EXISTS fleet_inspection_items_delete ON fleet_inspection_items;
+CREATE POLICY fleet_inspection_items_read ON fleet_inspection_items
+  FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM fleet_inspections fi
+                  WHERE fi.id = fleet_inspection_items.inspection_id
+                    AND public._has_permission('fleet.view', fi.site_id)));
+CREATE POLICY fleet_inspection_items_insert ON fleet_inspection_items
+  FOR INSERT TO authenticated
+  WITH CHECK (EXISTS (SELECT 1 FROM fleet_inspections fi
+                       WHERE fi.id = fleet_inspection_items.inspection_id
+                         AND public._has_permission('fleet.create', fi.site_id)));
+CREATE POLICY fleet_inspection_items_update ON fleet_inspection_items
+  FOR UPDATE TO authenticated
+  USING (EXISTS (SELECT 1 FROM fleet_inspections fi
+                  WHERE fi.id = fleet_inspection_items.inspection_id
+                    AND public._has_permission('fleet.edit', fi.site_id)));
+CREATE POLICY fleet_inspection_items_delete ON fleet_inspection_items
+  FOR DELETE TO authenticated
+  USING (EXISTS (SELECT 1 FROM fleet_inspections fi
+                  WHERE fi.id = fleet_inspection_items.inspection_id
+                    AND public._has_permission('fleet.delete', fi.site_id)));
 
 -- fleet_maintenance_parts: site comes from the parent maintenance record
 DROP POLICY IF EXISTS fleet_maintenance_parts_read   ON fleet_maintenance_parts;

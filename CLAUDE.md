@@ -34,7 +34,7 @@ Supabase (PostgREST + RLS) backend, Vercel auto-deploys from `main` —
   `action` CHECK-constrained to `('View','Create','Edit','Delete','Approve')`,
   and `UNIQUE (module, action)` — **max 5 permissions per module**.
   HR uses: hr.view / hr.create / hr.edit / hr.terminate (Delete) / hr.approve.
-  Fleet uses: fleet.view / fleet.create / fleet.edit / fleet.delete.
+  Fleet uses: fleet.view/create/edit/delete/approve — NOTE: module column values are inconsistently cased ('Fleet', 'HR', 'fuel', 'hr') — always match on p.code, never on module.
 - `sites.site_type` CHECK: `('operational_site','head_office')`. Harare = head_office (HQ).
 - `fleet_status_history` and `fleet_maintenance_parts` have **no site_id** —
   scope via joins to `fleet_assets` / `fleet_maintenance`.
@@ -72,7 +72,7 @@ admin (AD), procurement (PR), feedback (FB). HR pages: `src/pages/hr/`
 ## Improvement backlog (agreed with user, work top-down)
 
 1. ~~Rotate leaked DB password~~ (done, user-side)
-2. Fleet RLS lockdown — migration 0079 written, **needs applying + verification**
+2. ~~Fleet RLS lockdown~~ (done — 0079 applied and verified 2026-07-12)
 3. Soft-delete sweep: 18 hard `.delete()` call sites violate the soft-delete rule.
    Worst: `pages/workforce/Employees.jsx` (hard-deletes employees, destroying
    status history), `contexts/FuelContext.jsx` deleteTank (wipes dip readings /

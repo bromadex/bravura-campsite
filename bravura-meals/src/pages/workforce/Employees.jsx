@@ -58,6 +58,7 @@ export default function Employees() {
       .from('employees')
       .select('*, contractor:contractors(id, name, short_code)')
       .eq('site_id', currentSiteId)
+      .eq('is_archived', false)
       .order('name')
     setEmployees(data || [])
     setLoading(false)
@@ -154,10 +155,12 @@ export default function Employees() {
   async function deleteEmployee() {
     if (!deleteTarget) return
     setDeleting(true)
-    const { error } = await supabase.from('employees').delete().eq('id', deleteTarget.id)
+    const { error } = await supabase.from('employees')
+      .update({ is_archived: true, archived_at: new Date().toISOString() })
+      .eq('id', deleteTarget.id)
     setDeleting(false)
     if (error) { showToast(friendlyDeleteError(error, deleteTarget.name), 'red'); setDeleteTarget(null); return }
-    showToast(`${deleteTarget.name} deleted`, 'red')
+    showToast(`${deleteTarget.name} archived`, 'red')
     setDeleteTarget(null)
     fetchEmployees()
   }

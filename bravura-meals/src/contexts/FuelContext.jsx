@@ -85,6 +85,7 @@ export function FuelProvider({ children }) {
           .from('fuel_dip_readings')
           .select('*')
           .eq('site_id', currentSiteId)
+          .eq('is_archived', false)
           .order('reading_date', { ascending: false }),
         supabase
           .from('profiles')
@@ -283,12 +284,10 @@ export function FuelProvider({ children }) {
       )
     }
 
-    // Wipe dependent config rows first so FKs don't block the tank delete.
-    await supabase.from('tank_calibrations').delete().eq('tank_id', id)
-    await supabase.from('fuel_pumps').delete().eq('tank_id', id)
-    await supabase.from('fuel_dip_readings').delete().eq('tank_id', id)
-
-    const { error } = await supabase.from('fuel_tanks').delete().eq('id', id)
+    const now = new Date().toISOString()
+    const { error } = await supabase.from('fuel_tanks')
+      .update({ is_archived: true, archived_at: now })
+      .eq('id', id)
     if (error) throw error
     setTanks(prev => prev.filter(t => t.id !== id))
   }
@@ -556,7 +555,7 @@ export function FuelProvider({ children }) {
     const reading = dipReadings.find(d => d.id === id)
     const { error } = await supabase
       .from('fuel_dip_readings')
-      .delete()
+      .update({ is_archived: true, archived_at: new Date().toISOString() })
       .eq('id', id)
       .eq('site_id', currentSiteId)
     if (error) throw error
@@ -573,7 +572,7 @@ export function FuelProvider({ children }) {
   async function deleteDelivery(id) {
     const { error } = await supabase
       .from('fuel_deliveries')
-      .delete()
+      .update({ is_archived: true, archived_at: new Date().toISOString() })
       .eq('id', id)
       .eq('site_id', currentSiteId)
     if (error) throw error

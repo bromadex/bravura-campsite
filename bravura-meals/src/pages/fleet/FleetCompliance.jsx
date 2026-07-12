@@ -167,7 +167,9 @@ export default function FleetCompliance({ setPage }) {
   async function handleDelete() {
     if (!confirm('Delete this compliance record?')) return
     try {
-      const { error: err } = await supabase.from('fleet_compliance').delete().eq('id', editId)
+      const { error: err } = await supabase.from('fleet_compliance')
+        .update({ is_archived: true, archived_at: new Date().toISOString() })
+        .eq('id', editId)
       if (err) throw err
       await fetchAll()
       setModalOpen(false)

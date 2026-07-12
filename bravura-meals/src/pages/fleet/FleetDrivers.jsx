@@ -73,6 +73,7 @@ export default function FleetDrivers({ setPage }) {
       .from('fleet_drivers')
       .select('*, employees(id, name)')
       .eq('site_id', currentSiteId)
+      .eq('is_archived', false)
       .order('created_at', { ascending: false })
     if (!err) setDrivers(data || [])
     setLoading(false)
@@ -180,7 +181,9 @@ export default function FleetDrivers({ setPage }) {
   async function handleDelete() {
     if (!confirm('Remove this driver record?')) return
     try {
-      const { error: err } = await supabase.from('fleet_drivers').delete().eq('id', editId)
+      const { error: err } = await supabase.from('fleet_drivers')
+        .update({ is_archived: true, archived_at: new Date().toISOString() })
+        .eq('id', editId)
       if (err) throw err
       await fetchDrivers()
       setModalOpen(false)

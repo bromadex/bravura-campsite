@@ -72,6 +72,7 @@ function TankCalibrationPanel({ tank, onClose }) {
       .from('tank_calibrations')
       .select('*')
       .eq('tank_id', tank.id)
+      .eq('is_archived', false)
       .order('dip_mm', { ascending: true })
     setRows(data || [])
   }, [tank.id])
@@ -101,7 +102,9 @@ function TankCalibrationPanel({ tank, onClose }) {
   }
 
   const deleteRow = async (id) => {
-    await supabase.from('tank_calibrations').delete().eq('id', id)
+    await supabase.from('tank_calibrations')
+      .update({ is_archived: true, archived_at: new Date().toISOString() })
+      .eq('id', id)
     load()
   }
 

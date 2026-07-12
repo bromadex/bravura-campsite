@@ -29,7 +29,7 @@ export function CampsiteProvider({ children }) {
       // updated to expose site_id (see fix_supply_balance_site_id.sql).
       // Visitors remain unfiltered for now — a known, smaller, separate gap.
       const [bRes, eRes, cRes, vRes, sRes] = await Promise.all([
-        supabase.from('camp_blocks').select('*').eq('site_id', currentSiteId).order('name'),
+        supabase.from('camp_blocks').select('*').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
         // Widened to include on_leave/long_leave, not just active. The KPI
         // counts below and the Assignments page's "On Leave" tab both
         // depend on these employees actually being present in this list —
@@ -53,7 +53,7 @@ export function CampsiteProvider({ children }) {
       let roomsData = [], fixturesData = []
       if (blockIds.length > 0) {
         const [rRes, fxRes] = await Promise.all([
-          supabase.from('camp_rooms').select('*, block:camp_blocks(id,name)').in('block_id', blockIds).order('room_number'),
+          supabase.from('camp_rooms').select('*, block:camp_blocks(id,name)').in('block_id', blockIds).eq('is_archived', false).order('room_number'),
           supabase.from('camp_fixtures').select('*').in('block_id', blockIds),
         ])
         roomsData = rRes.data || []
@@ -92,6 +92,7 @@ export function CampsiteProvider({ children }) {
         const txRes = await supabase.from('camp_supply_txns')
           .select('*, item:camp_supply_items(id,name,unit), recorded_by_profile:profiles(full_name), issued_to_employee:employees(id,name)')
           .in('item_id', itemIds)
+          .eq('is_archived', false)
           .order('txn_date', { ascending: false })
           .order('created_at', { ascending: false })
           .limit(200)
@@ -170,7 +171,9 @@ export function CampsiteProvider({ children }) {
   async function deleteBlock(id) {
     const hasRooms = rooms.some(r => r.block_id === id)
     if (hasRooms) throw new Error('Cannot delete block — it has rooms. Remove rooms first.')
-    const { error } = await supabase.from('camp_blocks').delete().eq('id', id)
+    const { error } = await supabase.from('camp_blocks')
+      .update({ is_archived: true, archived_at: new Date().toISOString() })
+      .eq('id', id)
     if (error) throw error
     await fetchAll()
   }
@@ -256,7 +259,9 @@ export function CampsiteProvider({ children }) {
       .limit(1)
     if (existing && existing.length > 0)
       throw new Error('Cannot delete — room has assignment history. Use maintenance mode instead.')
-    const { error } = await supabase.from('camp_rooms').delete().eq('id', roomId)
+    const { error } = await supabase.from('camp_rooms')
+      .update({ is_archived: true, archived_at: new Date().toISOString() })
+      .eq('id', roomId)
     if (error) throw error
     await fetchAll()
   }
@@ -542,7 +547,9 @@ export function CampsiteProvider({ children }) {
       throw new Error('Cannot delete — this transaction is part of the stock history other balances depend on. Removing it would push stock below zero.')
     }
 
-    const { error } = await supabase.from('camp_supply_txns').delete().eq('id', txnId)
+    const { error } = await supabase.from('camp_supply_txns')
+      .update({ is_archived: true, archived_at: new Date().toISOString() })
+      .eq('id', txnId)
     if (error) throw error
     await fetchAll()
   }

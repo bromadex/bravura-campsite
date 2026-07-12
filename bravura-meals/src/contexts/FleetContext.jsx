@@ -72,6 +72,7 @@ export function FleetProvider({ children }) {
           .from('fleet_compliance')
           .select('*, fleet_assets(id, asset_number, description)')
           .eq('site_id', currentSiteId)
+          .eq('is_archived', false)
           .order('expiry_date'),
       ])
       setAssetTypes(atRes.data || [])

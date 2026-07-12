@@ -29,6 +29,7 @@ export default function MealProviders() {
     const { data } = await supabase
       .from('meal_providers')
       .select('*')
+      .eq('is_archived', false)
       .eq('site_id', currentSiteId)
       .order('name')
     setProviders(data || [])
@@ -71,10 +72,12 @@ export default function MealProviders() {
 
   async function doDelete() {
     setDeleting(true)
-    const { error } = await supabase.from('meal_providers').delete().eq('id', deleteTarget.id)
+    const { error } = await supabase.from('meal_providers')
+      .update({ is_archived: true, archived_at: new Date().toISOString() })
+      .eq('id', deleteTarget.id)
     setDeleting(false)
-    if (error) { showToast('Cannot delete: ' + error.message, 'red'); setDeleteTarget(null); return }
-    showToast(`${deleteTarget.name} removed`, 'red')
+    if (error) { showToast('Archive failed: ' + error.message, 'red'); setDeleteTarget(null); return }
+    showToast(`${deleteTarget.name} archived`, 'red')
     setDeleteTarget(null)
     fetchProviders()
   }

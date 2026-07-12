@@ -25,7 +25,7 @@ export default function Contractors() {
   async function fetchAll() {
     setLoading(true)
     const [{ data: cos }, { data: emps }] = await Promise.all([
-      supabase.from('contractors').select('*').order('name'),
+      supabase.from('contractors').select('*').eq('is_archived', false).order('name'),
       supabase.from('employees').select('contractor_id, status'),
     ])
     setContractors(cos || [])
@@ -99,10 +99,12 @@ export default function Contractors() {
       return
     }
     setDeleting(true)
-    const { error } = await supabase.from('contractors').delete().eq('id', deleteTarget.id)
+    const { error } = await supabase.from('contractors')
+      .update({ is_archived: true, archived_at: new Date().toISOString() })
+      .eq('id', deleteTarget.id)
     setDeleting(false)
-    if (error) { showToast('Delete failed: ' + error.message, 'red'); setDeleteTarget(null); return }
-    showToast(`${deleteTarget.name} deleted`, 'red')
+    if (error) { showToast('Archive failed: ' + error.message, 'red'); setDeleteTarget(null); return }
+    showToast(`${deleteTarget.name} archived`, 'red')
     setDeleteTarget(null)
     fetchAll()
   }

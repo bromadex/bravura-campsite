@@ -60,28 +60,20 @@ export function CampsiteProvider({ children }) {
         fixturesData = fxRes.data || []
       }
 
-      // Step 3: assignments and beds both depend on which rooms belong to
-      // this site — same empty-array guard as above. Beds are fetched here
-      // (not alongside rooms in step 2) because they share the exact same
-      // dependency on roomIds that assignments does.
-      let assignmentsData = [], bedsData = []
-      const roomIds = roomsData.map(r => r.id)
-      if (roomIds.length > 0) {
-        const [aRes, bedsRes] = await Promise.all([
-          supabase.from('room_assignments').select(`
-            *,
-            employee:employees(id, name, status, gender, contractor_id,
-              contractor:contractors(id, name, short_code)),
-            visitor:camp_visitors(id, name, gender, phone, purpose),
-            room:camp_rooms(id, room_number, block_id, capacity,
-              block:camp_blocks(id, name)),
-            bed:beds(id, bed_number)
-          `).in('room_id', roomIds).order('created_at', { ascending: false }),
-          supabase.from('beds').select('*').in('room_id', roomIds).order('bed_number'),
-        ])
-        assignmentsData = aRes.data || []
-        bedsData = bedsRes.data || []
-      }
+      const [aRes, bedsRes] = await Promise.all([
+        supabase.from('room_assignments').select(`
+          *,
+          employee:employees(id, name, status, gender, contractor_id,
+            contractor:contractors(id, name, short_code)),
+          visitor:camp_visitors(id, name, gender, phone, purpose),
+          room:camp_rooms(id, room_number, block_id, capacity,
+            block:camp_blocks(id, name)),
+          bed:beds(id, bed_number)
+        `).eq('site_id', currentSiteId).order('created_at', { ascending: false }),
+        supabase.from('beds').select('*').eq('site_id', currentSiteId).order('bed_number'),
+      ])
+      const assignmentsData = aRes.data || []
+      const bedsData = bedsRes.data || []
 
       // Step 4: supply transactions depend on which supply items belong to
       // this site — same empty-array guard as everywhere else above.
@@ -194,6 +186,7 @@ export function CampsiteProvider({ children }) {
       const newBeds = Array.from({ length: capacity }, (_, i) => ({
         room_id: created.id,
         bed_number: String(i + 1),
+        site_id: currentSiteId,
       }))
       await supabase.from('beds').insert(newBeds)
     }
@@ -235,6 +228,7 @@ export function CampsiteProvider({ children }) {
         const newBeds = Array.from({ length: diff }, (_, i) => ({
           room_id: id,
           bed_number: String(maxNum + i + 1),
+          site_id: currentSiteId,
         }))
         await supabase.from('beds').insert(newBeds)
       } else if (diff < 0) {
@@ -327,6 +321,7 @@ export function CampsiteProvider({ children }) {
       occupant_type:     occupantType,
       room_id:           roomId,
       bed_id:            targetBed.id,
+      site_id:           currentSiteId,
       assigned_date:     new Date().toISOString().slice(0, 10),
       expected_checkout: expectedCheckout || null,
       status:            'active',
@@ -377,6 +372,7 @@ export function CampsiteProvider({ children }) {
       occupant_type:     assignment.occupant_type,
       room_id:           newRoomId,
       bed_id:            targetBed.id,
+      site_id:           currentSiteId,
       assigned_date:     new Date().toISOString().slice(0, 10),
       expected_checkout: assignment.expected_checkout,
       status:            'active',

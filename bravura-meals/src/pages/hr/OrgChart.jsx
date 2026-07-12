@@ -70,7 +70,7 @@ export default function OrgChart() {
       setLoading(true)
       const [empRes, depRes] = await Promise.all([
         supabase.from('employees')
-          .select('id, name, manager_id, department_id, designation:designations(id, name), department:departments(id, name)')
+          .select('id, name, manager_id, department_id, designation:designations(id, name), department:departments!employees_department_id_fkey(id, name)')
           .eq('site_id', currentSiteId).eq('status', 'active').eq('is_archived', false).order('name'),
         supabase.from('departments').select('id, name').or(`site_id.eq.${currentSiteId},site_id.is.null`).order('name'),
       ])

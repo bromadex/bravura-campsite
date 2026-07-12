@@ -30,7 +30,7 @@ export default function LeaveBalanceReport() {
     async function load() {
       setLoading(true)
       const { data, error } = await supabase.from('leave_allocations')
-        .select('*, employee:employees(id, name, department:departments(id, name)), leave_type:leave_types(id, name)')
+        .select('*, employee:employees(id, name, department:departments!employees_department_id_fkey(id, name)), leave_type:leave_types(id, name)')
         .eq('site_id', currentSiteId).eq('year', year)
         .order('created_at')
       if (error) { console.error(error); showToast('Failed to load balances', 'red') }

@@ -80,7 +80,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
     setLoading(true)
     const [empRes, ecRes, histRes] = await Promise.all([
       supabase.from('employees')
-        .select('*, contractor:contractors(id, name), department:departments(id, name), designation:designations(id, name), employment_type:employment_types(id, name)')
+        .select('*, contractor:contractors(id, name), department:departments!employees_department_id_fkey(id, name), designation:designations(id, name), employment_type:employment_types(id, name)')
         .eq('id', employeeId).eq('site_id', currentSiteId).maybeSingle(),
       supabase.from('emergency_contacts').select('*').eq('employee_id', employeeId).order('is_primary', { ascending: false }),
       supabase.from('employee_status_history').select('*').eq('employee_id', employeeId).order('created_at', { ascending: false }),

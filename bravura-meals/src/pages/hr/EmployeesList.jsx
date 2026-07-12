@@ -52,7 +52,7 @@ export default function EmployeesList({ setPage }) {
       setLoading(true)
       const { data, error } = await supabase
         .from('employees')
-        .select('*, contractor:contractors(id, name), department:departments(id, name), designation:designations(id, name), employment_type:employment_types(id, name)')
+        .select('*, contractor:contractors(id, name), department:departments!employees_department_id_fkey(id, name), designation:designations(id, name), employment_type:employment_types(id, name)')
         .eq('site_id', currentSiteId)
         .order('name')
       if (error) { console.error(error); showToast('Failed to load employees', 'red') }

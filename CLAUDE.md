@@ -62,9 +62,7 @@ admin (AD), procurement (PR), feedback (FB). HR pages: `src/pages/hr/`
 - HR Phase 1 (foundation) and Phase 2 (leave, documents, medical, org chart,
   site transfers) are **built and migrated** (0100, 0102, 0103 applied).
 - Employee numbers use prefix **BRA** (module_settings, per site).
-- Migration **0079_fleet_rls_lockdown.sql is written and pushed but NOT yet
-  applied** — apply it first if a DB connection is available, then verify the
-  fleet module still works.
+- Migration 0079 (fleet RLS lockdown) is **applied and verified** (2026-07-12).
 - HR Phase 3 is next when the user asks: attendance (SINGLE shift only — no
   shift scheduling), training records, skills matrix. Phase 4: payroll prep.
   Phase 5: HR analytics/AI. See TAFARA_PROMPTS.txt.

@@ -47,11 +47,13 @@ DO $$
 DECLARE
   tbl TEXT;
 BEGIN
+  -- fleet_status_history and fleet_maintenance_parts have no site_id in the
+  -- live schema — they are handled separately below via joins.
   FOREACH tbl IN ARRAY ARRAY[
-    'fleet_assets', 'fleet_status_history', 'fleet_assignments',
+    'fleet_assets', 'fleet_assignments',
     'fleet_inspection_templates', 'fleet_inspections', 'fleet_inspection_items',
     'fleet_trips', 'fleet_work_orders', 'fleet_maintenance',
-    'fleet_maintenance_parts', 'fleet_compliance', 'fleet_documents',
+    'fleet_compliance', 'fleet_documents',
     'fleet_meter_readings', 'fleet_drivers', 'fleet_tyres',
     'fleet_accidents', 'fleet_settings', 'fleet_contractor_equipment'
   ] LOOP
@@ -80,6 +82,50 @@ BEGIN
        USING (public._has_permission(''fleet.delete'', site_id))', tbl || '_delete', tbl);
   END LOOP;
 END $$;
+
+-- ── 3b. Tables without site_id: scope through their parent row ──────────────
+
+-- fleet_status_history: site comes from the asset
+DROP POLICY IF EXISTS fleet_status_history_read   ON fleet_status_history;
+DROP POLICY IF EXISTS fleet_status_history_insert ON fleet_status_history;
+DROP POLICY IF EXISTS fleet_status_history_update ON fleet_status_history;
+DROP POLICY IF EXISTS fleet_status_history_delete ON fleet_status_history;
+CREATE POLICY fleet_status_history_read ON fleet_status_history
+  FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM fleet_assets fa
+                  WHERE fa.id = fleet_status_history.asset_id
+                    AND public._has_permission('fleet.view', fa.site_id)));
+CREATE POLICY fleet_status_history_insert ON fleet_status_history
+  FOR INSERT TO authenticated
+  WITH CHECK (EXISTS (SELECT 1 FROM fleet_assets fa
+                       WHERE fa.id = fleet_status_history.asset_id
+                         AND public._has_permission('fleet.edit', fa.site_id)));
+
+-- fleet_maintenance_parts: site comes from the parent maintenance record
+DROP POLICY IF EXISTS fleet_maintenance_parts_read   ON fleet_maintenance_parts;
+DROP POLICY IF EXISTS fleet_maintenance_parts_insert ON fleet_maintenance_parts;
+DROP POLICY IF EXISTS fleet_maintenance_parts_update ON fleet_maintenance_parts;
+DROP POLICY IF EXISTS fleet_maintenance_parts_delete ON fleet_maintenance_parts;
+CREATE POLICY fleet_maintenance_parts_read ON fleet_maintenance_parts
+  FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM fleet_maintenance fm
+                  WHERE fm.id = fleet_maintenance_parts.maintenance_id
+                    AND public._has_permission('fleet.view', fm.site_id)));
+CREATE POLICY fleet_maintenance_parts_insert ON fleet_maintenance_parts
+  FOR INSERT TO authenticated
+  WITH CHECK (EXISTS (SELECT 1 FROM fleet_maintenance fm
+                       WHERE fm.id = fleet_maintenance_parts.maintenance_id
+                         AND public._has_permission('fleet.edit', fm.site_id)));
+CREATE POLICY fleet_maintenance_parts_update ON fleet_maintenance_parts
+  FOR UPDATE TO authenticated
+  USING (EXISTS (SELECT 1 FROM fleet_maintenance fm
+                  WHERE fm.id = fleet_maintenance_parts.maintenance_id
+                    AND public._has_permission('fleet.edit', fm.site_id)));
+CREATE POLICY fleet_maintenance_parts_delete ON fleet_maintenance_parts
+  FOR DELETE TO authenticated
+  USING (EXISTS (SELECT 1 FROM fleet_maintenance fm
+                  WHERE fm.id = fleet_maintenance_parts.maintenance_id
+                    AND public._has_permission('fleet.delete', fm.site_id)));
 
 -- ── 4. fleet_asset_types: global lookup — open read, writes need fleet.edit
 --      on any site

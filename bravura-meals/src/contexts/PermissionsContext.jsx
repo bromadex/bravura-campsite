@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../auth/AuthContext'
 import { useSite } from './SiteContext'
@@ -79,18 +79,28 @@ export function PermissionsProvider({ children }) {
   // An explicit siteId can be passed for cases like "could this user manage
   // Selous" regardless of what site they're currently viewing — useful later
   // for things like a transfer form picking a destination site.
-  function can(code, siteId = currentSiteId) {
+  //
+  // Memoized: this provider wraps the entire app, so an unstable `can`
+  // reference (or value object) forces a full-tree re-render on every
+  // provider render. References only change when the grants or site change.
+  const can = useCallback((code, siteId = currentSiteId) => {
     if (allSiteGrants.has(code)) return true
     if (siteId && siteScopedGrants.get(siteId)?.has(code)) return true
     return false
-  }
+  }, [allSiteGrants, siteScopedGrants, currentSiteId])
 
-  function canAny(codes, siteId = currentSiteId) {
-    return codes.some(c => can(c, siteId))
-  }
+  const canAny = useCallback(
+    (codes, siteId = currentSiteId) => codes.some(c => can(c, siteId)),
+    [can, currentSiteId]
+  )
+
+  const value = useMemo(
+    () => ({ can, canAny, loading, refresh: loadPermissions }),
+    [can, canAny, loading, loadPermissions]
+  )
 
   return (
-    <PermissionsContext.Provider value={{ can, canAny, loading, refresh: loadPermissions }}>
+    <PermissionsContext.Provider value={value}>
       {children}
     </PermissionsContext.Provider>
   )

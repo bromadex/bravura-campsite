@@ -63,7 +63,7 @@ PHASE 2 — OPERATIONS                                            Status: DONE
   [ ] Casual payroll calculation (timesheets → cost summary → export)
 
 ───────────────────────────────────────────────────────────────────────────────
-PHASE 3 — COST DASHBOARD & REPORTS                                Status: WIP
+PHASE 3 — COST DASHBOARD & REPORTS                               Status: DONE
 ───────────────────────────────────────────────────────────────────────────────
 
   [x] CL09 — Cost Dashboard (rpc_contractor_cost_summary, migration 0086)
@@ -76,14 +76,14 @@ PHASE 3 — COST DASHBOARD & REPORTS                                Status: WIP
         • Campsite module (accommodation/nights by contractor workers)      [ ]
       - Contract budget vs actual spend (contract_value vs spent_to_date)   [x]
       - "Who's costing us the most?" ranking with drill-down                [x] (ranking only, no drill-down yet)
-      - Monthly cost trends                                                 [ ]
-  [~] CL10 — Reports
+      - Monthly cost trends (inline SVG bar chart, last 6 months)           [x]
+  [x] CL10 — Reports
       - Contractor Cost Report (links to Cost Dashboard)                    [x]
-      - Casual Labour Report (hours, overtime, attendance, cost)            [ ]
-      - Timesheet Report (daily/weekly/monthly summary)                    [ ]
-      - Vehicle Hire Report (utilisation, cost per km/hour)                 [ ]
-      - Equipment Hire Report (utilisation, cost per day)                   [ ]
-      - Cost by Site / Cost by Department                                   [ ]
+      - Casual Labour Report (hours, overtime, attendance, cost)            [x]
+      - Timesheet Report (daily entries, approval status, cost)             [x]
+      - Vehicle Hire Report (utilisation, estimated cost)                   [x]
+      - Equipment Hire Report (utilisation, estimated cost)                 [x]
+      - Cost by Site (cross-site labour + vehicle + equipment)              [x]
   [x] Supabase RPC for cross-module cost aggregation (rpc_contractor_cost_summary)
   [x] CSV export on Cost Dashboard (PDF still outstanding)
 

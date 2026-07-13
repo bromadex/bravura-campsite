@@ -1,8 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
-import { Card, Modal, Icon, SectionLabel, fmtDate, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import { Card, Button, Modal, Icon, SectionLabel, fmtDate, PageHeader, TableWrap, THead, Th, TRow, Td, showToast } from '../../components/ui'
 import { MODULE_COLORS } from '../../utils/permissions'
+import { exportCsv } from '../../utils/csv'
+
+const PAGE_SIZE = 200
 
 const TABLE_LABELS = {
   employees:                 'Employees',
@@ -55,36 +58,81 @@ export default function AuditLogViewer() {
   const [entries,      setEntries]      = useState([])
   const [profiles,     setProfiles]     = useState({}) // id -> profile
   const [loading,      setLoading]      = useState(true)
+  const [loadingMore,  setLoadingMore]  = useState(false)
+  const [hasMore,      setHasMore]      = useState(false)
   const [tableFilter,  setTableFilter]  = useState('all')
   const [actionFilter, setActionFilter] = useState('all')
+  const [actorFilter,  setActorFilter]  = useState('all')
+  const [fromDate,     setFromDate]     = useState('')
+  const [toDate,       setToDate]       = useState('')
   const [selected,     setSelected]     = useState(null)
 
-  useEffect(() => { fetchLog() }, [tableFilter, actionFilter])
+  useEffect(() => { fetchLog(0) }, [tableFilter, actionFilter, actorFilter, fromDate, toDate])
 
-  async function fetchLog() {
-    setLoading(true)
-    let q = supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(200)
+  function buildQuery(offset) {
+    let q = supabase.from('audit_log').select('*')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1)
     if (tableFilter !== 'all') q = q.eq('table_name', tableFilter)
     if (actionFilter !== 'all') q = q.eq('action', actionFilter)
-    const { data } = await q
-    setEntries(data || [])
+    if (actorFilter !== 'all') q = q.eq('user_id', actorFilter)
+    if (fromDate) q = q.gte('created_at', fromDate)
+    if (toDate) q = q.lte('created_at', `${toDate}T23:59:59.999`)
+    return q
+  }
 
+  async function resolveActors(rows) {
     // Resolve actor names for whichever user_ids actually show up —
     // many historical rows will have none, since this wasn't captured
     // until now.
-    const userIds = [...new Set((data || []).map(e => e.user_id).filter(Boolean))]
-    if (userIds.length > 0) {
-      const { data: profs } = await supabase.from('profiles').select('id, username, full_name').in('id', userIds)
-      const map = {}
-      profs?.forEach(p => { map[p.id] = p })
-      setProfiles(map)
-    } else {
-      setProfiles({})
+    const userIds = [...new Set(rows.map(e => e.user_id).filter(Boolean))]
+    const unknown = userIds.filter(id => !profiles[id])
+    if (unknown.length === 0) return
+    const { data: profs } = await supabase.from('profiles').select('id, username, full_name').in('id', unknown)
+    if (profs?.length) {
+      setProfiles(prev => {
+        const map = { ...prev }
+        profs.forEach(p => { map[p.id] = p })
+        return map
+      })
     }
-    setLoading(false)
   }
 
-  const tablesPresent = useMemo(() => [...new Set(entries.map(e => e.table_name))], [entries])
+  async function fetchLog(offset) {
+    if (offset === 0) setLoading(true)
+    else setLoadingMore(true)
+    const { data } = await buildQuery(offset)
+    const rows = data || []
+    setEntries(prev => offset === 0 ? rows : [...prev, ...rows])
+    setHasMore(rows.length === PAGE_SIZE)
+    await resolveActors(rows)
+    setLoading(false)
+    setLoadingMore(false)
+  }
+
+  // All actors ever seen this session — populates the actor filter dropdown.
+  const actorOptions = useMemo(() =>
+    Object.values(profiles).sort((a, b) =>
+      (a.full_name || a.username || '').localeCompare(b.full_name || b.username || '')
+    ), [profiles])
+
+  function handleExport() {
+    if (entries.length === 0) { showToast('Nothing to export', 'red'); return }
+    exportCsv(
+      `audit-log-${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Timestamp', 'Actor', 'Table', 'Action', 'Record ID'],
+      entries.map(e => {
+        const actor = profiles[e.user_id]
+        return [
+          new Date(e.created_at).toLocaleString(),
+          actor?.full_name || actor?.username || (e.user_id ? e.user_id.slice(0, 8) : 'Unknown'),
+          TABLE_LABELS[e.table_name] || e.table_name,
+          e.action,
+          e.record_id,
+        ]
+      })
+    )
+  }
 
   return (
     <div>
@@ -109,6 +157,22 @@ export default function AuditLogViewer() {
               {a === 'all' ? 'All Actions' : a.charAt(0).toUpperCase() + a.slice(1)}
             </button>
           ))}
+          <select value={actorFilter} onChange={e => setActorFilter(e.target.value)}
+            style={{ padding: '7px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}>
+            <option value="all">All Actors</option>
+            {actorOptions.map(p => <option key={p.id} value={p.id}>{p.full_name || p.username}</option>)}
+          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', color: THEME.textMed }}>From</span>
+            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
+              style={{ padding: '6px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '12px', fontFamily: 'inherit', outline: 'none' }} />
+            <span style={{ fontSize: '12px', color: THEME.textMed }}>To</span>
+            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
+              style={{ padding: '6px 10px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '12px', fontFamily: 'inherit', outline: 'none' }} />
+          </div>
+          <div style={{ marginLeft: 'auto' }}>
+            <Button onClick={handleExport} variant="outlined" size="sm" icon="download">Export CSV</Button>
+          </div>
         </div>
       </Card>
 
@@ -155,6 +219,14 @@ export default function AuditLogViewer() {
             })}
           </tbody>
         </TableWrap>
+      )}
+
+      {!loading && hasMore && (
+        <div style={{ textAlign: 'center', marginTop: '14px' }}>
+          <Button onClick={() => fetchLog(entries.length)} variant="outlined" size="sm" icon="expand_more" disabled={loadingMore}>
+            {loadingMore ? 'Loading…' : 'Load more'}
+          </Button>
+        </div>
       )}
 
       {/* Detail modal */}

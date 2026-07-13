@@ -16,6 +16,9 @@ export default function UserManagement() {
   const [userRoles,  setUserRoles]  = useState([])
   const [loading,    setLoading]    = useState(true)
 
+  const [search,     setSearch]     = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+
   const [manageTarget, setManageTarget] = useState(null) // the profile being managed
   const [newRoleId,    setNewRoleId]    = useState('')
   const [newSiteId,    setNewSiteId]    = useState('ALL') // 'ALL' = every site (site_id null)
@@ -47,6 +50,18 @@ export default function UserManagement() {
     })
     return map
   }, [userRoles])
+
+  const filteredProfiles = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return profiles.filter(p => {
+      if (q && !(`${p.full_name || ''} ${p.username || ''}`.toLowerCase().includes(q))) return false
+      if (roleFilter !== 'all') {
+        const assignments = rolesByUser[p.id] || []
+        if (!assignments.some(ur => ur.role_id === roleFilter)) return false
+      }
+      return true
+    })
+  }, [profiles, rolesByUser, search, roleFilter])
 
   // How many OTHER user_roles rows grant "System Administrator", globally —
   // used to block removing the very last one and locking everyone out.
@@ -116,6 +131,26 @@ export default function UserManagement() {
         </div>
       </Card>
 
+      {/* Search + role filter */}
+      <Card style={{ marginBottom: '16px', padding: '12px 16px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name or username…"
+            style={{ flex: '1 1 220px', minWidth: '180px', padding: '8px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none', background: THEME.surface, color: THEME.text }}
+          />
+          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+            style={{ padding: '8px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none', background: THEME.surface, color: THEME.text }}>
+            <option value="all">All Roles</option>
+            {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          <span style={{ fontSize: '12px', color: THEME.textLow }}>
+            {filteredProfiles.length} user{filteredProfiles.length === 1 ? '' : 's'}
+          </span>
+        </div>
+      </Card>
+
       {loading ? (
         <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
           <Icon name="progress_activity" size={24} style={{ color: MODULE_COLOR }} />
@@ -128,7 +163,9 @@ export default function UserManagement() {
             ))}
           </THead>
           <tbody>
-            {profiles.map(p => {
+            {filteredProfiles.length === 0 ? (
+              <tr><td colSpan={3} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No matching users</td></tr>
+            ) : filteredProfiles.map(p => {
               const assignments = rolesByUser[p.id] || []
               return (
                 <TRow key={p.id}>
@@ -186,6 +223,16 @@ export default function UserManagement() {
         title={`Manage Access — ${manageTarget?.full_name || manageTarget?.username}`}
         footer={<Button onClick={() => setManageTarget(null)} variant="text">Close</Button>}
       >
+        {manageTarget && (rolesByUser[manageTarget.id] || []).length === 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: '8px',
+            padding: '10px 12px', borderRadius: '10px', marginBottom: '14px',
+            background: THEME.statusWarningBg, color: THEME.statusWarningText, fontSize: '12px', lineHeight: 1.5,
+          }}>
+            <Icon name="warning" size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
+            <span>This user has no roles — they cannot access any module.</span>
+          </div>
+        )}
         <SectionLabel>Current Assignments</SectionLabel>
         <div style={{ marginBottom: '18px' }}>
           {(rolesByUser[manageTarget?.id] || []).length === 0 ? (

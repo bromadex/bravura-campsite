@@ -21,22 +21,26 @@ export default function RoleManagement() {
   const [roles, setRoles] = useState([])
   const [permissions, setPermissions] = useState([])
   const [rolePermissions, setRolePermissions] = useState([])
+  const [roleAssignments, setRoleAssignments] = useState([]) // user_roles: { role_id }
   const [loading, setLoading] = useState(true)
   const [editModal, setEditModal] = useState(null) // null | { id?, name, description, permIds: Set }
+  const [members, setMembers] = useState(null) // null | array of member display names for the role being edited
   const [saving, setSaving] = useState(false)
 
   useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
     setLoading(true)
-    const [rRes, pRes, rpRes] = await Promise.all([
+    const [rRes, pRes, rpRes, urRes] = await Promise.all([
       supabase.from('roles').select('*').order('name'),
       supabase.from('permissions').select('*').order('code'),
       supabase.from('role_permissions').select('role_id, permission_id'),
+      supabase.from('user_roles').select('role_id'),
     ])
     setRoles(rRes.data || [])
     setPermissions(pRes.data || [])
     setRolePermissions(rpRes.data || [])
+    setRoleAssignments(urRes.data || [])
     setLoading(false)
   }
 
@@ -47,6 +51,14 @@ export default function RoleManagement() {
     })
     return map
   }, [rolePermissions])
+
+  const memberCountByRole = useMemo(() => {
+    const map = {}
+    roleAssignments.forEach(ur => {
+      map[ur.role_id] = (map[ur.role_id] || 0) + 1
+    })
+    return map
+  }, [roleAssignments])
 
   const permsByModule = useMemo(() => {
     const map = {}
@@ -67,6 +79,40 @@ export default function RoleManagement() {
       rolePermissions.filter(rp => rp.role_id === role.id).map(rp => rp.permission_id)
     )
     setEditModal({ id: role.id, name: role.name, description: role.description || '', permIds })
+    fetchMembers(role.id)
+  }
+
+  async function fetchMembers(roleId) {
+    setMembers(null)
+    // Try the FK embed first; fall back to a client-side join if PostgREST
+    // rejects the embed (no FK relationship registered).
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('user_id, profiles(full_name, username)')
+      .eq('role_id', roleId)
+    if (!error && data) {
+      const names = [...new Set(data.map(ur =>
+        ur.profiles?.full_name || ur.profiles?.username || ur.user_id
+      ))]
+      setMembers(names)
+      return
+    }
+    // Fallback: fetch profiles separately and join client-side
+    const { data: urs } = await supabase.from('user_roles').select('user_id').eq('role_id', roleId)
+    const userIds = [...new Set((urs || []).map(ur => ur.user_id).filter(Boolean))]
+    if (userIds.length === 0) { setMembers([]); return }
+    const { data: profs } = await supabase.from('profiles').select('id, full_name, username').in('id', userIds)
+    const byId = {}
+    profs?.forEach(p => { byId[p.id] = p })
+    setMembers(userIds.map(id => byId[id]?.full_name || byId[id]?.username || id))
+  }
+
+  function toggleModule(perms, allSelected) {
+    setEditModal(prev => {
+      const next = new Set(prev.permIds)
+      perms.forEach(p => { if (allSelected) next.delete(p.id); else next.add(p.id) })
+      return { ...prev, permIds: next }
+    })
   }
 
   function togglePerm(permId) {
@@ -139,7 +185,7 @@ export default function RoleManagement() {
       ) : (
         <TableWrap>
           <THead color={color}>
-            {['Role Name', 'Description', 'Permissions', 'Actions'].map(h => <Th key={h}>{h}</Th>)}
+            {['Role Name', 'Description', 'Permissions', 'Members', 'Actions'].map(h => <Th key={h}>{h}</Th>)}
           </THead>
           <tbody>
             {roles.map(r => (
@@ -152,6 +198,14 @@ export default function RoleManagement() {
                     background: THEME.surfaceVar, color,
                   }}>
                     {permCountByRole[r.id] || 0}
+                  </span>
+                </Td>
+                <Td>
+                  <span style={{
+                    padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
+                    background: THEME.surfaceVar, color: THEME.textMed,
+                  }}>
+                    {memberCountByRole[r.id] || 0}
                   </span>
                 </Td>
                 <Td>
@@ -194,9 +248,19 @@ export default function RoleManagement() {
             <div style={fieldWrap}>
               <label style={lbl}>Permissions</label>
               <div style={{ maxHeight: '300px', overflowY: 'auto', border: `1px solid ${THEME.outlineVar}`, borderRadius: '8px', padding: '12px' }}>
-                {permsByModule.map(([mod, perms]) => (
+                {permsByModule.map(([mod, perms]) => {
+                  const allSelected = perms.every(p => editModal.permIds.has(p.id))
+                  return (
                   <div key={mod} style={{ marginBottom: '12px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color, marginBottom: '6px', letterSpacing: '0.5px' }}>{mod}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color, letterSpacing: '0.5px' }}>{mod}</div>
+                      <button type="button" onClick={() => toggleModule(perms, allSelected)} style={{
+                        border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                        fontSize: '11px', fontWeight: 600, color, padding: '0 2px',
+                      }}>
+                        {allSelected ? 'Clear' : 'Select all'}
+                      </button>
+                    </div>
                     {perms.map(p => (
                       <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '3px 0', fontSize: '13px', color: THEME.text }}>
                         <input type="checkbox" checked={editModal.permIds.has(p.id)} onChange={() => togglePerm(p.id)} />
@@ -205,9 +269,33 @@ export default function RoleManagement() {
                       </label>
                     ))}
                   </div>
-                ))}
+                )})}
               </div>
             </div>
+
+            {editModal.id && (
+              <div style={fieldWrap}>
+                <label style={lbl}>Members</label>
+                <div style={{ border: `1px solid ${THEME.outlineVar}`, borderRadius: '8px', padding: '10px 12px', maxHeight: '140px', overflowY: 'auto' }}>
+                  {members === null ? (
+                    <div style={{ fontSize: '12px', color: THEME.textLow }}>Loading members…</div>
+                  ) : members.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: THEME.textLow }}>No users have this role.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {members.map((name, i) => (
+                        <span key={i} style={{
+                          padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
+                          background: THEME.surfaceVar, color: THEME.textMed,
+                        }}>
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
               <Button onClick={() => setEditModal(null)} style={{ background: THEME.surfaceVar, color: THEME.text }}>Cancel</Button>

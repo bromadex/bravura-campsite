@@ -112,7 +112,7 @@ export default function CLCasualWorkers() {
           .order('name'),
         supabase.from('contractors')
           .select('id, name')
-          .eq('site_id', currentSiteId)
+          .eq('is_archived', false)
           .order('name'),
         supabase.from('contractor_contracts')
           .select('id, contract_number, contractor_id')

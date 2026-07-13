@@ -68,7 +68,7 @@ export default function CLTimesheets() {
     if (!currentSiteId) return
     const [cw, cs, emp] = await Promise.all([
       supabase.from('casual_workers').select('id, name, rate, rate_type, overtime_rate, contractor_id').eq('site_id', currentSiteId).eq('status', 'working').order('name'),
-      supabase.from('contractors').select('id, name').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
+      supabase.from('contractors').select('id, name').eq('is_archived', false).order('name'),
       supabase.from('employees').select('id, name').eq('site_id', currentSiteId).order('name'),
     ])
     setCasualWorkers(cw.data || [])

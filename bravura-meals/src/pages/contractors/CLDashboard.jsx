@@ -59,7 +59,7 @@ export default function CLDashboard({ setPage }) {
         contractorsRes, contractsRes, casualsRes, vehiclesRes, equipmentRes,
         timesheetsTodayRes, expiringRes, pendingRes, recentRes,
       ] = await Promise.all([
-        supabase.from('contractors').select('id', { count: 'exact', head: true }).eq('site_id', currentSiteId).eq('is_archived', false),
+        supabase.from('contractors').select('id', { count: 'exact', head: true }).eq('is_archived', false),
         supabase.from('contractor_contracts').select('id', { count: 'exact', head: true }).eq('site_id', currentSiteId).eq('status', 'active'),
         supabase.from('casual_workers').select('id', { count: 'exact', head: true }).eq('site_id', currentSiteId).eq('status', 'working'),
         supabase.from('hired_vehicles').select('id', { count: 'exact', head: true }).eq('site_id', currentSiteId).eq('status', 'active'),

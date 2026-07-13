@@ -95,7 +95,6 @@ export default function CLContracts() {
         supabase
           .from('contractors')
           .select('id, name, short_code')
-          .eq('site_id', currentSiteId)
           .order('name'),
       ])
       if (cErr) throw cErr

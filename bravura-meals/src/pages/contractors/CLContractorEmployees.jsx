@@ -70,7 +70,7 @@ export default function CLContractorEmployees() {
   async function fetchLookups() {
     if (!currentSiteId) return
     const [c1, c2] = await Promise.all([
-      supabase.from('contractors').select('id, name').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
+      supabase.from('contractors').select('id, name').eq('is_archived', false).order('name'),
       supabase.from('contractor_contracts').select('id, contract_number, title').eq('site_id', currentSiteId).order('created_at', { ascending: false }),
     ])
     setContractors(c1.data || [])

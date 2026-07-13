@@ -12,11 +12,11 @@ import SiteSwitcher from '../components/SiteSwitcher'
 // people & assets (HR → fleet), then system-level (admin), then feedback so it
 // sits as the shared "help us build this" surface at the end.
 const ALL_MODULES = [
+  { id: 'fuel',      label: 'Fuel Management',      icon: 'local_gas_station',    color: MODULE_COLORS.fuel,      access: moduleAccess.fuel      },
+  { id: 'fleet',     label: 'Fleet Management',     icon: 'directions_car',       color: MODULE_COLORS.fleet,     access: moduleAccess.fleet     },
   { id: 'meals',     label: 'Meal Management',      icon: 'restaurant',           color: MODULE_COLORS.meals,     access: moduleAccess.meals     },
   { id: 'campsite',  label: 'Campsite',             icon: 'holiday_village',      color: MODULE_COLORS.campsite,  access: moduleAccess.campsite  },
-  { id: 'fuel',      label: 'Fuel Management',      icon: 'local_gas_station',    color: MODULE_COLORS.fuel,      access: moduleAccess.fuel      },
   { id: 'workforce', label: 'HR Management',        icon: 'badge',                color: MODULE_COLORS.workforce, access: moduleAccess.workforce },
-  { id: 'fleet',     label: 'Fleet Management',     icon: 'directions_car',       color: MODULE_COLORS.fleet,     access: moduleAccess.fleet     },
   { id: 'admin',        label: 'Administration',       icon: 'admin_panel_settings', color: MODULE_COLORS.admin,        access: moduleAccess.admin        },
   { id: 'procurement', label: 'Procurement',          icon: 'storefront',           color: MODULE_COLORS.procurement, access: moduleAccess.procurement, hqOnly: true },
   { id: 'feedback',    label: 'Feedback',             icon: 'forum',                color: MODULE_COLORS.feedback,    access: moduleAccess.feedback    },

@@ -3,6 +3,21 @@ TAFARA — HR MODULE DEVELOPER PROMPTS
 Bravura ERP · bromadex/bravura-campsite
 ═══════════════════════════════════════════════════════════════════════════════
 
+STATUS AT A GLANCE (July 2026)
+─────────────────────────
+  Phase 1 — Foundation & Employee CRUD .......................... DONE (0100)
+  Phase 2 — Leave, Documents, Org Chart, Transfers, Medical ...... DONE (0102, 0103)
+  Phase 3 — Attendance/Shifts, Training, Skills, HR Reports ...... DONE (0106, 0107)
+  Phase 4 — Payroll, Appraisals, Disciplinary, Exit .............. DONE (0108, 0109, 0110)
+  Phase 5 — HR Analytics/AI ....................................... FUTURE
+
+HR module is functionally complete end to end. Remaining work is Phase 5
+(analytics/AI) plus whatever new session Clement/Tafara agree on next.
+
+For a sibling module built the same way — contract & casual labour
+management — see CONTRACTOR_PROMPTS.txt (module CL, migration 0083,
+src/pages/contractors/). Same conventions, same phased-checklist format.
+
 HOW TO USE THESE PROMPTS
 ─────────────────────────
 Each section below is a prompt you paste at the start of a Claude session.
@@ -151,9 +166,19 @@ campsite    — Headcount, Floorplan, Rooms/Blocks, Assignments, Supplies,
               Transfers, Occupancy report. camp_visitors is site-scoped.
 workforce   — Employees, Contractors, Leave, Reports (THIS IS YOUR MODULE —
               you are extending it, and other modules depend on it).
+              Phases 1-4 complete (see STATUS AT A GLANCE above).
 admin       — Users & Roles, Audit Log.
 procurement — Suppliers (HQ-only module).
 feedback    — Feedback Board + Quick Start Guide.
+contractors — (module id 'contractors', T-code prefix CL, colour #0D7377)
+              Contract & Contractor Management — separate from your
+              workforce.Contractors sub-page. Contractor companies,
+              contract tracking, casual worker registry, contractor-
+              employed staff, timesheets, hired vehicles/equipment.
+              employees.contractor_id links HR employees to a contractor
+              company here — read this table, do not duplicate it.
+              See CONTRACTOR_PROMPTS.txt. Migration 0083 (general range,
+              not HR range).
 
 ── WHO DEPENDS ON employees (change with extreme care) ────────────────────────
 
@@ -256,6 +281,7 @@ END OF MASTER CONTEXT
 HR PHASE 1 — SESSION 1
 FOUNDATION: Database, Settings, Departments, Designations
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -405,6 +431,7 @@ Changes pushed to both main and claude/code-review-re5zt3.
 HR PHASE 1 — SESSION 2
 EMPLOYEE LIST + EMPLOYEE DASHBOARD
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -504,6 +531,7 @@ All changes pushed to both branches.
 HR PHASE 1 — SESSION 3
 EMPLOYEE CREATE FORM + SYSTEM ACCOUNT CREATION
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -608,6 +636,7 @@ Pushed to both branches.
 HR PHASE 1 — SESSION 4
 EMPLOYEE DETAIL PAGE + STATUS MANAGEMENT
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -723,6 +752,7 @@ All pushed to both branches.
 HR PHASE 2 — SESSION 1
 LEAVE TYPES + LEAVE ALLOCATIONS
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -841,6 +871,7 @@ All pushed to both branches.
 HR PHASE 2 — SESSION 2
 LEAVE REQUESTS + APPROVAL WORKFLOW
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -932,6 +963,7 @@ All pushed to both branches.
 HR PHASE 2 — SESSION 3
 EMPLOYEE DOCUMENTS + ORG CHART
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -1048,6 +1080,7 @@ Pushed to both branches.
 HR PHASE 2 — SESSION 4
 INTER-SITE TRANSFERS + MEDICAL RECORDS + LEAVE BALANCE REPORT
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -1152,6 +1185,7 @@ Phase 2 complete. All pushed to both branches.
 HR PHASE 3 — SESSION 1
 ATTENDANCE + SHIFT MANAGEMENT
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -1256,6 +1290,7 @@ All pushed to both branches.
 HR PHASE 3 — SESSION 2
 TRAINING + SKILLS MATRIX
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -1350,6 +1385,7 @@ All pushed to both branches.
 HR PHASE 3 — SESSION 3
 HR REPORTS + ANALYTICS DASHBOARD
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -1427,6 +1463,7 @@ All pushed to both branches.
 HR PHASE 4 — SESSION 1
 SALARY STRUCTURES + PAYROLL RUN
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -1566,6 +1603,7 @@ All pushed to both branches.
 HR PHASE 4 — SESSION 2
 SALARY SLIPS + PERFORMANCE APPRAISALS
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 
@@ -1653,6 +1691,7 @@ All pushed to both branches.
 HR PHASE 4 — SESSION 3
 DISCIPLINARY + EXIT MANAGEMENT
 ═══════════════════════════════════════════════════════════════════════════════
+Status: DONE
 
 [Paste Master Context above this, then paste this block]
 

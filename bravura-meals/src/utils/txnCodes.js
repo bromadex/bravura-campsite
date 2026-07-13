@@ -78,7 +78,7 @@ export const TXN_CODES = [
 
   // ── HR / Workforce (HR) ───────────────────────────────────────────────────
   { code: 'HR01', path: '/workforce/wf_employees',     label: 'Employees',           module: 'workforce' },
-  { code: 'HR02', path: '/workforce/wf_contractors',   label: 'Contractors',         module: 'workforce' },
+  { code: 'HR02', path: '/workforce/wf_contractors',   label: 'Contractors (moved to CL02)', module: 'workforce' },
   { code: 'HR03', path: '/workforce/wf_leave',         label: 'Leave Management',    module: 'workforce' },
   { code: 'HR04', path: '/workforce/wf_reports',       label: 'Employee Reports',    module: 'workforce' },
   { code: 'HR05', path: '/workforce/wf_dashboard',     label: 'HR Dashboard',        module: 'workforce' },

@@ -140,7 +140,6 @@ export function workforceNav(role) {
   return [
     { id: 'wf_dashboard',    label: 'HR Dashboard',     section: 'Overview',     icon: 'dashboard' },
     { id: 'wf_employees',   label: 'Employees',        section: 'People',  icon: 'badge' },
-    { id: 'wf_contractors', label: 'Contractors',      section: 'People',  icon: 'business' },
     { id: 'wf_leave',       label: 'Leave Management', section: 'People',  icon: 'flight_takeoff' },
     { id: 'wf_transfers',    label: 'Site Transfers',   section: 'People',  icon: 'sync_alt' },
     { id: 'wf_leave_requests',    label: 'Leave Requests',    section: 'Leave', icon: 'event_available' },

@@ -48,7 +48,6 @@ const HRSalarySlips      = lazy(() => import('./pages/hr/payroll/SalarySlip'))
 const HRAppraisals       = lazy(() => import('./pages/hr/performance/Appraisals'))
 const HRDisciplinary     = lazy(() => import('./pages/hr/disciplinary/DisciplinaryCases'))
 const HRExitManagement   = lazy(() => import('./pages/hr/ExitManagement'))
-const Contractors     = lazy(() => import('./pages/workforce/Contractors'))
 const WorkforceLeave  = lazy(() => import('./pages/workforce/WorkforceLeave'))
 const WorkforceReports= lazy(() => import('./pages/workforce/WorkforceReports'))
 
@@ -161,6 +160,28 @@ const PageLoader = (
   </div>
 )
 
+function ContractorsMoved() {
+  return (
+    <div style={{ maxWidth: '480px', margin: '60px auto', textAlign: 'center' }}>
+      <span className="material-symbols-rounded" style={{ fontSize: '40px', color: THEME.textLow }}>handshake</span>
+      <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text, marginTop: '12px' }}>
+        Contractor management moved
+      </div>
+      <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '6px' }}>
+        Contractor companies, contracts, casual workers and contractor
+        employees now live in the Contract &amp; Contractor Management module.
+      </div>
+      <a href="/contractors/cl_companies" style={{
+        display: 'inline-block', marginTop: '18px', padding: '9px 20px',
+        borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+        background: '#0D7377', color: '#fff', textDecoration: 'none',
+      }}>
+        Go to Contractors module
+      </a>
+    </div>
+  )
+}
+
 // ── Module configs ────────────────────────────────────────────────────────────
 const MODULE_META = {
   workforce: { label: 'HR Management',         icon: 'badge',            navFn: workforceNav },
@@ -214,9 +235,11 @@ function getWorkforcePage(page, role, can, setPage) {
     case 'wf_employees':
       return can('hr.view') ? <HREmployeesList setPage={setPage} />
         : can('employees.view') ? <Employees /> : null
-    // contractors.view: granted to Admin, Camp Supervisor, Meal Officer —
-    // exactly matches old behaviour, zero access change.
-    case 'wf_contractors': return can('contractors.view') ? <Contractors /> : null
+    // Contractor company management moved to the dedicated Contractors (CL)
+    // module — this id is kept (not deleted) because HR02 in txnCodes.js is
+    // append-only and old bookmarks/command-palette hits must still resolve.
+    case 'wf_contractors':
+      return can('contractors.view') ? <ContractorsMoved /> : null
     // employees.edit: Leave Management edits an employee's status directly,
     // so it's gated the same way the Employees Delete button is — HR
     // Officer / Admin only under the approved matrix. Narrower than the old

@@ -48,6 +48,10 @@ export default function CLContractorEmployees() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [importCandidates, setImportCandidates] = useState([])
+  const [importOpen, setImportOpen] = useState(false)
+  const [importSelected, setImportSelected] = useState({})
+  const [importing, setImporting] = useState(false)
 
   async function fetchItems() {
     if (!currentSiteId) return
@@ -73,7 +77,54 @@ export default function CLContractorEmployees() {
     setContracts(c2.data || [])
   }
 
+  async function fetchImportCandidates() {
+    if (!currentSiteId) return
+    const { data, error: err } = await supabase
+      .from('employees')
+      .select('id, name, phone, national_id, position_title, contractor_id')
+      .eq('site_id', currentSiteId)
+      .eq('is_archived', false)
+      .not('contractor_id', 'is', null)
+      .order('name')
+    if (err) { showToast(err.message, 'red'); return }
+    const linkedEmployeeIds = new Set(items.map(i => i.employee_id).filter(Boolean))
+    setImportCandidates((data || []).filter(e => !linkedEmployeeIds.has(e.id)))
+  }
+
   useEffect(() => { fetchItems(); fetchLookups() }, [currentSiteId])
+
+  function openImport() {
+    fetchImportCandidates()
+    setImportSelected({})
+    setImportOpen(true)
+  }
+
+  async function handleImport() {
+    const chosen = importCandidates.filter(e => importSelected[e.id])
+    if (chosen.length === 0) return
+    setImporting(true)
+    try {
+      const payload = chosen.map(e => ({
+        site_id: currentSiteId,
+        contractor_id: e.contractor_id,
+        employee_id: e.id,
+        name: e.name,
+        phone: e.phone || null,
+        national_id: e.national_id || null,
+        role: e.position_title || null,
+        status: 'active',
+      }))
+      const { error: err } = await supabase.from('contractor_employees').insert(payload)
+      if (err) throw err
+      showToast(`Imported ${chosen.length} employee${chosen.length !== 1 ? 's' : ''}`, 'green')
+      setImportOpen(false)
+      await fetchItems()
+    } catch (err) {
+      showToast(err.message, 'red')
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     let list = items
@@ -189,14 +240,25 @@ export default function CLContractorEmployees() {
           <div style={{ fontSize: '12px', color: THEME.textMed }}>{filtered.length} employee{filtered.length !== 1 ? 's' : ''}</div>
         </div>
         {can('contractors.create') && (
-          <button onClick={openAdd} style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
-            background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add</span>
-            Add Employee
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={openImport} style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+              background: THEME.surfaceVar, color: THEME.text, border: `1px solid ${THEME.outlineVar}`,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>group_add</span>
+              Import from HR
+            </button>
+            <button onClick={openAdd} style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+              background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add</span>
+              Add Employee
+            </button>
+          </div>
         )}
       </div>
 
@@ -400,6 +462,99 @@ export default function CLContractorEmployees() {
                   {saving ? 'Saving...' : editId ? 'Update' : 'Create'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,.45)',
+        }} onClick={e => { if (e.target === e.currentTarget) setImportOpen(false) }}>
+          <div style={{
+            background: THEME.surface, borderRadius: '18px', width: '560px', maxWidth: '95vw',
+            maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+            boxShadow: THEME.shadow3,
+          }}>
+            <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text }}>Import from HR</div>
+                <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>
+                  HR employees already linked to a contractor company, not yet in this registry.
+                </div>
+              </div>
+              <button onClick={() => setImportOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '22px', color: THEME.textMed }}>close</span>
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
+              {importCandidates.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px', color: THEME.textLow, fontSize: '13px' }}>
+                  No unimported HR employees found for this site.
+                </div>
+              ) : (
+                <>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: THEME.text }}>
+                    <input
+                      type="checkbox"
+                      checked={importCandidates.length > 0 && importCandidates.every(e => importSelected[e.id])}
+                      onChange={e => {
+                        const all = {}
+                        if (e.target.checked) importCandidates.forEach(c => { all[c.id] = true })
+                        setImportSelected(all)
+                      }}
+                      style={{ width: '16px', height: '16px', accentColor: color }}
+                    />
+                    Select all ({importCandidates.length})
+                  </label>
+                  {importCandidates.map(e => (
+                    <label key={e.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0',
+                      borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer',
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={!!importSelected[e.id]}
+                        onChange={ev => setImportSelected(s => ({ ...s, [e.id]: ev.target.checked }))}
+                        style={{ width: '16px', height: '16px', accentColor: color, flexShrink: 0 }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{e.name}</div>
+                        <div style={{ fontSize: '11px', color: THEME.textMed }}>
+                          {contractors.find(c => c.id === e.contractor_id)?.name || 'Unknown contractor'}
+                          {e.position_title ? ` · ${e.position_title}` : ''}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </>
+              )}
+            </div>
+
+            <div style={{ padding: '16px 24px', borderTop: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setImportOpen(false)} style={{
+                padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+                background: THEME.surfaceVar, color: THEME.textMed,
+                border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={importing || Object.values(importSelected).every(v => !v)}
+                style={{
+                  padding: '8px 22px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+                  background: color, color: '#fff', border: 'none',
+                  cursor: importing ? 'not-allowed' : 'pointer',
+                  opacity: importing || Object.values(importSelected).every(v => !v) ? 0.6 : 1,
+                  fontFamily: 'inherit',
+                }}
+              >
+                {importing ? 'Importing...' : 'Import Selected'}
+              </button>
             </div>
           </div>
         </div>

@@ -448,14 +448,26 @@ export default function FuelReceipts() {
         .eq('site_id', currentSiteId)
       if (error) throw error
 
-      // Update tank level to dip_after on confirm (only if this is the latest reading)
-      if (form.dip_after && form.tank_id) {
+      // Update tank level on confirm: prefer the dip_after reading (only if
+      // this is the latest reading); if no dip was taken, fall back to
+      // adding the delivered quantity to the tank's current level so a
+      // confirmed delivery never leaves the tank level untouched.
+      if (form.tank_id) {
         const tank = tanks.find(t => t.id === form.tank_id)
-        const isLatest = !tank?.last_dip_date || form.delivery_date >= tank.last_dip_date
-        if (isLatest) {
+        if (form.dip_after) {
+          const isLatest = !tank?.last_dip_date || form.delivery_date >= tank.last_dip_date
+          if (isLatest) {
+            await supabase
+              .from('fuel_tanks')
+              .update({ current_level_litres: Number(form.dip_after), last_dip_date: form.delivery_date, last_dip_reading: Number(form.dip_after), updated_at: new Date().toISOString() })
+              .eq('id', form.tank_id)
+              .eq('site_id', currentSiteId)
+          }
+        } else if (form.quantity_delivered) {
+          const newLevel = Number(tank?.current_level_litres || 0) + Number(form.quantity_delivered)
           await supabase
             .from('fuel_tanks')
-            .update({ current_level_litres: Number(form.dip_after), last_dip_date: form.delivery_date, last_dip_reading: Number(form.dip_after), updated_at: new Date().toISOString() })
+            .update({ current_level_litres: newLevel, updated_at: new Date().toISOString() })
             .eq('id', form.tank_id)
             .eq('site_id', currentSiteId)
         }

@@ -1,143 +1,230 @@
 ═══════════════════════════════════════════════════════════════════════════════
-INVENTORY MANAGEMENT (IN) MODULE — IMPLEMENTATION PLAN
+INVENTORY MANAGEMENT (IN) MODULE — IMPLEMENTATION PLAN  (v2, 2026-07-13)
 ═══════════════════════════════════════════════════════════════════════════════
 
-Module code: IN   |   T-codes: IN01–IN10   |   Color: #B45309 (amber-brown, TBD)
+Module code: IN   |   T-codes: IN01+   |   Color: #B45309 (amber-brown, TBD)
 Permission gates: NEW inventory.view / create / edit / delete / approve
-                  (seed in permissions table; supplies.* stays for campsite legacy)
 
-One store of record for every physical thing Bravura holds: camp supplies,
-fleet spare parts, meals dry goods, PPE, tools. Absorbs the campsite
-supplies/stock-transfers feature and becomes the consumer of procurement
-requisitions.
+VISION
+Inventory is the next foundational module after HR and Fuel — built before
+Finance, because Procurement, Fuel, Fleet, Maintenance and eventually Finance
+all depend on it. It is the central source of truth for every physical item
+the company owns or consumes: electrical materials, mechanical spares, civil
+materials, PPE, stationery, consumables, lubricants, chemicals, mining
+consumables, IT equipment, kitchen supplies — with fuel as a summary
+integration and fixed assets handed to a future Assets module.
+Every movement is traceable from purchase to consumption.
 
-STARTING POINT (from codebase survey, 2026-07-13)
-  • camp_supply_items / camp_supply_txns / camp_supply_balance / stock_transfers
-    exist in the live DB but have NO tracked CREATE TABLE migration — created
-    directly in Supabase. Must be reverse-engineered and formalized first.
-  • CampSupplies.jsx + StockTransfers.jsx (campsite module) are fully built
-    against those tables via CampsiteContext.
-  • procurement_requisitions (0028) is a ready cross-module hook — fuel already
-    auto-writes to it. procurement_suppliers (0058) + Suppliers.jsx built.
-  • fleet_maintenance_parts are ad-hoc line items per repair — no stock on hand.
-  • Meals has no ingredient/dry-goods tracking at all.
-  • Migration numbering: next general number is 0087 (0100–0149 reserved HR).
+ARCHITECTURAL DECISIONS (agreed)
+  1. INVENTORY ≠ PROCUREMENT. Two domains from day one. Inventory answers
+     "what do we have, where, who used it". Procurement answers "what do we
+     buy, from whom, at what price". Procurement screens live in the existing
+     PR module (Suppliers already built there) and FEED inventory via GRN.
+  2. CAMPSITE SUPPLIES STAYS IN CAMPSITE. Not absorbed. It becomes an
+     integration client of Inventory like Fleet/Meals/HR (camp store can be
+     modelled as a warehouse; camp supplies can be issued from central stock).
+  3. LEDGER ARCHITECTURE (adopted from old ERP — its best idea):
+     quantities live in a per-item-per-warehouse balances table
+     (UNIQUE(item_id, warehouse_id)) and EVERY movement is an immutable
+     `inventory_movements` row (signed qty, running balance, valuation rate).
+     Pages never write balances directly — a trigger maintains balances and
+     moving-average cost from movements. AI-ready by construction.
+  4. Valuation: moving average cost (AVCO). No FIFO layers.
+  5. Negative stock blocked at issue time (override needs inventory.approve).
+  6. Warehouses are site-scoped (warehouses.site_id) — RLS and the site
+     switcher work exactly like every other module; HQ sees all sites.
+
+ADOPTED FROM OLD ERP (bravuraerpmain_4.zip, 28-page module — take the good,
+skip the enterprise bloat):
+  ADOPT: bins/ledger data model, Stock Balance (home screen), Stock In (GRN),
+         controlled Stock Out, Transfers with status flow
+         (draft→pending→approved→in transit→received), Warehouses, Categories,
+         Item Shortage/Reorder view, Opening Stock, Stock Taking with
+         variance + approval, Stock Ledger report, Batch Expiry (kitchen,
+         Phase 4), UOM conversion (only if bulk-buy/split-issue proves needed)
+  SKIP:  Pick Lists, Stock Reservations, Consignment, Putaway Rules,
+         Bin/Aisle/Rack/Shelf locations (a simple free-text `location` on the
+         item is enough for our store sizes), Item Variants, Serial tracking
+         + repair logs, Cycle Count (Stock Taking covers it), AVCO
+         balance-sheet valuation report (simple value column instead), FIFO
+         ageing, Forecast engine + Auto-MR scheduler (reorder list + one-click
+         requisition beats both at our scale), duplicate Transactions page
+
+STARTING POINT (new ERP, surveyed 2026-07-13)
+  • procurement_requisitions (0028) exists — fuel auto-writes to it;
+    procurement_suppliers + Suppliers.jsx (PR01) built.
+  • camp_supply_* + stock_transfers tables live but untracked in migrations
+    (campsite keeps using them; formalize their DDL while we're in there).
+  • fleet_maintenance_parts are ad-hoc per repair — future consumers of IN.
+  • Meals has no ingredient tracking.
+  • Next general migration number: 0087 (0100–0149 reserved for HR).
+
+MODULE STRUCTURE (sidebar)
+  Overview:    IN01 Dashboard
+  Catalogue:   IN02 Items · IN03 Categories & UoM
+  Warehouse:   IN04 Warehouses · IN05 Stock Balances
+  Operations:  IN06 Goods Received · IN07 Stock Issues & Returns
+               IN08 Stock Transfers · IN09 Adjustments & Stock Take
+  Reports:     IN10 Stock Ledger · IN11 Reports hub (reorder, consumption,
+               valuation, movement)
+  Settings:    IN12 Inventory Settings
+  (Procurement additions live in PR module: PR02 Requisitions, PR03 Purchase
+   Orders — see Phase 3.)
 
 ───────────────────────────────────────────────────────────────────────────────
-PHASE 1 — FOUNDATION & CATALOG                                 Status: PLANNED
+PHASE 1 — FOUNDATION & CATALOGUE                               Status: PLANNED
 ───────────────────────────────────────────────────────────────────────────────
 
 Migration 0087 — inventory_foundation.sql
-  [ ] Formalize existing untracked tables: verify live shapes of
-      camp_supply_items / camp_supply_txns / camp_supply_balance /
-      stock_transfers against information_schema, record CREATE TABLE IF NOT
-      EXISTS versions so the schema is tracked
-  [ ] inventory_items table (site_id, code, name, category, unit,
-      min_level, reorder_level, reorder_qty, unit_cost, supplier_id FK,
-      barcode, location/bin, is_archived, timestamps)
-  [ ] inventory_categories table (or CHECK enum: supplies, spares, food,
-      ppe, tools, consumables, other)
-  [ ] inventory_txns table (site_id, item_id, txn_type
-      receive|issue|adjust|transfer_out|transfer_in|stock_take,
-      quantity, unit_cost, reference, source_module, source_reference_id,
-      issued_to_employee_id, issued_to_contractor_id, notes, txn_date,
-      recorded_by, is_archived)
-  [ ] inventory_balances VIEW (per site+item: on-hand, value at avg cost)
-  [ ] Data migration: copy camp_supply_items → inventory_items
-      (category='supplies'), camp_supply_txns → inventory_txns, keeping old
-      tables in place until CA pages are retired
-  [ ] RLS via _has_permission('inventory.*', site_id); seed inventory.*
-      permission codes; grant to System/Operations Administrator roles
+  [ ] item_categories (site-agnostic, parent_id for hierarchy, seed:
+      Electrical, Mechanical, Civil, Mining, Safety/PPE, ICT, Kitchen, Camp,
+      Workshop, Lubricants, Chemicals, Stationery, Consumables)
+  [ ] units_of_measure (seed: pcs, kg, g, L, mL, m, mm, box, bag, pair, set,
+      roll, drum, ream)
+  [ ] items — one row per SKU: item_code (unique, auto "ITM-####" via
+      utils/autoCode), description, category_id, subcategory, uom_id, brand,
+      manufacturer, part_number, barcode, preferred_supplier_id FK
+      procurement_suppliers, min_stock, max_stock, reorder_level, reorder_qty,
+      standard_cost, average_cost (trigger-maintained), last_purchase_price,
+      photo_url, datasheet_url, msds_url, location (free text), status,
+      is_archived, timestamps. Items are GLOBAL (no site_id) — stock is
+      site-scoped via warehouses.
+  [ ] warehouses — code, name, site_id FK sites, type
+      (main|workshop|electrical|kitchen|fuel_store|other), is_active
+      (seed: one main warehouse per existing site)
+  [ ] stock_balances — item_id, warehouse_id, on_hand_qty, valuation_rate,
+      stock_value, UNIQUE(item_id, warehouse_id)
+  [ ] inventory_movements — immutable ledger: item_id, warehouse_id,
+      movement_type (opening|grn|issue|return|transfer_out|transfer_in|
+      adjustment|stock_take), signed qty, qty_after (running balance),
+      unit_cost, value, voucher_type + voucher_no, source_module,
+      source_reference_id, issued_to_employee_id, issued_to_contractor_id,
+      department_id, notes, created_by, created_at. No UPDATE/DELETE policy —
+      corrections are reversing entries.
+  [ ] Trigger: on movement insert → upsert stock_balances, recompute AVCO on
+      receipts, stamp qty_after
+  [ ] Formalize untracked campsite DDL (camp_supply_items/txns/balance,
+      stock_transfers) as CREATE TABLE IF NOT EXISTS — tracked at last
+  [ ] RLS meals-pattern via _has_permission('inventory.*', site_id) resolved
+      through warehouse.site_id; seed inventory.* permission codes; grant to
+      System/Operations Administrator
   [ ] Indexes + self-record in schema_migrations
 
 Module infrastructure
   [ ] MODULE_COLORS.inventory + moduleAccess.inventory (inventory.view)
-  [ ] inventoryNav() sidebar definition
-  [ ] T-codes IN01–IN10 in txnCodes.js (append-only)
+  [ ] inventoryNav() with the 6 sections above
+  [ ] T-codes IN01–IN12 in txnCodes.js (append-only)
   [ ] HomeLauncher tile (between campsite and procurement)
   [ ] App.jsx lazy imports + getInventoryPage() resolver
   [ ] QuickStartGuide.jsx role-gated Inventory section
 
 Pages — Phase 1
-  [ ] IN01 — Dashboard (on-hand value, low-stock alerts, txns today,
-              pending transfers, top-moving items)
-  [ ] IN02 — Item Catalog (CRUD, auto-code via utils/autoCode.js "ITM",
-              category, unit, min/reorder levels, supplier link, archive)
-  [ ] IN03 — Stock Balances (per-site on-hand table, low-stock highlighting,
-              value column, CSV export)
+  [ ] IN01 — Dashboard: KPI cards (total inventory value, total SKUs,
+      low stock, out of stock, items issued today, transfers in transit,
+      value by site) + charts (stock value by category, monthly consumption
+      once movements exist, top requested items)
+  [ ] IN02 — Items (item master CRUD, auto-code with edit room, category/
+      UoM/brand/supplier pickers, min/max/reorder, photo & doc URLs, archive)
+  [ ] IN03 — Categories & UoM (two-tab CRUD, category hierarchy)
+  [ ] IN04 — Warehouses (CRUD, site link, type)
+  [ ] IN05 — Stock Balances (on-hand per warehouse; HQ cross-site matrix
+      view "Cable Lug 95mm²: Harare 120 · Kamativi 35 · Selous 12";
+      low/out-of-stock highlighting; value column; CSV export)
+  [ ] Opening stock capture (modal or section on IN05: post `opening`
+      movements per warehouse at go-live)
 
 ───────────────────────────────────────────────────────────────────────────────
-PHASE 2 — MOVEMENTS                                            Status: PLANNED
+PHASE 2 — STOCK OPERATIONS                                     Status: PLANNED
 ───────────────────────────────────────────────────────────────────────────────
 
-  [ ] IN04 — Goods Receipts (receive against supplier / requisition;
-              updates balance; link procurement_requisitions status → received)
-  [ ] IN05 — Issues (issue to employee, contractor, department, or module
-              reference; running balance check — block negative stock)
-  [ ] IN06 — Stock Transfers (absorb campsite StockTransfers flow:
-              request → dispatch (approve) → receive, txn pair
-              transfer_out/transfer_in, inter-site)
-  [ ] IN07 — Adjustments & Stock Take (count sheet per site, variance
-              calculation, adjust txns with approval gate inventory.approve)
-  [ ] Retire CA06/CA07 pages → redirect tiles to IN pages (same pattern as
-      ContractorsMoved), CampsiteContext supply functions deprecated
+  [ ] IN06 — Goods Received (GRN): header (supplier, PO/requisition ref,
+      delivery note no, invoice no, warehouse, received_by) + line items
+      (item, qty, unit cost). Auto GRN number "GRN-####". Posts `grn`
+      movements → balances + AVCO update → sets items.last_purchase_price;
+      marks linked procurement_requisitions received.
+  [ ] IN07 — Stock Issues & Returns: issue to department / employee /
+      contractor / vehicle (fleet asset) / equipment / project-free-text.
+      Records requested_by, approved_by, issued_by, receiver. Blocks
+      negative stock (override = inventory.approve). Returns tab posts
+      `return` movements back in, referencing the original issue.
+  [ ] IN08 — Stock Transfers: warehouse → warehouse (covers site → site).
+      Status flow requested → approved → in_transit → received (+ cancelled),
+      approval = inventory.approve; dispatch posts transfer_out, receive
+      posts transfer_in; auto number "TRF-####".
+  [ ] IN09 — Adjustments & Stock Take:
+      • Adjustments with reason (damage|theft|counting_error|expired|
+        write_off), approval-gated, posts signed `adjustment` movements
+      • Stock take: count sheet per warehouse (blind count option — system
+        qty hidden), variance report, approve → posts `stock_take`
+        adjustment movements
+  [ ] IN10 — Stock Ledger: chronological movement history, filter by item/
+      warehouse/type/date, running balance column, CSV export
 
 ───────────────────────────────────────────────────────────────────────────────
-PHASE 3 — REORDER & PROCUREMENT INTEGRATION                    Status: PLANNED
+PHASE 3 — PROCUREMENT WORKFLOW (lives in PR module)            Status: PLANNED
 ───────────────────────────────────────────────────────────────────────────────
 
-  [ ] Low-stock detection (on-hand <= reorder_level) surfaced on IN01 + badge
-  [ ] One-click "Raise requisition" → insert procurement_requisitions
-      (source_module='inventory', item + reorder_qty + est. cost)
-  [ ] Requisitions register page under Procurement (adopt table from 0028:
-      list, approve, mark ordered/received; receiving links back to IN04)
-  [ ] Supplier price memory (last unit_cost per item per supplier)
+  [ ] PR02 — Purchase Requisitions: adopt procurement_requisitions (0028) —
+      list/create/approve; status requested → approved → ordered → received
+      → closed; department + justification; line items (migration extends
+      with requisition_items or reuses single-line rows)
+  [ ] PR03 — Purchase Orders: supplier, delivery date, line items, prices,
+      terms; status draft → sent → partially_received → closed; auto number
+      "PO-####"; GRN (IN06) receives against PO and closes lines
+  [ ] Reorder integration: low-stock list (on_hand <= reorder_level) on IN01
+      + IN11 with one-click "Raise requisition" (source_module='inventory')
+  [ ] Supplier enrichment: payment terms + simple performance notes on
+      procurement_suppliers (rating deferred)
+  [ ] Fuel's auto-requisition flow keeps working unchanged
 
 ───────────────────────────────────────────────────────────────────────────────
-PHASE 4 — MODULE INTEGRATION                                   Status: FUTURE
+PHASE 4 — REPORTS, INTEGRATION & AUTOMATION                    Status: FUTURE
 ───────────────────────────────────────────────────────────────────────────────
 
-  [ ] Fleet: maintenance parts picker consumes from inventory_items
-      (issue txn with source_module='fleet', source_reference_id=maintenance)
-  [ ] Meals: kitchen dry-goods category, issue-to-kitchen flow
-  [ ] Contractors/HR: PPE + tool issue register per person, return tracking
-  [ ] Fuel: lubricants/filters as stock items
+  Reports (IN11 hub, build top-down on demand)
+  [ ] Reorder Report (below reorder level, suggested qty, urgency sort)
+  [ ] Consumption by department / employee / contractor / vehicle
+  [ ] Valuation report (stock value by category/warehouse, AVCO)
+  [ ] Movement history / item stock card
+  [ ] Slow-moving & dead stock
+  [ ] Batch expiry tracking for kitchen/chemicals (adds item_batches —
+      only table deferred from Phase 1)
+  [ ] ABC analysis
 
-───────────────────────────────────────────────────────────────────────────────
-PHASE 5 — REPORTS & VALUATION                                  Status: FUTURE
-───────────────────────────────────────────────────────────────────────────────
+  Cross-module integration
+  [ ] Fleet: maintenance parts picker issues from stock
+      (source_module='fleet', ref=maintenance id); tyres/oil/filters/batteries
+  [ ] Fuel: filters, lubricants, dispensing consumables as stock items
+  [ ] Meals: kitchen store warehouse — ingredients, gas, packaging
+  [ ] Campsite: camp store warehouse; camp supplies replenished via IN
+      transfers/issues (CampSupplies page stays, gains "request from
+      central stores" hook)
+  [ ] HR: PPE issue per employee (uniform register), tool accountability
+  [ ] Contractors: materials issued to contractors feed CL cost dashboard
+  [ ] Finance (future): COGS-style issue valuation, purchase accounting,
+      asset capitalization handoff
 
-  [ ] IN08 — Stock Ledger (item movement history, running balance)
-  [ ] IN09 — Reports (valuation at avg cost, slow-moving/dead stock,
-              consumption by department/module, stock-take variance history,
-              transfer history by site)
-  [ ] IN10 — Settings (categories, default reorder policy, negative-stock
-              policy, count frequency)
-
-───────────────────────────────────────────────────────────────────────────────
-PHASE 6 — AI & ANALYTICS                                       Status: FUTURE
-───────────────────────────────────────────────────────────────────────────────
-
-  [ ] Consumption forecasting / suggested reorder quantities
-  [ ] Shrinkage & anomaly detection (issue spikes, variance patterns)
+  Automation / AI
+  [ ] Barcode/QR support on items (print + scan-to-search)
+  [ ] Mobile-friendly stock taking
+  [ ] Consumption forecasting & suggested reorder quantities
+  [ ] Shrinkage/anomaly detection (issue spikes, repeat variances)
   [ ] Natural language queries ("how many drill bits at Kamativi?")
 
 ───────────────────────────────────────────────────────────────────────────────
-CROSS-MODULE INTEGRATION POINTS
+DATABASE TABLES (target state)
 ───────────────────────────────────────────────────────────────────────────────
 
-  Procurement → requisitions raised from low stock; receipts close them
-  Campsite    → camp supplies absorbed into IN (categories: supplies)
-  Fleet       → maintenance parts issued from stock
-  Meals       → kitchen dry goods issued from stock
-  HR/CL       → PPE and tool issue per employee/contractor worker
-  Fuel        → lubricants and filters as stock items
-
-DECISIONS TO CONFIRM WITH USER BEFORE PHASE 1
-  1. Absorb campsite supplies into IN (recommended) vs keep separate?
-  2. Valuation method: average cost (recommended, simple) vs FIFO?
-  3. Block negative stock at issue time? (recommended: yes, with override
-     permission inventory.approve)
-  4. Module accent color.
+  Phase 1: item_categories, units_of_measure, items, warehouses,
+           stock_balances, inventory_movements
+  Phase 2: stock_transfers_in (header+lines if needed — or reuse movements
+           with a transfers header table), stock_takes + stock_take_lines,
+           adjustments folded into movements with reason column
+  Phase 3: purchase_orders + purchase_order_items,
+           requisition line extension of procurement_requisitions
+  Phase 4: item_batches
+  Deliberately NOT created: storage_locations/bins, item_variants,
+           item_serials, putaway_rules, pick_lists, stock_reservations,
+           consignment_stock (old-ERP bloat — revisit only on real need)
 
 ═══════════════════════════════════════════════════════════════════════════════

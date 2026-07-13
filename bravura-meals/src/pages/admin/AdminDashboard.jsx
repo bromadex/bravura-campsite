@@ -56,13 +56,13 @@ export default function AdminDashboard({ setPage }) {
   ]
 
   const quickLinks = [
-    { label: 'Users & Roles', icon: 'group', page: 'admin-users' },
-    { label: 'Role Management', icon: 'admin_panel_settings', page: 'admin-roles' },
-    { label: 'Site Management', icon: 'location_on', page: 'admin-sites' },
-    { label: 'Pending Invitations', icon: 'mail', page: 'admin-invitations' },
-    { label: 'System Settings', icon: 'settings', page: 'admin-settings' },
-    { label: 'Permissions', icon: 'lock', page: 'admin-permissions' },
-    { label: 'Audit Log', icon: 'history', page: 'admin-audit' },
+    { label: 'Users & Roles', icon: 'group', page: 'admin_users' },
+    { label: 'Role Management', icon: 'admin_panel_settings', page: 'admin_roles' },
+    { label: 'Site Management', icon: 'location_on', page: 'admin_sites' },
+    { label: 'Pending Invitations', icon: 'mail', page: 'admin_invitations' },
+    { label: 'System Settings', icon: 'settings', page: 'admin_settings' },
+    { label: 'Permissions', icon: 'lock', page: 'admin_permissions' },
+    { label: 'Audit Log', icon: 'history', page: 'admin_audit' },
   ]
 
   if (!can('users.view')) {

@@ -85,6 +85,7 @@ export const MODULE_COLORS = {
   fleet:       '#1A6B52',  // green        – fleet/transport
   procurement: '#7C3AED',  // violet       – purchasing/supply chain
   feedback:    '#6B7280',  // slate        – neutral, "system meta" feel
+  contractors: '#0D7377',  // deep teal    – external workforce/contracts
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -119,6 +120,8 @@ export const moduleAccess = {
   fleet:     r => !!r,
   // Procurement — gated by procurement.view
   procurement: (role, can) => can ? can('procurement.view') : false,
+  // Contract & Contractor Management — gated by contractors.view
+  contractors: (role, can) => can ? can('contractors.view') : false,
   // Feedback — always open to any signed-in user. This is where the whole
   // organisation reports bugs, gaps, and suggestions during the build phase.
   feedback:  r => !!r,
@@ -248,6 +251,22 @@ export function procurementNav(role, can) {
   return [
     { id: 'proc_suppliers', label: 'Suppliers', section: 'Registry', icon: 'business', show: can('procurement.view') },
   ].filter(item => item.show !== false)
+}
+
+export function contractorsNav(role, can) {
+  return [
+    { id: 'cl_dashboard',            label: 'Dashboard',           section: 'Overview',     icon: 'dashboard' },
+    { id: 'cl_companies',            label: 'Contractor Companies',section: 'Contractors',  icon: 'business' },
+    { id: 'cl_contracts',            label: 'Contracts',           section: 'Contractors',  icon: 'description' },
+    { id: 'cl_casual_workers',       label: 'Casual Workers',      section: 'Contractors',  icon: 'engineering' },
+    { id: 'cl_contractor_employees', label: 'Contractor Employees',section: 'Contractors',  icon: 'group' },
+    { id: 'cl_timesheets',           label: 'Timesheets',          section: 'Operations',   icon: 'schedule' },
+    { id: 'cl_hired_vehicles',       label: 'Hired Vehicles',      section: 'Operations',   icon: 'local_shipping' },
+    { id: 'cl_hired_equipment',      label: 'Hired Equipment',     section: 'Operations',   icon: 'construction' },
+    { id: 'cl_cost_dashboard',       label: 'Cost Dashboard',      section: 'Costs',        icon: 'payments' },
+    { id: 'cl_reports',              label: 'Reports',             section: 'Reports',      icon: 'bar_chart' },
+    { id: 'cl_settings',             label: 'Settings',            section: 'Admin',        icon: 'settings' },
+  ]
 }
 
 export function fleetNav(role, can) {

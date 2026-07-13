@@ -54,8 +54,9 @@ Default site on login: Kamativi.
 ## Module map
 
 meals (ME), fuel (FU), fleet (FL), campsite (CA), workforce/HR (HR),
-admin (AD), procurement (PR), feedback (FB). HR pages: `src/pages/hr/`
-(+ `hr/leave/`). Legacy workforce pages still in `src/pages/workforce/`.
+admin (AD), procurement (PR), feedback (FB), contractors/CL (CL).
+HR pages: `src/pages/hr/` (+ `hr/leave/`). Legacy workforce pages still in
+`src/pages/workforce/`. Contractor pages: `src/pages/contractors/`.
 
 ## Current state (July 2026)
 
@@ -63,10 +64,17 @@ admin (AD), procurement (PR), feedback (FB). HR pages: `src/pages/hr/`
   site transfers) are **built and migrated** (0100, 0102, 0103 applied).
 - HR Phase 3 (attendance/shifts, training, skills matrix, HR reports) and
   Phase 4 (payroll, appraisals, disciplinary, exit) are **built** (0106-0108).
-  Migrations 0106, 0107, 0108 need to be applied in the Supabase SQL editor.
+  Migrations 0106, 0107, 0108 applied.
 - Employee numbers use prefix **BRA** (module_settings, per site).
 - Migration 0079 (fleet RLS lockdown) is **applied and verified** (2026-07-12).
-- Migrations 0080 (soft-delete columns) and 0081 (beds/assignments site_id) applied.
+- Migrations 0080 (soft-delete columns), 0081 (beds/assignments site_id),
+  0082 (dip readings soft delete), 0073 (fuel_transactions.odometer_km) applied.
+- Migration 0083 (contract_contractor_management) **applied** — contractors,
+  contractor_contracts, casual_workers, contractor_employees, casual_timesheets,
+  hired_vehicles, hired_equipment tables. CL module Phase 1 (registry) and
+  Phase 2 (timesheets, hired vehicles/equipment) **built**. Phase 3 (cost
+  dashboard/reports) has placeholder pages, awaits cross-module aggregation
+  RPCs. See CONTRACTOR_PROMPTS.txt for the phased plan.
 - Phase 5: HR analytics/AI. See TAFARA_PROMPTS.txt.
 
 ## Improvement backlog (agreed with user, work top-down)

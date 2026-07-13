@@ -1,0 +1,136 @@
+═══════════════════════════════════════════════════════════════════════════════
+CONTRACT & CONTRACTOR MANAGEMENT (CL) MODULE — IMPLEMENTATION PLAN
+═══════════════════════════════════════════════════════════════════════════════
+
+Module code: CL   |   T-codes: CL01–CL11   |   Color: #0D7377 (deep teal)
+Permission gates: contractors.view / contractors.edit
+
+This module manages every external resource Bravura pays for: contractor
+companies, casual workers, contractor employees, hired vehicles/equipment,
+timesheets, and provides cross-module cost aggregation.
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 1 — FOUNDATION & REGISTRY                                   Status: DONE
+───────────────────────────────────────────────────────────────────────────────
+
+Migration 0083 — contract_contractor_management.sql
+  [x] Enrich contractors table (company details, contacts, banking)
+  [x] contractor_contracts table
+  [x] casual_workers table
+  [x] contractor_employees table
+  [x] casual_timesheets table
+  [x] hired_vehicles table
+  [x] hired_equipment table
+  [x] RLS policies (contractors.view / contractors.edit)
+  [x] Indexes
+  [x] Applied to live DB
+
+Module infrastructure
+  [x] MODULE_COLORS.contractors
+  [x] moduleAccess.contractors
+  [x] contractorsNav() sidebar definition
+  [x] T-codes CL01–CL11 in txnCodes.js
+  [x] HomeLauncher tile
+  [x] App.jsx lazy imports + route resolver
+  [x] Permissions seed (contractors.view/create/edit/delete/approve)
+  [x] QuickStartGuide.jsx section
+
+Pages — Phase 1
+  [x] CL01 — Dashboard (KPIs: active contractors, contracts, casuals today,
+              labour cost today/month, fuel/meals/accommodation cost, charts)
+  [x] CL02 — Contractor Companies (enriched CRUD — company info, contacts,
+              banking, documents, status, linked contracts)
+  [x] CL03 — Contracts (CRUD — contract number, dates, payment method, rate,
+              value, spent-to-date, status)
+  [x] CL04 — Casual Workers (registry — personal details, trade, skill,
+              rate type/amount, overtime rate, status, medical expiry)
+  [x] CL05 — Contractor Employees (list per company — name, role, trade,
+              induction, medical, PPE, meals/fuel authorisation)
+  [x] CL11 — Settings (module settings, rate defaults, overtime rules)
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 2 — OPERATIONS                                             Status: WIP
+───────────────────────────────────────────────────────────────────────────────
+
+  [x] CL06 — Timesheets (daily capture: worker, date, shift, clock in/out,
+              hours, overtime, supervisor, auto cost calculation, approval)
+  [x] CL07 — Hired Vehicles (CRUD — vehicle details, contractor, rate,
+              driver/fuel included, linked fleet asset, usage log)
+  [x] CL08 — Hired Equipment (CRUD — equipment details, contractor, rate,
+              fuel/operator included, linked fleet asset, usage log)
+  [x] Timesheet approval workflow (approve toggle on CL06)
+  [ ] Bulk timesheet entry (multiple workers, same day)
+  [ ] Casual payroll calculation (timesheets → cost summary → export)
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 3 — COST DASHBOARD & REPORTS                            Status: PLANNED
+───────────────────────────────────────────────────────────────────────────────
+
+  [~] CL09 — Cost Dashboard (placeholder page built, awaits cross-module
+              aggregation RPCs — THE MONEY SHOT)
+      - Per-contractor cost breakdown aggregated from:
+        • Meals module (meals consumed by contractor employees)
+        • Campsite module (accommodation/nights by contractor workers)
+        • Fuel module (fuel issued to contractor vehicles)
+        • Fleet module (hired vehicle/equipment costs)
+        • Timesheets (labour + overtime costs)
+      - Contract budget vs actual spend
+      - "Who's costing us the most?" ranking with drill-down
+      - Monthly cost trends
+  [~] CL10 — Reports (placeholder tiles built, awaits real report queries)
+      - Contractor Cost Report (per company, per site, per department)
+      - Casual Labour Report (hours, overtime, attendance, cost)
+      - Timesheet Report (daily/weekly/monthly summary)
+      - Vehicle Hire Report (utilisation, cost per km/hour)
+      - Equipment Hire Report (utilisation, cost per day)
+      - Cost by Site / Cost by Department
+  [ ] Supabase RPCs for cross-module cost aggregation
+  [ ] CSV/PDF export for all reports
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 4 — FINANCE INTEGRATION (when Finance module exists)     Status: FUTURE
+───────────────────────────────────────────────────────────────────────────────
+
+  [ ] Contractor payment generation (timesheets → invoice → approval → paid)
+  [ ] Budget management per contract
+  [ ] Actual vs budget tracking
+  [ ] Purchase order integration
+  [ ] Cost centre allocation
+  [ ] Variation orders
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 5 — PROJECT COSTING (when Projects module exists)        Status: FUTURE
+───────────────────────────────────────────────────────────────────────────────
+
+  [ ] Daily work logs with production quantities
+  [ ] Productivity metrics (cost per BCM, per tonne, per m³)
+  [ ] Contract performance scoring
+  [ ] Project allocation per contractor
+  [ ] Production vs cost analysis
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 6 — AI & ANALYTICS                                      Status: FUTURE
+───────────────────────────────────────────────────────────────────────────────
+
+  [ ] Cost anomaly detection
+  [ ] Contractor performance insights
+  [ ] Budget overrun prediction
+  [ ] Labour optimisation recommendations
+  [ ] Equipment utilisation recommendations
+  [ ] Suspicious timesheet detection
+  [ ] Natural language queries ("Which contractor costs the most?")
+
+───────────────────────────────────────────────────────────────────────────────
+CROSS-MODULE INTEGRATION POINTS
+───────────────────────────────────────────────────────────────────────────────
+
+  HR       → employees.contractor_id links employees to companies
+           → Supervisor assignment for timesheets
+           → Shift definitions for casual worker schedules
+  Campsite → room_assignments tracks contractor worker accommodation
+  Meals    → meal entries track meals per employee (contractor-linked)
+  Fuel     → fuel_transactions.fleet_asset_id links to hired vehicles
+  Fleet    → fleet_assets linked via hired_vehicles/hired_equipment
+  Safety   → (future) inductions, PPE tracking, incident reports
+
+═══════════════════════════════════════════════════════════════════════════════

@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const Employees       = lazy(() => import('./pages/workforce/Employees'))
@@ -130,6 +130,19 @@ const Forecasting              = lazy(() => import('./pages/fuel/Forecasting'))
 const CostAllocation           = lazy(() => import('./pages/fuel/CostAllocation'))
 const FinanceExport            = lazy(() => import('./pages/fuel/FinanceExport'))
 
+// ── Contract & Contractor Management ─────────────────────────────────────────
+const CLDashboard           = lazy(() => import('./pages/contractors/CLDashboard'))
+const CLCompanies           = lazy(() => import('./pages/contractors/CLCompanies'))
+const CLContracts           = lazy(() => import('./pages/contractors/CLContracts'))
+const CLCasualWorkers       = lazy(() => import('./pages/contractors/CLCasualWorkers'))
+const CLContractorEmployees = lazy(() => import('./pages/contractors/CLContractorEmployees'))
+const CLTimesheets          = lazy(() => import('./pages/contractors/CLTimesheets'))
+const CLHiredVehicles       = lazy(() => import('./pages/contractors/CLHiredVehicles'))
+const CLHiredEquipment      = lazy(() => import('./pages/contractors/CLHiredEquipment'))
+const CLCostDashboard       = lazy(() => import('./pages/contractors/CLCostDashboard'))
+const CLReports             = lazy(() => import('./pages/contractors/CLReports'))
+const CLSettings            = lazy(() => import('./pages/contractors/CLSettings'))
+
 // ── Procurement ───────────────────────────────────────────────────────────────
 const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
 
@@ -156,6 +169,7 @@ const MODULE_META = {
   admin:     { label: 'Administration',        icon: 'admin_panel_settings', navFn: adminNav },
   fuel:      { label: 'Fuel Management',       icon: 'local_gas_station',    navFn: fuelNav  },
   fleet:       { label: 'Fleet Management',      icon: 'directions_car',   navFn: fleetNav        },
+  contractors: { label: 'Contract & Contractor Management', icon: 'handshake', navFn: contractorsNav },
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
@@ -341,6 +355,23 @@ function getFleetPage(page, setPage) {
   }
 }
 
+function getContractorsPage(page, can) {
+  switch (page) {
+    case 'cl_dashboard':            return can('contractors.view') ? <CLDashboard /> : null
+    case 'cl_companies':            return can('contractors.view') ? <CLCompanies /> : null
+    case 'cl_contracts':            return can('contractors.view') ? <CLContracts /> : null
+    case 'cl_casual_workers':       return can('contractors.view') ? <CLCasualWorkers /> : null
+    case 'cl_contractor_employees': return can('contractors.view') ? <CLContractorEmployees /> : null
+    case 'cl_timesheets':           return can('contractors.view') ? <CLTimesheets /> : null
+    case 'cl_hired_vehicles':       return can('contractors.view') ? <CLHiredVehicles /> : null
+    case 'cl_hired_equipment':      return can('contractors.view') ? <CLHiredEquipment /> : null
+    case 'cl_cost_dashboard':       return can('contractors.view') ? <CLCostDashboard /> : null
+    case 'cl_reports':              return can('contractors.view') ? <CLReports /> : null
+    case 'cl_settings':             return can('contractors.edit') ? <CLSettings /> : null
+    default:                        return can('contractors.view') ? <CLDashboard /> : null
+  }
+}
+
 function getProcurementPage(page, can) {
   switch (page) {
     case 'proc_suppliers': return can('procurement.view') ? <ProcSuppliers /> : null
@@ -364,6 +395,7 @@ const DEFAULT_PAGE = {
   admin:     'admin_users',
   fuel:      'fuel_dashboard',
   fleet:       'fleet_dashboard',
+  contractors: 'cl_dashboard',
   procurement: 'proc_suppliers',
   feedback:    'feedback_board',
 }
@@ -397,6 +429,7 @@ function ModuleShell() {
   if (moduleId === 'admin')     content = getAdminPage(currentPage, can)
   if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
   if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
+  if (moduleId === 'contractors') content = getContractorsPage(currentPage, can)
   if (moduleId === 'procurement') content = getProcurementPage(currentPage, can)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 

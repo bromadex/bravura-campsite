@@ -182,6 +182,20 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* Contractors */}
+      {(can('contractors.view') || can('contractors.edit')) && (
+        <Section icon="engineering" color={MODULE_COLORS.contractors} title="Contractors — companies, casuals & hired assets">
+          <Steps items={[
+            <>The Dashboard (<Code>CL01</Code>) shows active contractors, contracts, casuals working today and labour cost.</>,
+            <>Register contractor companies in <Code>CL02</Code> — banking, compliance and insurance-expiry details live there.</>,
+            <>Set up each contract in <Code>CL03</Code> — payment method, agreed rate, contract value and spend-to-date.</>,
+            <>Casual workers (<Code>CL04</Code>) and contractor-employed staff (<Code>CL05</Code>) are separate registries — casuals are paid per shift/day/hour by us, contractor employees are paid by their company.</>,
+            <>Capture daily timesheets in <Code>CL06</Code> — hours and overtime cost calculate automatically and need approval before they count.</>,
+            <>Hired vehicles (<Code>CL07</Code>) and hired equipment (<Code>CL08</Code>) track rate, and whether driver/fuel/operator is included.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* T-code cheat table */}
       <Section icon="menu_book" color="#455A64" title="Your transaction codes">
         <div style={{ overflowX: 'auto' }}>

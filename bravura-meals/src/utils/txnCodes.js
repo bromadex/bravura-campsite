@@ -111,6 +111,19 @@ export const TXN_CODES = [
   { code: 'HR30', path: '/workforce/wf_disciplinary',        label: 'Disciplinary Cases',   module: 'workforce' },
   { code: 'HR31', path: '/workforce/wf_exit',                label: 'Exit Management',      module: 'workforce' },
 
+  // ── Contract & Contractor Management (CL) ──────────────────────────────
+  { code: 'CL01', path: '/contractors/cl_dashboard',            label: 'CL Dashboard',         module: 'contractors' },
+  { code: 'CL02', path: '/contractors/cl_companies',            label: 'Contractor Companies',  module: 'contractors' },
+  { code: 'CL03', path: '/contractors/cl_contracts',            label: 'Contracts',             module: 'contractors' },
+  { code: 'CL04', path: '/contractors/cl_casual_workers',       label: 'Casual Workers',        module: 'contractors' },
+  { code: 'CL05', path: '/contractors/cl_contractor_employees', label: 'Contractor Employees',  module: 'contractors' },
+  { code: 'CL06', path: '/contractors/cl_timesheets',           label: 'Timesheets',            module: 'contractors' },
+  { code: 'CL07', path: '/contractors/cl_hired_vehicles',       label: 'Hired Vehicles',        module: 'contractors' },
+  { code: 'CL08', path: '/contractors/cl_hired_equipment',      label: 'Hired Equipment',       module: 'contractors' },
+  { code: 'CL09', path: '/contractors/cl_cost_dashboard',       label: 'Cost Dashboard',        module: 'contractors' },
+  { code: 'CL10', path: '/contractors/cl_reports',              label: 'CL Reports',            module: 'contractors' },
+  { code: 'CL11', path: '/contractors/cl_settings',             label: 'CL Settings',           module: 'contractors' },
+
   // ── Admin (AD) ────────────────────────────────────────────────────────────
   { code: 'AD01', path: '/admin/admin_users', label: 'Users & Roles', module: 'admin' },
   { code: 'AD02', path: '/admin/admin_audit', label: 'Audit Log',     module: 'admin' },

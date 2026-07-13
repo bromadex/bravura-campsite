@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -457,7 +457,10 @@ function ReviewModal({ recon, profileId, onClose, onSaved }) {
 export default function Reconciliation() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
-  const { tanks, profile } = useFuel()
+  const { tanks: allTanks, profile } = useFuel()
+  // Dip-variance reconciliation only makes sense for tanks that are actually
+  // dipped — drums/containers on an issuance running balance have no dips.
+  const tanks = useMemo(() => allTanks.filter(t => t.level_tracking_method !== 'issuance'), [allTanks])
 
   const [reconciliations, setReconciliations] = useState([])
   const [loading, setLoading] = useState(true)

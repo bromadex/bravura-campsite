@@ -123,6 +123,8 @@ export default function FuelReceipts() {
   const [editStatus, setEditStatus] = useState(null)
 
   const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
+  const formTank = useMemo(() => tanks.find(t => t.id === form.tank_id), [tanks, form.tank_id])
+  const isIssuanceTracked = formTank?.level_tracking_method === 'issuance'
 
   const [procSuppliers, setProcSuppliers] = useState([])
   useEffect(() => {
@@ -653,16 +655,25 @@ export default function FuelReceipts() {
             <FieldWrap label="Total Cost (USD)">
               <input type="number" min="0" step="0.01" value={form.total_cost} onChange={e => set('total_cost', e.target.value)} placeholder="Auto-calculated" style={inputStyle} />
             </FieldWrap>
-            <FieldWrap label="Dip Before (mm)">
-              <input type="number" min="0" step="0.1" value={form.dip_before_mm} onChange={e => set('dip_before_mm', e.target.value)} placeholder="e.g. 850" style={inputStyle} />
-              {form.dip_before && <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>{Number(form.dip_before).toLocaleString(undefined, { maximumFractionDigits: 1 })} L {!editId && form.tank_id ? '(current tank level)' : ''}</div>}
-              {calibration.length === 0 && form.dip_before_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table</div>}
-            </FieldWrap>
-            <FieldWrap label="Dip After (mm)">
-              <input type="number" min="0" step="0.1" value={form.dip_after_mm} onChange={e => set('dip_after_mm', e.target.value)} placeholder="e.g. 1200" style={inputStyle} />
-              {form.dip_after && <div style={{ fontSize: '11px', color: THEME.success, marginTop: '4px', fontWeight: 600 }}>{Number(form.dip_after).toLocaleString(undefined, { maximumFractionDigits: 1 })} L → new tank level</div>}
-              {calibration.length === 0 && form.dip_after_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table</div>}
-            </FieldWrap>
+            {isIssuanceTracked ? (
+              <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', fontSize: '12px', color: THEME.textLow, background: THEME.surfaceVar, borderRadius: '8px', padding: '10px 12px' }}>
+                This tank tracks level from deliveries/issuances, not dips — confirming will add
+                the delivered quantity straight to the tank's running balance.
+              </div>
+            ) : (
+              <>
+                <FieldWrap label="Dip Before (mm)">
+                  <input type="number" min="0" step="0.1" value={form.dip_before_mm} onChange={e => set('dip_before_mm', e.target.value)} placeholder="e.g. 850" style={inputStyle} />
+                  {form.dip_before && <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>{Number(form.dip_before).toLocaleString(undefined, { maximumFractionDigits: 1 })} L {!editId && form.tank_id ? '(current tank level)' : ''}</div>}
+                  {calibration.length === 0 && form.dip_before_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table</div>}
+                </FieldWrap>
+                <FieldWrap label="Dip After (mm)">
+                  <input type="number" min="0" step="0.1" value={form.dip_after_mm} onChange={e => set('dip_after_mm', e.target.value)} placeholder="e.g. 1200" style={inputStyle} />
+                  {form.dip_after && <div style={{ fontSize: '11px', color: THEME.success, marginTop: '4px', fontWeight: 600 }}>{Number(form.dip_after).toLocaleString(undefined, { maximumFractionDigits: 1 })} L → new tank level</div>}
+                  {calibration.length === 0 && form.dip_after_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table</div>}
+                </FieldWrap>
+              </>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>

@@ -430,7 +430,10 @@ function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose
 export default function DipReadings() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
-  const { tanks, operators, updateDipReading, deleteDipReading, refresh: refreshFuel } = useFuel()
+  const { tanks: allTanks, operators, updateDipReading, deleteDipReading, refresh: refreshFuel } = useFuel()
+  // Drums/containers tracked by issuance running balance are never physically
+  // dipped — keep them out of the dip log entirely.
+  const tanks = useMemo(() => allTanks.filter(t => t.level_tracking_method !== 'issuance'), [allTanks])
 
   const [readings, setReadings] = useState([])
   const [loading, setLoading] = useState(true)

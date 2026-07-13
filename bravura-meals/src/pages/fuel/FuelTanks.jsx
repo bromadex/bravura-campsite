@@ -37,6 +37,7 @@ const BLANK_FORM = {
   gps_lng:               '',
   atg_device_id:         '',
   status:                'active',
+  level_tracking_method: 'dipstick',
 }
 
 export default function FuelTanks({ setPage }) {
@@ -86,6 +87,7 @@ export default function FuelTanks({ setPage }) {
       gps_lng:               tank.gps_lng != null ? String(tank.gps_lng) : '',
       atg_device_id:         tank.atg_device_id || '',
       status:                tank.status,
+      level_tracking_method: tank.level_tracking_method || 'dipstick',
     })
     setModal(true)
   }
@@ -124,6 +126,7 @@ export default function FuelTanks({ setPage }) {
         gps_lng:               form.gps_lng ? Number(form.gps_lng) : null,
         atg_device_id:         form.atg_device_id.trim() || null,
         status:                form.status,
+        level_tracking_method: form.level_tracking_method,
       }
       if (editItem) {
         await updateTank(editItem.id, data)
@@ -714,6 +717,19 @@ export default function FuelTanks({ setPage }) {
               placeholder="20"
               style={inputStyle}
             />
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel>Level Tracking Method</SectionLabel>
+          <select value={form.level_tracking_method} onChange={e => set('level_tracking_method', e.target.value)} style={inputStyle}>
+            <option value="dipstick">Dipstick — level set from physical dip readings</option>
+            <option value="issuance">Issuance running balance — no dips, level tracked from deliveries in / fuel issued out</option>
+          </select>
+          <div style={{ marginTop: '4px', marginBottom: '14px', fontSize: '11px', color: THEME.textLow }}>
+            Use "Issuance running balance" for drums/containers that are never physically dipped —
+            deliveries add to the level and issuances subtract from it automatically. This tank
+            is excluded from the Dipstick Log and dip-variance reconciliation.
           </div>
         </div>
 

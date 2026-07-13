@@ -62,12 +62,12 @@ export function FuelProvider({ children }) {
           .order('asset_number'),
         supabase
           .from('fuel_operators')
-          .select('*, employees(id, name, contractor:contractors(id, name, short_code))')
+          .select('*, employees(id, name)')
           .eq('site_id', currentSiteId)
           .order('created_at', { ascending: false }),
         supabase
           .from('employees')
-          .select('id, name, status, contractor:contractors(id, name, short_code)')
+          .select('id, name, status')
           .eq('site_id', currentSiteId)
           .eq('status', 'active')
           .order('name'),

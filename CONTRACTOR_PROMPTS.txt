@@ -49,7 +49,7 @@ Pages — Phase 1
   [x] CL11 — Settings (module settings, rate defaults, overtime rules)
 
 ───────────────────────────────────────────────────────────────────────────────
-PHASE 2 — OPERATIONS                                             Status: WIP
+PHASE 2 — OPERATIONS                                            Status: DONE
 ───────────────────────────────────────────────────────────────────────────────
 
   [x] CL06 — Timesheets (daily capture: worker, date, shift, clock in/out,
@@ -59,7 +59,7 @@ PHASE 2 — OPERATIONS                                             Status: WIP
   [x] CL08 — Hired Equipment (CRUD — equipment details, contractor, rate,
               fuel/operator included, linked fleet asset, usage log)
   [x] Timesheet approval workflow (approve toggle on CL06)
-  [ ] Bulk timesheet entry (multiple workers, same day)
+  [x] Bulk timesheet entry (multiple workers, same day)
   [ ] Casual payroll calculation (timesheets → cost summary → export)
 
 ───────────────────────────────────────────────────────────────────────────────

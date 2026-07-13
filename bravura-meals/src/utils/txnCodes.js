@@ -93,6 +93,23 @@ export const TXN_CODES = [
   { code: 'HR14', path: '/workforce/wf_org_chart',         label: 'Org Chart',            module: 'workforce' },
   { code: 'HR15', path: '/workforce/wf_transfers',         label: 'Site Transfers',       module: 'workforce' },
   { code: 'HR16', path: '/workforce/wf_leave_balances',    label: 'Leave Balance Report', module: 'workforce' },
+  // Phase 3: Attendance, Training, Reports
+  { code: 'HR17', path: '/workforce/wf_shifts',              label: 'Shift Management',     module: 'workforce' },
+  { code: 'HR18', path: '/workforce/wf_attendance',          label: 'Attendance Log',       module: 'workforce' },
+  { code: 'HR19', path: '/workforce/wf_training',            label: 'Training Programs',    module: 'workforce' },
+  { code: 'HR20', path: '/workforce/wf_skills',              label: 'Skills Matrix',        module: 'workforce' },
+  { code: 'HR21', path: '/workforce/wf_headcount_report',    label: 'Headcount Report',     module: 'workforce' },
+  { code: 'HR22', path: '/workforce/wf_leave_report',        label: 'Leave Report',         module: 'workforce' },
+  { code: 'HR23', path: '/workforce/wf_turnover_report',     label: 'Turnover Report',      module: 'workforce' },
+  { code: 'HR24', path: '/workforce/wf_attendance_report',   label: 'Attendance Report',    module: 'workforce' },
+  // Phase 4: Payroll, Performance, Disciplinary, Exit
+  { code: 'HR25', path: '/workforce/wf_salary_grades',       label: 'Salary Grades',        module: 'workforce' },
+  { code: 'HR26', path: '/workforce/wf_salary_components',   label: 'Salary Components',    module: 'workforce' },
+  { code: 'HR27', path: '/workforce/wf_payroll',             label: 'Payroll Run',          module: 'workforce' },
+  { code: 'HR28', path: '/workforce/wf_salary_slips',        label: 'Salary Slips',         module: 'workforce' },
+  { code: 'HR29', path: '/workforce/wf_appraisals',          label: 'Appraisals',           module: 'workforce' },
+  { code: 'HR30', path: '/workforce/wf_disciplinary',        label: 'Disciplinary Cases',   module: 'workforce' },
+  { code: 'HR31', path: '/workforce/wf_exit',                label: 'Exit Management',      module: 'workforce' },
 
   // ── Admin (AD) ────────────────────────────────────────────────────────────
   { code: 'AD01', path: '/admin/admin_users', label: 'Users & Roles', module: 'admin' },

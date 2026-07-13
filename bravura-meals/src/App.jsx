@@ -33,6 +33,21 @@ const HRLeaveCalendar  = lazy(() => import('./pages/hr/leave/LeaveCalendar'))
 const HRLeaveBalances  = lazy(() => import('./pages/hr/leave/LeaveBalanceReport'))
 const HROrgChart       = lazy(() => import('./pages/hr/OrgChart'))
 const HRTransfers      = lazy(() => import('./pages/hr/Transfers'))
+const HRShifts         = lazy(() => import('./pages/hr/attendance/ShiftManagement'))
+const HRAttendance     = lazy(() => import('./pages/hr/attendance/AttendanceLog'))
+const HRTraining       = lazy(() => import('./pages/hr/training/TrainingPrograms'))
+const HRSkills         = lazy(() => import('./pages/hr/training/SkillsMatrix'))
+const HRHeadcountReport  = lazy(() => import('./pages/hr/reports/HeadcountReport'))
+const HRLeaveReport      = lazy(() => import('./pages/hr/reports/LeaveReport'))
+const HRTurnoverReport   = lazy(() => import('./pages/hr/reports/TurnoverReport'))
+const HRAttendanceReport = lazy(() => import('./pages/hr/reports/AttendanceReport'))
+const HRSalaryGrades     = lazy(() => import('./pages/hr/payroll/SalaryGrades'))
+const HRSalaryComponents = lazy(() => import('./pages/hr/payroll/SalaryComponents'))
+const HRPayrollRun       = lazy(() => import('./pages/hr/payroll/PayrollRun'))
+const HRSalarySlips      = lazy(() => import('./pages/hr/payroll/SalarySlip'))
+const HRAppraisals       = lazy(() => import('./pages/hr/performance/Appraisals'))
+const HRDisciplinary     = lazy(() => import('./pages/hr/disciplinary/DisciplinaryCases'))
+const HRExitManagement   = lazy(() => import('./pages/hr/ExitManagement'))
 const Contractors     = lazy(() => import('./pages/workforce/Contractors'))
 const WorkforceLeave  = lazy(() => import('./pages/workforce/WorkforceLeave'))
 const WorkforceReports= lazy(() => import('./pages/workforce/WorkforceReports'))
@@ -165,6 +180,21 @@ function getWorkforcePage(page, role, can, setPage) {
     case 'wf_leave_balances':    return can('hr.view') ? <HRLeaveBalances /> : null
     case 'wf_org_chart':         return can('hr.view') ? <HROrgChart /> : null
     case 'wf_transfers':         return can('hr.view') ? <HRTransfers /> : null
+    case 'wf_shifts':            return can('hr.view') ? <HRShifts /> : null
+    case 'wf_attendance':        return can('hr.view') ? <HRAttendance /> : null
+    case 'wf_training':          return can('hr.view') ? <HRTraining /> : null
+    case 'wf_skills':            return can('hr.view') ? <HRSkills /> : null
+    case 'wf_headcount_report':  return can('hr.view') ? <HRHeadcountReport /> : null
+    case 'wf_leave_report':      return can('hr.view') ? <HRLeaveReport /> : null
+    case 'wf_turnover_report':   return can('hr.view') ? <HRTurnoverReport /> : null
+    case 'wf_attendance_report': return can('hr.view') ? <HRAttendanceReport /> : null
+    case 'wf_salary_grades':     return can('hr.view') ? <HRSalaryGrades /> : null
+    case 'wf_salary_components': return can('hr.view') ? <HRSalaryComponents /> : null
+    case 'wf_payroll':           return can('hr.view') ? <HRPayrollRun /> : null
+    case 'wf_salary_slips':      return can('hr.view') ? <HRSalarySlips /> : null
+    case 'wf_appraisals':        return can('hr.view') ? <HRAppraisals /> : null
+    case 'wf_disciplinary':      return can('hr.view') ? <HRDisciplinary /> : null
+    case 'wf_exit':              return can('hr.view') ? <HRExitManagement /> : null
     // Employee list: the Phase 1 HR list supersedes the original page but
     // keeps the same id — bookmarks and the HR01 T-code keep working.
     case 'wf_employees':

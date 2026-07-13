@@ -63,29 +63,35 @@ PHASE 2 — OPERATIONS                                             Status: WIP
   [ ] Casual payroll calculation (timesheets → cost summary → export)
 
 ───────────────────────────────────────────────────────────────────────────────
-PHASE 3 — COST DASHBOARD & REPORTS                            Status: PLANNED
+PHASE 3 — COST DASHBOARD & REPORTS                                Status: WIP
 ───────────────────────────────────────────────────────────────────────────────
 
-  [~] CL09 — Cost Dashboard (placeholder page built, awaits cross-module
-              aggregation RPCs — THE MONEY SHOT)
+  [x] CL09 — Cost Dashboard (rpc_contractor_cost_summary, migration 0086)
       - Per-contractor cost breakdown aggregated from:
-        • Meals module (meals consumed by contractor employees)
-        • Campsite module (accommodation/nights by contractor workers)
-        • Fuel module (fuel issued to contractor vehicles)
-        • Fleet module (hired vehicle/equipment costs)
-        • Timesheets (labour + overtime costs)
-      - Contract budget vs actual spend
-      - "Who's costing us the most?" ranking with drill-down
-      - Monthly cost trends
-  [~] CL10 — Reports (placeholder tiles built, awaits real report queries)
-      - Contractor Cost Report (per company, per site, per department)
-      - Casual Labour Report (hours, overtime, attendance, cost)
-      - Timesheet Report (daily/weekly/monthly summary)
-      - Vehicle Hire Report (utilisation, cost per km/hour)
-      - Equipment Hire Report (utilisation, cost per day)
-      - Cost by Site / Cost by Department
-  [ ] Supabase RPCs for cross-module cost aggregation
-  [ ] CSV/PDF export for all reports
+        • Timesheets (approved casual_timesheets.total_cost)                [x]
+        • Hired vehicles (daily_rate x days active in period)               [x]
+        • Hired equipment (daily_rate x days active in period)              [x]
+        • Fuel (fuel_transactions via hired_vehicles.fleet_asset_id)        [x]
+        • Meals module (meals consumed by contractor employees)             [ ]
+        • Campsite module (accommodation/nights by contractor workers)      [ ]
+      - Contract budget vs actual spend (contract_value vs spent_to_date)   [x]
+      - "Who's costing us the most?" ranking with drill-down                [x] (ranking only, no drill-down yet)
+      - Monthly cost trends                                                 [ ]
+  [~] CL10 — Reports
+      - Contractor Cost Report (links to Cost Dashboard)                    [x]
+      - Casual Labour Report (hours, overtime, attendance, cost)            [ ]
+      - Timesheet Report (daily/weekly/monthly summary)                    [ ]
+      - Vehicle Hire Report (utilisation, cost per km/hour)                 [ ]
+      - Equipment Hire Report (utilisation, cost per day)                   [ ]
+      - Cost by Site / Cost by Department                                   [ ]
+  [x] Supabase RPC for cross-module cost aggregation (rpc_contractor_cost_summary)
+  [x] CSV export on Cost Dashboard (PDF still outstanding)
+
+  Meals/accommodation costs are not included yet: contractor_employees and
+  casual_workers aren't linked to meal_logs or room_assignments. Would need
+  either a link column on those tables, or routing contractor staff through
+  the "Import from HR" employee_id link (added in 0084) so meal_logs.employee_id
+  and room_assignments.employee_id resolve back to a contractor.
 
 ───────────────────────────────────────────────────────────────────────────────
 PHASE 4 — FINANCE INTEGRATION (when Finance module exists)     Status: FUTURE

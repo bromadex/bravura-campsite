@@ -378,7 +378,7 @@ function getFleetPage(page, setPage) {
   }
 }
 
-function getContractorsPage(page, can) {
+function getContractorsPage(page, can, setPage) {
   switch (page) {
     case 'cl_dashboard':            return can('contractors.view') ? <CLDashboard /> : null
     case 'cl_companies':            return can('contractors.view') ? <CLCompanies /> : null
@@ -389,7 +389,7 @@ function getContractorsPage(page, can) {
     case 'cl_hired_vehicles':       return can('contractors.view') ? <CLHiredVehicles /> : null
     case 'cl_hired_equipment':      return can('contractors.view') ? <CLHiredEquipment /> : null
     case 'cl_cost_dashboard':       return can('contractors.view') ? <CLCostDashboard /> : null
-    case 'cl_reports':              return can('contractors.view') ? <CLReports /> : null
+    case 'cl_reports':              return can('contractors.view') ? <CLReports setPage={setPage} /> : null
     case 'cl_settings':             return can('contractors.edit') ? <CLSettings /> : null
     default:                        return can('contractors.view') ? <CLDashboard /> : null
   }
@@ -452,7 +452,7 @@ function ModuleShell() {
   if (moduleId === 'admin')     content = getAdminPage(currentPage, can)
   if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
   if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
-  if (moduleId === 'contractors') content = getContractorsPage(currentPage, can)
+  if (moduleId === 'contractors') content = getContractorsPage(currentPage, can, setPage)
   if (moduleId === 'procurement') content = getProcurementPage(currentPage, can)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 

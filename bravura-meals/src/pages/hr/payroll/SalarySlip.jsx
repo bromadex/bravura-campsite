@@ -80,7 +80,7 @@ export default function SalarySlip() {
         </div>
         <div style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: 12, padding: 32 }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: THEME.text }}>Bravura Zimbabwe</h2>
+            <img src="/logo/bravura-logo.png" alt="Bravura" style={{ height: 48, width: 'auto', marginBottom: 4 }} />
             <div style={{ fontSize: 13, color: THEME.textMed }}>{currentSite?.name || 'Site'}</div>
             <div style={{ fontSize: 13, color: THEME.textMed, marginTop: 2 }}>Payslip — {MONTHS[selectedRun.period_month - 1]} {selectedRun.period_year}</div>
           </div>

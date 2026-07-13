@@ -41,7 +41,7 @@ export function FleetProvider({ children }) {
           .order('name'),
         supabase
           .from('employees')
-          .select('id, name, status, contractor:contractors(id, name, short_code)')
+          .select('id, name, status')
           .eq('site_id', currentSiteId)
           .eq('status', 'active')
           .order('name'),

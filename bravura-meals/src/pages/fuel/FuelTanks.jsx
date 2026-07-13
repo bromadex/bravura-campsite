@@ -4,6 +4,7 @@ import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { nextCode } from '../../utils/autoCode'
 import {
   PageHeader, Card, Button, Modal, ConfirmModal, Icon, SectionLabel,
   showToast, TableWrap, THead, Th, TRow, Td, fmtDate,
@@ -69,7 +70,8 @@ export default function FuelTanks({ setPage }) {
 
   function openAdd() {
     setEditItem(null)
-    setForm({ ...BLANK_FORM, fuel_type_id: defaultFuelTypeId })
+    const code = nextCode(tanks.map(t => t.code), { prefix: 'T', pad: 2 })
+    setForm({ ...BLANK_FORM, fuel_type_id: defaultFuelTypeId, code })
     setModal(true)
   }
 

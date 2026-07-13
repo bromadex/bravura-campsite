@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
+import { nextCode } from '../../utils/autoCode'
 
 const color = MODULE_COLORS.contractors
 
@@ -113,7 +114,8 @@ export default function CLCompanies() {
 
   function openAdd() {
     setEditId(null)
-    setForm({ ...EMPTY_FORM })
+    const short_code = nextCode(items.map(d => d.short_code), { prefix: 'CTR', pad: 3 })
+    setForm({ ...EMPTY_FORM, short_code })
     setError('')
     setModalOpen(true)
   }

@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../components/ui'
+import { nextCode } from '../../utils/autoCode'
 
 const ACCENT = MODULE_COLORS.workforce
 const EMPTY_FORM = { name: '', code: '', parent_department_id: '', department_head_id: '', description: '' }
@@ -91,7 +92,8 @@ export default function Departments() {
 
   function openAdd() {
     setEditing(null)
-    setForm(EMPTY_FORM)
+    const code = nextCode(departments.map(d => d.code), { prefix: 'DEP', pad: 2 })
+    setForm({ ...EMPTY_FORM, code })
     setModal(true)
   }
 

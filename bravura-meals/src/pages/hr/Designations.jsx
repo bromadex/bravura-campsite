@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../components/ui'
+import { nextCode } from '../../utils/autoCode'
 
 const ACCENT = MODULE_COLORS.workforce
 const EMPTY_FORM = { name: '', code: '', department_id: '', grade: '', description: '' }
@@ -62,7 +63,10 @@ export default function Designations() {
   }, [rows, search, showArchived])
 
   function openAdd() {
-    setEditing(null); setForm(EMPTY_FORM); setModalOpen(true)
+    setEditing(null)
+    const code = nextCode(rows.map(r => r.code), { prefix: 'DES', pad: 2 })
+    setForm({ ...EMPTY_FORM, code })
+    setModalOpen(true)
   }
   function openEdit(r) {
     setEditing(r)

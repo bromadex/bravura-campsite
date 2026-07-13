@@ -5,6 +5,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { showToast } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
+import { nextCode } from '../../utils/autoCode'
 
 const color = MODULE_COLORS.contractors
 
@@ -141,7 +142,8 @@ export default function CLContracts() {
 
   function openAdd() {
     setEditId(null)
-    setForm({ ...EMPTY_FORM })
+    const contract_number = nextCode(contracts.map(c => c.contract_number), { prefix: 'CON', pad: 4 })
+    setForm({ ...EMPTY_FORM, contract_number })
     setError('')
     setModalOpen(true)
   }

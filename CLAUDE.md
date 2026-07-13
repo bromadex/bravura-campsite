@@ -61,12 +61,13 @@ admin (AD), procurement (PR), feedback (FB). HR pages: `src/pages/hr/`
 
 - HR Phase 1 (foundation) and Phase 2 (leave, documents, medical, org chart,
   site transfers) are **built and migrated** (0100, 0102, 0103 applied).
+- HR Phase 3 (attendance/shifts, training, skills matrix, HR reports) and
+  Phase 4 (payroll, appraisals, disciplinary, exit) are **built** (0106-0108).
+  Migrations 0106, 0107, 0108 need to be applied in the Supabase SQL editor.
 - Employee numbers use prefix **BRA** (module_settings, per site).
 - Migration 0079 (fleet RLS lockdown) is **applied and verified** (2026-07-12).
 - Migrations 0080 (soft-delete columns) and 0081 (beds/assignments site_id) applied.
-- HR Phase 3 is next when the user asks: attendance (SINGLE shift only — no
-  shift scheduling), training records, skills matrix. Phase 4: payroll prep.
-  Phase 5: HR analytics/AI. See TAFARA_PROMPTS.txt.
+- Phase 5: HR analytics/AI. See TAFARA_PROMPTS.txt.
 
 ## Improvement backlog (agreed with user, work top-down)
 

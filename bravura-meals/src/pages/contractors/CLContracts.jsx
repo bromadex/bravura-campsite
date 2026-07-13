@@ -95,6 +95,7 @@ export default function CLContracts() {
         supabase
           .from('contractors')
           .select('id, name, short_code')
+          .eq('is_archived', false)
           .order('name'),
       ])
       if (cErr) throw cErr

@@ -76,8 +76,14 @@ const MealProviders  = lazy(() => import('./pages/meals/MealProviders'))
 const Settings       = lazy(() => import('./pages/meals/Settings'))
 const MealForecasts  = lazy(() => import('./pages/meals/MealForecasts'))
 const MealFinanceExport = lazy(() => import('./pages/meals/MealFinanceExport'))
-const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
-const AuditLogViewer = lazy(() => import('./pages/admin/AuditLogViewer'))
+const UserManagement     = lazy(() => import('./pages/admin/UserManagement'))
+const AuditLogViewer     = lazy(() => import('./pages/admin/AuditLogViewer'))
+const AdminDashboard     = lazy(() => import('./pages/admin/AdminDashboard'))
+const RoleManagement     = lazy(() => import('./pages/admin/RoleManagement'))
+const SiteManagement     = lazy(() => import('./pages/admin/SiteManagement'))
+const PendingInvitations = lazy(() => import('./pages/admin/PendingInvitations'))
+const SystemSettings     = lazy(() => import('./pages/admin/SystemSettings'))
+const PermissionsCatalogue = lazy(() => import('./pages/admin/PermissionsCatalogue'))
 
 // ── Fleet pages ───────────────────────────────────────────────────────────────
 const FleetDashboard      = lazy(() => import('./pages/fleet/FleetDashboard'))
@@ -317,15 +323,17 @@ function getMealsPage(page, role, setPage, can) {
 }
 
 // New code — gated by real RBAC from the start, same as Employees.view was.
-function getAdminPage(page, can) {
+function getAdminPage(page, can, setPage) {
   switch (page) {
-    case 'admin_users': return can('users.view') ? <UserManagement /> : null
-    // Reusing users.view as the trust-tier gate here too — there's no
-    // dedicated audit permission yet, and "who can see user accounts" is
-    // the same trust level as "who can see the system's full change
-    // history." Same proxy pattern already used for Meals Settings.
-    case 'admin_audit':  return can('users.view') ? <AuditLogViewer /> : null
-    default:             return can('users.view') ? <UserManagement /> : null
+    case 'admin_dashboard':   return can('users.view') ? <AdminDashboard setPage={setPage} /> : null
+    case 'admin_users':       return can('users.view') ? <UserManagement /> : null
+    case 'admin_roles':       return can('users.view') ? <RoleManagement /> : null
+    case 'admin_sites':       return can('users.view') ? <SiteManagement /> : null
+    case 'admin_invitations': return can('users.view') ? <PendingInvitations /> : null
+    case 'admin_settings':    return can('users.view') ? <SystemSettings /> : null
+    case 'admin_permissions': return can('users.view') ? <PermissionsCatalogue /> : null
+    case 'admin_audit':       return can('users.view') ? <AuditLogViewer /> : null
+    default:                  return can('users.view') ? <AdminDashboard setPage={setPage} /> : null
   }
 }
 
@@ -459,7 +467,7 @@ function ModuleShell() {
   if (moduleId === 'workforce') content = getWorkforcePage(currentPage, role, can, setPage)
   if (moduleId === 'campsite')  content = getCampsitePage(currentPage, role, setPage, can)
   if (moduleId === 'meals')     content = getMealsPage(currentPage, role, setPage, can)
-  if (moduleId === 'admin')     content = getAdminPage(currentPage, can)
+  if (moduleId === 'admin')     content = getAdminPage(currentPage, can, setPage)
   if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
   if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
   if (moduleId === 'contractors') content = getContractorsPage(currentPage, can, setPage)

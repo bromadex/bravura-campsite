@@ -210,8 +210,14 @@ export function mealsNav(role, can) {
 
 export function adminNav(role) {
   return [
-    { id: 'admin_users', label: 'Users & Roles', section: 'Administration', icon: 'manage_accounts' },
-    { id: 'admin_audit',  label: 'Audit Log',     section: 'Administration', icon: 'history' },
+    { id: 'admin_dashboard',   label: 'Dashboard',            section: 'Overview',        icon: 'dashboard' },
+    { id: 'admin_users',       label: 'Users & Roles',        section: 'Access Control',  icon: 'manage_accounts' },
+    { id: 'admin_roles',       label: 'Role Management',      section: 'Access Control',  icon: 'shield_person' },
+    { id: 'admin_permissions', label: 'Permissions',           section: 'Access Control',  icon: 'verified_user' },
+    { id: 'admin_sites',       label: 'Site Management',      section: 'System',          icon: 'location_city' },
+    { id: 'admin_invitations', label: 'Pending Invitations',  section: 'System',          icon: 'mail' },
+    { id: 'admin_settings',    label: 'System Settings',      section: 'System',          icon: 'settings' },
+    { id: 'admin_audit',       label: 'Audit Log',            section: 'System',          icon: 'history' },
   ]
 }
 

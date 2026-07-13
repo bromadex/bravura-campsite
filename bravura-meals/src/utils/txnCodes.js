@@ -125,8 +125,14 @@ export const TXN_CODES = [
   { code: 'CL11', path: '/contractors/cl_settings',             label: 'CL Settings',           module: 'contractors' },
 
   // ── Admin (AD) ────────────────────────────────────────────────────────────
-  { code: 'AD01', path: '/admin/admin_users', label: 'Users & Roles', module: 'admin' },
-  { code: 'AD02', path: '/admin/admin_audit', label: 'Audit Log',     module: 'admin' },
+  { code: 'AD01', path: '/admin/admin_dashboard',   label: 'Admin Dashboard',      module: 'admin' },
+  { code: 'AD02', path: '/admin/admin_users',       label: 'Users & Roles',        module: 'admin' },
+  { code: 'AD03', path: '/admin/admin_roles',       label: 'Role Management',      module: 'admin' },
+  { code: 'AD04', path: '/admin/admin_sites',       label: 'Site Management',      module: 'admin' },
+  { code: 'AD05', path: '/admin/admin_invitations', label: 'Pending Invitations',  module: 'admin' },
+  { code: 'AD06', path: '/admin/admin_settings',    label: 'System Settings',      module: 'admin' },
+  { code: 'AD07', path: '/admin/admin_permissions', label: 'Permissions Catalogue', module: 'admin' },
+  { code: 'AD08', path: '/admin/admin_audit',       label: 'Audit Log',            module: 'admin' },
 
   // ── Procurement (PR) / Feedback (FB) ──────────────────────────────────────
   { code: 'PR01', path: '/procurement/proc_suppliers', label: 'Suppliers',         module: 'procurement' },

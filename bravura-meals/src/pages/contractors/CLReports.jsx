@@ -4,14 +4,14 @@ const color = MODULE_COLORS.contractors
 
 const READY_REPORTS = [
   { icon: 'business_center', label: 'Contractor Cost Report', page: 'cl_cost_dashboard' },
+  { icon: 'engineering', label: 'Casual Labour Report', page: 'cl_report_casual_labour' },
+  { icon: 'schedule', label: 'Timesheet Report', page: 'cl_report_timesheets' },
+  { icon: 'local_shipping', label: 'Vehicle Hire Report', page: 'cl_report_vehicles' },
+  { icon: 'construction', label: 'Equipment Hire Report', page: 'cl_report_equipment' },
+  { icon: 'location_on', label: 'Cost by Site', page: 'cl_report_cost_by_site' },
 ]
 
 const PLANNED_REPORTS = [
-  { icon: 'engineering', label: 'Casual Labour Report' },
-  { icon: 'schedule', label: 'Timesheet Report' },
-  { icon: 'local_shipping', label: 'Vehicle Hire Report' },
-  { icon: 'construction', label: 'Equipment Hire Report' },
-  { icon: 'location_on', label: 'Cost by Site' },
 ]
 
 export default function CLReports({ setPage }) {

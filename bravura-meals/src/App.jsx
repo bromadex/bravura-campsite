@@ -140,6 +140,11 @@ const CLHiredVehicles       = lazy(() => import('./pages/contractors/CLHiredVehi
 const CLHiredEquipment      = lazy(() => import('./pages/contractors/CLHiredEquipment'))
 const CLCostDashboard       = lazy(() => import('./pages/contractors/CLCostDashboard'))
 const CLReports             = lazy(() => import('./pages/contractors/CLReports'))
+const CLReportCasualLabour  = lazy(() => import('./pages/contractors/CLReportCasualLabour'))
+const CLReportTimesheets    = lazy(() => import('./pages/contractors/CLReportTimesheets'))
+const CLReportVehicles      = lazy(() => import('./pages/contractors/CLReportVehicles'))
+const CLReportEquipment     = lazy(() => import('./pages/contractors/CLReportEquipment'))
+const CLReportCostBySite    = lazy(() => import('./pages/contractors/CLReportCostBySite'))
 const CLSettings            = lazy(() => import('./pages/contractors/CLSettings'))
 
 // ── Procurement ───────────────────────────────────────────────────────────────
@@ -390,6 +395,11 @@ function getContractorsPage(page, can, setPage) {
     case 'cl_hired_equipment':      return can('contractors.view') ? <CLHiredEquipment /> : null
     case 'cl_cost_dashboard':       return can('contractors.view') ? <CLCostDashboard /> : null
     case 'cl_reports':              return can('contractors.view') ? <CLReports setPage={setPage} /> : null
+    case 'cl_report_casual_labour': return can('contractors.view') ? <CLReportCasualLabour setPage={setPage} /> : null
+    case 'cl_report_timesheets':    return can('contractors.view') ? <CLReportTimesheets setPage={setPage} /> : null
+    case 'cl_report_vehicles':      return can('contractors.view') ? <CLReportVehicles setPage={setPage} /> : null
+    case 'cl_report_equipment':     return can('contractors.view') ? <CLReportEquipment setPage={setPage} /> : null
+    case 'cl_report_cost_by_site':  return can('contractors.view') ? <CLReportCostBySite setPage={setPage} /> : null
     case 'cl_settings':             return can('contractors.edit') ? <CLSettings /> : null
     default:                        return can('contractors.view') ? <CLDashboard /> : null
   }

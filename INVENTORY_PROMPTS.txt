@@ -1,0 +1,143 @@
+═══════════════════════════════════════════════════════════════════════════════
+INVENTORY MANAGEMENT (IN) MODULE — IMPLEMENTATION PLAN
+═══════════════════════════════════════════════════════════════════════════════
+
+Module code: IN   |   T-codes: IN01–IN10   |   Color: #B45309 (amber-brown, TBD)
+Permission gates: NEW inventory.view / create / edit / delete / approve
+                  (seed in permissions table; supplies.* stays for campsite legacy)
+
+One store of record for every physical thing Bravura holds: camp supplies,
+fleet spare parts, meals dry goods, PPE, tools. Absorbs the campsite
+supplies/stock-transfers feature and becomes the consumer of procurement
+requisitions.
+
+STARTING POINT (from codebase survey, 2026-07-13)
+  • camp_supply_items / camp_supply_txns / camp_supply_balance / stock_transfers
+    exist in the live DB but have NO tracked CREATE TABLE migration — created
+    directly in Supabase. Must be reverse-engineered and formalized first.
+  • CampSupplies.jsx + StockTransfers.jsx (campsite module) are fully built
+    against those tables via CampsiteContext.
+  • procurement_requisitions (0028) is a ready cross-module hook — fuel already
+    auto-writes to it. procurement_suppliers (0058) + Suppliers.jsx built.
+  • fleet_maintenance_parts are ad-hoc line items per repair — no stock on hand.
+  • Meals has no ingredient/dry-goods tracking at all.
+  • Migration numbering: next general number is 0087 (0100–0149 reserved HR).
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 1 — FOUNDATION & CATALOG                                 Status: PLANNED
+───────────────────────────────────────────────────────────────────────────────
+
+Migration 0087 — inventory_foundation.sql
+  [ ] Formalize existing untracked tables: verify live shapes of
+      camp_supply_items / camp_supply_txns / camp_supply_balance /
+      stock_transfers against information_schema, record CREATE TABLE IF NOT
+      EXISTS versions so the schema is tracked
+  [ ] inventory_items table (site_id, code, name, category, unit,
+      min_level, reorder_level, reorder_qty, unit_cost, supplier_id FK,
+      barcode, location/bin, is_archived, timestamps)
+  [ ] inventory_categories table (or CHECK enum: supplies, spares, food,
+      ppe, tools, consumables, other)
+  [ ] inventory_txns table (site_id, item_id, txn_type
+      receive|issue|adjust|transfer_out|transfer_in|stock_take,
+      quantity, unit_cost, reference, source_module, source_reference_id,
+      issued_to_employee_id, issued_to_contractor_id, notes, txn_date,
+      recorded_by, is_archived)
+  [ ] inventory_balances VIEW (per site+item: on-hand, value at avg cost)
+  [ ] Data migration: copy camp_supply_items → inventory_items
+      (category='supplies'), camp_supply_txns → inventory_txns, keeping old
+      tables in place until CA pages are retired
+  [ ] RLS via _has_permission('inventory.*', site_id); seed inventory.*
+      permission codes; grant to System/Operations Administrator roles
+  [ ] Indexes + self-record in schema_migrations
+
+Module infrastructure
+  [ ] MODULE_COLORS.inventory + moduleAccess.inventory (inventory.view)
+  [ ] inventoryNav() sidebar definition
+  [ ] T-codes IN01–IN10 in txnCodes.js (append-only)
+  [ ] HomeLauncher tile (between campsite and procurement)
+  [ ] App.jsx lazy imports + getInventoryPage() resolver
+  [ ] QuickStartGuide.jsx role-gated Inventory section
+
+Pages — Phase 1
+  [ ] IN01 — Dashboard (on-hand value, low-stock alerts, txns today,
+              pending transfers, top-moving items)
+  [ ] IN02 — Item Catalog (CRUD, auto-code via utils/autoCode.js "ITM",
+              category, unit, min/reorder levels, supplier link, archive)
+  [ ] IN03 — Stock Balances (per-site on-hand table, low-stock highlighting,
+              value column, CSV export)
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 2 — MOVEMENTS                                            Status: PLANNED
+───────────────────────────────────────────────────────────────────────────────
+
+  [ ] IN04 — Goods Receipts (receive against supplier / requisition;
+              updates balance; link procurement_requisitions status → received)
+  [ ] IN05 — Issues (issue to employee, contractor, department, or module
+              reference; running balance check — block negative stock)
+  [ ] IN06 — Stock Transfers (absorb campsite StockTransfers flow:
+              request → dispatch (approve) → receive, txn pair
+              transfer_out/transfer_in, inter-site)
+  [ ] IN07 — Adjustments & Stock Take (count sheet per site, variance
+              calculation, adjust txns with approval gate inventory.approve)
+  [ ] Retire CA06/CA07 pages → redirect tiles to IN pages (same pattern as
+      ContractorsMoved), CampsiteContext supply functions deprecated
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 3 — REORDER & PROCUREMENT INTEGRATION                    Status: PLANNED
+───────────────────────────────────────────────────────────────────────────────
+
+  [ ] Low-stock detection (on-hand <= reorder_level) surfaced on IN01 + badge
+  [ ] One-click "Raise requisition" → insert procurement_requisitions
+      (source_module='inventory', item + reorder_qty + est. cost)
+  [ ] Requisitions register page under Procurement (adopt table from 0028:
+      list, approve, mark ordered/received; receiving links back to IN04)
+  [ ] Supplier price memory (last unit_cost per item per supplier)
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 4 — MODULE INTEGRATION                                   Status: FUTURE
+───────────────────────────────────────────────────────────────────────────────
+
+  [ ] Fleet: maintenance parts picker consumes from inventory_items
+      (issue txn with source_module='fleet', source_reference_id=maintenance)
+  [ ] Meals: kitchen dry-goods category, issue-to-kitchen flow
+  [ ] Contractors/HR: PPE + tool issue register per person, return tracking
+  [ ] Fuel: lubricants/filters as stock items
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 5 — REPORTS & VALUATION                                  Status: FUTURE
+───────────────────────────────────────────────────────────────────────────────
+
+  [ ] IN08 — Stock Ledger (item movement history, running balance)
+  [ ] IN09 — Reports (valuation at avg cost, slow-moving/dead stock,
+              consumption by department/module, stock-take variance history,
+              transfer history by site)
+  [ ] IN10 — Settings (categories, default reorder policy, negative-stock
+              policy, count frequency)
+
+───────────────────────────────────────────────────────────────────────────────
+PHASE 6 — AI & ANALYTICS                                       Status: FUTURE
+───────────────────────────────────────────────────────────────────────────────
+
+  [ ] Consumption forecasting / suggested reorder quantities
+  [ ] Shrinkage & anomaly detection (issue spikes, variance patterns)
+  [ ] Natural language queries ("how many drill bits at Kamativi?")
+
+───────────────────────────────────────────────────────────────────────────────
+CROSS-MODULE INTEGRATION POINTS
+───────────────────────────────────────────────────────────────────────────────
+
+  Procurement → requisitions raised from low stock; receipts close them
+  Campsite    → camp supplies absorbed into IN (categories: supplies)
+  Fleet       → maintenance parts issued from stock
+  Meals       → kitchen dry goods issued from stock
+  HR/CL       → PPE and tool issue per employee/contractor worker
+  Fuel        → lubricants and filters as stock items
+
+DECISIONS TO CONFIRM WITH USER BEFORE PHASE 1
+  1. Absorb campsite supplies into IN (recommended) vs keep separate?
+  2. Valuation method: average cost (recommended, simple) vs FIFO?
+  3. Block negative stock at issue time? (recommended: yes, with override
+     permission inventory.approve)
+  4. Module accent color.
+
+═══════════════════════════════════════════════════════════════════════════════

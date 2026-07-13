@@ -8,7 +8,7 @@ const color = MODULE_COLORS.admin
 
 export default function AdminDashboard({ setPage }) {
   const { can } = usePermissions()
-  const [stats, setStats] = useState({ users: 0, roles: 0, sites: 0, recentAudit: 0 })
+  const [stats, setStats] = useState({ users: 0, roles: 0, sites: 0, recentAudit: 0, pendingInvites: 0, usersWithoutRoles: 0 })
   const [recentActivity, setRecentActivity] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -18,18 +18,25 @@ export default function AdminDashboard({ setPage }) {
     setLoading(true)
     try {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      const [usersRes, rolesRes, sitesRes, auditCountRes, activityRes] = await Promise.all([
+      const [usersRes, rolesRes, sitesRes, auditCountRes, activityRes, invitesRes, profileIdsRes, userRolesRes] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('roles').select('id', { count: 'exact', head: true }),
         supabase.from('sites').select('id', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('audit_log').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
         supabase.from('audit_log').select('*, actor:profiles!audit_log_user_id_fkey(full_name, username)').order('created_at', { ascending: false }).limit(10),
+        supabase.from('pending_role_assignments').select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id'),
+        supabase.from('user_roles').select('user_id'),
       ])
+      const roledIds = new Set((userRolesRes.data || []).map(r => r.user_id))
+      const usersWithoutRoles = (profileIdsRes.data || []).filter(p => !roledIds.has(p.id)).length
       setStats({
         users: usersRes.count || 0,
         roles: rolesRes.count || 0,
         sites: sitesRes.count || 0,
         recentAudit: auditCountRes.count || 0,
+        pendingInvites: invitesRes.count || 0,
+        usersWithoutRoles,
       })
       setRecentActivity(activityRes.data || [])
     } catch (err) {
@@ -44,6 +51,8 @@ export default function AdminDashboard({ setPage }) {
     { label: 'Total Roles', value: stats.roles, icon: 'admin_panel_settings', bg: '#FFF3E0' },
     { label: 'Active Sites', value: stats.sites, icon: 'location_on', bg: '#E8F5E9' },
     { label: 'Audit (24h)', value: stats.recentAudit, icon: 'history', bg: '#FCE4EC' },
+    { label: 'Pending Invitations', value: stats.pendingInvites, icon: 'mail', bg: '#E1F5FE' },
+    { label: 'Users Without Roles', value: stats.usersWithoutRoles, icon: 'person_off', bg: stats.usersWithoutRoles > 0 ? '#FEF3C7' : '#ECEFF1', accent: stats.usersWithoutRoles > 0 ? '#D97706' : undefined },
   ]
 
   const quickLinks = [
@@ -75,16 +84,16 @@ export default function AdminDashboard({ setPage }) {
             {kpis.map(k => (
               <div key={k.label} style={{
                 background: THEME.surface, borderRadius: '14px', padding: '18px',
-                border: `1px solid ${THEME.outlineVar}`, display: 'flex', alignItems: 'center', gap: '14px',
+                border: `1px solid ${k.accent || THEME.outlineVar}`, display: 'flex', alignItems: 'center', gap: '14px',
               }}>
                 <div style={{
                   width: '42px', height: '42px', borderRadius: '50%', background: k.bg,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <Icon name={k.icon} size={22} style={{ color }} />
+                  <Icon name={k.icon} size={22} style={{ color: k.accent || color }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '22px', fontWeight: 600, color: THEME.text }}>{k.value}</div>
+                  <div style={{ fontSize: '22px', fontWeight: 600, color: k.accent || THEME.text }}>{k.value}</div>
                   <div style={{ fontSize: '12px', color: THEME.textMed }}>{k.label}</div>
                 </div>
               </div>

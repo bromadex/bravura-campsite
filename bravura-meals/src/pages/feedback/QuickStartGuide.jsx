@@ -196,6 +196,22 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* Admin */}
+      {can('users.view') && (
+        <Section icon="admin_panel_settings" color={MODULE_COLORS.admin} title="Administration">
+          <Steps items={[
+            <>The Admin Dashboard (<Code>AD01</Code>) gives a system overview and the most recent activity.</>,
+            <>Users &amp; Roles (<Code>AD02</Code>) — assign each user their roles, per site.</>,
+            <>Role Management (<Code>AD03</Code>) — create roles and pick exactly which permissions they carry.</>,
+            <>Site Management (<Code>AD04</Code>) — add sites and set which one is head office.</>,
+            <>Pending Invitations (<Code>AD05</Code>) — pre-authorise a role so it applies the moment the person signs up.</>,
+            <>System Settings (<Code>AD06</Code>) — per-site module configuration.</>,
+            <>Permissions Catalogue (<Code>AD07</Code>) — reference of every permission code in the system.</>,
+            <>Audit Log (<Code>AD08</Code>) — who changed what, with before/after values.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* T-code cheat table */}
       <Section icon="menu_book" color="#455A64" title="Your transaction codes">
         <div style={{ overflowX: 'auto' }}>

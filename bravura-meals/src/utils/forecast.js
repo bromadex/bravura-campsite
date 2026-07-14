@@ -100,3 +100,33 @@ export function buildForecast(dailySeries, horizonDays = 60) {
 
   return { dailyForecast, avgDaily, trendPerDay: slope, seasonality, sigma, r2 }
 }
+
+/** Walk a per-day consumption path down from `start`; returns days until level ≤ threshold (null if never). */
+export function daysUntil(start, threshold, path, pick) {
+  let level = start
+  if (level <= threshold) return 0
+  for (let i = 0; i < path.length; i++) {
+    level -= pick(path[i])
+    if (level <= threshold) return i + 1
+  }
+  return null
+}
+
+/**
+ * Simulate the tank level forward along the expected / low / high consumption paths.
+ * @param {number} start   Current level in litres.
+ * @param {Array<{date: string, expected: number, low: number, high: number}>} path  buildForecast().dailyForecast
+ * @param {number} days    How many days of the path to walk.
+ * @returns {Array<{date: string, expected: number, best: number, worst: number}>}
+ */
+export function simulateLevelCurve(start, path, days = 30) {
+  const curve = []
+  let lvE = start, lvL = start, lvH = start
+  for (let i = 0; i < Math.min(days, path.length); i++) {
+    lvE = Math.max(0, lvE - path[i].expected)
+    lvL = Math.max(0, lvL - path[i].low)   // optimistic: higher remaining level
+    lvH = Math.max(0, lvH - path[i].high)  // pessimistic: lower remaining level
+    curve.push({ date: path[i].date, expected: lvE, best: lvL, worst: lvH })
+  }
+  return curve
+}

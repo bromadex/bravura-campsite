@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { supabase } from '../../supabaseClient'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { primaryTank } from '../../utils/tanks'
+import { buildForecast, daysUntil, simulateLevelCurve } from '../../utils/forecast'
 import { Icon, PageHeader, fmtDate } from '../../components/ui'
-import { DashCard, KpiCard, AreaChart, DonutGauge, PairedBars, ProgressRow, ActivityRow, SectionTitle } from '../../components/dash'
+import { DashCard, KpiCard, AreaChart, DonutGauge, PairedBars, ProgressRow, ActivityRow, SectionTitle, LevelBandChart } from '../../components/dash'
 import FuelQuickNav from './FuelQuickNav'
 
 const FUEL_CLR = MODULE_COLORS.fuel
@@ -113,9 +116,10 @@ const TX_META = {
 
 export default function FuelDashboard({ setPage }) {
   const { tanks, transactions, loading, tankBalance } = useFuel()
-  const { currentSite } = useSite()
+  const { currentSite, currentSiteId } = useSite()
   const { can } = usePermissions()
   const [alertDismissed, setAlertDismissed] = useState(false)
+  const [fcHistory, setFcHistory] = useState(null) // 90-day issuance rows for the main tank
 
   const today = new Date().toISOString().slice(0, 10)
   const thisMonth = today.slice(0, 7)
@@ -135,6 +139,60 @@ export default function FuelDashboard({ setPage }) {
     }
     return { onHand, capacity, lowCount, critical, fillPct: capacity ? (onHand / capacity) * 100 : null }
   }, [activeTanks, tankBalance])
+
+  // ── Projected tank level forecast (main tank) ─────────────────────────
+  const mainTank = useMemo(() => primaryTank(activeTanks), [activeTanks])
+
+  // Fetch a full 90 days of the main tank's issuances (context window is only ~30 days).
+  useEffect(() => {
+    if (!mainTank || !currentSiteId) { setFcHistory(null); return }
+    let cancelled = false
+    const from = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10)
+    supabase
+      .from('fuel_transactions')
+      .select('transaction_date, litres')
+      .eq('site_id', currentSiteId)
+      .eq('tank_id', mainTank.id)
+      .eq('transaction_type', 'issuance')
+      .eq('is_deleted', false)
+      .gte('transaction_date', from)
+      .order('transaction_date', { ascending: true })
+      .then(({ data, error }) => {
+        if (!cancelled) setFcHistory(error ? [] : (data || []))
+      })
+    return () => { cancelled = true }
+  }, [mainTank?.id, currentSiteId])
+
+  const projected = useMemo(() => {
+    if (!mainTank || !fcHistory || !fcHistory.length) return null
+    const byDay = new Map()
+    for (const t of fcHistory) {
+      byDay.set(t.transaction_date, (byDay.get(t.transaction_date) || 0) + Number(t.litres))
+    }
+    const first = new Date(fcHistory[0].transaction_date + 'T00:00:00Z')
+    const yesterday = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')
+    const series = []
+    for (let d = new Date(first); d <= yesterday; d = new Date(d.getTime() + 86400000)) {
+      const key = d.toISOString().slice(0, 10)
+      series.push({ date: key, litres: byDay.get(key) || 0 })
+    }
+    if (!series.length) return null
+    const fc = buildForecast(series, 30)
+    if (!fc.dailyForecast.length || fc.avgDaily <= 0) return null
+
+    const current = Number(mainTank.current_level_litres) || 0
+    const capacity = Number(mainTank.capacity_litres) || 0
+    const reorderPct = Number(mainTank.min_threshold_percent) || 20
+    const reorderLevel = capacity * (reorderPct / 100)
+    const path = fc.dailyForecast
+    return {
+      current, capacity, reorderLevel,
+      curve: simulateLevelCurve(current, path, 30),
+      depleteExpected: daysUntil(current, 0, path, p => p.expected),
+      depleteEarliest: daysUntil(current, 0, path, p => p.high),
+      depleteLatest:   daysUntil(current, 0, path, p => p.low),
+    }
+  }, [mainTank, fcHistory])
 
   const issuances = useMemo(() => transactions.filter(t => t.transaction_type === 'issuance'), [transactions])
 
@@ -356,6 +414,59 @@ export default function FuelDashboard({ setPage }) {
           />
         </Section>
       </div>
+
+      {/* Projected tank level forecast */}
+      {mainTank && (
+        <div style={{ marginBottom: '16px' }}>
+          <Section
+            title="Projected Tank Level — Next 30 Days"
+            sub={`Statistical forecast for ${mainTank.name} — trend + weekday pattern from the last 90 days`}
+            action={
+              <button onClick={() => setPage('fuel_forecasting')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '12px', fontWeight: 500, color: FUEL_CLR, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: 'inherit', flexShrink: 0 }}>
+                Open Forecasting <Icon name="chevron_right" size={14} style={{ color: FUEL_CLR }} />
+              </button>
+            }
+          >
+            {!projected ? (
+              <div style={{ textAlign: 'center', padding: '30px 0', color: THEME.textLow, fontSize: '13px' }}>
+                {fcHistory === null
+                  ? 'Loading issuance history…'
+                  : `No issuance history yet for ${mainTank.name} — record some fuel issuances to build a forecast.`}
+              </div>
+            ) : (
+              <>
+                <LevelBandChart
+                  curve={projected.curve}
+                  startLevel={projected.current}
+                  capacity={projected.capacity}
+                  reorderLevel={projected.reorderLevel}
+                  color={FUEL_CLR}
+                />
+                <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '10px' }}>
+                  {projected.depleteExpected === null ? (
+                    'No depletion within 30 days on the expected consumption path.'
+                  ) : (
+                    <>
+                      Expected depletion{' '}
+                      <b style={{ color: THEME.error }}>
+                        {fmtDate(new Date(Date.now() + projected.depleteExpected * 86400000).toISOString().slice(0, 10))}
+                      </b>
+                      {' '}(range: {projected.depleteEarliest !== null
+                        ? fmtDate(new Date(Date.now() + projected.depleteEarliest * 86400000).toISOString().slice(0, 10))
+                        : '30+ days'}
+                      {' – '}
+                      {projected.depleteLatest !== null
+                        ? fmtDate(new Date(Date.now() + projected.depleteLatest * 86400000).toISOString().slice(0, 10))
+                        : '30+ days'}).
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </Section>
+        </div>
+      )}
 
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px', marginBottom: '16px' }}>

@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { primaryTank } from '../../utils/tanks'
-import { buildForecast } from '../../utils/forecast'
+import { buildForecast, daysUntil, simulateLevelCurve } from '../../utils/forecast'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Card, Icon, fmtDate } from '../../components/ui'
-import { KpiCard, SectionTitle } from '../../components/dash'
+import { KpiCard, SectionTitle, LevelBandChart } from '../../components/dash'
 import FuelQuickNav from './FuelQuickNav'
 
 const FUEL_CLR = MODULE_COLORS.fuel
@@ -27,17 +27,6 @@ function avgDailyRate(issuances, days) {
   if (!recent.length) return 0
   const total = recent.reduce((s, t) => s + Number(t.litres), 0)
   return total / days
-}
-
-/** Walk a per-day consumption path down from `start`; returns days until level ≤ threshold (null if never). */
-function daysUntil(start, threshold, path, pick) {
-  let level = start
-  if (level <= threshold) return 0
-  for (let i = 0; i < path.length; i++) {
-    level -= pick(path[i])
-    if (level <= threshold) return i + 1
-  }
-  return null
 }
 
 const addDays = d => new Date(Date.now() + d * DAY_MS)
@@ -120,14 +109,7 @@ export default function Forecasting({ setPage }) {
     const reorderDays     = daysUntil(current, reorderLevel, path, p => p.expected)
 
     // 30-day level curves for the chart
-    const curve = []
-    let lvE = current, lvL = current, lvH = current
-    for (let i = 0; i < Math.min(30, path.length); i++) {
-      lvE = Math.max(0, lvE - path[i].expected)
-      lvL = Math.max(0, lvL - path[i].low)   // optimistic: higher remaining level
-      lvH = Math.max(0, lvH - path[i].high)  // pessimistic: lower remaining level
-      curve.push({ date: path[i].date, expected: lvE, best: lvL, worst: lvH })
-    }
+    const curve = simulateLevelCurve(current, path, 30)
 
     const peakIdx = model.seasonality.indexOf(Math.max(...model.seasonality))
     const fillTo90 = capacity * 0.9
@@ -451,89 +433,6 @@ export default function Forecasting({ setPage }) {
             )}
           </Card>
         </>
-      )}
-    </div>
-  )
-}
-
-/** SVG area chart of projected tank level with ±1σ confidence band and dashed reorder line. */
-function LevelBandChart({ curve, startLevel, capacity, reorderLevel, color }) {
-  const [hover, setHover] = useState(null)
-  const W = 960, H = 260, PAD = { top: 16, right: 14, bottom: 26, left: 52 }
-  const innerW = W - PAD.left - PAD.right
-  const innerH = H - PAD.top - PAD.bottom
-  const maxY = Math.max(capacity || 0, startLevel, ...curve.map(c => c.best), 1)
-
-  const pts = [{ date: 'today', expected: startLevel, best: startLevel, worst: startLevel }, ...curve]
-  const x = i => PAD.left + (i / (pts.length - 1)) * innerW
-  const y = v => PAD.top + innerH - (v / maxY) * innerH
-  const line = key => pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ')
-
-  const bandPath = line('best') + ' ' +
-    pts.map((p, i) => `L${x(pts.length - 1 - i).toFixed(1)},${y(pts[pts.length - 1 - i].worst).toFixed(1)}`).join(' ') + ' Z'
-  const areaPath = line('expected') + ` L${x(pts.length - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z`
-  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxY)
-
-  return (
-    <div style={{ position: 'relative' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
-        <defs>
-          <linearGradient id="fcArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.28" />
-            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        {yTicks.map(v => (
-          <g key={v}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
-            <text x={PAD.left - 8} y={y(v) + 3} fontSize="10" fill={THEME.textLow} textAnchor="end">
-              {v >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v)}
-            </text>
-          </g>
-        ))}
-        {/* confidence band */}
-        <path d={bandPath} fill={color} opacity="0.13" />
-        {/* expected area + line */}
-        <path d={areaPath} fill="url(#fcArea)" />
-        <path d={line('expected')} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" />
-        <path d={line('best')} fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.6" />
-        <path d={line('worst')} fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.6" />
-        {/* reorder threshold */}
-        <line x1={PAD.left} x2={W - PAD.right} y1={y(reorderLevel)} y2={y(reorderLevel)} stroke={THEME.warning} strokeWidth="1.5" strokeDasharray="6 4" />
-        <text x={W - PAD.right} y={y(reorderLevel) - 5} fontSize="10" fill={THEME.warning} fontWeight="600" textAnchor="end">Reorder threshold</text>
-        {/* hover targets + x labels */}
-        {pts.map((p, i) => (
-          <g key={i}>
-            <rect
-              x={x(i) - innerW / (pts.length - 1) / 2} y={PAD.top} width={innerW / (pts.length - 1)} height={innerH}
-              fill="transparent"
-              onMouseEnter={() => setHover(i)}
-              onMouseLeave={() => setHover(null)}
-            />
-            {i > 0 && (i % 5 === 0 || i === pts.length - 1) && (
-              <text x={x(i)} y={H - 8} fontSize="9" fill={THEME.textLow} textAnchor="middle">{p.date.slice(5)}</text>
-            )}
-          </g>
-        ))}
-        {hover !== null && (
-          <g pointerEvents="none">
-            <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + innerH} stroke={THEME.textLow} strokeWidth="1" strokeDasharray="3 3" />
-            <circle cx={x(hover)} cy={y(pts[hover].expected)} r="4" fill={color} stroke={THEME.surface} strokeWidth="1.5" />
-          </g>
-        )}
-      </svg>
-      {hover !== null && (
-        <div style={{
-          position: 'absolute', left: `${(x(hover) / W) * 100}%`, top: `${(y(pts[hover].expected) / H) * 100}%`,
-          transform: `translate(${hover > pts.length * 0.7 ? '-105%' : '8px'}, -50%)`,
-          background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-          borderRadius: '8px', padding: '7px 11px', boxShadow: THEME.shadow2,
-          pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 5, fontSize: '12px', color: THEME.text,
-        }}>
-          <b>{hover === 0 ? 'Today' : pts[hover].date}</b><br />
-          Expected: {Math.round(pts[hover].expected).toLocaleString()} L<br />
-          <span style={{ color: THEME.textLow }}>Range: {Math.round(pts[hover].worst).toLocaleString()}–{Math.round(pts[hover].best).toLocaleString()} L</span>
-        </div>
       )}
     </div>
   )

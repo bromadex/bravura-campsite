@@ -110,6 +110,8 @@ export const TXN_CODES = [
   { code: 'HR29', path: '/workforce/wf_appraisals',          label: 'Appraisals',           module: 'workforce' },
   { code: 'HR30', path: '/workforce/wf_disciplinary',        label: 'Disciplinary Cases',   module: 'workforce' },
   { code: 'HR31', path: '/workforce/wf_exit',                label: 'Exit Management',      module: 'workforce' },
+  { code: 'HR32', path: '/workforce/wf_medicals',            label: 'Medical Surveillance', module: 'workforce' },
+  { code: 'HR33', path: '/workforce/wf_document_expiry',     label: 'Document Expiry',      module: 'workforce' },
 
   // ── Contract & Contractor Management (CL) ──────────────────────────────
   { code: 'CL01', path: '/contractors/cl_dashboard',            label: 'CL Dashboard',         module: 'contractors' },

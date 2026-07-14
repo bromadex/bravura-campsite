@@ -178,6 +178,11 @@ export default function QuickStartGuide() {
             <>Leave: allocate days per employee per year (<Code>HR12</Code>), then log requests in <Code>HR10</Code> — approving deducts the balance automatically. The calendar (<Code>HR11</Code>) shows who's away.</>,
             <>Documents (IDs, contracts, licences) upload on the employee's Documents tab — expiring documents show amber within 30 days, red once expired.</>,
             <>Moving someone between sites goes through Site Transfers (<Code>HR15</Code>) — the receiving site's HR approves before the record moves.</>,
+            <>Define shift patterns in Shift Management (<Code>HR17</Code>), then mark daily attendance against them in the Attendance Log (<Code>HR18</Code>).</>,
+            <>Training Programs (<Code>HR19</Code>) track courses and who attended; the Skills Matrix (<Code>HR20</Code>) shows each employee's competencies and gaps at a glance.</>,
+            <>Payroll: set up Salary Grades (<Code>HR25</Code>) and Components (<Code>HR26</Code>) once, run the monthly Payroll Run (<Code>HR27</Code>), then issue Salary Slips (<Code>HR28</Code>).</>,
+            <>Appraisals (<Code>HR29</Code>) record performance reviews; Disciplinary Cases (<Code>HR30</Code>) keep a permanent hearing-and-outcome trail; leavers go through Exit Management (<Code>HR31</Code>).</>,
+            <>Compliance: Medical Surveillance (<Code>HR32</Code>) tracks fitness-for-work exams due and overdue, and the Document Expiry register (<Code>HR33</Code>) lists every expiring ID, licence and contract in one place.</>,
           ]} />
         </Section>
       )}

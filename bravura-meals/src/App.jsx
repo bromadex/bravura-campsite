@@ -18,7 +18,8 @@ import InstallBanner from './components/InstallBanner'
 import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
-const Employees       = lazy(() => import('./pages/workforce/Employees'))
+const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
+const HRDocumentExpiry      = lazy(() => import('./pages/hr/DocumentExpiry'))
 const HRDashboard      = lazy(() => import('./pages/hr/HRDashboard'))
 const HRDepartments    = lazy(() => import('./pages/hr/Departments'))
 const HRDesignations   = lazy(() => import('./pages/hr/Designations'))
@@ -48,8 +49,6 @@ const HRSalarySlips      = lazy(() => import('./pages/hr/payroll/SalarySlip'))
 const HRAppraisals       = lazy(() => import('./pages/hr/performance/Appraisals'))
 const HRDisciplinary     = lazy(() => import('./pages/hr/disciplinary/DisciplinaryCases'))
 const HRExitManagement   = lazy(() => import('./pages/hr/ExitManagement'))
-const WorkforceLeave  = lazy(() => import('./pages/workforce/WorkforceLeave'))
-const WorkforceReports= lazy(() => import('./pages/workforce/WorkforceReports'))
 
 // ── Campsite pages ────────────────────────────────────────────────────────────
 const CampHeadcount       = lazy(() => import('./pages/campsite/CampHeadcount'))
@@ -234,33 +233,33 @@ function getWorkforcePage(page, role, can, setPage) {
     case 'wf_leave_report':      return can('hr.view') ? <HRLeaveReport /> : null
     case 'wf_turnover_report':   return can('hr.view') ? <HRTurnoverReport /> : null
     case 'wf_attendance_report': return can('hr.view') ? <HRAttendanceReport /> : null
-    case 'wf_salary_grades':     return can('hr.view') ? <HRSalaryGrades /> : null
-    case 'wf_salary_components': return can('hr.view') ? <HRSalaryComponents /> : null
-    case 'wf_payroll':           return can('hr.view') ? <HRPayrollRun /> : null
-    case 'wf_salary_slips':      return can('hr.view') ? <HRSalarySlips /> : null
+    // Payroll and disciplinary hold the most sensitive HR data — gated on
+    // hr.edit, not plain hr.view (audit finding: view-only HR users should
+    // not see salaries or case files).
+    case 'wf_salary_grades':     return can('hr.edit') ? <HRSalaryGrades /> : null
+    case 'wf_salary_components': return can('hr.edit') ? <HRSalaryComponents /> : null
+    case 'wf_payroll':           return can('hr.edit') ? <HRPayrollRun /> : null
+    case 'wf_salary_slips':      return can('hr.edit') ? <HRSalarySlips /> : null
     case 'wf_appraisals':        return can('hr.view') ? <HRAppraisals /> : null
-    case 'wf_disciplinary':      return can('hr.view') ? <HRDisciplinary /> : null
+    case 'wf_disciplinary':      return can('hr.edit') ? <HRDisciplinary /> : null
     case 'wf_exit':              return can('hr.view') ? <HRExitManagement /> : null
+    case 'wf_medicals':          return can('hr.view') ? <HRMedicalSurveillance setPage={setPage} /> : null
+    case 'wf_document_expiry':   return can('hr.view') ? <HRDocumentExpiry setPage={setPage} /> : null
     // Employee list: the Phase 1 HR list supersedes the original page but
     // keeps the same id — bookmarks and the HR01 T-code keep working.
+    // (Legacy workforce/Employees.jsx fallback removed with the old
+    // employees.* permission family — hr.* is the single HR namespace.)
     case 'wf_employees':
-      return can('hr.view') ? <HREmployeesList setPage={setPage} />
-        : can('employees.view') ? <Employees /> : null
+      return can('hr.view') ? <HREmployeesList setPage={setPage} /> : null
     // Contractor company management moved to the dedicated Contractors (CL)
     // module — this id is kept (not deleted) because HR02 in txnCodes.js is
     // append-only and old bookmarks/command-palette hits must still resolve.
     case 'wf_contractors':
       return can('contractors.view') ? <ContractorsMoved /> : null
-    // employees.edit: Leave Management edits an employee's status directly,
-    // so it's gated the same way the Employees Delete button is — HR
-    // Officer / Admin only under the approved matrix. Narrower than the old
-    // gate for Camp Supervisor/Meal Officer, but matches the same "tighten
-    // now, broaden later when those roles are actually assigned" principle
-    // already agreed for Employees, and has no practical effect today since
-    // only the Admin account is active.
-    case 'wf_leave':        return can('employees.edit') ? <WorkforceLeave /> : null
-    case 'wf_reports':     return <WorkforceReports />
-    default:               return <WorkforceReports />
+    // Legacy wf_leave / wf_reports pages removed — the hr/leave and
+    // hr/reports suites supersede them. Old ids fall through to the
+    // dashboard rather than silently rendering the wrong page.
+    default:               return can('hr.view') ? <HRDashboard setPage={setPage} /> : null
   }
 }
 
@@ -499,11 +498,7 @@ function ModuleShell() {
     </ModuleLayout>
   )
 
-  // Campsite wraps in CampsiteProvider — Workforce too, since
-  // WorkforceLeave reads from useCampsite() for its leave-recording
-  // functions. Unchanged from before, just keyed off the URL now instead
-  // of state.
-  if (moduleId === 'campsite' || moduleId === 'workforce') {
+  if (moduleId === 'campsite') {
     return <CampsiteProvider>{body}</CampsiteProvider>
   }
   if (moduleId === 'fuel') {

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
-import { StatCard, Button, fmtDate, today, PageHeader } from '../../components/ui'
-import { THEME } from '../../utils/permissions'
+import { Button, fmtDate, today, PageHeader } from '../../components/ui'
+import { DashCard, KpiCard, SectionTitle, DonutGauge } from '../../components/dash'
+import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { useSite } from '../../contexts/SiteContext'
@@ -102,21 +103,39 @@ export default function DailyReport() {
         </>}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '12px', marginBottom: '20px' }}>
-        <StatCard label="Breakfasts" value={totB} color={THEME.breakfastClr} icon="wb_sunny" />
-        <StatCard label="Lunches"    value={totL} color={THEME.lunchClr}     icon="light_mode" />
-        <StatCard label={supperLabelPlural} value={totS} color={supperColor} icon={supperIcon} />
-        <StatCard label="Total"      value={totB+totL+totS} color={THEME.primary} icon="groups" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: '12px', marginBottom: '20px' }}>
+        <KpiCard label="Breakfasts" value={totB} accent={THEME.breakfastClr} icon="wb_sunny"
+          progress={totB+totL+totS > 0 ? totB/(totB+totL+totS)*100 : 0} sub="Share of meals served" />
+        <KpiCard label="Lunches" value={totL} accent={THEME.lunchClr} icon="light_mode"
+          progress={totB+totL+totS > 0 ? totL/(totB+totL+totS)*100 : 0} sub="Share of meals served" />
+        <KpiCard label={supperLabelPlural} value={totS} accent={supperColor} icon={supperIcon}
+          progress={totB+totL+totS > 0 ? totS/(totB+totL+totS)*100 : 0} sub="Share of meals served" />
+        <KpiCard label="Total Meals" value={totB+totL+totS} accent={MODULE_COLORS.meals} icon="groups"
+          sub={`${rows.filter(r => r.b+r.l+r.s > 0).length} of ${rows.length} employees ate`} />
         {showCosts && prices && (
-          <StatCard label="Day Cost" value={`$${(totB*prices.b + totL*prices.l + totS*prices.s).toFixed(2)}`} color={THEME.info} icon="payments" />
+          <KpiCard label="Day Cost" value={`$${(totB*prices.b + totL*prices.l + totS*prices.s).toFixed(2)}`} accent={THEME.info} icon="payments" />
         )}
       </div>
 
-      <div style={{ borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, overflow: 'visible', background: THEME.surface }}>
-        {loading
-          ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
-          : <ReportTable rows={rows} showCosts={showCosts} prices={prices} contractors={contractors} />
-        }
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <DashCard style={{ flex: '1 1 560px', minWidth: 0, padding: '20px 22px 8px' }}>
+          <SectionTitle title="Meals by Employee" subtitle={fmtDate(date)} />
+          {loading
+            ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
+            : <ReportTable rows={rows} showCosts={showCosts} prices={prices} contractors={contractors} />
+          }
+        </DashCard>
+        <div className="no-print" style={{ flex: '0 0 220px' }}>
+          <DashCard>
+            <SectionTitle title="Participation" subtitle="Employees with a meal logged" />
+            <DonutGauge
+              pct={rows.length > 0 ? rows.filter(r => r.b+r.l+r.s > 0).length / rows.length * 100 : null}
+              color={MODULE_COLORS.meals}
+              size={130}
+              label="of employees"
+            />
+          </DashCard>
+        </div>
       </div>
     </div>
   )

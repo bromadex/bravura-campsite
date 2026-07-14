@@ -5,6 +5,7 @@ import { useSite } from '../../../contexts/SiteContext'
 import { useFuel } from '../../../contexts/FuelContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
+import { DashCard, KpiCard, SectionTitle, ProgressRow } from '../../../components/dash'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -108,44 +109,54 @@ export default function DailyTransactionReport() {
       {rows && (
         <>
           {/* Grand totals */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
-            {[
-              { label: 'Total Issued', value: fmt(grandIssued) + ' L', color: THEME.warning, icon: 'output' },
-              { label: 'Total Delivered', value: fmt(grandDelivered) + ' L', color: THEME.success, icon: 'local_gas_station' },
-              { label: 'Net Change', value: (grandNet >= 0 ? '+' : '') + fmt(grandNet) + ' L', color: grandNet >= 0 ? THEME.success : THEME.warning, icon: 'swap_vert' },
-            ].map(k => (
-              <div key={k.label} style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, padding: '14px 18px', boxShadow: THEME.shadow1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '11px', color: THEME.textLow, fontWeight: 500 }}>{k.label}</span>
-                  <Icon name={k.icon} size={14} style={{ color: k.color }} />
-                </div>
-                <div style={{ fontSize: '22px', fontWeight: 700, color: k.color }}>{k.value}</div>
-              </div>
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+            <KpiCard icon="output" label="Total Issued" value={fmt(grandIssued) + ' L'} accent={THEME.warning}
+              progress={grandDelivered + grandIssued > 0 ? (grandIssued / (grandDelivered + grandIssued)) * 100 : 0}
+              sub="Share of day's volume" />
+            <KpiCard icon="local_gas_station" label="Total Delivered" value={fmt(grandDelivered) + ' L'} accent={THEME.success}
+              progress={grandDelivered + grandIssued > 0 ? (grandDelivered / (grandDelivered + grandIssued)) * 100 : 0}
+              sub="Share of day's volume" />
+            <KpiCard icon="swap_vert" label="Net Change" value={(grandNet >= 0 ? '+' : '') + fmt(grandNet) + ' L'}
+              accent={grandNet >= 0 ? THEME.success : THEME.warning} sub="Delivered minus issued" />
           </div>
+
+          {grandIssued > 0 && grouped.length > 1 && (
+            <DashCard style={{ marginBottom: '20px' }}>
+              <SectionTitle title="Issued by Tank" subtitle={fmtDate(date)} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[...grouped].sort((a, b) => b.issued - a.issued).filter(g => g.issued > 0).map(g => (
+                  <ProgressRow key={g.tankName} label={g.tankName} value={fmt(g.issued) + ' L'}
+                    pct={(g.issued / grandIssued) * 100} color={COLOR} />
+                ))}
+              </div>
+            </DashCard>
+          )}
 
           <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, marginBottom: '12px' }}>{fmtDate(date)}</div>
 
           {grouped.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px', background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, color: THEME.textMed }}>
+            <DashCard style={{ textAlign: 'center', padding: '48px', color: THEME.textMed }}>
               No transactions on this date.
-            </div>
+            </DashCard>
           ) : (
             grouped.map(g => (
-              <div key={g.tankName} style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, marginBottom: '16px', overflow: 'hidden', boxShadow: THEME.shadow1 }}>
-                <div style={{ padding: '12px 18px', background: THEME.surfaceVar, borderBottom: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: '14px', color: THEME.text }}>{g.tankName}</span>
-                  <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
-                    {g.delivered > 0 && <span style={{ color: THEME.success, fontWeight: 600 }}>+{fmt(g.delivered)} L delivered</span>}
-                    {g.issued > 0 && <span style={{ color: THEME.warning, fontWeight: 600 }}>−{fmt(g.issued)} L issued</span>}
-                    {g.adjusted !== 0 && <span style={{ color: THEME.info, fontWeight: 600 }}>{g.adjusted >= 0 ? '+' : ''}{fmt(g.adjusted)} L adj</span>}
-                  </div>
-                </div>
+              <DashCard key={g.tankName} style={{ marginBottom: '16px', padding: '20px 22px 8px' }}>
+                <SectionTitle
+                  title={g.tankName}
+                  action={
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+                      {g.delivered > 0 && <span style={{ color: THEME.success, fontWeight: 600 }}>+{fmt(g.delivered)} L delivered</span>}
+                      {g.issued > 0 && <span style={{ color: THEME.warning, fontWeight: 600 }}>−{fmt(g.issued)} L issued</span>}
+                      {g.adjusted !== 0 && <span style={{ color: THEME.info, fontWeight: 600 }}>{g.adjusted >= 0 ? '+' : ''}{fmt(g.adjusted)} L adj</span>}
+                    </div>
+                  }
+                />
+                <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                    <tr>
                       {['Docket #', 'Type', 'Asset', 'Operator', 'Litres'].map(h => (
-                        <th key={h} style={{ padding: '8px 16px', textAlign: h === 'Litres' ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>{h}</th>
+                        <th key={h} style={{ padding: '8px 16px', textAlign: h === 'Litres' ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: `1px solid ${THEME.outlineVar}` }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -171,7 +182,8 @@ export default function DailyTransactionReport() {
                     })}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </DashCard>
             ))
           )}
         </>

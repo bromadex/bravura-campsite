@@ -4,6 +4,7 @@ import { usePermissions } from '../../../hooks/usePermissions'
 import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
+import { DashCard, KpiCard, SectionTitle, ProgressRow } from '../../../components/dash'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -99,26 +100,39 @@ export default function DeliveryReport() {
         )}
       </div>
 
-      {rows && (
+      {(() => {
+        if (!rows) return null
+        const byTank = {}
+        rows.forEach(r => { const k = r.tank?.name || '—'; byTank[k] = (byTank[k] || 0) + Number(r.litres) })
+        const tankEntries = Object.entries(byTank).sort(([, a], [, b]) => b - a)
+        return (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
-            {[
-              { label: 'Total Volume', value: fmt(totalLitres) + ' L', color: THEME.success },
-              { label: 'Total Cost', value: fmtCost(totalCost), color: COLOR },
-            ].map(k => (
-              <div key={k.label} style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, padding: '14px 20px', boxShadow: THEME.shadow1 }}>
-                <div style={{ fontSize: '11px', color: THEME.textLow, marginBottom: '4px' }}>{k.label}</div>
-                <div style={{ fontSize: '26px', fontWeight: 700, color: k.color }}>{k.value}</div>
-              </div>
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+            <KpiCard icon="local_gas_station" label="Total Volume" value={fmt(totalLitres) + ' L'} accent={THEME.success}
+              sub={`${rows.length} deliver${rows.length === 1 ? 'y' : 'ies'} in period`} />
+            <KpiCard icon="payments" label="Total Cost" value={fmtCost(totalCost)} accent={COLOR}
+              sub={totalLitres > 0 && totalCost > 0 ? `Avg ${fmtCost(totalCost / totalLitres)}/L` : undefined} />
           </div>
 
-          <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden', boxShadow: THEME.shadow1 }}>
+          {totalLitres > 0 && tankEntries.length > 1 && (
+            <DashCard style={{ marginBottom: '20px' }}>
+              <SectionTitle title="Delivered Volume by Tank" subtitle={`${from} → ${to}`} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {tankEntries.map(([name, litres]) => (
+                  <ProgressRow key={name} label={name} value={fmt(litres) + ' L'} pct={(litres / totalLitres) * 100} color={COLOR} />
+                ))}
+              </div>
+            </DashCard>
+          )}
+
+          <DashCard style={{ padding: '20px 22px 8px' }}>
+            <SectionTitle title="Deliveries" subtitle={`${from} → ${to}`} />
+            <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                <tr>
                   {['Date', 'Tank', 'Supplier', 'Docket #', 'Quantity', 'Unit Price', 'Total Cost'].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: ['Quantity', 'Unit Price', 'Total Cost'].includes(h) ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 14px', textAlign: ['Quantity', 'Unit Price', 'Total Cost'].includes(h) ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: `1px solid ${THEME.outlineVar}` }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -144,7 +158,7 @@ export default function DeliveryReport() {
               </tbody>
               {rows.length > 0 && (
                 <tfoot>
-                  <tr style={{ background: THEME.primary + '10', borderTop: `2px solid ${THEME.primary}30` }}>
+                  <tr style={{ borderTop: `2px solid ${THEME.outlineVar}` }}>
                     <td colSpan={4} style={{ padding: '11px 14px', fontWeight: 700, color: THEME.text, fontSize: '13px' }}>TOTAL</td>
                     <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: THEME.success }}>{fmt(totalLitres)} L</td>
                     <td />
@@ -153,9 +167,11 @@ export default function DeliveryReport() {
                 </tfoot>
               )}
             </table>
-          </div>
+            </div>
+          </DashCard>
         </>
-      )}
+        )
+      })()}
     </div>
   )
 }

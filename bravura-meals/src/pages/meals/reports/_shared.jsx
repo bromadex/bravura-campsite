@@ -47,10 +47,10 @@ export function ReportTable({ rows, showCosts = false, prices = null, isRange = 
   sorted.forEach(r => { totB += r.b||0; totL += r.l||0; totS += r.s||0 })
   const grandTotal = totB + totL + totS
 
-  const hStyle       = { background: THEME.surfaceVar, color: THEME.textMed, borderBottom: `1px solid ${THEME.outlineVar}` }
-  const hStyleTintB  = { ...hStyle, background: THEME.breakfastClr + '18' }
-  const hStyleTintL  = { ...hStyle, background: THEME.lunchClr     + '18' }
-  const hStyleTintS  = { ...hStyle, background: THEME.supperClr    + '18' }
+  const hStyle       = { background: 'transparent', color: THEME.textLow, borderBottom: `1px solid ${THEME.outlineVar}` }
+  const hStyleTintB  = { ...hStyle, color: THEME.breakfastClr }
+  const hStyleTintL  = { ...hStyle, color: THEME.lunchClr }
+  const hStyleTintS  = { ...hStyle, color: THEME.supperClr }
   const chkCell = (v, color) => v
     ? <Icon name="check_circle" size={18} filled style={{ color }} />
     : <span style={{ color: THEME.outlineVar, fontSize: '14px' }}>—</span>

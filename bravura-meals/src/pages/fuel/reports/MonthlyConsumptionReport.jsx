@@ -4,6 +4,7 @@ import { usePermissions } from '../../../hooks/usePermissions'
 import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
+import { DashCard, KpiCard, SectionTitle, ProgressRow } from '../../../components/dash'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -22,10 +23,10 @@ const fmt = (n, dec = 1) => n != null ? Number(n).toLocaleString(undefined, { mi
 
 function Section({ title, children }) {
   return (
-    <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, marginBottom: '20px', overflow: 'hidden', boxShadow: THEME.shadow1 }}>
-      <div style={{ padding: '12px 18px', background: THEME.surfaceVar, borderBottom: `1px solid ${THEME.outlineVar}`, fontSize: '12px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>{title}</div>
-      {children}
-    </div>
+    <DashCard style={{ marginBottom: '20px', padding: '20px 22px 8px' }}>
+      <SectionTitle title={title} />
+      <div style={{ overflowX: 'auto' }}>{children}</div>
+    </DashCard>
   )
 }
 
@@ -148,16 +149,13 @@ export default function MonthlyConsumptionReport() {
       {data && (
         <>
           {/* Summary */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
-            {[
-              { label: 'Total Issued', value: fmt(data.totalIssued) + ' L', color: THEME.warning },
-              { label: 'Total Delivered', value: fmt(data.totalDelivered) + ' L', color: THEME.success },
-            ].map(k => (
-              <div key={k.label} style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, padding: '14px 20px', boxShadow: THEME.shadow1 }}>
-                <div style={{ fontSize: '11px', color: THEME.textLow, marginBottom: '4px' }}>{k.label}</div>
-                <div style={{ fontSize: '26px', fontWeight: 700, color: k.color }}>{k.value}</div>
-              </div>
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+            <KpiCard icon="output" label="Total Issued" value={fmt(data.totalIssued) + ' L'} accent={THEME.warning}
+              progress={data.totalIssued + data.totalDelivered > 0 ? (data.totalIssued / (data.totalIssued + data.totalDelivered)) * 100 : 0}
+              sub="Share of month's volume" />
+            <KpiCard icon="local_gas_station" label="Total Delivered" value={fmt(data.totalDelivered) + ' L'} accent={THEME.success}
+              progress={data.totalIssued + data.totalDelivered > 0 ? (data.totalDelivered / (data.totalIssued + data.totalDelivered)) * 100 : 0}
+              sub="Share of month's volume" />
           </div>
 
           {/* By fuel type */}
@@ -173,10 +171,10 @@ export default function MonthlyConsumptionReport() {
           {/* By vehicle */}
           <Section title="Vehicle Consumption">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead><tr style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                <th style={{ padding: '8px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Vehicle</th>
-                <th style={{ padding: '8px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Department</th>
-                <th style={{ padding: '8px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Litres</th>
+              <thead><tr>
+                <th style={{ padding: '8px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: `1px solid ${THEME.outlineVar}` }}>Vehicle</th>
+                <th style={{ padding: '8px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: `1px solid ${THEME.outlineVar}` }}>Department</th>
+                <th style={{ padding: '8px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: `1px solid ${THEME.outlineVar}` }}>Litres</th>
               </tr></thead>
               <tbody>
                 {Object.entries(data.byVehicle).sort(([, a], [, b]) => b.litres - a.litres).map(([k, v]) => (
@@ -212,30 +210,29 @@ export default function MonthlyConsumptionReport() {
           </Section>
 
           {/* Tank levels */}
-          <Section title="Current Tank Levels">
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead><tr style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                {['Tank', 'Fuel Type', 'Current Level', 'Capacity', '%'].map(h => (
-                  <th key={h} style={{ padding: '8px 16px', textAlign: h === '%' || h === 'Current Level' || h === 'Capacity' ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {data.tanks.map(t => {
-                  const pct = t.capacity_litres ? Math.min(100, (Number(t.current_level_litres) / Number(t.capacity_litres)) * 100) : null
-                  const pc = pct == null ? THEME.textMed : pct < 20 ? THEME.error : pct < 40 ? THEME.warning : THEME.success
-                  return (
-                    <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                      <td style={{ padding: '10px 16px', color: THEME.text, fontWeight: 500 }}>{t.name}</td>
-                      <td style={{ padding: '10px 16px', color: THEME.textMed }}>{t.fuel_types?.name || '—'}</td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', color: THEME.text, fontWeight: 600 }}>{fmt(t.current_level_litres)} L</td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', color: THEME.textMed }}>{t.capacity_litres ? fmt(t.capacity_litres) + ' L' : '—'}</td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', color: pc, fontWeight: 700 }}>{pct != null ? pct.toFixed(0) + '%' : '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </Section>
+          <DashCard style={{ marginBottom: '20px' }}>
+            <SectionTitle title="Current Tank Levels" subtitle="Fill level against capacity" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {data.tanks.map(t => {
+                const pct = t.capacity_litres ? Math.min(100, (Number(t.current_level_litres) / Number(t.capacity_litres)) * 100) : null
+                const pc = pct == null ? THEME.textMed : pct < 20 ? THEME.error : pct < 40 ? THEME.warning : THEME.success
+                return (
+                  <div key={t.id}>
+                    <ProgressRow
+                      label={t.name}
+                      value={pct != null ? pct.toFixed(0) + '%' : '—'}
+                      pct={pct ?? 0}
+                      color={pc}
+                    />
+                    <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '2px', marginLeft: '120px' }}>
+                      {t.fuel_types?.name || '—'} · {fmt(t.current_level_litres)} L{t.capacity_litres ? ` of ${fmt(t.capacity_litres)} L` : ''}
+                    </div>
+                  </div>
+                )
+              })}
+              {data.tanks.length === 0 && <div style={{ padding: '12px', textAlign: 'center', color: THEME.textLow, fontSize: '13px' }}>No active tanks</div>}
+            </div>
+          </DashCard>
         </>
       )}
     </div>

@@ -4,6 +4,7 @@ import { usePermissions } from '../../../hooks/usePermissions'
 import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
+import { DashCard, KpiCard, SectionTitle, DonutGauge } from '../../../components/dash'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -108,12 +109,31 @@ export default function VarianceReport() {
             </div>
           )}
 
-          <div style={{ background: THEME.surface, borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden', boxShadow: THEME.shadow1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px', alignItems: 'stretch' }}>
+            <KpiCard icon="fact_check" label="Reconciliations" value={rows.length} accent={COLOR}
+              sub={`${from} → ${to}`} />
+            <KpiCard icon="warning" label="Above 5% Variance" value={highVarianceCount}
+              accent={highVarianceCount > 0 ? THEME.error : THEME.success}
+              progress={rows.length > 0 ? (highVarianceCount / rows.length) * 100 : 0}
+              sub={rows.length > 0 ? `${((highVarianceCount / rows.length) * 100).toFixed(0)}% of reconciliations` : 'No reconciliations'} />
+            <DashCard style={{ padding: '10px' }}>
+              <DonutGauge
+                pct={rows.length > 0 ? ((rows.length - highVarianceCount) / rows.length) * 100 : null}
+                color={highVarianceCount > 0 ? THEME.warning : THEME.success}
+                size={120}
+                label="within tolerance"
+              />
+            </DashCard>
+          </div>
+
+          <DashCard style={{ padding: '20px 22px 8px' }}>
+            <SectionTitle title="Reconciliations" subtitle="Variance above 5% is highlighted" />
+            <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                <tr>
                   {['Ref', 'Tank', 'Period', 'Expected Close', 'Actual Close', 'Variance (L)', 'Variance %', 'Status'].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: ['Expected Close', 'Actual Close', 'Variance (L)', 'Variance %'].includes(h) ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 14px', textAlign: ['Expected Close', 'Actual Close', 'Variance (L)', 'Variance %'].includes(h) ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: `1px solid ${THEME.outlineVar}` }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -157,7 +177,8 @@ export default function VarianceReport() {
                 )}
               </tbody>
             </table>
-          </div>
+            </div>
+          </DashCard>
         </>
       )}
     </div>

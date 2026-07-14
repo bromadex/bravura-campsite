@@ -386,6 +386,13 @@ export default function FuelIssuance({ setPage }) {
   const selectedPump    = useMemo(() => pumps.find(p => p.id === form.pump_id) || null, [pumps, form.pump_id])
   const activeVehicles  = useMemo(() => vehicles.filter(v => v.status !== 'archived' && !v.is_archived), [vehicles])
   const activeEquipment = useMemo(() => equipment.filter(e => !e.is_archived), [equipment])
+  // Equipment rows are fleet_assets — label from fleet/asset number + description
+  const eqLabel = eq => {
+    if (!eq) return '—'
+    const num = eq.fleet_number || eq.asset_number || ''
+    const desc = eq.description || ''
+    return num && desc ? `${num} · ${desc}` : (num || desc || '—')
+  }
   const activeOperators = useMemo(() => operators.filter(o => o.is_active), [operators])
 
   // Licence expiry helpers
@@ -567,7 +574,7 @@ export default function FuelIssuance({ setPage }) {
         assetLabel:   form.asset_type === 'vehicle'
           ? (selVehicle ? `Fleet No. ${selVehicle.fleet_number}${selVehicle.registration ? ' (' + selVehicle.registration + ')' : ''}` : null)
           : form.asset_type === 'equipment'
-          ? (selEquipment ? `${selEquipment.name}${selEquipment.equipment_number ? ' (' + selEquipment.equipment_number + ')' : ''}` : null)
+          ? (selEquipment ? eqLabel(selEquipment) : null)
           : null,
         operatorName: selOperator?.employees?.name || null,
       })
@@ -649,8 +656,10 @@ export default function FuelIssuance({ setPage }) {
     })
     const equipMap = new Map()
     activeEquipment.forEach(eq => {
-      if (eq.equipment_number) equipMap.set(eq.equipment_number.toLowerCase(), eq.id)
-      equipMap.set(eq.name?.toLowerCase(), eq.id)
+      if (eq.fleet_number)  equipMap.set(eq.fleet_number.toLowerCase(), eq.id)
+      if (eq.asset_number)  equipMap.set(eq.asset_number.toLowerCase(), eq.id)
+      if (eq.description)   equipMap.set(eq.description.toLowerCase(), eq.id)
+      if (eq.serial_number) equipMap.set(eq.serial_number.toLowerCase(), eq.id)
     })
     const opMap = new Map()
     activeOperators.forEach(op => {
@@ -903,7 +912,7 @@ export default function FuelIssuance({ setPage }) {
               {br.rows.map((r, i) => {
                 const v = vehicles.find(x => x.id === r.vehicle_id)
                 const eq = equipment.find(x => x.id === r.equipment_id)
-                const label = v ? `${v.fleet_number}${v.registration ? ' · ' + v.registration : ''}` : eq ? eq.name : '—'
+                const label = v ? `${v.fleet_number}${v.registration ? ' · ' + v.registration : ''}` : eq ? eqLabel(eq) : '—'
                 return (
                   <tr key={r.id || i} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                     <td style={{ padding: '10px 14px', color: THEME.textLow, fontWeight: 600 }}>{i + 1}</td>
@@ -1101,7 +1110,7 @@ export default function FuelIssuance({ setPage }) {
                             style={{ ...inp({ padding: '7px 8px', fontSize: '12px', flex: 1 }) }}>
                             <option value="">— Equipment —</option>
                             {activeEquipment.map(eq => (
-                              <option key={eq.id} value={eq.id}>{eq.name}{eq.equipment_number ? ' · ' + eq.equipment_number : ''}</option>
+                              <option key={eq.id} value={eq.id}>{eqLabel(eq)}</option>
                             ))}
                           </select>
                         )}
@@ -1373,9 +1382,9 @@ export default function FuelIssuance({ setPage }) {
                 items={activeEquipment}
                 value={form.equipment_id}
                 onSelect={id => set('equipment_id', id)}
-                placeholder="Search by equipment # or name…"
-                renderItem={e => `${e.equipment_number ? e.equipment_number + ' · ' : ''}${e.name}`}
-                renderSelected={e => `${e.equipment_number ? e.equipment_number + ' · ' : ''}${e.name}`}
+                placeholder="Search by fleet # or description…"
+                renderItem={eqLabel}
+                renderSelected={eqLabel}
               />
             )}
           </FieldWrap>

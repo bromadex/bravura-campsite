@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
+import { primaryTank } from '../../utils/tanks'
 import { useNavigate } from 'react-router-dom'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -279,7 +280,7 @@ export default function FuelTanks({ setPage }) {
 
   // ── Dipstick history for selected tank ──────────────────────────────────
   const [dipTankSel, setDipTankSel] = useState('')
-  const dipTankId = dipTankSel || activeTanks[0]?.id || ''
+  const dipTankId = dipTankSel || primaryTank(activeTanks)?.id || ''
   const dipHistory = useMemo(() =>
     dipReadings
       .filter(d => d.tank_id === dipTankId)

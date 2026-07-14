@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { primaryTank } from '../../utils/tanks'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -65,7 +66,7 @@ function varianceBg(pct) {
 
 // ── New Reconciliation Form ───────────────────────────────────────────────────
 function NewReconciliationForm({ tanks, currentSiteId, profileId, onSaved, onCancel }) {
-  const [tankId, setTankId] = useState(tanks[0]?.id || '')
+  const [tankId, setTankId] = useState(primaryTank(tanks)?.id || '')
   const [periodStart, setPeriodStart] = useState('')
   const [periodEnd, setPeriodEnd] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10)

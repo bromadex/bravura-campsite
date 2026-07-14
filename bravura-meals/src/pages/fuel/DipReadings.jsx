@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { primaryTank } from '../../utils/tanks'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -251,7 +252,7 @@ function TankCalibrationPanel({ tank, onClose }) {
 function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose, onSave, onDelete }) {
   const isEdit = !!reading
 
-  const [tankId, setTankId] = useState(reading?.tank_id || tanks[0]?.id || '')
+  const [tankId, setTankId] = useState(reading?.tank_id || primaryTank(tanks)?.id || '')
   const [date, setDate] = useState(reading?.reading_date || new Date().toISOString().slice(0, 10))
   const [time, setTime] = useState(reading?.reading_time || (isEdit ? '' : new Date().toTimeString().slice(0, 5)))
   const [dipStartMm, setDipStartMm] = useState(reading?.dip_start_mm != null ? String(reading.dip_start_mm) : '')

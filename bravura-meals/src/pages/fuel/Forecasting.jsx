@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { primaryTank } from '../../utils/tanks'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
@@ -30,7 +31,7 @@ export default function Forecasting({ setPage }) {
   const [tankSel, setTankSel] = useState('')
 
   const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
-  const tank = useMemo(() => activeTanks.find(t => t.id === tankSel) || activeTanks[0] || null, [activeTanks, tankSel])
+  const tank = useMemo(() => activeTanks.find(t => t.id === tankSel) || primaryTank(activeTanks), [activeTanks, tankSel])
 
   const issuances = useMemo(() => {
     if (!tank) return []

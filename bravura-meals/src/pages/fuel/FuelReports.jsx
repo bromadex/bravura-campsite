@@ -1,4 +1,5 @@
 import { useState, useMemo, lazy, Suspense } from 'react'
+import { primaryTank } from '../../utils/tanks'
 import { useNavigate } from 'react-router-dom'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -269,7 +270,7 @@ export default function FuelReports({ setPage }) {
   // Dipstick tanks: plot dip readings (the source of truth).
   // Issuance-tracked tanks (no dipstick): reconstruct the running balance
   // from the current level backwards through deliveries/issuances.
-  const dipTankId = tankSel || activeTanks[0]?.id || ''
+  const dipTankId = tankSel || primaryTank(activeTanks)?.id || ''
   const tankLevelPoints = useMemo(() => {
     const tank = tanks.find(t => t.id === dipTankId)
     if (tank?.level_tracking_method === 'issuance') {

@@ -169,6 +169,7 @@ export default function FuelReceipts() {
       .from('fuel_deliveries')
       .select('*, fuel_tanks(id, name, fuel_types(name)), confirmed_profile:profiles!fuel_deliveries_confirmed_by_fkey(id, full_name), created_profile:profiles!fuel_deliveries_created_by_fkey(id, full_name)')
       .eq('site_id', currentSiteId)
+      .eq('is_archived', false)
       .order('delivery_date', { ascending: false })
       .order('created_at', { ascending: false })
     const richRows = (!richErr && rich) ? rich : []
@@ -322,7 +323,7 @@ export default function FuelReceipts() {
             dip_after:            payload.dip_after,
             receiving_officer:    form.receiving_officer?.trim() || null,
             notes:                payload.notes,
-            updated_by:           user?.id || null,
+            updated_by:           userId || null,
           })
           .eq('id', editId)
           .eq('site_id', currentSiteId)
@@ -378,7 +379,7 @@ export default function FuelReceipts() {
               level_litres:       payload.dip_after,
               level_start_litres: payload.dip_before,
               level_end_litres:   payload.dip_after,
-              recorded_by:        user?.id || null,
+              recorded_by:        userId || null,
               notes:              `Auto-recorded from delivery ${deliveryNumber}`,
             }])
           if (dipErr) console.error('Dip reading auto-insert failed:', dipErr.message)

@@ -188,7 +188,7 @@ export default function FuelDashboard({ setPage }) {
     const map = new Map()
     for (const t of monthIssuances) {
       if (!t.fleet_asset_id) continue
-      const name = t.fleet_asset?.fleet_number || t.fleet_asset?.asset_number || t.fleet_asset?.description || 'Unknown'
+      const name = t.fleet_asset?.registration || t.fleet_asset?.description || t.fleet_asset?.fleet_number || t.fleet_asset?.asset_number || 'Unknown'
       const cur = map.get(t.fleet_asset_id) || { name, litres: 0 }
       cur.litres += Number(t.litres)
       map.set(t.fleet_asset_id, cur)
@@ -415,7 +415,7 @@ export default function FuelDashboard({ setPage }) {
               {recent.map((tx, idx) => {
                 const meta = TX_META[tx.transaction_type] || TX_META.adjustment
                 const tank = tanks.find(t => t.id === tx.tank_id)
-                const assetName = tx.fleet_asset?.fleet_number || tx.fleet_asset?.asset_number || tx.fleet_asset?.description || tx.asset_description || null
+                const assetName = tx.fleet_asset?.registration || tx.fleet_asset?.description || tx.fleet_asset?.fleet_number || tx.fleet_asset?.asset_number || tx.asset_description || null
                 return (
                   <div key={tx.id} style={{
                     display: 'flex', alignItems: 'center', gap: '12px', padding: '9px 0',

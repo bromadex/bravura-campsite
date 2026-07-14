@@ -173,7 +173,7 @@ export function FuelProvider({ children }) {
           quantity_litres:  t.litres,
           issue_date:       t.transaction_date,
           asset_type:       assetType,
-          asset_name:       t.fleet_asset?.fleet_number || t.fleet_asset?.asset_number || t.fleet_asset?.description || t.asset_description || 'Unknown',
+          asset_name:       t.fleet_asset?.description || t.fleet_asset?.registration || t.fleet_asset?.fleet_number || t.fleet_asset?.asset_number || t.asset_description || 'Unknown',
           asset_reg:        t.fleet_asset?.registration || t.fleet_asset?.serial_number || '',
           purpose:          t.notes || '',
           issued_by_name:   null,

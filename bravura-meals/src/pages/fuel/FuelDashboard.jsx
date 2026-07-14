@@ -11,7 +11,21 @@ const CRIT_PCT = 15
 const WARN_PCT = 30
 const LOW_PCT  = 20 // KPI "low tank" threshold
 
+// Accent hexes for KPI chips / charts (literal hexes so the accent+'18' tint pattern works)
+const ACCENT = {
+  green:  '#2E7D32',
+  blue:   '#1E88E5',
+  violet: '#7C4DFF',
+  amber:  '#F59E0B',
+  teal:   '#00897B',
+  pink:   '#EC4899',
+}
+
+const CARD_SHADOW = '0 1px 3px rgba(0,0,0,0.06)'
+const RADIUS = '16px'
+
 const fmtL = n => `${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} L`
+const fmtK = v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v).toString()
 
 function tankPct(tank, balance) {
   const cap = Number(tank.capacity_litres) || 0
@@ -23,30 +37,40 @@ function levelColor(pct) {
   if (pct === null) return FUEL_CLR
   if (pct < CRIT_PCT) return THEME.error
   if (pct < WARN_PCT) return THEME.warning
-  return '#00897B'
+  return ACCENT.teal
 }
 
-/* ── KPI card ─────────────────────────────────────────────────────────── */
-function KpiCard({ label, value, sub, icon, color, onClick }) {
-  const clr = color || FUEL_CLR
+/* ── KPI card — colored icon chip, big number, thin progress bar ──────── */
+function KpiCard({ label, value, sub, icon, accent, pct, onClick }) {
+  const clr = accent || FUEL_CLR
+  const barPct = pct === null || pct === undefined ? null : Math.min(100, Math.max(0, pct))
   return (
     <div
       onClick={onClick}
       style={{
-        background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-        borderRadius: '12px', padding: '14px 16px', boxShadow: THEME.shadow1,
-        display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0,
-        cursor: onClick ? 'pointer' : 'default',
+        background: THEME.surface, borderRadius: RADIUS, padding: '18px',
+        boxShadow: CARD_SHADOW, display: 'flex', flexDirection: 'column',
+        gap: '12px', minWidth: 0, cursor: onClick ? 'pointer' : 'default',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {label}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        <div style={{
+          width: '42px', height: '42px', borderRadius: '50%', background: clr + '18',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <Icon name={icon} size={20} style={{ color: clr }} />
         </div>
-        <Icon name={icon} size={16} style={{ color: clr, flexShrink: 0 }} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: '20px', fontWeight: 700, color: THEME.text, lineHeight: 1.15, whiteSpace: 'nowrap' }}>{value}</div>
+          <div style={{ fontSize: '11px', color: THEME.textLow, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+        </div>
       </div>
-      <div style={{ fontSize: '22px', fontWeight: 700, color: THEME.text, lineHeight: 1.15, whiteSpace: 'nowrap' }}>{value}</div>
-      {sub && <div style={{ fontSize: '11px', color: THEME.textLow }}>{sub}</div>}
+      <div>
+        <div style={{ height: '5px', borderRadius: '3px', background: THEME.surfaceVar, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${barPct ?? 0}%`, background: clr, borderRadius: '3px', transition: 'width .4s' }} />
+        </div>
+        {sub && <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
+      </div>
     </div>
   )
 }
@@ -54,10 +78,10 @@ function KpiCard({ label, value, sub, icon, color, onClick }) {
 /* ── Section card wrapper ─────────────────────────────────────────────── */
 function Section({ title, sub, action, children }) {
   return (
-    <div style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '12px', padding: '18px 20px', boxShadow: THEME.shadow1, minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '14px' }}>
+    <div style={{ background: THEME.surface, borderRadius: RADIUS, padding: '20px 22px', boxShadow: CARD_SHADOW, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '16px' }}>
         <div>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em' }}>{title}</div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>{title}</div>
           {sub && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>{sub}</div>}
         </div>
         {action}
@@ -74,7 +98,7 @@ function TankRow({ tank, balance }) {
   const clr = levelColor(pct)
   const tracked = tank.level_tracking_method === 'issuance'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '9px 0' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '10px 0' }}>
       <div style={{ width: '220px', minWidth: '140px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tank.name}</span>
@@ -87,8 +111,8 @@ function TankRow({ tank, balance }) {
         <div style={{ fontSize: '11px', color: THEME.textLow }}>{tank.fuel_types?.name || 'Diesel'}</div>
       </div>
       <div style={{ flex: 1, minWidth: '80px' }}>
-        <div style={{ height: '10px', borderRadius: '5px', background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${pct ?? 0}%`, background: clr, borderRadius: '5px', transition: 'width .4s' }} />
+        <div style={{ height: '8px', borderRadius: '4px', background: THEME.surfaceVar, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${pct ?? 0}%`, background: clr, borderRadius: '4px', transition: 'width .4s' }} />
         </div>
       </div>
       <div style={{ width: '150px', flexShrink: 0, textAlign: 'right' }}>
@@ -101,39 +125,94 @@ function TankRow({ tank, balance }) {
   )
 }
 
-/* ── Vertical bar chart (inline SVG) ──────────────────────────────────── */
-function BarChart({ data, color, height = 160, valueFmt = v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v).toString() }) {
-  const W = 520, padL = 8, padR = 8, padT = 20, padB = 22
+/* ── Donut fill gauge (SVG ring) ──────────────────────────────────────── */
+function DonutGauge({ pct }) {
+  const p = pct === null ? 0 : Math.min(100, Math.max(0, pct))
+  const clr = pct === null ? FUEL_CLR : pct < CRIT_PCT ? THEME.error : pct < WARN_PCT ? THEME.warning : ACCENT.teal
+  const R = 52, C = 2 * Math.PI * R
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
+      <svg width="140" height="140" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r={R} fill="none" stroke={THEME.surfaceVar} strokeWidth="12" />
+        <circle
+          cx="70" cy="70" r={R} fill="none" stroke={clr} strokeWidth="12" strokeLinecap="round"
+          strokeDasharray={`${(p / 100) * C} ${C}`} transform="rotate(-90 70 70)"
+          style={{ transition: 'stroke-dasharray .5s' }}
+        />
+        <text x="70" y="66" textAnchor="middle" fontSize="24" fontWeight="700" fill={THEME.text} fontFamily="inherit">
+          {pct !== null ? `${p.toFixed(0)}%` : '—'}
+        </text>
+        <text x="70" y="84" textAnchor="middle" fontSize="10" fill={THEME.textLow} fontFamily="inherit">
+          fill level
+        </text>
+      </svg>
+      <div style={{ display: 'flex', gap: '12px', fontSize: '10px', color: THEME.textLow, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {[[ACCENT.teal, `≥ ${WARN_PCT}%`], [THEME.warning, `${CRIT_PCT}–${WARN_PCT}%`], [THEME.error, `< ${CRIT_PCT}%`]].map(([c, l]) => (
+          <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: c, display: 'inline-block' }} />{l}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Smooth area chart (SVG, bezier through midpoint control points) ──── */
+function AreaChart({ data, color, height = 170 }) {
+  const W = 520, padL = 30, padR = 12, padT = 20, padB = 22
   const H = height
   const areaW = W - padL - padR
   const areaH = H - padT - padB
   const max = Math.max(...data.map(d => d.v), 1)
-  const slot = areaW / data.length
-  const barW = Math.min(30, slot * 0.62)
+  const n = data.length
+  const x = i => padL + (n > 1 ? (i / (n - 1)) * areaW : areaW / 2)
+  const y = v => padT + areaH - (v / max) * areaH
+
+  // Smooth cubic path: control points at horizontal midpoints
+  let line = `M ${x(0)} ${y(data[0].v)}`
+  for (let i = 1; i < n; i++) {
+    const x0 = x(i - 1), x1 = x(i)
+    const y0 = y(data[i - 1].v), y1 = y(data[i].v)
+    const mx = (x0 + x1) / 2
+    line += ` C ${mx} ${y0}, ${mx} ${y1}, ${x1} ${y1}`
+  }
+  const area = `${line} L ${x(n - 1)} ${padT + areaH} L ${x(0)} ${padT + areaH} Z`
+
+  const maxIdx = data.reduce((best, d, i) => (d.v > data[best].v ? i : best), 0)
+  const hasData = data.some(d => d.v > 0)
+  const gradId = `area-grad-${color.replace('#', '')}`
+
   return (
     <div style={{ overflowX: 'auto' }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: '360px', display: 'block' }}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
         {[0.25, 0.5, 0.75, 1].map(f => (
-          <line key={f} x1={padL} x2={W - padR} y1={padT + areaH - f * areaH} y2={padT + areaH - f * areaH}
-            stroke={THEME.outlineVar} strokeWidth="0.5" strokeDasharray="3 3" />
+          <g key={f}>
+            <line x1={padL} x2={W - padR} y1={y(f * max)} y2={y(f * max)} stroke={THEME.outlineVar} strokeWidth="0.5" strokeDasharray="3 3" />
+            <text x={padL - 5} y={y(f * max) + 3} textAnchor="end" fontSize="8.5" fill={THEME.textLow} fontFamily="inherit">{fmtK(f * max)}</text>
+          </g>
         ))}
         <line x1={padL} x2={W - padR} y1={padT + areaH} y2={padT + areaH} stroke={THEME.outlineVar} strokeWidth="1" />
-        {data.map((d, i) => {
-          const barH = d.v > 0 ? Math.max(2, (d.v / max) * areaH) : 0
-          const x = padL + i * slot + (slot - barW) / 2
-          const y = padT + areaH - barH
-          return (
-            <g key={i}>
-              {barH > 0 && <rect x={x} y={y} width={barW} height={barH} rx={3} fill={color} opacity="0.9" />}
-              {d.v > 0 && d.v === max && (
-                <text x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={THEME.textMed} fontFamily="inherit">
-                  {valueFmt(d.v)}
-                </text>
-              )}
-              <text x={x + barW / 2} y={padT + areaH + 14} textAnchor="middle" fontSize="9" fill={THEME.textLow} fontFamily="inherit">{d.label}</text>
-            </g>
+        <path d={area} fill={`url(#${gradId})`} />
+        <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {hasData && (
+          <g>
+            <circle cx={x(maxIdx)} cy={y(data[maxIdx].v)} r="4" fill={color} stroke={THEME.surface} strokeWidth="2" />
+            <text x={x(maxIdx)} y={y(data[maxIdx].v) - 8} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={THEME.textMed} fontFamily="inherit">
+              {fmtK(data[maxIdx].v)}
+            </text>
+          </g>
+        )}
+        {data.map((d, i) => (
+          (n <= 8 || i % 2 === 0) && (
+            <text key={i} x={x(i)} y={padT + areaH + 14} textAnchor="middle" fontSize="9" fill={THEME.textLow} fontFamily="inherit">{d.label}</text>
           )
-        })}
+        ))}
       </svg>
     </div>
   )
@@ -149,10 +228,10 @@ function PairedBarChart({ data, colorA, colorB, labelA, labelB }) {
   const barW = Math.min(26, slot * 0.28)
   return (
     <div>
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '8px', fontSize: '11px', color: THEME.textMed }}>
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', fontSize: '11px', color: THEME.textMed }}>
         {[[colorA, labelA], [colorB, labelB]].map(([c, l]) => (
           <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            <span style={{ width: '9px', height: '9px', borderRadius: '2px', background: c, display: 'inline-block' }} />
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: c, display: 'inline-block' }} />
             {l}
           </span>
         ))}
@@ -170,10 +249,10 @@ function PairedBarChart({ data, colorA, colorB, labelA, labelB }) {
             const hB = d.b > 0 ? Math.max(2, (d.b / max) * areaH) : 0
             return (
               <g key={i}>
-                {hA > 0 && <rect x={cx - barW - 2} y={padT + areaH - hA} width={barW} height={hA} rx={3} fill={colorA} opacity="0.9" />}
-                {hB > 0 && <rect x={cx + 2} y={padT + areaH - hB} width={barW} height={hB} rx={3} fill={colorB} opacity="0.9" />}
-                {d.a > 0 && <text x={cx - barW / 2 - 2} y={padT + areaH - hA - 5} textAnchor="middle" fontSize="9" fontWeight="600" fill={THEME.textMed} fontFamily="inherit">{d.a >= 1000 ? `${(d.a / 1000).toFixed(1)}k` : Math.round(d.a)}</text>}
-                {d.b > 0 && <text x={cx + barW / 2 + 2} y={padT + areaH - hB - 5} textAnchor="middle" fontSize="9" fontWeight="600" fill={THEME.textMed} fontFamily="inherit">{d.b >= 1000 ? `${(d.b / 1000).toFixed(1)}k` : Math.round(d.b)}</text>}
+                {hA > 0 && <rect x={cx - barW - 2} y={padT + areaH - hA} width={barW} height={hA} rx={3} fill={colorA} opacity="0.85" />}
+                {hB > 0 && <rect x={cx + 2} y={padT + areaH - hB} width={barW} height={hB} rx={3} fill={colorB} opacity="0.85" />}
+                {d.a > 0 && <text x={cx - barW / 2 - 2} y={padT + areaH - hA - 5} textAnchor="middle" fontSize="9" fontWeight="600" fill={THEME.textMed} fontFamily="inherit">{fmtK(d.a)}</text>}
+                {d.b > 0 && <text x={cx + barW / 2 + 2} y={padT + areaH - hB - 5} textAnchor="middle" fontSize="9" fontWeight="600" fill={THEME.textMed} fontFamily="inherit">{fmtK(d.b)}</text>}
                 <text x={cx} y={padT + areaH + 14} textAnchor="middle" fontSize="9" fill={THEME.textLow} fontFamily="inherit">{d.label}</text>
               </g>
             )
@@ -184,13 +263,13 @@ function PairedBarChart({ data, colorA, colorB, labelA, labelB }) {
   )
 }
 
-/* ── Transaction type chips ───────────────────────────────────────────── */
+/* ── Transaction type meta (icon chips for the activity list) ─────────── */
 const TX_META = {
-  delivery:     { label: 'Delivery',     bg: THEME.statusSuccessBg, text: THEME.statusSuccessText, sign: '+' },
-  issuance:     { label: 'Issuance',     bg: THEME.statusWarningBg, text: THEME.statusWarningText, sign: '-' },
-  transfer_out: { label: 'Transfer Out', bg: THEME.statusWarningBg, text: THEME.statusWarningText, sign: '-' },
-  transfer_in:  { label: 'Transfer In',  bg: THEME.statusSuccessBg, text: THEME.statusSuccessText, sign: '+' },
-  adjustment:   { label: 'Adjustment',   bg: THEME.statusInfoBg,    text: THEME.statusInfoText,    sign: '' },
+  delivery:     { label: 'Delivery',     clr: ACCENT.green, icon: 'arrow_downward', sign: '+' },
+  issuance:     { label: 'Issuance',     clr: ACCENT.amber, icon: 'arrow_upward',   sign: '-' },
+  transfer_out: { label: 'Transfer Out', clr: ACCENT.amber, icon: 'arrow_upward',   sign: '-' },
+  transfer_in:  { label: 'Transfer In',  clr: ACCENT.green, icon: 'arrow_downward', sign: '+' },
+  adjustment:   { label: 'Adjustment',   clr: ACCENT.blue,  icon: 'sync_alt',       sign: '' },
 }
 
 export default function FuelDashboard({ setPage }) {
@@ -280,6 +359,14 @@ export default function FuelDashboard({ setPage }) {
 
   const recent = useMemo(() => transactions.slice(0, 8), [transactions])
 
+  // Previous calendar month issuance total (for the KPI progress %)
+  const issuedPrevMonth = useMemo(() => {
+    const d = new Date(`${thisMonth}-01T00:00:00Z`)
+    d.setUTCMonth(d.getUTCMonth() - 1)
+    const prev = d.toISOString().slice(0, 7)
+    return issuances.filter(t => t.transaction_date?.startsWith(prev)).reduce((s, t) => s + Number(t.litres), 0)
+  }, [issuances, thisMonth])
+
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: THEME.textLow }}>
       <Icon name="progress_activity" size={28} style={{ animation: 'spin 1s linear infinite' }} />
@@ -295,9 +382,9 @@ export default function FuelDashboard({ setPage }) {
       {/* Critical low-stock banner */}
       {tankStats.critical.length > 0 && !alertDismissed && (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-          background: THEME.statusErrorBg, border: `1px solid ${THEME.error}55`,
-          borderRadius: '12px', marginBottom: '16px',
+          display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px',
+          background: THEME.statusErrorBg, borderRadius: RADIUS, boxShadow: CARD_SHADOW,
+          marginBottom: '16px',
         }}>
           <Icon name="warning" size={20} style={{ color: THEME.error, flexShrink: 0 }} />
           <div style={{ flex: 1, fontSize: '13px', color: THEME.statusErrorText }}>
@@ -318,12 +405,12 @@ export default function FuelDashboard({ setPage }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', color: THEME.textLow }}>Last 30 days</span>
             {can('fuel.create') && (
-              <button onClick={() => setPage('fuel_receipts')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: THEME.surfaceVar, color: FUEL_CLR, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => setPage('fuel_receipts')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR + '18', color: FUEL_CLR, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <Icon name="local_gas_station" size={16} style={{ color: FUEL_CLR }} /> Record Delivery
               </button>
             )}
             {can('fuel.create') && (
-              <button onClick={() => setPage('fuel_issuance')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => setPage('fuel_issuance')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, background: FUEL_CLR, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <Icon name="output" size={16} style={{ color: '#fff' }} /> Issue Fuel
               </button>
             )}
@@ -332,12 +419,14 @@ export default function FuelDashboard({ setPage }) {
       />
 
       {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '20px' }}>
         <KpiCard
           label="Fuel On Hand"
           value={fmtL(tankStats.onHand)}
           sub={tankStats.fillPct !== null ? `${tankStats.fillPct.toFixed(0)}% of ${tankStats.capacity.toLocaleString()} L capacity` : 'no capacity set'}
           icon="propane_tank"
+          accent={ACCENT.green}
+          pct={tankStats.fillPct}
           onClick={() => setPage('fuel_tanks')}
         />
         <KpiCard
@@ -345,7 +434,8 @@ export default function FuelDashboard({ setPage }) {
           value={fmtL(issuedToday)}
           sub={fmtDate(today)}
           icon="output"
-          color={THEME.warning}
+          accent={ACCENT.blue}
+          pct={issuedThisMonth > 0 ? (issuedToday / issuedThisMonth) * 100 : 0}
           onClick={() => setPage('fuel_issues')}
         />
         <KpiCard
@@ -353,7 +443,8 @@ export default function FuelDashboard({ setPage }) {
           value={fmtL(issuedThisMonth)}
           sub={`${monthIssuances.length.toLocaleString()} issuance${monthIssuances.length === 1 ? '' : 's'}`}
           icon="trending_down"
-          color={THEME.warning}
+          accent={ACCENT.violet}
+          pct={issuedPrevMonth > 0 ? (issuedThisMonth / issuedPrevMonth) * 100 : (issuedThisMonth > 0 ? 100 : 0)}
           onClick={() => setPage('fuel_issues')}
         />
         <KpiCard
@@ -361,7 +452,8 @@ export default function FuelDashboard({ setPage }) {
           value={fmtL(receivedThisMonth)}
           sub="deliveries"
           icon="local_shipping"
-          color={THEME.success}
+          accent={ACCENT.amber}
+          pct={issuedThisMonth > 0 ? (receivedThisMonth / (receivedThisMonth + issuedThisMonth)) * 100 : (receivedThisMonth > 0 ? 100 : 0)}
           onClick={() => setPage('fuel_receipts')}
         />
         <KpiCard
@@ -369,7 +461,8 @@ export default function FuelDashboard({ setPage }) {
           value={activeTanks.length}
           sub={tankStats.lowCount > 0 ? `${tankStats.lowCount} below ${LOW_PCT}%` : 'all above threshold'}
           icon="propane_tank"
-          color={tankStats.lowCount > 0 ? THEME.warning : FUEL_CLR}
+          accent={ACCENT.teal}
+          pct={activeTanks.length > 0 ? ((activeTanks.length - tankStats.lowCount) / activeTanks.length) * 100 : 0}
           onClick={() => setPage('fuel_tanks')}
         />
         <KpiCard
@@ -377,24 +470,26 @@ export default function FuelDashboard({ setPage }) {
           value={pendingAcks}
           sub="issuance acknowledgements"
           icon="pending_actions"
-          color={pendingAcks > 0 ? THEME.warning : THEME.textLow}
+          accent={ACCENT.pink}
+          pct={monthIssuances.length > 0 ? (pendingAcks / monthIssuances.length) * 100 : 0}
           onClick={() => setPage('fuel_issues')}
         />
       </div>
 
-      {/* Tank levels */}
-      <div style={{ marginBottom: '16px' }}>
+      {/* Tank levels + fill gauge */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.2fr) minmax(220px, 1fr)', gap: '16px', marginBottom: '16px' }}>
         <Section
           title="Tank Levels"
+          sub="Current balance per active tank"
           action={
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: THEME.textLow, flexWrap: 'wrap' }}>
               {[
-                { c: '#00897B', l: `≥ ${WARN_PCT}%` },
+                { c: ACCENT.teal, l: `≥ ${WARN_PCT}%` },
                 { c: THEME.warning, l: `${CRIT_PCT}–${WARN_PCT}%` },
                 { c: THEME.error, l: `< ${CRIT_PCT}%` },
               ].map(x => (
                 <span key={x.l} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: x.c, display: 'inline-block' }} />{x.l}
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: x.c, display: 'inline-block' }} />{x.l}
                 </span>
               ))}
             </div>
@@ -414,15 +509,18 @@ export default function FuelDashboard({ setPage }) {
             </div>
           )}
         </Section>
+        <Section title="Overall Fill" sub="On hand vs total capacity">
+          <DonutGauge pct={tankStats.fillPct} />
+        </Section>
       </div>
 
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px', marginBottom: '16px' }}>
         <Section title="Daily Consumption" sub="Issuance litres per day — last 14 days">
-          <BarChart data={dailyData} color={FUEL_CLR} />
+          <AreaChart data={dailyData} color={FUEL_CLR} />
         </Section>
         <Section title="Deliveries vs Issuances" sub="Weekly totals — last 4 weeks">
-          <PairedBarChart data={weeklyData} colorA={THEME.success} colorB={FUEL_CLR} labelA="Delivered" labelB="Issued" />
+          <PairedBarChart data={weeklyData} colorA={ACCENT.green} colorB={FUEL_CLR} labelA="Delivered" labelB="Issued" />
         </Section>
       </div>
 
@@ -434,16 +532,19 @@ export default function FuelDashboard({ setPage }) {
               No asset issuances this month.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {topConsumers.map((c, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{ width: '110px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.name}>
                     {c.name}
                   </div>
-                  <div style={{ flex: 1, height: '12px', borderRadius: '4px', background: THEME.surfaceVar, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${Math.max(2, (c.litres / maxConsumer) * 100)}%`, background: FUEL_CLR, borderRadius: '4px', opacity: 0.9 }} />
+                  <div style={{ flex: 1, height: '8px', borderRadius: '4px', background: THEME.surfaceVar, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', width: `${Math.max(2, (c.litres / maxConsumer) * 100)}%`,
+                      background: `linear-gradient(90deg, ${FUEL_CLR}99, ${FUEL_CLR})`, borderRadius: '4px',
+                    }} />
                   </div>
-                  <div style={{ width: '72px', flexShrink: 0, textAlign: 'right', fontSize: '12px', fontWeight: 600, color: THEME.textMed }}>
+                  <div style={{ width: '72px', flexShrink: 0, textAlign: 'right', fontSize: '12px', fontWeight: 700, color: THEME.text }}>
                     {fmtL(c.litres)}
                   </div>
                 </div>
@@ -454,6 +555,7 @@ export default function FuelDashboard({ setPage }) {
 
         <Section
           title="Recent Activity"
+          sub="Latest fuel movements"
           action={
             <button onClick={() => setPage('fuel_ledger')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '12px', fontWeight: 500, color: FUEL_CLR, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: 'inherit' }}>
@@ -473,21 +575,24 @@ export default function FuelDashboard({ setPage }) {
                 const assetName = tx.fleet_asset?.fleet_number || tx.fleet_asset?.asset_number || tx.fleet_asset?.description || tx.asset_description || null
                 return (
                   <div key={tx.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0',
+                    display: 'flex', alignItems: 'center', gap: '12px', padding: '9px 0',
                     borderBottom: idx < recent.length - 1 ? `1px solid ${THEME.outlineVar}` : 'none',
                   }}>
-                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '5px', background: meta.bg, color: meta.text, flexShrink: 0, letterSpacing: '.02em', whiteSpace: 'nowrap' }}>
-                      {meta.label}
-                    </span>
+                    <div style={{
+                      width: '32px', height: '32px', borderRadius: '50%', background: meta.clr + '18',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <Icon name={meta.icon} size={16} style={{ color: meta.clr }} />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '12px', fontWeight: 500, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {assetName || tank?.name || '—'}
                       </div>
                       <div style={{ fontSize: '10px', color: THEME.textLow }}>
-                        {fmtDate(tx.transaction_date)}{assetName && tank ? ` · ${tank.name}` : ''}
+                        {meta.label} · {fmtDate(tx.transaction_date)}{assetName && tank ? ` · ${tank.name}` : ''}
                       </div>
                     </div>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: meta.text, flexShrink: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: meta.clr, flexShrink: 0 }}>
                       {meta.sign}{fmtL(tx.litres)}
                     </div>
                   </div>

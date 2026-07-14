@@ -4,6 +4,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader, fmtDate } from '../../components/ui'
+import { DashCard, KpiCard, AreaChart, DonutGauge, PairedBars, ProgressRow, ActivityRow, SectionTitle } from '../../components/dash'
 import FuelQuickNav from './FuelQuickNav'
 
 const FUEL_CLR = MODULE_COLORS.fuel
@@ -40,55 +41,31 @@ function levelColor(pct) {
   return ACCENT.teal
 }
 
-/* ── KPI card — colored icon chip, big number, thin progress bar ──────── */
-function KpiCard({ label, value, sub, icon, accent, pct, onClick }) {
-  const clr = accent || FUEL_CLR
-  const barPct = pct === null || pct === undefined ? null : Math.min(100, Math.max(0, pct))
+/* ── Section = DashCard + SectionTitle (local convenience) ────────────── */
+function Section({ title, sub, action, children }) {
   return (
-    <div
-      onClick={onClick}
-      style={{
-        background: THEME.surface, borderRadius: RADIUS, padding: '18px',
-        boxShadow: CARD_SHADOW, display: 'flex', flexDirection: 'column',
-        gap: '12px', minWidth: 0, cursor: onClick ? 'pointer' : 'default',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-        <div style={{
-          width: '42px', height: '42px', borderRadius: '50%', background: clr + '18',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <Icon name={icon} size={20} style={{ color: clr }} />
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: THEME.text, lineHeight: 1.15, whiteSpace: 'nowrap' }}>{value}</div>
-          <div style={{ fontSize: '11px', color: THEME.textLow, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
-        </div>
-      </div>
-      <div>
-        <div style={{ height: '5px', borderRadius: '3px', background: THEME.surfaceVar, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${barPct ?? 0}%`, background: clr, borderRadius: '3px', transition: 'width .4s' }} />
-        </div>
-        {sub && <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
-      </div>
-    </div>
+    <DashCard>
+      <SectionTitle title={title} subtitle={sub} action={action} />
+      {children}
+    </DashCard>
   )
 }
 
-/* ── Section card wrapper ─────────────────────────────────────────────── */
-function Section({ title, sub, action, children }) {
-  return (
-    <div style={{ background: THEME.surface, borderRadius: RADIUS, padding: '20px 22px', boxShadow: CARD_SHADOW, minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '16px' }}>
-        <div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>{title}</div>
-          {sub && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>{sub}</div>}
-        </div>
-        {action}
-      </div>
-      {children}
-    </div>
-  )
+/* ── Relative time / friendly date for the activity feed ──────────────── */
+function relTime(dateStr) {
+  if (!dateStr) return ''
+  const hasTime = dateStr.length > 10
+  const d = new Date(dateStr)
+  if (Number.isNaN(d.getTime())) return ''
+  if (hasTime) {
+    const mins = Math.max(0, Math.floor((Date.now() - d.getTime()) / 60000))
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    return `${Math.floor(hrs / 24)}d ago`
+  }
+  // Date-only: weekday + nicely formatted date
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 /* ── Compact tank level row ───────────────────────────────────────────── */
@@ -120,144 +97,6 @@ function TankRow({ tank, balance }) {
         <span style={{ fontSize: '11px', color: THEME.textLow, marginLeft: '8px' }}>
           {Math.round(balance).toLocaleString()}{cap ? ` / ${cap.toLocaleString()}` : ''} L
         </span>
-      </div>
-    </div>
-  )
-}
-
-/* ── Donut fill gauge (SVG ring) ──────────────────────────────────────── */
-function DonutGauge({ pct }) {
-  const p = pct === null ? 0 : Math.min(100, Math.max(0, pct))
-  const clr = pct === null ? FUEL_CLR : pct < CRIT_PCT ? THEME.error : pct < WARN_PCT ? THEME.warning : ACCENT.teal
-  const R = 52, C = 2 * Math.PI * R
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
-      <svg width="140" height="140" viewBox="0 0 140 140">
-        <circle cx="70" cy="70" r={R} fill="none" stroke={THEME.surfaceVar} strokeWidth="12" />
-        <circle
-          cx="70" cy="70" r={R} fill="none" stroke={clr} strokeWidth="12" strokeLinecap="round"
-          strokeDasharray={`${(p / 100) * C} ${C}`} transform="rotate(-90 70 70)"
-          style={{ transition: 'stroke-dasharray .5s' }}
-        />
-        <text x="70" y="66" textAnchor="middle" fontSize="24" fontWeight="700" fill={THEME.text} fontFamily="inherit">
-          {pct !== null ? `${p.toFixed(0)}%` : '—'}
-        </text>
-        <text x="70" y="84" textAnchor="middle" fontSize="10" fill={THEME.textLow} fontFamily="inherit">
-          fill level
-        </text>
-      </svg>
-      <div style={{ display: 'flex', gap: '12px', fontSize: '10px', color: THEME.textLow, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {[[ACCENT.teal, `≥ ${WARN_PCT}%`], [THEME.warning, `${CRIT_PCT}–${WARN_PCT}%`], [THEME.error, `< ${CRIT_PCT}%`]].map(([c, l]) => (
-          <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: c, display: 'inline-block' }} />{l}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ── Smooth area chart (SVG, bezier through midpoint control points) ──── */
-function AreaChart({ data, color, height = 170 }) {
-  const W = 520, padL = 30, padR = 12, padT = 20, padB = 22
-  const H = height
-  const areaW = W - padL - padR
-  const areaH = H - padT - padB
-  const max = Math.max(...data.map(d => d.v), 1)
-  const n = data.length
-  const x = i => padL + (n > 1 ? (i / (n - 1)) * areaW : areaW / 2)
-  const y = v => padT + areaH - (v / max) * areaH
-
-  // Smooth cubic path: control points at horizontal midpoints
-  let line = `M ${x(0)} ${y(data[0].v)}`
-  for (let i = 1; i < n; i++) {
-    const x0 = x(i - 1), x1 = x(i)
-    const y0 = y(data[i - 1].v), y1 = y(data[i].v)
-    const mx = (x0 + x1) / 2
-    line += ` C ${mx} ${y0}, ${mx} ${y1}, ${x1} ${y1}`
-  }
-  const area = `${line} L ${x(n - 1)} ${padT + areaH} L ${x(0)} ${padT + areaH} Z`
-
-  const maxIdx = data.reduce((best, d, i) => (d.v > data[best].v ? i : best), 0)
-  const hasData = data.some(d => d.v > 0)
-  const gradId = `area-grad-${color.replace('#', '')}`
-
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: '360px', display: 'block' }}>
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[0.25, 0.5, 0.75, 1].map(f => (
-          <g key={f}>
-            <line x1={padL} x2={W - padR} y1={y(f * max)} y2={y(f * max)} stroke={THEME.outlineVar} strokeWidth="0.5" strokeDasharray="3 3" />
-            <text x={padL - 5} y={y(f * max) + 3} textAnchor="end" fontSize="8.5" fill={THEME.textLow} fontFamily="inherit">{fmtK(f * max)}</text>
-          </g>
-        ))}
-        <line x1={padL} x2={W - padR} y1={padT + areaH} y2={padT + areaH} stroke={THEME.outlineVar} strokeWidth="1" />
-        <path d={area} fill={`url(#${gradId})`} />
-        <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        {hasData && (
-          <g>
-            <circle cx={x(maxIdx)} cy={y(data[maxIdx].v)} r="4" fill={color} stroke={THEME.surface} strokeWidth="2" />
-            <text x={x(maxIdx)} y={y(data[maxIdx].v) - 8} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={THEME.textMed} fontFamily="inherit">
-              {fmtK(data[maxIdx].v)}
-            </text>
-          </g>
-        )}
-        {data.map((d, i) => (
-          (n <= 8 || i % 2 === 0) && (
-            <text key={i} x={x(i)} y={padT + areaH + 14} textAnchor="middle" fontSize="9" fill={THEME.textLow} fontFamily="inherit">{d.label}</text>
-          )
-        ))}
-      </svg>
-    </div>
-  )
-}
-
-/* ── Paired bar chart: deliveries vs issuances per week ───────────────── */
-function PairedBarChart({ data, colorA, colorB, labelA, labelB }) {
-  const W = 520, H = 180, padL = 8, padR = 8, padT = 20, padB = 22
-  const areaW = W - padL - padR
-  const areaH = H - padT - padB
-  const max = Math.max(...data.flatMap(d => [d.a, d.b]), 1)
-  const slot = areaW / data.length
-  const barW = Math.min(26, slot * 0.28)
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', fontSize: '11px', color: THEME.textMed }}>
-        {[[colorA, labelA], [colorB, labelB]].map(([c, l]) => (
-          <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: c, display: 'inline-block' }} />
-            {l}
-          </span>
-        ))}
-      </div>
-      <div style={{ overflowX: 'auto' }}>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: '360px', display: 'block' }}>
-          {[0.25, 0.5, 0.75, 1].map(f => (
-            <line key={f} x1={padL} x2={W - padR} y1={padT + areaH - f * areaH} y2={padT + areaH - f * areaH}
-              stroke={THEME.outlineVar} strokeWidth="0.5" strokeDasharray="3 3" />
-          ))}
-          <line x1={padL} x2={W - padR} y1={padT + areaH} y2={padT + areaH} stroke={THEME.outlineVar} strokeWidth="1" />
-          {data.map((d, i) => {
-            const cx = padL + i * slot + slot / 2
-            const hA = d.a > 0 ? Math.max(2, (d.a / max) * areaH) : 0
-            const hB = d.b > 0 ? Math.max(2, (d.b / max) * areaH) : 0
-            return (
-              <g key={i}>
-                {hA > 0 && <rect x={cx - barW - 2} y={padT + areaH - hA} width={barW} height={hA} rx={3} fill={colorA} opacity="0.85" />}
-                {hB > 0 && <rect x={cx + 2} y={padT + areaH - hB} width={barW} height={hB} rx={3} fill={colorB} opacity="0.85" />}
-                {d.a > 0 && <text x={cx - barW / 2 - 2} y={padT + areaH - hA - 5} textAnchor="middle" fontSize="9" fontWeight="600" fill={THEME.textMed} fontFamily="inherit">{fmtK(d.a)}</text>}
-                {d.b > 0 && <text x={cx + barW / 2 + 2} y={padT + areaH - hB - 5} textAnchor="middle" fontSize="9" fontWeight="600" fill={THEME.textMed} fontFamily="inherit">{fmtK(d.b)}</text>}
-                <text x={cx} y={padT + areaH + 14} textAnchor="middle" fontSize="9" fill={THEME.textLow} fontFamily="inherit">{d.label}</text>
-              </g>
-            )
-          })}
-        </svg>
       </div>
     </div>
   )

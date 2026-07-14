@@ -29,14 +29,14 @@ export default function LeaveReport({ setPage }) {
       const [reqRes, allocRes, empRes] = await Promise.all([
         supabase
           .from('leave_requests')
-          .select('id, employee_id, leave_type_id, start_date, end_date, days, status, leave_type:leave_types(id, name)')
+          .select('id, employee_id, leave_type_id, start_date, end_date, days_requested, status, leave_type:leave_types(id, name)')
           .eq('site_id', currentSiteId)
           .in('status', ['approved', 'taken'])
           .gte('start_date', fromDate)
           .lte('start_date', toDate),
         supabase
           .from('leave_allocations')
-          .select('id, employee_id, leave_type_id, days_allocated, days_used, year, leave_type:leave_types(id, name)')
+          .select('id, employee_id, leave_type_id, allocated_days, used_days, year, leave_type:leave_types(id, name)')
           .eq('site_id', currentSiteId),
         supabase
           .from('employees')
@@ -67,7 +67,7 @@ export default function LeaveReport({ setPage }) {
     const byType = {}
     leaveRequests.forEach(r => {
       const name = r.leave_type?.name || 'Unknown'
-      byType[name] = (byType[name] || 0) + (r.days || 0)
+      byType[name] = (byType[name] || 0) + (r.days_requested || 0)
     })
     const totalDays = Object.values(byType).reduce((s, v) => s + v, 0)
 
@@ -77,8 +77,8 @@ export default function LeaveReport({ setPage }) {
     // Leave balances per employee (current year allocations)
     const currentYear = new Date().getFullYear()
     const yearAllocs = allocations.filter(a => a.year === currentYear)
-    const totalAllocated = yearAllocs.reduce((s, a) => s + (a.days_allocated || 0), 0)
-    const totalUsed = yearAllocs.reduce((s, a) => s + (a.days_used || 0), 0)
+    const totalAllocated = yearAllocs.reduce((s, a) => s + (a.allocated_days || 0), 0)
+    const totalUsed = yearAllocs.reduce((s, a) => s + (a.used_days || 0), 0)
     const utilRate = totalAllocated > 0 ? ((totalUsed / totalAllocated) * 100).toFixed(1) : '0.0'
 
     // Per-employee balance summary
@@ -88,8 +88,8 @@ export default function LeaveReport({ setPage }) {
         const emp = empMap[a.employee_id]
         balanceByEmp[a.employee_id] = { name: emp?.name || 'Unknown', empNo: emp?.employee_number || '-', allocated: 0, used: 0 }
       }
-      balanceByEmp[a.employee_id].allocated += a.days_allocated || 0
-      balanceByEmp[a.employee_id].used += a.days_used || 0
+      balanceByEmp[a.employee_id].allocated += a.allocated_days || 0
+      balanceByEmp[a.employee_id].used += a.used_days || 0
     })
     const balances = Object.values(balanceByEmp).map(b => ({ ...b, remaining: b.allocated - b.used }))
       .sort((a, b) => a.remaining - b.remaining)

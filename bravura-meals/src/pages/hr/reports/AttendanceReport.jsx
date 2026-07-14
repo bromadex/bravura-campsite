@@ -28,7 +28,7 @@ export default function AttendanceReport({ setPage }) {
       const [logRes, empRes] = await Promise.all([
         supabase
           .from('attendance_logs')
-          .select('id, employee_id, date, status, check_in, check_out, overtime_hours, notes')
+          .select('id, employee_id, date, is_absent, is_late, clock_in, clock_out, hours_worked, overtime_hours, notes')
           .eq('site_id', currentSiteId)
           .gte('date', fromDate)
           .lte('date', toDate),
@@ -39,7 +39,14 @@ export default function AttendanceReport({ setPage }) {
       ])
       if (logRes.error) throw logRes.error
       if (empRes.error) throw empRes.error
-      setLogs(logRes.data || [])
+      // Schema uses is_absent/is_late + clock_in/out — derive the shape the
+      // report renders (status, check_in/out)
+      setLogs((logRes.data || []).map(l => ({
+        ...l,
+        status: l.is_absent ? 'absent' : l.is_late ? 'late' : 'present',
+        check_in: l.clock_in,
+        check_out: l.clock_out,
+      })))
       setEmployees((empRes.data || []).filter(e => !e.is_archived))
     } catch (err) {
       console.error('AttendanceReport fetch:', err)

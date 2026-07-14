@@ -1,13 +1,18 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { supabase } from '../../supabaseClient'
 import { primaryTank } from '../../utils/tanks'
+import { buildForecast } from '../../utils/forecast'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Card, Icon, fmtDate } from '../../components/ui'
+import { KpiCard, SectionTitle } from '../../components/dash'
 import FuelQuickNav from './FuelQuickNav'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 const TANK_CLR = '#00897B'
+const DAY_MS = 86400000
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 const RATE_WINDOWS = [
   { key: '7d',  label: '7-day',  days: 7  },
@@ -24,14 +29,48 @@ function avgDailyRate(issuances, days) {
   return total / days
 }
 
+/** Walk a per-day consumption path down from `start`; returns days until level ≤ threshold (null if never). */
+function daysUntil(start, threshold, path, pick) {
+  let level = start
+  if (level <= threshold) return 0
+  for (let i = 0; i < path.length; i++) {
+    level -= pick(path[i])
+    if (level <= threshold) return i + 1
+  }
+  return null
+}
+
+const addDays = d => new Date(Date.now() + d * DAY_MS)
+
 export default function Forecasting({ setPage }) {
-  const { currentSite } = useSite()
+  const { currentSite, currentSiteId } = useSite()
   const { tanks, transactions, loading } = useFuel()
   const [rateWindow, setRateWindow] = useState('14d')
   const [tankSel, setTankSel] = useState('')
+  const [history, setHistory] = useState(null) // 90-day issuance rows for selected tank
 
   const activeTanks = useMemo(() => tanks.filter(t => t.status === 'active' && !t.is_archived), [tanks])
   const tank = useMemo(() => activeTanks.find(t => t.id === tankSel) || primaryTank(activeTanks), [activeTanks, tankSel])
+
+  // Fetch a full 90 days of issuances for the model (context window is only ~30 days).
+  useEffect(() => {
+    if (!tank || !currentSiteId) { setHistory(null); return }
+    let cancelled = false
+    const from = new Date(Date.now() - 90 * DAY_MS).toISOString().slice(0, 10)
+    supabase
+      .from('fuel_transactions')
+      .select('transaction_date, litres')
+      .eq('site_id', currentSiteId)
+      .eq('tank_id', tank.id)
+      .eq('transaction_type', 'issuance')
+      .eq('is_deleted', false)
+      .gte('transaction_date', from)
+      .order('transaction_date', { ascending: true })
+      .then(({ data, error }) => {
+        if (!cancelled) setHistory(error ? [] : (data || []))
+      })
+    return () => { cancelled = true }
+  }, [tank?.id, currentSiteId])
 
   const issuances = useMemo(() => {
     if (!tank) return []
@@ -50,6 +89,58 @@ export default function Forecasting({ setPage }) {
   const reorderPct = tank ? Number(tank.min_threshold_percent) || 20 : 20
   const reorderLevel = capacity * (reorderPct / 100)
   const pctFull = capacity ? Math.min(100, Math.max(0, (current / capacity) * 100)) : 0
+
+  // ── Statistical model: daily series (gaps = 0) → buildForecast ──
+  const model = useMemo(() => {
+    if (!history || !history.length) return null
+    const byDay = new Map()
+    for (const t of history) {
+      byDay.set(t.transaction_date, (byDay.get(t.transaction_date) || 0) + Number(t.litres))
+    }
+    const first = new Date(history[0].transaction_date + 'T00:00:00Z')
+    const yesterday = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')
+    const series = []
+    for (let d = new Date(first); d <= yesterday; d = new Date(d.getTime() + DAY_MS)) {
+      const key = d.toISOString().slice(0, 10)
+      series.push({ date: key, litres: byDay.get(key) || 0 })
+    }
+    if (!series.length) return null
+    const fc = buildForecast(series, 60)
+    if (!fc.dailyForecast.length || fc.avgDaily <= 0) return null
+    return fc
+  }, [history])
+
+  // ── Simulate tank level along expected / low / high consumption paths ──
+  const smart = useMemo(() => {
+    if (!model || !tank) return null
+    const path = model.dailyForecast
+    const depleteExpected = daysUntil(current, 0, path, p => p.expected)
+    const depleteEarliest = daysUntil(current, 0, path, p => p.high) // heavy use → runs out sooner
+    const depleteLatest   = daysUntil(current, 0, path, p => p.low)  // light use → lasts longer
+    const reorderDays     = daysUntil(current, reorderLevel, path, p => p.expected)
+
+    // 30-day level curves for the chart
+    const curve = []
+    let lvE = current, lvL = current, lvH = current
+    for (let i = 0; i < Math.min(30, path.length); i++) {
+      lvE = Math.max(0, lvE - path[i].expected)
+      lvL = Math.max(0, lvL - path[i].low)   // optimistic: higher remaining level
+      lvH = Math.max(0, lvH - path[i].high)  // pessimistic: lower remaining level
+      curve.push({ date: path[i].date, expected: lvE, best: lvL, worst: lvH })
+    }
+
+    const peakIdx = model.seasonality.indexOf(Math.max(...model.seasonality))
+    const fillTo90 = capacity * 0.9
+    return {
+      depleteExpected, depleteEarliest, depleteLatest, reorderDays, curve,
+      peakDay: WEEKDAYS[peakIdx],
+      peakFactor: model.seasonality[peakIdx],
+      trendPerWeek: model.trendPerDay * 7,
+      confidence: model.r2 < 0.2 ? 'Low' : model.r2 < 0.5 ? 'Medium' : 'High',
+      recommendedOrder: Math.max(0, fillTo90 - current),
+      fillTo90,
+    }
+  }, [model, tank, current, reorderLevel, capacity])
 
   const forecast = useMemo(() => {
     if (!activeRate || activeRate <= 0) return null
@@ -91,6 +182,10 @@ export default function Forecasting({ setPage }) {
     fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
   }
 
+  const trendRising = smart && smart.trendPerWeek > 0.05
+  const trendFalling = smart && smart.trendPerWeek < -0.05
+  const confClr = smart?.confidence === 'High' ? THEME.success : smart?.confidence === 'Medium' ? THEME.warning : THEME.error
+
   return (
     <div style={{ maxWidth: '1100px' }}>
       <FuelQuickNav setPage={setPage} current="fuel_forecasting" />
@@ -128,6 +223,96 @@ export default function Forecasting({ setPage }) {
               <span>{capacity.toLocaleString()} L</span>
             </div>
           </Card>
+
+          {/* ── Smart Forecast (statistical model) ── */}
+          <SectionTitle
+            title="Smart Forecast"
+            subtitle="Statistical forecast from your last 90 days of issuances (trend + weekday pattern)"
+          />
+          {!smart ? (
+            <Card style={{ padding: '30px', marginBottom: '24px', textAlign: 'center', color: THEME.textLow, fontSize: '13px' }}>
+              {history === null ? 'Loading issuance history…' : 'Not enough issuance history yet to build a statistical forecast.'}
+            </Card>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                <KpiCard
+                  icon="event_busy"
+                  accent={THEME.error}
+                  label="Expected depletion"
+                  value={smart.depleteExpected === null ? '60+ days' : fmtDate(addDays(smart.depleteExpected).toISOString().slice(0, 10))}
+                  sub={
+                    smart.depleteExpected === null
+                      ? 'Tank outlasts the 60-day forecast horizon'
+                      : `Between ${smart.depleteEarliest !== null ? fmtDate(addDays(smart.depleteEarliest).toISOString().slice(0, 10)) : '60+ days'} and ${smart.depleteLatest !== null ? fmtDate(addDays(smart.depleteLatest).toISOString().slice(0, 10)) : '60+ days'}`
+                  }
+                  progress={smart.depleteExpected === null ? 5 : Math.max(5, 100 - (smart.depleteExpected / 60) * 100)}
+                />
+                <KpiCard
+                  icon={trendRising ? 'trending_up' : trendFalling ? 'trending_down' : 'trending_flat'}
+                  accent={trendRising ? THEME.warning : trendFalling ? THEME.success : FUEL_CLR}
+                  label="Consumption trend"
+                  value={trendRising ? 'Rising' : trendFalling ? 'Falling' : 'Steady'}
+                  sub={
+                    Math.abs(smart.trendPerWeek) < 0.05
+                      ? 'No meaningful trend in daily usage'
+                      : `${trendRising ? 'Rising' : 'Falling'} ~${Math.abs(smart.trendPerWeek).toFixed(1)} L/day per week`
+                  }
+                  progress={Math.min(100, Math.abs(smart.trendPerWeek) * 10)}
+                />
+                <KpiCard
+                  icon="query_stats"
+                  accent={confClr}
+                  label="Model confidence"
+                  value={smart.confidence}
+                  sub={`R² ${(model.r2 * 100).toFixed(0)}% · daily variation ±${model.sigma.toFixed(1)} L`}
+                  progress={Math.min(100, model.r2 * 100)}
+                />
+                <KpiCard
+                  icon="calendar_view_week"
+                  accent={FUEL_CLR}
+                  label="Weekday peak"
+                  value={smart.peakFactor > 1.001 ? smart.peakDay : 'None'}
+                  sub={
+                    smart.peakFactor > 1.001
+                      ? `${smart.peakDay}s run ~${Math.round((smart.peakFactor - 1) * 100)}% above average`
+                      : 'Consumption is even across weekdays'
+                  }
+                  progress={Math.min(100, (smart.peakFactor - 1) * 200)}
+                />
+              </div>
+
+              <Card style={{ padding: '20px 22px', marginBottom: '14px' }}>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text }}>Projected Tank Level — Next 30 Days</div>
+                <div style={{ fontSize: '12px', color: THEME.textLow, marginBottom: '14px' }}>
+                  Expected path with ±1σ confidence band · dashed line = reorder threshold ({reorderLevel.toLocaleString(undefined, { maximumFractionDigits: 0 })} L)
+                </div>
+                <LevelBandChart curve={smart.curve} startLevel={current} capacity={capacity} reorderLevel={reorderLevel} color={FUEL_CLR} />
+              </Card>
+
+              <Card style={{ padding: '20px 22px', marginBottom: '24px', borderLeft: `4px solid ${FUEL_CLR}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <div style={{
+                    width: '42px', height: '42px', borderRadius: '50%', background: FUEL_CLR + '18',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <Icon name="local_shipping" size={20} style={{ color: FUEL_CLR }} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>Recommended Order</div>
+                    <div style={{ fontSize: '12px', color: THEME.textLow }}>
+                      Order <b style={{ color: FUEL_CLR }}>{Math.round(smart.recommendedOrder).toLocaleString()} L</b> to fill the tank to 90% ({Math.round(smart.fillTo90).toLocaleString()} L).
+                      {' '}On the model's expected path the tank {smart.reorderDays === null
+                        ? 'stays above the reorder threshold for the next 60 days'
+                        : smart.reorderDays === 0
+                          ? 'is already at or below the reorder threshold — order now'
+                          : `crosses the reorder threshold in ~${smart.reorderDays} day${smart.reorderDays !== 1 ? 's' : ''} (${fmtDate(addDays(smart.reorderDays).toISOString().slice(0, 10))})`}.
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </>
+          )}
 
           {/* ── Consumption Rates ── */}
           <Card style={{ padding: '20px 22px', marginBottom: '20px' }}>
@@ -177,7 +362,7 @@ export default function Forecasting({ setPage }) {
           {/* ── Forecast ── */}
           <Card style={{ padding: '20px 22px', marginBottom: '20px' }}>
             <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, marginBottom: '14px' }}>
-              Forecast (using {RATE_WINDOWS.find(w => w.key === rateWindow)?.label})
+              Simple Forecast (using {RATE_WINDOWS.find(w => w.key === rateWindow)?.label} average)
             </div>
             {!forecast ? (
               <div style={{ textAlign: 'center', padding: '20px', color: THEME.textLow, fontSize: '13px' }}>
@@ -266,6 +451,89 @@ export default function Forecasting({ setPage }) {
             )}
           </Card>
         </>
+      )}
+    </div>
+  )
+}
+
+/** SVG area chart of projected tank level with ±1σ confidence band and dashed reorder line. */
+function LevelBandChart({ curve, startLevel, capacity, reorderLevel, color }) {
+  const [hover, setHover] = useState(null)
+  const W = 960, H = 260, PAD = { top: 16, right: 14, bottom: 26, left: 52 }
+  const innerW = W - PAD.left - PAD.right
+  const innerH = H - PAD.top - PAD.bottom
+  const maxY = Math.max(capacity || 0, startLevel, ...curve.map(c => c.best), 1)
+
+  const pts = [{ date: 'today', expected: startLevel, best: startLevel, worst: startLevel }, ...curve]
+  const x = i => PAD.left + (i / (pts.length - 1)) * innerW
+  const y = v => PAD.top + innerH - (v / maxY) * innerH
+  const line = key => pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ')
+
+  const bandPath = line('best') + ' ' +
+    pts.map((p, i) => `L${x(pts.length - 1 - i).toFixed(1)},${y(pts[pts.length - 1 - i].worst).toFixed(1)}`).join(' ') + ' Z'
+  const areaPath = line('expected') + ` L${x(pts.length - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z`
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxY)
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="fcArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.28" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {yTicks.map(v => (
+          <g key={v}>
+            <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} stroke={THEME.outlineVar} strokeWidth="1" />
+            <text x={PAD.left - 8} y={y(v) + 3} fontSize="10" fill={THEME.textLow} textAnchor="end">
+              {v >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v)}
+            </text>
+          </g>
+        ))}
+        {/* confidence band */}
+        <path d={bandPath} fill={color} opacity="0.13" />
+        {/* expected area + line */}
+        <path d={areaPath} fill="url(#fcArea)" />
+        <path d={line('expected')} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" />
+        <path d={line('best')} fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.6" />
+        <path d={line('worst')} fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.6" />
+        {/* reorder threshold */}
+        <line x1={PAD.left} x2={W - PAD.right} y1={y(reorderLevel)} y2={y(reorderLevel)} stroke={THEME.warning} strokeWidth="1.5" strokeDasharray="6 4" />
+        <text x={W - PAD.right} y={y(reorderLevel) - 5} fontSize="10" fill={THEME.warning} fontWeight="600" textAnchor="end">Reorder threshold</text>
+        {/* hover targets + x labels */}
+        {pts.map((p, i) => (
+          <g key={i}>
+            <rect
+              x={x(i) - innerW / (pts.length - 1) / 2} y={PAD.top} width={innerW / (pts.length - 1)} height={innerH}
+              fill="transparent"
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+            />
+            {i > 0 && (i % 5 === 0 || i === pts.length - 1) && (
+              <text x={x(i)} y={H - 8} fontSize="9" fill={THEME.textLow} textAnchor="middle">{p.date.slice(5)}</text>
+            )}
+          </g>
+        ))}
+        {hover !== null && (
+          <g pointerEvents="none">
+            <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + innerH} stroke={THEME.textLow} strokeWidth="1" strokeDasharray="3 3" />
+            <circle cx={x(hover)} cy={y(pts[hover].expected)} r="4" fill={color} stroke={THEME.surface} strokeWidth="1.5" />
+          </g>
+        )}
+      </svg>
+      {hover !== null && (
+        <div style={{
+          position: 'absolute', left: `${(x(hover) / W) * 100}%`, top: `${(y(pts[hover].expected) / H) * 100}%`,
+          transform: `translate(${hover > pts.length * 0.7 ? '-105%' : '8px'}, -50%)`,
+          background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
+          borderRadius: '8px', padding: '7px 11px', boxShadow: THEME.shadow2,
+          pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 5, fontSize: '12px', color: THEME.text,
+        }}>
+          <b>{hover === 0 ? 'Today' : pts[hover].date}</b><br />
+          Expected: {Math.round(pts[hover].expected).toLocaleString()} L<br />
+          <span style={{ color: THEME.textLow }}>Range: {Math.round(pts[hover].worst).toLocaleString()}–{Math.round(pts[hover].best).toLocaleString()} L</span>
+        </div>
       )}
     </div>
   )

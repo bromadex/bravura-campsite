@@ -265,14 +265,34 @@ export default function FuelReports({ setPage }) {
       .map(([label, value]) => ({ label, value }))
   }, [issuances])
 
-  // ── Tank level over time (dip readings) ──
+  // ── Tank level over time ──
+  // Dipstick tanks: plot dip readings (the source of truth).
+  // Issuance-tracked tanks (no dipstick): reconstruct the running balance
+  // from the current level backwards through deliveries/issuances.
   const dipTankId = tankSel || activeTanks[0]?.id || ''
   const tankLevelPoints = useMemo(() => {
+    const tank = tanks.find(t => t.id === dipTankId)
+    if (tank?.level_tracking_method === 'issuance') {
+      const txns = transactions
+        .filter(t => t.tank_id === dipTankId && !t.is_deleted &&
+          (t.transaction_type === 'issuance' || t.transaction_type === 'delivery'))
+        .sort((a, b) => b.transaction_date.localeCompare(a.transaction_date))
+      let level = Number(tank.current_level_litres) || 0
+      const byDate = new Map([[new Date().toISOString().slice(0, 10), level]])
+      for (const t of txns) {
+        // walk backwards: undo each transaction to get the level before it
+        level += t.transaction_type === 'issuance' ? Number(t.litres) : -Number(t.litres)
+        byDate.set(t.transaction_date, Math.max(0, level))
+      }
+      return [...byDate.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, v]) => ({ label: date.slice(5), value: v }))
+    }
     return dipReadings
       .filter(d => d.tank_id === dipTankId)
       .sort((a, b) => a.reading_date.localeCompare(b.reading_date))
       .map(d => ({ label: d.reading_date.slice(5), value: Number(d.level_litres) }))
-  }, [dipReadings, dipTankId])
+  }, [dipReadings, dipTankId, tanks, transactions])
 
   // ── Predicted empty / next order date ──
   const prediction = useMemo(() => {

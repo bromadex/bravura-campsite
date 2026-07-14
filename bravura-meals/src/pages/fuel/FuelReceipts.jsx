@@ -96,11 +96,12 @@ export default function FuelReceipts() {
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
   const userId = profile?.id
-  const { tanks, employees, addTransaction, deleteDelivery, refresh: refreshFuel } = useFuel()
+  const { tanks, employees, addTransaction, deleteDelivery, softDeleteTransaction, refresh: refreshFuel } = useFuel()
 
   const canCreate  = can('fuel.create')
   const canView    = can('fuel.view')
   const canApprove = can('fuel.approve')
+  const canDelete  = can('fuel.delete')
 
   const [showForm,   setShowForm]   = useState(false)
   const [form,       setForm]       = useState(BLANK_FORM)
@@ -437,6 +438,18 @@ export default function FuelReceipts() {
       showToast(err.message || 'Failed to delete delivery', 'red')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function deleteLegacyRow(txnId) {
+    if (!confirm('Delete this legacy transaction record? It will be archived, not permanently removed.')) return
+    try {
+      await softDeleteTransaction(txnId, 'Legacy delivery row removed from Tank Deliveries')
+      showToast('Legacy record archived', 'green')
+      fetchDeliveries()
+      refreshFuel()
+    } catch (err) {
+      showToast(err.message || 'Failed to delete record', 'red')
     }
   }
 
@@ -828,6 +841,7 @@ export default function FuelReceipts() {
               <Th>Delivery Note</Th>
               <Th>Status</Th>
               <Th>Recorded By</Th>
+              {canDelete && <Th> </Th>}
             </THead>
             <tbody>
               {filtered.map((r, idx) => {
@@ -874,6 +888,19 @@ export default function FuelReceipts() {
                     <Td style={{ fontSize: '12px', color: THEME.textMed }}>
                       {r.created_profile?.full_name || '—'}
                     </Td>
+                    {canDelete && (
+                      <Td align="right">
+                        {r._from_txn && (
+                          <button
+                            onClick={e => { e.stopPropagation(); deleteLegacyRow(r.id) }}
+                            title="Delete legacy record"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center' }}
+                          >
+                            <Icon name="delete" size={16} style={{ color: THEME.error }} />
+                          </button>
+                        )}
+                      </Td>
+                    )}
                   </TRow>
                 )
               })}

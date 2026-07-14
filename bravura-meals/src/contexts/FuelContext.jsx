@@ -589,12 +589,53 @@ export function FuelProvider({ children }) {
   }
 
   async function deleteDelivery(id) {
+    // Fetch the delivery first so we can find its companion transaction
+    const { data: delivery } = await supabase
+      .from('fuel_deliveries')
+      .select('tank_id, delivery_date, quantity_delivered')
+      .eq('id', id)
+      .eq('site_id', currentSiteId)
+      .maybeSingle()
+
     const { error } = await supabase
       .from('fuel_deliveries')
       .update({ is_archived: true, archived_at: new Date().toISOString() })
       .eq('id', id)
       .eq('site_id', currentSiteId)
     if (error) throw error
+
+    // Also soft-delete at most one matching companion fuel_transactions row
+    // (each delivery save also writes a transaction). Non-fatal if none found.
+    if (delivery?.tank_id) {
+      try {
+        const { data: match } = await supabase
+          .from('fuel_transactions')
+          .select('id')
+          .eq('site_id', currentSiteId)
+          .eq('transaction_type', 'delivery')
+          .eq('tank_id', delivery.tank_id)
+          .eq('transaction_date', delivery.delivery_date)
+          .eq('litres', delivery.quantity_delivered)
+          .eq('is_deleted', false)
+          .limit(1)
+        if (match?.[0]) {
+          await supabase
+            .from('fuel_transactions')
+            .update({
+              is_deleted: true,
+              deleted_at: new Date().toISOString(),
+              deleted_by: userId,
+              updated_by: userId,
+              edit_reason: 'Companion of deleted delivery',
+            })
+            .eq('id', match[0].id)
+            .eq('site_id', currentSiteId)
+          setTransactions(prev => prev.filter(t => t.id !== match[0].id))
+        }
+      } catch (e) {
+        console.error('Companion transaction cleanup failed:', e?.message || e)
+      }
+    }
   }
 
   const value = useMemo(() => ({

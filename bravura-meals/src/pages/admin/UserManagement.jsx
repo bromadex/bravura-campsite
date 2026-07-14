@@ -2,12 +2,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
+import { useAuth } from '../../auth/AuthContext'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, initials, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 
 const MODULE_COLOR = '#5C6BC0' // matches MODULE_COLORS.admin in permissions.js
 
 export default function UserManagement() {
   const { can } = usePermissions()
+  const { profile: myProfile } = useAuth()
   const canEdit = can('users.edit') || can('users.create')
 
   const [profiles,   setProfiles]   = useState([])
@@ -24,18 +26,23 @@ export default function UserManagement() {
   const [newSiteId,    setNewSiteId]    = useState('ALL') // 'ALL' = every site (site_id null)
   const [adding,       setAdding]       = useState(false)
   const [revokeTarget, setRevokeTarget] = useState(null) // the user_roles row being revoked
+  const [deactivateTarget, setDeactivateTarget] = useState(null) // profile pending full deactivation
+  const [suspendBusy, setSuspendBusy] = useState(false)
 
   useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
     setLoading(true)
     const [pRes, rRes, sRes, urRes] = await Promise.all([
+      // '*' includes is_suspended + suspended_at
       supabase.from('profiles').select('*').order('username'),
       supabase.from('roles').select('*').order('name'),
       supabase.from('sites').select('*').eq('is_active', true).order('name'),
       supabase.from('user_roles').select('*, role:roles(id,name), site:sites(id,name,code)'),
     ])
     setProfiles(pRes.data || [])
+    // Keep the open Manage modal in sync (e.g. after suspend/reactivate)
+    setManageTarget(prev => prev ? ((pRes.data || []).find(p => p.id === prev.id) || prev) : prev)
     setRoles(rRes.data || [])
     setSites(sRes.data || [])
     setUserRoles(urRes.data || [])
@@ -117,6 +124,52 @@ export default function UserManagement() {
     fetchAll()
   }
 
+  async function setSuspended(userId, suspend) {
+    setSuspendBusy(true)
+    try {
+      const { error } = await supabase.rpc('rpc_set_user_suspended', { p_user_id: userId, p_suspend: suspend })
+      if (error) throw error
+      showToast(suspend ? 'User suspended — they can no longer sign in' : 'User reactivated', suspend ? 'red' : 'green')
+      await fetchAll()
+    } catch (err) {
+      showToast(err.message, 'red')
+    } finally {
+      setSuspendBusy(false)
+    }
+  }
+
+  async function confirmDeactivate() {
+    if (!deactivateTarget) return
+    const target = deactivateTarget
+    setDeactivateTarget(null)
+    setSuspendBusy(true)
+    try {
+      const theirGrants = userRoles.filter(ur => ur.user_id === target.id)
+      // Same safety net as single-role revoke: never remove the last
+      // System Administrator grant in the whole system.
+      const removesSysAdmin = theirGrants.some(ur => ur.role?.name === 'System Administrator')
+      const remainingSysAdmins = userRoles.filter(ur =>
+        ur.role?.name === 'System Administrator' && ur.user_id !== target.id
+      ).length
+      if (removesSysAdmin && remainingSysAdmins === 0) {
+        showToast('Cannot deactivate the last System Administrator — this would lock everyone out.', 'red')
+        return
+      }
+      if (theirGrants.length > 0) {
+        const { error: revokeErr } = await supabase.from('user_roles').delete().eq('user_id', target.id)
+        if (revokeErr) throw revokeErr
+      }
+      const { error } = await supabase.rpc('rpc_set_user_suspended', { p_user_id: target.id, p_suspend: true })
+      if (error) throw error
+      showToast('User deactivated — all roles revoked and sign-in blocked', 'red')
+      await fetchAll()
+    } catch (err) {
+      showToast(err.message, 'red')
+    } finally {
+      setSuspendBusy(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader title={<>Users & Roles <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '6px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{profiles.length}</span></>} />
@@ -170,7 +223,7 @@ export default function UserManagement() {
               return (
                 <TRow key={p.id}>
                   <Td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', opacity: p.is_suspended ? 0.55 : 1 }}>
                       <div style={{
                         width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -179,7 +232,17 @@ export default function UserManagement() {
                         {initials(p.full_name || p.username)}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600, color: THEME.text }}>{p.full_name || p.username}</div>
+                        <div style={{ fontWeight: 600, color: THEME.text, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {p.full_name || p.username}
+                          {p.is_suspended && (
+                            <span style={{
+                              padding: '1px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: 700,
+                              background: THEME.statusErrorBg, color: THEME.statusErrorText, letterSpacing: '0.3px',
+                            }}>
+                              Suspended
+                            </span>
+                          )}
+                        </div>
                         <div style={{ fontSize: '11px', color: THEME.textLow }}>@{p.username}</div>
                       </div>
                     </div>
@@ -276,6 +339,53 @@ export default function UserManagement() {
         <div style={{ marginTop: '10px', fontSize: '11px', color: THEME.textLow }}>
           "All Sites" means this role's permissions apply everywhere, including any site created in the future.
         </div>
+
+        {can('users.edit') && manageTarget && manageTarget.id !== myProfile?.id && (
+          <div style={{ marginTop: '22px', paddingTop: '14px', borderTop: `1px solid ${THEME.outline}` }}>
+            <SectionLabel>Danger Zone</SectionLabel>
+            {manageTarget.is_suspended ? (
+              <>
+                <Button
+                  onClick={() => setSuspended(manageTarget.id, false)}
+                  disabled={suspendBusy}
+                  icon="how_to_reg"
+                  style={{ width: '100%', justifyContent: 'center', background: THEME.statusSuccessBg, color: THEME.statusSuccessText, border: 'none' }}
+                >
+                  {suspendBusy ? 'Working…' : 'Reactivate user'}
+                </Button>
+                <div style={{ marginTop: '8px', fontSize: '11px', color: THEME.textLow }}>
+                  Reactivating restores sign-in. If their roles were removed on deactivation,
+                  re-assign them manually above.
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <Button
+                    onClick={() => setSuspended(manageTarget.id, true)}
+                    disabled={suspendBusy}
+                    icon="pause_circle"
+                    style={{ justifyContent: 'center', background: THEME.statusWarningBg, color: THEME.statusWarningText, border: 'none' }}
+                  >
+                    {suspendBusy ? 'Working…' : 'Suspend user'}
+                  </Button>
+                  <Button
+                    onClick={() => setDeactivateTarget(manageTarget)}
+                    disabled={suspendBusy}
+                    icon="person_off"
+                    style={{ justifyContent: 'center', background: THEME.statusErrorBg, color: THEME.statusErrorText, border: 'none' }}
+                  >
+                    Deactivate user
+                  </Button>
+                </div>
+                <div style={{ marginTop: '8px', fontSize: '11px', color: THEME.textLow }}>
+                  Suspend blocks sign-in but keeps roles. Deactivate also removes every role assignment.
+                  Suspension blocks sign-in only — nothing the user recorded is deleted.
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </Modal>
 
       {/* Revoke confirm */}
@@ -286,6 +396,17 @@ export default function UserManagement() {
         title="Revoke this role?"
         message={`Remove "${revokeTarget?.role?.name}" (${revokeTarget?.site?.name || 'All Sites'}) from ${manageTarget?.full_name || manageTarget?.username}?`}
         confirmLabel="Revoke"
+        danger
+      />
+
+      {/* Deactivate confirm */}
+      <ConfirmModal
+        open={!!deactivateTarget}
+        onClose={() => setDeactivateTarget(null)}
+        onConfirm={confirmDeactivate}
+        title="Deactivate this user?"
+        message="Deactivate this user? They will be signed out and lose all role access. Everything they ever recorded stays intact."
+        confirmLabel="Deactivate"
         danger
       />
     </div>

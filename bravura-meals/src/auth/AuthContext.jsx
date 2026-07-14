@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
 const AuthContext = createContext(null)
@@ -7,6 +7,9 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  // Guards against the suspension alert firing twice (init + auth listener
+  // can both fetch the profile during session restore).
+  const suspendedAlertShown = useRef(false)
 
   async function fetchProfile(userId) {
     const { data, error } = await supabase
@@ -20,7 +23,22 @@ export function AuthProvider({ children }) {
       // logged in" at all, which is the root of the refresh-to-login bug.
       console.error('fetchProfile error:', error)
     }
-    if (!error && data) setProfile(data)
+    if (!error && data) {
+      if (data.is_suspended) {
+        // Suspended accounts must never render as signed-in: sign out
+        // immediately and clear local auth state before anything mounts.
+        await supabase.auth.signOut()
+        setUser(null)
+        setProfile(null)
+        if (!suspendedAlertShown.current) {
+          suspendedAlertShown.current = true
+          alert('This account has been suspended. Contact your administrator.')
+        }
+        return
+      }
+      suspendedAlertShown.current = false
+      setProfile(data)
+    }
   }
 
   useEffect(() => {

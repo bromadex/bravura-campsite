@@ -100,7 +100,7 @@ export function FuelProvider({ children }) {
     const [txRes, dRes] = await Promise.all([
       supabase
         .from('fuel_transactions')
-        .select('*, fleet_asset:fleet_assets(id, asset_number, fleet_number, registration, description, serial_number, department_id, department_name), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
+        .select('*, fleet_asset:fleet_assets(id, asset_number, fleet_number, registration, description, serial_number, department_id, department_name, fleet_asset_types(id, name, category)), operator:fuel_operators(id, employee:employees(id, name)), approved_by_profile:profiles!fuel_transactions_approved_by_fkey(id, full_name)')
         .eq('site_id', currentSiteId)
         .eq('is_deleted', false)
         .gte('transaction_date', from)
@@ -177,6 +177,7 @@ export function FuelProvider({ children }) {
           asset_reg:        t.fleet_asset?.registration || t.fleet_asset?.serial_number || '',
           purpose:          t.notes || '',
           issued_by_name:   null,
+          operator_name:    t.operator?.employee?.name || null,
           approved_by_name: t.approved_by_profile?.full_name || null,
           received_by:      null,
         }

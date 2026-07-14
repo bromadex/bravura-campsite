@@ -451,13 +451,16 @@ export default function FuelReceipts() {
         .eq('site_id', currentSiteId)
       if (error) throw error
 
-      // Update tank level on confirm: prefer the dip_after reading (only if
-      // this is the latest reading); if no dip was taken, fall back to
-      // adding the delivered quantity to the tank's current level so a
-      // confirmed delivery never leaves the tank level untouched.
+      // Update tank level on confirm.
+      // Dipstick tanks: the dip reading is the ONLY source of truth — set the
+      // level from dip_after when it's the latest reading, otherwise leave the
+      // level alone (never add delivered quantity on top of a dip level).
+      // Issuance-tracked tanks (no dipstick): running balance, so add the
+      // delivered quantity.
       if (form.tank_id) {
         const tank = tanks.find(t => t.id === form.tank_id)
-        if (form.dip_after) {
+        const isIssuanceTracked = tank?.level_tracking_method === 'issuance'
+        if (!isIssuanceTracked && form.dip_after) {
           const isLatest = !tank?.last_dip_date || form.delivery_date >= tank.last_dip_date
           if (isLatest) {
             await supabase
@@ -466,7 +469,7 @@ export default function FuelReceipts() {
               .eq('id', form.tank_id)
               .eq('site_id', currentSiteId)
           }
-        } else if (form.quantity_delivered) {
+        } else if (isIssuanceTracked && form.quantity_delivered) {
           const newLevel = Number(tank?.current_level_litres || 0) + Number(form.quantity_delivered)
           await supabase
             .from('fuel_tanks')

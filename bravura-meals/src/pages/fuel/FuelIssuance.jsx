@@ -386,6 +386,14 @@ export default function FuelIssuance({ setPage }) {
   const selectedPump    = useMemo(() => pumps.find(p => p.id === form.pump_id) || null, [pumps, form.pump_id])
   const activeVehicles  = useMemo(() => vehicles.filter(v => v.status !== 'archived' && !v.is_archived), [vehicles])
   const activeEquipment = useMemo(() => equipment.filter(e => !e.is_archived), [equipment])
+  const activeGenerators = useMemo(
+    () => activeEquipment.filter(e => e.fleet_asset_types?.category === 'generator'),
+    [activeEquipment])
+  const activeNonGenEquipment = useMemo(
+    () => activeEquipment.filter(e => e.fleet_asset_types?.category !== 'generator'),
+    [activeEquipment])
+  // Generators are stored in equipment_id / fleet_asset_id like any equipment
+  const isEquipmentLike = t => t === 'equipment' || t === 'generator'
   // Equipment rows are fleet_assets — label from fleet/asset number + description
   const eqLabel = eq => {
     if (!eq) return '—'
@@ -485,6 +493,7 @@ export default function FuelIssuance({ setPage }) {
     }
     if (form.asset_type === 'vehicle'   && !form.vehicle_id)   { showToast('Select a vehicle', 'red'); return }
     if (form.asset_type === 'equipment' && !form.equipment_id) { showToast('Select equipment', 'red'); return }
+    if (form.asset_type === 'generator' && !form.equipment_id) { showToast('Select a generator', 'red'); return }
     // Odometer is required for vehicles so the L/100km analytics have a
     // valid distance signal. Equipment doesn't have km — hours would apply
     // there but that's a follow-up.
@@ -533,7 +542,7 @@ export default function FuelIssuance({ setPage }) {
         // column, NOT the legacy vehicle_id/equipment_id FKs (those point at
         // fuel_vehicles/fuel_equipment and would reject newly created assets).
         fleet_asset_id:    form.asset_type === 'vehicle' ? (form.vehicle_id || null)
-                         : form.asset_type === 'equipment' ? (form.equipment_id || null)
+                         : isEquipmentLike(form.asset_type) ? (form.equipment_id || null)
                          : null,
         operator_id:       form.operator_id || null,
         meter_start: form.use_meter && form.meter_start ? Number(form.meter_start) : null,
@@ -573,7 +582,7 @@ export default function FuelIssuance({ setPage }) {
         pumpName:     tankPumps.find(p => p.id === form.pump_id)?.name || null,
         assetLabel:   form.asset_type === 'vehicle'
           ? (selVehicle ? `Fleet No. ${selVehicle.fleet_number}${selVehicle.registration ? ' (' + selVehicle.registration + ')' : ''}` : null)
-          : form.asset_type === 'equipment'
+          : isEquipmentLike(form.asset_type)
           ? (selEquipment ? eqLabel(selEquipment) : null)
           : null,
         operatorName: selOperator?.employees?.name || null,
@@ -680,7 +689,10 @@ export default function FuelIssuance({ setPage }) {
         const vid = vehicleMap.get(lookup)
         const eid = equipMap.get(lookup)
         if (vid) { row.asset_type = 'vehicle'; row.vehicle_id = vid }
-        else if (eid) { row.asset_type = 'equipment'; row.equipment_id = eid }
+        else if (eid) {
+          row.asset_type = activeGenerators.some(g => g.id === eid) ? 'generator' : 'equipment'
+          row.equipment_id = eid
+        }
       }
       if (cols[3]) row.litres = cols[3].replace(/[^\d.]/g, '')
       if (cols[4]) {
@@ -720,7 +732,7 @@ export default function FuelIssuance({ setPage }) {
       const rpcRows = valid.map(r => ({
         transaction_date: r.transaction_date,
         fleet_asset_id:   r.asset_type === 'vehicle' ? (r.vehicle_id || null)
-                        : r.asset_type === 'equipment' ? (r.equipment_id || null)
+                        : isEquipmentLike(r.asset_type) ? (r.equipment_id || null)
                         : null,
         litres:           Number(r.litres),
         operator_id:      r.operator_id || null,
@@ -762,7 +774,7 @@ export default function FuelIssuance({ setPage }) {
               tank_id:           bulkTankId,
               litres:            Number(r.litres),
               fleet_asset_id:    r.asset_type === 'vehicle' ? (r.vehicle_id || null)
-                               : r.asset_type === 'equipment' ? (r.equipment_id || null)
+                               : isEquipmentLike(r.asset_type) ? (r.equipment_id || null)
                                : null,
               operator_id:       r.operator_id || null,
               notes:             r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance',
@@ -1094,6 +1106,7 @@ export default function FuelIssuance({ setPage }) {
                           style={{ ...inp({ padding: '7px 6px', fontSize: '11px', width: '70px', flexShrink: 0 }) }}>
                           <option value="vehicle">Veh</option>
                           <option value="equipment">Eqp</option>
+                          <option value="generator">Gen</option>
                         </select>
                         {row.asset_type === 'vehicle' ? (
                           <select value={row.vehicle_id} onChange={e => updateBulkRow(idx, 'vehicle_id', e.target.value)}
@@ -1108,8 +1121,8 @@ export default function FuelIssuance({ setPage }) {
                           <select value={row.equipment_id} onChange={e => updateBulkRow(idx, 'equipment_id', e.target.value)}
                             onKeyDown={e => handleBulkKeyDown(e, idx, 2)}
                             style={{ ...inp({ padding: '7px 8px', fontSize: '12px', flex: 1 }) }}>
-                            <option value="">— Equipment —</option>
-                            {activeEquipment.map(eq => (
+                            <option value="">{row.asset_type === 'generator' ? '— Generator —' : '— Equipment —'}</option>
+                            {(row.asset_type === 'generator' ? activeGenerators : activeNonGenEquipment).map(eq => (
                               <option key={eq.id} value={eq.id}>{eqLabel(eq)}</option>
                             ))}
                           </select>
@@ -1316,6 +1329,7 @@ export default function FuelIssuance({ setPage }) {
               {[
                 { v: 'vehicle',   icon: 'directions_car', label: 'Vehicle' },
                 { v: 'equipment', icon: 'construction',   label: 'Equipment' },
+                { v: 'generator', icon: 'bolt',           label: 'Generator' },
               ].map(opt => (
                 <button
                   key={opt.v} type="button"
@@ -1379,10 +1393,20 @@ export default function FuelIssuance({ setPage }) {
             )}
             {form.asset_type === 'equipment' && (
               <SearchSelect
-                items={activeEquipment}
+                items={activeNonGenEquipment}
                 value={form.equipment_id}
                 onSelect={id => set('equipment_id', id)}
                 placeholder="Search by fleet # or description…"
+                renderItem={eqLabel}
+                renderSelected={eqLabel}
+              />
+            )}
+            {form.asset_type === 'generator' && (
+              <SearchSelect
+                items={activeGenerators}
+                value={form.equipment_id}
+                onSelect={id => set('equipment_id', id)}
+                placeholder="Search generators…"
                 renderItem={eqLabel}
                 renderSelected={eqLabel}
               />

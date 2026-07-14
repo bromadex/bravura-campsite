@@ -261,11 +261,19 @@ export default function FleetGenerators({ setPage }) {
                   <span className="material-symbols-rounded" style={{ fontSize: '22px', color }}>bolt</span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {a.asset_number}
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {a.description || a.asset_number}
                   </div>
-                  <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {[a.description, a.make, a.model, a.year].filter(Boolean).join(' - ')}
+                  {(() => {
+                    const detail = [a.make, a.model, a.year].filter(Boolean).join(' - ')
+                    return detail ? (
+                      <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {detail}
+                      </div>
+                    ) : null
+                  })()}
+                  <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>
+                    {a.asset_number}
                   </div>
                 </div>
               </div>

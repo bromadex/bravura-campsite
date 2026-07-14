@@ -555,12 +555,23 @@ export default function FleetVehicles({ setPage }) {
                     <span className="material-symbols-rounded" style={{ fontSize: '22px', color }}>directions_car</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {v.asset_number}
-                      {v.registration ? <span style={{ fontWeight: 400, color: THEME.textMed }}> {v.registration}</span> : null}
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {v.registration || v.description || v.asset_number}
                     </div>
-                    <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>
-                      {[v.make, v.model, v.year].filter(Boolean).join(' ')}
+                    {(() => {
+                      const headline = v.registration || v.description || v.asset_number
+                      const detail = [
+                        v.description !== headline ? v.description : null,
+                        v.make, v.model, v.year,
+                      ].filter(Boolean).join(' · ')
+                      return detail ? (
+                        <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {detail}
+                        </div>
+                      ) : null
+                    })()}
+                    <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>
+                      {v.asset_number}
                     </div>
                   </div>
                   <StatusBadge status={v.status} />

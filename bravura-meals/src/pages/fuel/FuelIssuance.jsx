@@ -326,7 +326,7 @@ export default function FuelIssuance({ setPage }) {
   const makeBulkRow = useCallback(() => ({
     time: nowTime(), transaction_date: todayStr,
     asset_type: 'vehicle', vehicle_id: '', equipment_id: '',
-    litres: '', operator_id: '', notes: '',
+    litres: '', operator_id: '', purpose: '', notes: '',
   }), [todayStr])
   const [bulkRows, setBulkRows] = useState(() => Array.from({ length: 5 }, () => makeBulkRow()))
   const [bulkTankId, setBulkTankId] = useState('')
@@ -618,7 +618,7 @@ export default function FuelIssuance({ setPage }) {
   function handleBulkKeyDown(e, rowIdx, colIdx) {
     if (e.key !== 'Tab' && e.key !== 'Enter') return
     if (e.key === 'Enter' && e.target.tagName === 'SELECT') return
-    const COLS = 5 // time, date, asset, litres, operator
+    const COLS = 6 // time, date, asset, litres, operator, purpose
     const isShift = e.shiftKey
     let nextRow = rowIdx
     let nextCol = colIdx
@@ -699,6 +699,9 @@ export default function FuelIssuance({ setPage }) {
         const oid = opMap.get(cols[4].toLowerCase())
         if (oid) row.operator_id = oid
       }
+      // Extra trailing text column → purpose (only when it's plain text,
+      // not something that looks like a number/time we failed to place)
+      if (cols[5] && !/^[\d.:]+$/.test(cols[5])) row.purpose = cols[5]
       return row
     })
 
@@ -707,6 +710,14 @@ export default function FuelIssuance({ setPage }) {
       return hasData ? [...prev, ...newRows] : newRows
     })
     showToast(`Pasted ${newRows.length} row${newRows.length > 1 ? 's' : ''} from clipboard`, 'green')
+  }
+
+  // Per-row notes: purpose + time when a purpose was typed, otherwise the
+  // original "Bulk issuance at HH:MM" behaviour unchanged.
+  function bulkRowNotes(r) {
+    const purpose = (r.purpose || '').trim()
+    if (purpose) return r.time ? `${purpose} (bulk at ${r.time})` : `${purpose} (bulk)`
+    return r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance'
   }
 
   // ── Bulk submit (atomic via RPC) ──────────────────────────────────────────
@@ -736,7 +747,7 @@ export default function FuelIssuance({ setPage }) {
                         : null,
         litres:           Number(r.litres),
         operator_id:      r.operator_id || null,
-        notes:            r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance',
+        notes:            bulkRowNotes(r),
       }))
 
       const { data, error } = await supabase.rpc('rpc_bulk_fuel_issuance', {
@@ -757,7 +768,8 @@ export default function FuelIssuance({ setPage }) {
         batchId,
         totalLitres: data.total_litres,
         rowCount:    data.row_count,
-        rows:        data.rows,
+        // RPC rows come back in input order — attach each purpose for the results table
+        rows:        (data.rows || []).map((row, i) => ({ ...row, purpose: (valid[i]?.purpose || '').trim() })),
         tankName:    tank?.name || '—',
         tankLevelAfter: data.tank_level_after,
       })
@@ -777,7 +789,7 @@ export default function FuelIssuance({ setPage }) {
                                : isEquipmentLike(r.asset_type) ? (r.equipment_id || null)
                                : null,
               operator_id:       r.operator_id || null,
-              notes:             r.time ? `Bulk issuance at ${r.time}` : 'Bulk issuance',
+              notes:             bulkRowNotes(r),
               authorised_by_name:     bulkAuth.trim(),
               authorisation_reason:   bulkReason.trim(),
               acknowledgement_status: 'pending',
@@ -788,7 +800,8 @@ export default function FuelIssuance({ setPage }) {
             batchId:    null,
             totalLitres: results.reduce((s, r) => s + Number(r.litres), 0),
             rowCount:   results.length,
-            rows:       results.map(r => ({
+            rows:       results.map((r, i) => ({
+              purpose:           (valid[i]?.purpose || '').trim(),
               id:                r.id,
               transaction_number: r.transaction_number,
               litres:            Number(r.litres),
@@ -816,6 +829,7 @@ export default function FuelIssuance({ setPage }) {
 
   if (bulkResults) {
     const br = bulkResults
+    const brHasPurpose = br.rows.some(r => r.purpose)
     return (
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px' }}>
         {/* Print-only consolidated docket */}
@@ -917,6 +931,7 @@ export default function FuelIssuance({ setPage }) {
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>#</th>
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Vehicle / Equipment</th>
                 <th style={{ padding: '10px 14px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Litres</th>
+                {brHasPurpose && <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Purpose</th>}
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Transaction #</th>
               </tr>
             </thead>
@@ -930,6 +945,7 @@ export default function FuelIssuance({ setPage }) {
                     <td style={{ padding: '10px 14px', color: THEME.textLow, fontWeight: 600 }}>{i + 1}</td>
                     <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>{label}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: FUEL_CLR }}>{Number(r.litres).toFixed(1)} L</td>
+                    {brHasPurpose && <td style={{ padding: '10px 14px', color: THEME.textMed }}>{r.purpose || '—'}</td>}
                     <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontSize: '11px', color: THEME.textMed }}>{r.transaction_number}</td>
                   </tr>
                 )
@@ -939,6 +955,7 @@ export default function FuelIssuance({ setPage }) {
               <tr style={{ borderTop: `2px solid ${THEME.outlineVar}`, background: THEME.surfaceVar }}>
                 <td colSpan={2} style={{ padding: '11px 14px', fontWeight: 700, color: THEME.text }}>TOTAL</td>
                 <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700, color: FUEL_CLR }}>{Number(br.totalLitres).toFixed(1)} L</td>
+                {brHasPurpose && <td />}
                 <td />
               </tr>
             </tfoot>
@@ -1080,6 +1097,7 @@ export default function FuelIssuance({ setPage }) {
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Vehicle / Equipment</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '100px' }}>Litres</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Operator</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '140px' }}>Purpose</th>
                   <th style={{ padding: '10px 12px', width: '40px' }} />
                 </tr>
               </thead>
@@ -1143,6 +1161,11 @@ export default function FuelIssuance({ setPage }) {
                           <option key={op.id} value={op.id}>{op.employees?.name || op.id}</option>
                         ))}
                       </select>
+                    </td>
+                    <td style={{ padding: '8px 4px' }}>
+                      <input type="text" value={row.purpose} onChange={e => updateBulkRow(idx, 'purpose', e.target.value)}
+                        onKeyDown={e => handleBulkKeyDown(e, idx, 5)}
+                        placeholder="e.g. site trip" style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
                     </td>
                     <td style={{ padding: '8px 4px', textAlign: 'center' }}>
                       {bulkRows.length > 1 && (

@@ -22,6 +22,14 @@ export default function CampSupplies() {
   const [itemModal,   setItemModal]   = useState(false)
   const [saving,      setSaving]      = useState(false)
 
+  // Bulk issue
+  const makeBulkRow = () => ({ itemId: '', quantity: '', issuedToEmployeeId: '', issuedToText: '', notes: '' })
+  const [bulkModal,    setBulkModal]    = useState(false)
+  const [bulkHeader,   setBulkHeader]   = useState({ txnDate: new Date().toISOString().slice(0,10), reference: '' })
+  const [bulkRows,     setBulkRows]     = useState(() => Array.from({ length: 5 }, makeBulkRow))
+  const [bulkSaving,   setBulkSaving]   = useState(false)
+  const [bulkProgress, setBulkProgress] = useState(null) // { done, total }
+
   // Transaction form
   const [txnForm, setTxnForm] = useState({ itemId: '', quantity: '', reference: '', notes: '', txnDate: new Date().toISOString().slice(0,10), issuedToEmployeeId: '', issuedToText: '' })
 
@@ -64,6 +72,62 @@ export default function CampSupplies() {
       setTxnModal(false)
     } catch (err) { showToast(err.message, 'red') }
     finally { setSaving(false) }
+  }
+
+  function openBulk() {
+    setBulkHeader({ txnDate: new Date().toISOString().slice(0,10), reference: '' })
+    setBulkRows(Array.from({ length: 5 }, makeBulkRow))
+    setBulkProgress(null)
+    setBulkModal(true)
+  }
+
+  function updateBulkRow(idx, patch) {
+    setBulkRows(rows => rows.map((r, i) => i === idx ? { ...r, ...patch } : r))
+  }
+
+  const bulkValidRows = bulkRows.filter(r => r.itemId && parseFloat(r.quantity) > 0)
+
+  async function doBulkIssue() {
+    const valid = bulkValidRows
+    if (valid.length === 0) { showToast('Add at least one row with an item and quantity', 'red'); return }
+
+    // Block if cumulative quantity per item exceeds a known balance
+    const perItem = {}
+    valid.forEach(r => { perItem[r.itemId] = (perItem[r.itemId] || 0) + parseFloat(r.quantity) })
+    for (const [itemId, qty] of Object.entries(perItem)) {
+      const item = supplies.find(s => s.id === itemId)
+      if (item && item.balance != null && qty > parseFloat(item.balance)) {
+        showToast(`"${item.name}": total ${qty} exceeds balance of ${parseFloat(item.balance)} ${item.unit}`, 'red')
+        return
+      }
+    }
+
+    setBulkSaving(true)
+    let done = 0
+    try {
+      for (const r of valid) {
+        setBulkProgress({ done: done + 1, total: valid.length })
+        await recordSupplyTxn({
+          itemId:             r.itemId,
+          txnType:            'issue',
+          quantity:           r.quantity,
+          reference:          bulkHeader.reference,
+          notes:              r.notes,
+          txnDate:            bulkHeader.txnDate,
+          recordedBy:         profile?.id,
+          issuedToEmployeeId: r.issuedToEmployeeId || null,
+          issuedToText:       r.issuedToText || null,
+        })
+        done++
+      }
+      showToast(`${done} issue${done > 1 ? 's' : ''} recorded`, 'green')
+      setBulkModal(false)
+    } catch (err) {
+      showToast(`${err.message}${done > 0 ? ` — ${done} of ${valid.length} saved before the error` : ''}`, 'red')
+    } finally {
+      setBulkSaving(false)
+      setBulkProgress(null)
+    }
   }
 
   function openEditTxn(txn) {
@@ -142,6 +206,7 @@ export default function CampSupplies() {
         actions={<>
           <Button onClick={() => openTxn('receive')} variant="filled"   icon="add_box">Receive Stock</Button>
           <Button onClick={() => openTxn('issue')}   variant="tonal"    icon="remove_circle">Issue Stock</Button>
+          <Button onClick={openBulk}                 variant="tonal"    icon="playlist_remove">Bulk Issue</Button>
           <Button onClick={() => setItemModal(true)} variant="outlined" icon="add">Add Item</Button>
         </>}
       />
@@ -380,6 +445,92 @@ export default function CampSupplies() {
           <SectionLabel>Notes</SectionLabel>
           <textarea value={txnForm.notes} onChange={e => setTxnForm(f => ({ ...f, notes: e.target.value }))} rows={2}
             style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }} />
+        </div>
+      </Modal>
+
+      {/* ── Bulk Issue Modal ── */}
+      <Modal open={bulkModal} onClose={() => !bulkSaving && setBulkModal(false)} title="Bulk Issue Stock"
+        footer={<>
+          <Button onClick={() => setBulkModal(false)} variant="text" disabled={bulkSaving}>Cancel</Button>
+          <Button onClick={doBulkIssue} variant="danger" disabled={bulkSaving}>
+            {bulkSaving && bulkProgress ? `Saving ${bulkProgress.done}/${bulkProgress.total}…` : bulkSaving ? 'Saving…' : 'Record Issues'}
+          </Button>
+        </>}>
+        {/* Shared header fields */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+          <div>
+            <SectionLabel>Date</SectionLabel>
+            <input type="date" value={bulkHeader.txnDate} onChange={e => setBulkHeader(h => ({ ...h, txnDate: e.target.value }))}
+              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+          </div>
+          <div>
+            <SectionLabel>Reference / Delivery Note</SectionLabel>
+            <input type="text" value={bulkHeader.reference} onChange={e => setBulkHeader(h => ({ ...h, reference: e.target.value }))}
+              placeholder="e.g. DN-001 (optional)"
+              style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+          </div>
+        </div>
+
+        {/* Row grid */}
+        {bulkRows.map((row, idx) => {
+          const item = supplies.find(s => s.id === row.itemId)
+          const over = item && item.balance != null && parseFloat(row.quantity) > parseFloat(item.balance)
+          return (
+            <div key={idx} style={{ padding: '10px 12px', border: `1px solid ${over ? THEME.error : THEME.outlineVar}`, borderRadius: '12px', marginBottom: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
+                <select value={row.itemId} onChange={e => updateBulkRow(idx, { itemId: e.target.value })}
+                  style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}>
+                  <option value="">— Select item —</option>
+                  {supplies.filter(s => s.is_active).map(s => (
+                    <option key={s.id} value={s.id}>{s.name} (Balance: {parseFloat(s.balance||0).toFixed(s.unit === 'Kg' ? 1 : 0)} {s.unit})</option>
+                  ))}
+                </select>
+                <input type="number" min="0.01" step="0.01" value={row.quantity} onChange={e => updateBulkRow(idx, { quantity: e.target.value })}
+                  placeholder="Qty"
+                  style={{ width: '100%', padding: '10px 14px', border: `1px solid ${over ? THEME.error : THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+                <button onClick={() => setBulkRows(rows => rows.length <= 1 ? rows : rows.filter((_, i) => i !== idx))} title="Remove row" disabled={bulkSaving}
+                  style={{ width: '28px', height: '28px', border: `1px solid ${THEME.outline}`, borderRadius: '8px', background: THEME.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="close" size={13} style={{ color: THEME.textMed }} />
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <select value={row.issuedToEmployeeId} onChange={e => updateBulkRow(idx, { issuedToEmployeeId: e.target.value, issuedToText: e.target.value ? '' : row.issuedToText })}
+                  disabled={!!row.issuedToText}
+                  style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none', opacity: row.issuedToText ? 0.5 : 1 }}>
+                  <option value="">— Employee (optional) —</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+                <input type="text" value={row.issuedToText} onChange={e => updateBulkRow(idx, { issuedToText: e.target.value, issuedToEmployeeId: e.target.value ? '' : row.issuedToEmployeeId })}
+                  disabled={!!row.issuedToEmployeeId}
+                  placeholder="Or type e.g. Kitchen"
+                  style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', opacity: row.issuedToEmployeeId ? 0.5 : 1 }} />
+                <input type="text" value={row.notes} onChange={e => updateBulkRow(idx, { notes: e.target.value })}
+                  placeholder="Notes (optional)"
+                  style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+              </div>
+              {over && (
+                <div style={{ fontSize: '11px', color: THEME.error, marginTop: '6px' }}>
+                  Quantity exceeds balance of {parseFloat(item.balance)} {item.unit}
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => setBulkRows(rows => [...rows, makeBulkRow()])} disabled={bulkSaving}
+              style={{ background: 'none', border: `1px dashed ${THEME.outline}`, borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '12px', color: THEME.primary, fontWeight: 600, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Icon name="add" size={14} style={{ color: THEME.primary }} /> Add Row
+            </button>
+            <button onClick={() => setBulkRows(Array.from({ length: 5 }, makeBulkRow))} disabled={bulkSaving}
+              style={{ background: 'none', border: `1px solid ${THEME.outlineVar}`, borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontSize: '12px', color: THEME.textLow, fontWeight: 500, fontFamily: 'inherit' }}>
+              Reset
+            </button>
+          </div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed }}>
+            Total: {bulkValidRows.length} issue{bulkValidRows.length !== 1 ? 's' : ''} to record
+          </div>
         </div>
       </Modal>
 

@@ -4,7 +4,8 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
-import { Card, Icon, PageHeader, Button, StatCard, showToast } from '../../components/ui'
+import { Card, Icon, PageHeader, Button, showToast } from '../../components/ui'
+import { DashCard, KpiCard, DonutGauge, SectionTitle } from '../../components/dash'
 
 const ACCENT = MODULE_COLORS.workforce
 const DAY = 24 * 60 * 60 * 1000
@@ -124,8 +125,11 @@ export default function MedicalSurveillance({ setPage }) {
   }
 
   const selectStyle = { padding: '6px 10px', borderRadius: '8px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, fontSize: '13px' }
-  const th = { textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }
+  const th = { textAlign: 'left', padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${THEME.outlineVar}`, whiteSpace: 'nowrap' }
   const td = { padding: '8px 10px', color: THEME.text }
+
+  const totalRows = rows.length
+  const validPct = totalRows > 0 ? (kpis.valid / totalRows) * 100 : null
 
   return (
     <div>
@@ -154,22 +158,40 @@ export default function MedicalSurveillance({ setPage }) {
       ) : (
         <>
           {/* KPI cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-            <StatCard label="Valid Medical" value={kpis.valid} icon="verified" color={THEME.success} />
-            <StatCard label="Expiring in 30 Days" value={kpis.expiring} icon="schedule" color={THEME.warning} />
-            <StatCard label="Expired" value={kpis.expired} icon="error" color={THEME.error} />
-            <StatCard label="Never Examined" value={kpis.none} icon="person_search" color={ACCENT} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+            <KpiCard label="Valid Medical" value={kpis.valid} icon="verified" accent={THEME.success}
+              progress={validPct} sub={validPct !== null ? `${validPct.toFixed(0)}% of workforce` : undefined} />
+            <KpiCard label="Expiring in 30 Days" value={kpis.expiring} icon="schedule" accent={THEME.warning}
+              progress={totalRows > 0 ? (kpis.expiring / totalRows) * 100 : undefined} />
+            <KpiCard label="Expired" value={kpis.expired} icon="error" accent={THEME.error}
+              progress={totalRows > 0 ? (kpis.expired / totalRows) * 100 : undefined} />
+            <KpiCard label="Never Examined" value={kpis.none} icon="person_search" accent={ACCENT}
+              progress={totalRows > 0 ? (kpis.none / totalRows) * 100 : undefined} />
           </div>
 
+          {/* Compliance gauge */}
+          <DashCard style={{ marginBottom: '18px' }}>
+            <SectionTitle title="Medical Compliance" subtitle="Share of active employees with a valid medical" />
+            <DonutGauge
+              pct={validPct}
+              color={THEME.success}
+              label="valid"
+              legend={[
+                [THEME.success, `Valid ${kpis.valid}`],
+                [THEME.warning, `Expiring ${kpis.expiring}`],
+                [THEME.error, `Expired ${kpis.expired}`],
+                [THEME.textLow, `No record ${kpis.none}`],
+              ]}
+            />
+          </DashCard>
+
           {/* Fitness-to-work register */}
-          <Card style={{ marginBottom: '18px' }}>
-            <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>
-              Fitness to Work ({examined.length})
-            </div>
+          <DashCard style={{ marginBottom: '18px' }}>
+            <SectionTitle title={`Fitness to Work (${examined.length})`} />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
+                  <tr>
                     {['Employee #', 'Name', 'Department', 'Exam Type', 'Exam Date', 'Result', 'Next Exam Due', 'Status'].map(h => (
                       <th key={h} style={th}>{h}</th>
                     ))}
@@ -191,7 +213,7 @@ export default function MedicalSurveillance({ setPage }) {
                         <td style={{ ...td, color: rec.result === 'Unfit' ? THEME.error : THEME.text }}>{rec.result || '-'}</td>
                         <td style={{ ...td, color: meta.color }}>{rec.next_exam_date || '-'}</td>
                         <td style={td}>
-                          <span style={{ padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 600, color: meta.color, border: `1px solid ${meta.color}` }}>
+                          <span style={{ padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 600, color: meta.color, background: meta.color + '18' }}>
                             {meta.label}
                           </span>
                         </td>
@@ -201,21 +223,19 @@ export default function MedicalSurveillance({ setPage }) {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </DashCard>
 
           {/* Never examined */}
           {(!statusFilter || statusFilter === 'none') && (
-            <Card>
-              <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>
-                Never Examined ({neverExamined.length})
-              </div>
+            <DashCard>
+              <SectionTitle title={`Never Examined (${neverExamined.length})`} />
               {neverExamined.length === 0 ? (
                 <div style={{ color: THEME.textMed, fontSize: '13px' }}>All active employees have a medical record on file.</div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
-                      <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
+                      <tr>
                         {['Employee #', 'Name', 'Department'].map(h => <th key={h} style={th}>{h}</th>)}
                       </tr>
                     </thead>
@@ -231,7 +251,7 @@ export default function MedicalSurveillance({ setPage }) {
                   </table>
                 </div>
               )}
-            </Card>
+            </DashCard>
           )}
         </>
       )}

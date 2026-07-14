@@ -4,7 +4,8 @@ import { usePermissions } from '../../../contexts/PermissionsContext'
 import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
-import { Card, Icon, PageHeader, Button, StatCard, showToast } from '../../../components/ui'
+import { Card, Icon, PageHeader, Button, showToast } from '../../../components/ui'
+import { DashCard, KpiCard, DonutGauge, SectionTitle } from '../../../components/dash'
 
 const ACCENT = MODULE_COLORS.workforce
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -113,6 +114,9 @@ export default function LeaveReport({ setPage }) {
     )
   }
 
+  const th = { textAlign: 'left', padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${THEME.outlineVar}`, whiteSpace: 'nowrap' }
+  const utilPct = parseFloat(stats.utilRate)
+
   return (
     <div>
       <PageHeader title="Leave Report" site={currentSite} />
@@ -135,50 +139,64 @@ export default function LeaveReport({ setPage }) {
       ) : (
         <>
           {/* KPI cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-            <StatCard label="Total Leave Days" value={stats.totalDays} icon="event" color={ACCENT} />
-            <StatCard label="Currently On Leave" value={stats.onLeave.length} icon="beach_access" color={THEME.warning} />
-            <StatCard label="Utilisation Rate" value={stats.utilRate + '%'} icon="donut_large" color={THEME.info} />
-            <StatCard label="Total Allocated" value={stats.totalAllocated} sub={`${new Date().getFullYear()}`} icon="assignment" color={THEME.success} />
-            <StatCard label="Total Used" value={stats.totalUsed} icon="assignment_turned_in" color={THEME.error} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+            <KpiCard label="Total Leave Days" value={stats.totalDays} icon="event" accent={ACCENT} />
+            <KpiCard label="Currently On Leave" value={stats.onLeave.length} icon="beach_access" accent={THEME.warning} />
+            <KpiCard label="Utilisation Rate" value={stats.utilRate + '%'} icon="donut_large" accent={THEME.info} progress={utilPct} />
+            <KpiCard label="Total Allocated" value={stats.totalAllocated} sub={`${new Date().getFullYear()}`} icon="assignment" accent={THEME.success} />
+            <KpiCard label="Total Used" value={stats.totalUsed} icon="assignment_turned_in" accent={THEME.error}
+              progress={stats.totalAllocated > 0 ? (stats.totalUsed / stats.totalAllocated) * 100 : undefined} />
           </div>
 
-          {/* Days by type */}
-          <Card style={{ marginBottom: '18px' }}>
-            <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>Leave Days by Type ({fromDate} to {toDate})</div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>Leave Type</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>Days</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(stats.byType).sort((a, b) => b[1] - a[1]).map(([type, days]) => (
-                    <tr key={type} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                      <td style={{ padding: '8px 10px', color: THEME.text }}>{type}</td>
-                      <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 600 }}>{days}</td>
-                    </tr>
-                  ))}
-                  {Object.keys(stats.byType).length === 0 && (
-                    <tr><td colSpan={2} style={{ padding: '16px', textAlign: 'center', color: THEME.textLow }}>No leave taken in this period</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          {/* Utilisation + days by type */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px', marginBottom: '18px' }}>
+            <DashCard>
+              <SectionTitle title="Leave Utilisation" subtitle={`${new Date().getFullYear()} allocations`} />
+              <DonutGauge
+                pct={stats.totalAllocated > 0 ? utilPct : null}
+                color={THEME.info}
+                label="days used"
+                legend={[[THEME.info, `Used ${stats.totalUsed}`], [THEME.surfaceVar, `Allocated ${stats.totalAllocated}`]]}
+              />
+            </DashCard>
 
-          {/* Currently on leave */}
-          {stats.onLeave.length > 0 && (
-            <Card style={{ marginBottom: '18px' }}>
-              <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>Currently On Leave ({stats.onLeave.length})</div>
+            {/* Days by type */}
+            <DashCard>
+              <SectionTitle title="Leave Days by Type" subtitle={`${fromDate} to ${toDate}`} />
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
+                    <tr>
+                      <th style={th}>Leave Type</th>
+                      <th style={th}>Days</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(stats.byType).sort((a, b) => b[1] - a[1]).map(([type, days]) => (
+                      <tr key={type} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                        <td style={{ padding: '8px 10px', color: THEME.text }}>{type}</td>
+                        <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 600 }}>{days}</td>
+                      </tr>
+                    ))}
+                    {Object.keys(stats.byType).length === 0 && (
+                      <tr><td colSpan={2} style={{ padding: '16px', textAlign: 'center', color: THEME.textLow }}>No leave taken in this period</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </DashCard>
+          </div>
+
+          {/* Currently on leave */}
+          {stats.onLeave.length > 0 && (
+            <DashCard style={{ marginBottom: '18px' }}>
+              <SectionTitle title={`Currently On Leave (${stats.onLeave.length})`} />
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr>
                       {['Employee #', 'Name', 'Status'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>{h}</th>
+                        <th key={h} style={th}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -193,18 +211,18 @@ export default function LeaveReport({ setPage }) {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </DashCard>
           )}
 
           {/* Leave balances */}
-          <Card>
-            <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>Leave Balance Summary ({new Date().getFullYear()})</div>
+          <DashCard>
+            <SectionTitle title="Leave Balance Summary" subtitle={`${new Date().getFullYear()}`} />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
+                  <tr>
                     {['Employee #', 'Name', 'Allocated', 'Used', 'Remaining'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>{h}</th>
+                      <th key={h} style={th}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -224,7 +242,7 @@ export default function LeaveReport({ setPage }) {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </DashCard>
         </>
       )}
     </div>

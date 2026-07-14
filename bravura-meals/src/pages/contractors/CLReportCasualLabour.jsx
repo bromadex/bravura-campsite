@@ -5,6 +5,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
+import { DashCard, KpiCard, ProgressRow, SectionTitle } from '../../components/dash'
 
 const color = MODULE_COLORS.contractors
 
@@ -84,6 +85,10 @@ export default function CLReportCasualLabour({ setPage }) {
     avg: filtered.length ? filtered.reduce((s, r) => s + r.cost, 0) / filtered.length : 0,
   }), [filtered])
 
+  const topWorkers = useMemo(() =>
+    [...filtered].sort((a, b) => b.cost - a.cost).slice(0, 6)
+  , [filtered])
+
   if (!can('contractors.view')) return null
 
   const inp = {
@@ -91,20 +96,10 @@ export default function CLReportCasualLabour({ setPage }) {
     border: `1px solid ${THEME.outlineVar}`, background: THEME.surface,
     color: THEME.text, fontFamily: 'inherit', boxSizing: 'border-box',
   }
-  const th = { padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: THEME.textMed, fontSize: '11px', whiteSpace: 'nowrap', borderBottom: `1px solid ${THEME.outlineVar}` }
+  const th = { padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: THEME.textLow, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', borderBottom: `1px solid ${THEME.outlineVar}` }
   const td = { padding: '10px 12px', fontSize: '13px', color: THEME.text, borderBottom: `1px solid ${THEME.outlineVar}` }
 
-  const kpiCard = (label, value, icon) => (
-    <div style={{ flex: '1 1 160px', background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '14px', padding: '18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-        <div style={{ width: 32, height: 32, borderRadius: '50%', background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span className="material-symbols-rounded" style={{ fontSize: '16px', color }}>{icon}</span>
-        </div>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase' }}>{label}</div>
-      </div>
-      <div style={{ fontSize: '22px', fontWeight: 700, color: THEME.text }}>{value}</div>
-    </div>
-  )
+  const maxCost = Math.max(...topWorkers.map(w => w.cost), 1)
 
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
@@ -114,11 +109,11 @@ export default function CLReportCasualLabour({ setPage }) {
       </button>
       <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.text, marginBottom: '16px' }}>Casual Labour Report</div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-        {kpiCard('Total Workers', kpis.workers, 'engineering')}
-        {kpiCard('Total Hours', kpis.hours.toFixed(1), 'schedule')}
-        {kpiCard('Total Cost', fmtMoney(kpis.cost), 'payments')}
-        {kpiCard('Avg Cost/Worker', fmtMoney(kpis.avg), 'analytics')}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+        <KpiCard label="Total Workers" value={kpis.workers} icon="engineering" accent={color} />
+        <KpiCard label="Total Hours" value={kpis.hours.toFixed(1)} icon="schedule" accent={color} />
+        <KpiCard label="Total Cost" value={fmtMoney(kpis.cost)} icon="payments" accent={color} />
+        <KpiCard label="Avg Cost/Worker" value={fmtMoney(kpis.avg)} icon="analytics" accent={color} />
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px', alignItems: 'center' }}>
@@ -138,7 +133,18 @@ export default function CLReportCasualLabour({ setPage }) {
         </button>
       </div>
 
-      <div style={{ background: THEME.surface, borderRadius: '14px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden' }}>
+      {topWorkers.length > 0 && (
+        <DashCard style={{ marginBottom: '16px' }}>
+          <SectionTitle title="Top Workers by Cost" subtitle={`${dateFrom} to ${dateTo}`} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {topWorkers.map((w, i) => (
+              <ProgressRow key={i} label={w.name} value={fmtMoney(w.cost)} pct={(w.cost / maxCost) * 100} color={color} />
+            ))}
+          </div>
+        </DashCard>
+      )}
+
+      <DashCard style={{ padding: '12px 16px' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
@@ -163,7 +169,7 @@ export default function CLReportCasualLabour({ setPage }) {
             </tbody>
           </table>
         </div>
-      </div>
+      </DashCard>
     </div>
   )
 }

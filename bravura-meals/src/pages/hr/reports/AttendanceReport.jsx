@@ -4,7 +4,8 @@ import { usePermissions } from '../../../contexts/PermissionsContext'
 import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
-import { Card, Icon, PageHeader, Button, StatCard, showToast } from '../../../components/ui'
+import { Card, Icon, PageHeader, Button, showToast } from '../../../components/ui'
+import { DashCard, KpiCard, DonutGauge, SectionTitle } from '../../../components/dash'
 
 const ACCENT = MODULE_COLORS.workforce
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -112,6 +113,8 @@ export default function AttendanceReport({ setPage }) {
     )
   }
 
+  const th = { textAlign: 'left', padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${THEME.outlineVar}`, whiteSpace: 'nowrap' }
+
   return (
     <div>
       <PageHeader title="Attendance Report" site={currentSite} />
@@ -134,55 +137,69 @@ export default function AttendanceReport({ setPage }) {
       ) : (
         <>
           {/* KPI cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-            <StatCard label="Attendance Rate" value={stats.attendanceRate + '%'} icon="check_circle" color={THEME.success} />
-            <StatCard label="Absenteeism Rate" value={stats.absenteeismRate + '%'} icon="cancel" color={THEME.error} />
-            <StatCard label="Late Arrivals" value={stats.late} icon="schedule" color={THEME.warning} />
-            <StatCard label="Overtime Hours" value={stats.overtimeTotal.toFixed(1)} icon="more_time" color={ACCENT} />
-            <StatCard label="Total Records" value={stats.totalLogs} icon="fact_check" color={THEME.info} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+            <KpiCard label="Attendance Rate" value={stats.attendanceRate + '%'} icon="check_circle" accent={THEME.success} progress={parseFloat(stats.attendanceRate)} />
+            <KpiCard label="Absenteeism Rate" value={stats.absenteeismRate + '%'} icon="cancel" accent={THEME.error} progress={parseFloat(stats.absenteeismRate)} />
+            <KpiCard label="Late Arrivals" value={stats.late} icon="schedule" accent={THEME.warning}
+              progress={stats.totalLogs > 0 ? (stats.late / stats.totalLogs) * 100 : undefined} />
+            <KpiCard label="Overtime Hours" value={stats.overtimeTotal.toFixed(1)} icon="more_time" accent={ACCENT} />
+            <KpiCard label="Total Records" value={stats.totalLogs} icon="fact_check" accent={THEME.info} />
           </div>
 
-          {/* By department */}
-          <Card style={{ marginBottom: '18px' }}>
-            <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>Attendance by Department</div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
-                    {['Department', 'Records', 'Present', 'Absent', 'Late', 'Rate'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.deptRows.map(d => (
-                    <tr key={d.dept} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                      <td style={{ padding: '8px 10px', color: THEME.text }}>{d.dept}</td>
-                      <td style={{ padding: '8px 10px', color: THEME.text }}>{d.total}</td>
-                      <td style={{ padding: '8px 10px', color: THEME.success }}>{d.present}</td>
-                      <td style={{ padding: '8px 10px', color: THEME.error }}>{d.absent}</td>
-                      <td style={{ padding: '8px 10px', color: THEME.warning }}>{d.late}</td>
-                      <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 600 }}>{d.rate}%</td>
-                    </tr>
-                  ))}
-                  {stats.deptRows.length === 0 && (
-                    <tr><td colSpan={6} style={{ padding: '16px', textAlign: 'center', color: THEME.textLow }}>No attendance records in this period</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px', marginBottom: '18px' }}>
+            {/* Attendance gauge */}
+            <DashCard>
+              <SectionTitle title="Overall Attendance" subtitle={`${fromDate} to ${toDate}`} />
+              <DonutGauge
+                pct={stats.totalLogs > 0 ? parseFloat(stats.attendanceRate) : null}
+                color={THEME.success}
+                label="attendance"
+                legend={[[THEME.success, `Present ${stats.present}`], [THEME.warning, `Late ${stats.late}`], [THEME.error, `Absent ${stats.absent}`]]}
+              />
+            </DashCard>
 
-          {/* Top absences */}
-          {stats.topAbsent.length > 0 && (
-            <Card>
-              <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>Top 10 Employees by Absences</div>
+            {/* By department */}
+            <DashCard>
+              <SectionTitle title="Attendance by Department" />
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
+                    <tr>
+                      {['Department', 'Records', 'Present', 'Absent', 'Late', 'Rate'].map(h => (
+                        <th key={h} style={th}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.deptRows.map(d => (
+                      <tr key={d.dept} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                        <td style={{ padding: '8px 10px', color: THEME.text }}>{d.dept}</td>
+                        <td style={{ padding: '8px 10px', color: THEME.text }}>{d.total}</td>
+                        <td style={{ padding: '8px 10px', color: THEME.success }}>{d.present}</td>
+                        <td style={{ padding: '8px 10px', color: THEME.error }}>{d.absent}</td>
+                        <td style={{ padding: '8px 10px', color: THEME.warning }}>{d.late}</td>
+                        <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 600 }}>{d.rate}%</td>
+                      </tr>
+                    ))}
+                    {stats.deptRows.length === 0 && (
+                      <tr><td colSpan={6} style={{ padding: '16px', textAlign: 'center', color: THEME.textLow }}>No attendance records in this period</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </DashCard>
+          </div>
+
+          {/* Top absences */}
+          {stats.topAbsent.length > 0 && (
+            <DashCard>
+              <SectionTitle title="Top 10 Employees by Absences" />
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr>
                       {['#', 'Employee #', 'Name', 'Department', 'Absences'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>{h}</th>
+                        <th key={h} style={th}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -199,7 +216,7 @@ export default function AttendanceReport({ setPage }) {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </DashCard>
           )}
         </>
       )}

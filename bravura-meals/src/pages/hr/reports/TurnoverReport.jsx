@@ -4,7 +4,8 @@ import { usePermissions } from '../../../contexts/PermissionsContext'
 import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
-import { Card, Icon, PageHeader, Button, StatCard, showToast } from '../../../components/ui'
+import { Card, Icon, PageHeader, Button, showToast } from '../../../components/ui'
+import { DashCard, KpiCard, ProgressRow, SectionTitle } from '../../../components/dash'
 
 const ACCENT = MODULE_COLORS.workforce
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -102,6 +103,9 @@ export default function TurnoverReport({ setPage }) {
     )
   }
 
+  const th = { textAlign: 'left', padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${THEME.outlineVar}`, whiteSpace: 'nowrap' }
+  const reasonEntries = Object.entries(stats.byReason).sort((a, b) => b[1] - a[1])
+
   return (
     <div>
       <PageHeader title="Turnover Report" site={currentSite} />
@@ -124,51 +128,40 @@ export default function TurnoverReport({ setPage }) {
       ) : (
         <>
           {/* KPI cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-            <StatCard label="Terminations" value={stats.termCount} icon="person_off" color={THEME.error} />
-            <StatCard label="New Hires" value={stats.newHires} icon="person_add" color={THEME.success} />
-            <StatCard label="Turnover Rate" value={stats.turnoverRate + '%'} icon="swap_vert" color={ACCENT} />
-            <StatCard label="Avg Tenure" value={stats.avgTenure === '-' ? '-' : stats.avgTenure + ' yrs'} icon="schedule" color={THEME.info} />
-            <StatCard label="Active Employees" value={stats.totalActive} icon="groups" color={THEME.textMed} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+            <KpiCard label="Terminations" value={stats.termCount} icon="person_off" accent={THEME.error} />
+            <KpiCard label="New Hires" value={stats.newHires} icon="person_add" accent={THEME.success} />
+            <KpiCard label="Turnover Rate" value={stats.turnoverRate + '%'} icon="swap_vert" accent={ACCENT} progress={parseFloat(stats.turnoverRate)} />
+            <KpiCard label="Avg Tenure" value={stats.avgTenure === '-' ? '-' : stats.avgTenure + ' yrs'} icon="schedule" accent={THEME.info} />
+            <KpiCard label="Active Employees" value={stats.totalActive} icon="groups" accent={THEME.textMed} />
           </div>
 
           {/* Reasons breakdown */}
-          <Card style={{ marginBottom: '18px' }}>
-            <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>Termination Reasons</div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>Reason</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>Count</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(stats.byReason).sort((a, b) => b[1] - a[1]).map(([reason, count]) => (
-                    <tr key={reason} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                      <td style={{ padding: '8px 10px', color: THEME.text }}>{reason}</td>
-                      <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 600 }}>{count}</td>
-                      <td style={{ padding: '8px 10px', color: THEME.textMed }}>{stats.termCount > 0 ? ((count / stats.termCount) * 100).toFixed(0) : 0}%</td>
-                    </tr>
-                  ))}
-                  {Object.keys(stats.byReason).length === 0 && (
-                    <tr><td colSpan={3} style={{ padding: '16px', textAlign: 'center', color: THEME.textLow }}>No terminations in this period</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          <DashCard style={{ marginBottom: '18px' }}>
+            <SectionTitle title="Termination Reasons" subtitle={`${fromDate} to ${toDate}`} />
+            {reasonEntries.length === 0 ? (
+              <div style={{ padding: '8px 0', color: THEME.textLow, fontSize: '13px' }}>No terminations in this period</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {reasonEntries.map(([reason, count]) => (
+                  <ProgressRow key={reason} label={reason}
+                    value={`${count} (${stats.termCount > 0 ? ((count / stats.termCount) * 100).toFixed(0) : 0}%)`}
+                    pct={stats.termCount > 0 ? (count / stats.termCount) * 100 : 0}
+                    color={THEME.error} />
+                ))}
+              </div>
+            )}
+          </DashCard>
 
           {/* Termination detail */}
-          <Card>
-            <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>Termination Details ({fromDate} to {toDate})</div>
+          <DashCard>
+            <SectionTitle title="Termination Details" subtitle={`${fromDate} to ${toDate}`} />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
+                  <tr>
                     {['Employee #', 'Name', 'Start Date', 'Termination Date', 'Tenure', 'Reason'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>{h}</th>
+                      <th key={h} style={th}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -195,7 +188,7 @@ export default function TurnoverReport({ setPage }) {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </DashCard>
         </>
       )}
     </div>

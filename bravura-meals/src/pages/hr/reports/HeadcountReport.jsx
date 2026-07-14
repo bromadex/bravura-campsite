@@ -4,7 +4,8 @@ import { usePermissions } from '../../../contexts/PermissionsContext'
 import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
-import { Card, Icon, PageHeader, Button, StatCard, showToast } from '../../../components/ui'
+import { Card, Icon, PageHeader, Button, showToast } from '../../../components/ui'
+import { DashCard, KpiCard, ProgressRow, SectionTitle } from '../../../components/dash'
 
 const ACCENT = MODULE_COLORS.workforce
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -87,6 +88,11 @@ export default function HeadcountReport({ setPage }) {
     )
   }
 
+  const th = { textAlign: 'left', padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${THEME.outlineVar}`, whiteSpace: 'nowrap' }
+  const activePct = stats.total > 0 ? ((stats.byStatus.active || 0) / stats.total) * 100 : null
+  const deptEntries = Object.entries(stats.byDept).sort((a, b) => b[1].total - a[1].total)
+  const maxDept = Math.max(...deptEntries.map(([, v]) => v.total), 1)
+
   return (
     <div>
       <PageHeader title="Headcount Report" site={currentSite} />
@@ -109,29 +115,43 @@ export default function HeadcountReport({ setPage }) {
       ) : (
         <>
           {/* KPI cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-            <StatCard label="Total Employees" value={stats.total} icon="groups" color={ACCENT} />
-            <StatCard label="Active" value={stats.byStatus.active || 0} icon="check_circle" color={THEME.success} />
-            <StatCard label="On Leave" value={(stats.byStatus.on_leave || 0) + (stats.byStatus.long_leave || 0)} icon="beach_access" color={THEME.warning} />
-            <StatCard label="New Hires" value={stats.newHires.length} sub={`${fromDate} - ${toDate}`} icon="person_add" color={THEME.info} />
-            <StatCard label="Terminations" value={stats.terminations.length} sub={`${fromDate} - ${toDate}`} icon="person_off" color={THEME.error} />
-            <StatCard label="Net Change" value={(stats.netChange >= 0 ? '+' : '') + stats.netChange} icon="trending_up" color={stats.netChange >= 0 ? THEME.success : THEME.error} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+            <KpiCard label="Total Employees" value={stats.total} icon="groups" accent={ACCENT} />
+            <KpiCard label="Active" value={stats.byStatus.active || 0} icon="check_circle" accent={THEME.success}
+              progress={activePct} sub={activePct !== null ? `${activePct.toFixed(0)}% of headcount` : undefined} />
+            <KpiCard label="On Leave" value={(stats.byStatus.on_leave || 0) + (stats.byStatus.long_leave || 0)} icon="beach_access" accent={THEME.warning}
+              progress={stats.total > 0 ? (((stats.byStatus.on_leave || 0) + (stats.byStatus.long_leave || 0)) / stats.total) * 100 : undefined} />
+            <KpiCard label="New Hires" value={stats.newHires.length} sub={`${fromDate} - ${toDate}`} icon="person_add" accent={THEME.info} />
+            <KpiCard label="Terminations" value={stats.terminations.length} sub={`${fromDate} - ${toDate}`} icon="person_off" accent={THEME.error} />
+            <KpiCard label="Net Change" value={(stats.netChange >= 0 ? '+' : '') + stats.netChange} icon="trending_up" accent={stats.netChange >= 0 ? THEME.success : THEME.error} />
           </div>
 
+          {/* Department distribution */}
+          {deptEntries.length > 0 && (
+            <DashCard style={{ marginBottom: '18px' }}>
+              <SectionTitle title="Department Distribution" subtitle="Headcount share per department" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {deptEntries.slice(0, 8).map(([dept, v]) => (
+                  <ProgressRow key={dept} label={dept} value={v.total} pct={(v.total / maxDept) * 100} color={ACCENT} />
+                ))}
+              </div>
+            </DashCard>
+          )}
+
           {/* Department breakdown */}
-          <Card style={{ marginBottom: '18px' }}>
-            <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>By Department</div>
+          <DashCard style={{ marginBottom: '18px' }}>
+            <SectionTitle title="By Department" />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
+                  <tr>
                     {['Department', 'Total', 'Active', 'On Leave', 'Terminated', 'Other'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>{h}</th>
+                      <th key={h} style={th}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(stats.byDept).sort((a, b) => b[1].total - a[1].total).map(([dept, v]) => (
+                  {deptEntries.map(([dept, v]) => (
                     <tr key={dept} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                       <td style={{ padding: '8px 10px', color: THEME.text }}>{dept}</td>
                       <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 600 }}>{v.total}</td>
@@ -144,17 +164,17 @@ export default function HeadcountReport({ setPage }) {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </DashCard>
 
           {/* Employment type breakdown */}
-          <Card style={{ marginBottom: '18px' }}>
-            <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>By Employment Type</div>
+          <DashCard style={{ marginBottom: '18px' }}>
+            <SectionTitle title="By Employment Type" />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>Type</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>Count</th>
+                  <tr>
+                    <th style={th}>Type</th>
+                    <th style={th}>Count</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -167,18 +187,18 @@ export default function HeadcountReport({ setPage }) {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </DashCard>
 
           {/* New hires detail */}
           {stats.newHires.length > 0 && (
-            <Card>
-              <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>New Hires ({fromDate} to {toDate})</div>
+            <DashCard>
+              <SectionTitle title="New Hires" subtitle={`${fromDate} to ${toDate}`} />
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
+                    <tr>
                       {['Employee #', 'Name', 'Department', 'Type', 'Start Date'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }}>{h}</th>
+                        <th key={h} style={th}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -195,7 +215,7 @@ export default function HeadcountReport({ setPage }) {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </DashCard>
           )}
         </>
       )}

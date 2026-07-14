@@ -4,7 +4,8 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
-import { Card, Icon, PageHeader, Button, StatCard, showToast } from '../../components/ui'
+import { Card, Icon, PageHeader, Button, showToast } from '../../components/ui'
+import { DashCard, KpiCard, DonutGauge, SectionTitle } from '../../components/dash'
 
 const ACCENT = MODULE_COLORS.workforce
 const DAY = 24 * 60 * 60 * 1000
@@ -110,8 +111,11 @@ export default function DocumentExpiry({ setPage }) {
   }
 
   const selectStyle = { padding: '6px 10px', borderRadius: '8px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, fontSize: '13px' }
-  const th = { textAlign: 'left', padding: '8px 10px', color: THEME.textMed, fontWeight: 500 }
+  const th = { textAlign: 'left', padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${THEME.outlineVar}`, whiteSpace: 'nowrap' }
   const td = { padding: '8px 10px', color: THEME.text }
+
+  const validCount = kpis.total - kpis.expired - kpis.expiring30
+  const validPct = kpis.total > 0 ? (validCount / kpis.total) * 100 : null
 
   return (
     <div>
@@ -139,21 +143,37 @@ export default function DocumentExpiry({ setPage }) {
       ) : (
         <>
           {/* KPI cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-            <StatCard label="Documents Tracked" value={kpis.total} icon="folder" color={ACCENT} />
-            <StatCard label="Expiring in 30 Days" value={kpis.expiring30} icon="schedule" color={THEME.warning} />
-            <StatCard label="Expiring in 90 Days" value={kpis.expiring90} icon="event" color={THEME.info} />
-            <StatCard label="Expired" value={kpis.expired} icon="error" color={THEME.error} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+            <KpiCard label="Documents Tracked" value={kpis.total} icon="folder" accent={ACCENT} />
+            <KpiCard label="Expiring in 30 Days" value={kpis.expiring30} icon="schedule" accent={THEME.warning}
+              progress={kpis.total > 0 ? (kpis.expiring30 / kpis.total) * 100 : undefined} />
+            <KpiCard label="Expiring in 90 Days" value={kpis.expiring90} icon="event" accent={THEME.info}
+              progress={kpis.total > 0 ? (kpis.expiring90 / kpis.total) * 100 : undefined} />
+            <KpiCard label="Expired" value={kpis.expired} icon="error" accent={THEME.error}
+              progress={kpis.total > 0 ? (kpis.expired / kpis.total) * 100 : undefined} />
           </div>
 
-          <Card>
-            <div style={{ fontWeight: 500, fontSize: '15px', color: THEME.text, marginBottom: '12px' }}>
-              Expiring Documents ({filtered.length})
-            </div>
+          {/* Validity gauge */}
+          <DashCard style={{ marginBottom: '18px' }}>
+            <SectionTitle title="Document Validity" subtitle="Share of tracked documents not expired or due within 30 days" />
+            <DonutGauge
+              pct={validPct}
+              color={THEME.success}
+              label="valid"
+              legend={[
+                [THEME.success, `Valid ${validCount}`],
+                [THEME.warning, `Expiring 30d ${kpis.expiring30}`],
+                [THEME.error, `Expired ${kpis.expired}`],
+              ]}
+            />
+          </DashCard>
+
+          <DashCard>
+            <SectionTitle title={`Expiring Documents (${filtered.length})`} />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.outline}` }}>
+                  <tr>
                     {['Employee #', 'Employee', 'Document Type', 'File Name', 'Expiry Date', 'Days Remaining', 'Status'].map(h => (
                       <th key={h} style={th}>{h}</th>
                     ))}
@@ -174,7 +194,7 @@ export default function DocumentExpiry({ setPage }) {
                         <td style={{ ...td, color: meta.color }}>{doc.expiry_date}</td>
                         <td style={{ ...td, color: meta.color, fontWeight: 600 }}>{days < 0 ? `${Math.abs(days)} overdue` : days}</td>
                         <td style={td}>
-                          <span style={{ padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 600, color: meta.color, border: `1px solid ${meta.color}` }}>
+                          <span style={{ padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 600, color: meta.color, background: meta.color + '18' }}>
                             {meta.label}
                           </span>
                         </td>
@@ -184,7 +204,7 @@ export default function DocumentExpiry({ setPage }) {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </DashCard>
         </>
       )}
     </div>

@@ -1,11 +1,34 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
-import { Card, Icon, PageHeader, Button, StatCard, StatusBadge, showToast, fmtDate } from '../../components/ui'
+import { Card, Icon, PageHeader, Button, showToast, fmtDate } from '../../components/ui'
+import { DashCard, KpiCard, AreaChart, DonutGauge, ActivityRow, SectionTitle } from '../../components/dash'
 
 const ACCENT = MODULE_COLORS.workforce
+
+// Literal hexes so the accent+'18' tint pattern works
+const CLR = {
+  green: '#2E7D32',
+  blue:  '#1E88E5',
+  amber: '#F59E0B',
+  red:   '#D32F2F',
+}
+
+// Icon/colour meta for status-change activity rows
+function statusMeta(newStatus) {
+  switch (newStatus) {
+    case 'active':     return { icon: 'check_circle', clr: CLR.green }
+    case 'terminated': return { icon: 'person_off',   clr: CLR.red }
+    case 'on_leave':
+    case 'long_leave': return { icon: 'beach_access', clr: CLR.amber }
+    case 'suspended':  return { icon: 'pause_circle', clr: CLR.amber }
+    default:           return { icon: 'swap_horiz',   clr: CLR.blue }
+  }
+}
+
+const statusLabel = s => (s || '—').replaceAll('_', ' ')
 
 export default function HRDashboard({ setPage }) {
   const { can } = usePermissions()
@@ -13,6 +36,7 @@ export default function HRDashboard({ setPage }) {
 
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ total: 0, active: 0, onLeave: 0, newThisMonth: 0, terminatedThisMonth: 0 })
+  const [employees, setEmployees] = useState([])
   const [activity, setActivity] = useState([])
 
   useEffect(() => {
@@ -49,6 +73,7 @@ export default function HRDashboard({ setPage }) {
       if (termErr) throw termErr
 
       setStats({ total, active, onLeave, newThisMonth, terminatedThisMonth: termCount || 0 })
+      setEmployees(rows)
 
       const { data: hist, error: histErr } = await supabase
         .from('employee_status_history')
@@ -77,6 +102,21 @@ export default function HRDashboard({ setPage }) {
     setLoading(false)
   }
 
+  // Cumulative headcount over the last 12 months, from start dates
+  const headcountSeries = useMemo(() => {
+    const now = new Date()
+    const points = [], labels = []
+    for (let i = 11; i >= 0; i--) {
+      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0)
+      const endIso = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`
+      points.push(employees.filter(e => e.start_date && e.start_date <= endIso).length)
+      labels.push(end.toLocaleDateString(undefined, { month: 'short' }))
+    }
+    return { points, labels }
+  }, [employees])
+
+  const activePct = stats.total > 0 ? (stats.active / stats.total) * 100 : null
+
   if (!can('hr.view')) {
     return (
       <Card style={{ textAlign: 'center', padding: '40px' }}>
@@ -89,79 +129,120 @@ export default function HRDashboard({ setPage }) {
   }
 
   return (
-    <div>
-      <PageHeader title="HR Dashboard" site={currentSite} />
+    <div style={{ maxWidth: '1100px' }}>
+      <PageHeader
+        title="HR Dashboard"
+        site={currentSite}
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <Button variant="outlined" icon="groups" onClick={() => setPage('wf_employees')}>View All Employees</Button>
+            <Button variant="outlined" icon="account_tree" onClick={() => setPage('wf_departments')}>Departments</Button>
+            {can('hr.create') && (
+              <Button icon="person_add" onClick={() => setPage('wf_employee_form')} style={{ background: ACCENT, border: `1px solid ${ACCENT}` }}>
+                Add Employee
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* KPI row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-        <StatCard label="Total Employees" value={loading ? '…' : stats.total} icon="groups" color={ACCENT} />
-        <StatCard label="Active" value={loading ? '…' : stats.active} icon="check_circle" color={THEME.success} />
-        <StatCard label="On Leave" value={loading ? '…' : stats.onLeave} sub="Incl. long leave" icon="beach_access" color={THEME.statusWarningText} />
-        <StatCard label="New This Month" value={loading ? '…' : stats.newThisMonth} icon="person_add" color={THEME.info} />
-        <StatCard label="Terminated This Month" value={loading ? '…' : stats.terminatedThisMonth} icon="person_off" color={THEME.error} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <KpiCard
+          label="Total Employees"
+          value={loading ? '…' : stats.total}
+          sub="excluding archived"
+          icon="groups"
+          accent={ACCENT}
+          progress={stats.total > 0 ? 100 : 0}
+          onClick={() => setPage('wf_employees')}
+        />
+        <KpiCard
+          label="Active"
+          value={loading ? '…' : stats.active}
+          sub={activePct !== null ? `${activePct.toFixed(0)}% of headcount` : 'no employees yet'}
+          icon="check_circle"
+          accent={CLR.green}
+          progress={activePct ?? 0}
+          onClick={() => setPage('wf_employees')}
+        />
+        <KpiCard
+          label="On Leave"
+          value={loading ? '…' : stats.onLeave}
+          sub="incl. long leave"
+          icon="beach_access"
+          accent={CLR.amber}
+          progress={stats.total > 0 ? (stats.onLeave / stats.total) * 100 : 0}
+        />
+        <KpiCard
+          label="New This Month"
+          value={loading ? '…' : stats.newThisMonth}
+          sub="started this month"
+          icon="person_add"
+          accent={CLR.blue}
+          progress={stats.total > 0 ? (stats.newThisMonth / stats.total) * 100 : 0}
+        />
+        <KpiCard
+          label="Terminated This Month"
+          value={loading ? '…' : stats.terminatedThisMonth}
+          sub="status changes"
+          icon="person_off"
+          accent={CLR.red}
+          progress={stats.total > 0 ? (stats.terminatedThisMonth / stats.total) * 100 : 0}
+        />
       </div>
 
-      {/* Quick actions */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '18px' }}>
-        {can('hr.create') && (
-          <Button icon="person_add" onClick={() => setPage('wf_employee_form')} style={{ background: ACCENT, border: `1px solid ${ACCENT}` }}>
-            Add Employee
-          </Button>
-        )}
-        <Button variant="outlined" icon="groups" onClick={() => setPage('wf_employees')}>View All Employees</Button>
-        {can('hr.view') && (
-          <Button variant="outlined" icon="account_tree" onClick={() => setPage('wf_departments')}>Departments</Button>
-        )}
+      {/* Headcount trend + active gauge */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.2fr) minmax(220px, 1fr)', gap: '16px', marginBottom: '16px' }}>
+        <DashCard>
+          <SectionTitle title="Headcount Trend" subtitle="Cumulative headcount by start date — last 12 months" />
+          {loading ? (
+            <div style={{ color: THEME.textLow, fontSize: '13px', padding: '20px 0' }}>Loading…</div>
+          ) : (
+            <AreaChart points={headcountSeries.points} labels={headcountSeries.labels} color={ACCENT} />
+          )}
+        </DashCard>
+        <DashCard>
+          <SectionTitle title="Workforce Status" subtitle="Share of employees active" />
+          <DonutGauge
+            pct={activePct}
+            color={CLR.green}
+            label="active"
+            legend={[[CLR.green, `Active ${stats.active}`], [CLR.amber, `On leave ${stats.onLeave}`]]}
+          />
+        </DashCard>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 1fr) minmax(320px, 2fr)', gap: '14px', alignItems: 'start' }}>
-        {/* Pending items */}
-        <Card>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <Icon name="pending_actions" size={18} style={{ color: ACCENT }} />
-            <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>Pending Items</div>
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 600, color: THEME.text, lineHeight: 1.1 }}>0</div>
-          <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '6px' }}>
-            Leave approvals arrive in HR Phase 2
-          </div>
-        </Card>
-
-        {/* Recent activity */}
-        <Card>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <Icon name="history" size={18} style={{ color: ACCENT }} />
-            <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>Recent Activity</div>
-          </div>
+      {/* Recent activity */}
+      <div style={{ marginBottom: '16px' }}>
+        <DashCard>
+          <SectionTitle title="Recent Activity" subtitle="Latest employee status changes" />
           {loading ? (
             <div style={{ color: THEME.textLow, fontSize: '13px' }}>Loading…</div>
           ) : activity.length === 0 ? (
-            <div style={{ color: THEME.textLow, fontSize: '13px' }}>No status changes recorded yet.</div>
+            <div style={{ textAlign: 'center', padding: '30px 0', color: THEME.textLow, fontSize: '13px' }}>
+              No status changes recorded yet.
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {activity.map((h, i) => (
-                <div key={h.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-                  padding: '9px 0',
-                  borderBottom: i === activity.length - 1 ? 'none' : `1px solid ${THEME.outlineVar}`,
-                }}>
-                  <div style={{ fontWeight: 600, fontSize: '13px', color: THEME.text, minWidth: '120px' }}>
-                    {h.employee?.name || 'Unknown'}
-                  </div>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    {h.old_status ? <StatusBadge status={h.old_status} /> : <span style={{ fontSize: '11px', color: THEME.textLow }}>—</span>}
-                    <Icon name="arrow_forward" size={14} style={{ color: THEME.textLow }} />
-                    <StatusBadge status={h.new_status} />
-                  </div>
-                  <div style={{ marginLeft: 'auto', fontSize: '12px', color: THEME.textMed, textAlign: 'right' }}>
-                    {fmtDate((h.effective_date || h.created_at || '').slice(0, 10))}
-                    {h.changed_by_name && <span style={{ color: THEME.textLow }}> · by {h.changed_by_name}</span>}
-                  </div>
-                </div>
-              ))}
+              {activity.map((h, i) => {
+                const meta = statusMeta(h.new_status)
+                return (
+                  <ActivityRow
+                    key={h.id}
+                    icon={meta.icon}
+                    iconColor={meta.clr}
+                    title={h.employee?.name || 'Unknown'}
+                    sub={`${statusLabel(h.old_status)} → ${statusLabel(h.new_status)}${h.changed_by_name ? ` · by ${h.changed_by_name}` : ''}`}
+                    right={fmtDate((h.effective_date || h.created_at || '').slice(0, 10))}
+                    rightColor={THEME.textMed}
+                    isLast={i === activity.length - 1}
+                  />
+                )
+              })}
             </div>
           )}
-        </Card>
+        </DashCard>
       </div>
     </div>
   )

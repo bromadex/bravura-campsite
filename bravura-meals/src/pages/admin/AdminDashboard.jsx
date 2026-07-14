@@ -2,9 +2,57 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
-import { Card, Icon, PageHeader, showToast, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import { Icon, PageHeader, showToast } from '../../components/ui'
+import { DashCard, KpiCard, ActivityRow, SectionTitle } from '../../components/dash'
 
 const color = MODULE_COLORS.admin
+
+// Literal hexes so the accent+'18' tint pattern works
+const ACCENT = {
+  indigo: '#3949AB',
+  orange: '#FB8C00',
+  green:  '#2E7D32',
+  pink:   '#EC4899',
+  blue:   '#1E88E5',
+  amber:  '#D97706',
+  grey:   '#607D8B',
+  red:    '#D32F2F',
+}
+
+// Audit action → icon/colour for activity rows
+function actionMeta(action) {
+  const a = (action || '').toLowerCase()
+  if (a.includes('insert') || a.includes('create')) return { icon: 'add_circle', clr: ACCENT.green }
+  if (a.includes('update') || a.includes('edit'))   return { icon: 'edit',       clr: ACCENT.blue }
+  if (a.includes('delete') || a.includes('remove')) return { icon: 'delete',     clr: ACCENT.red }
+  return { icon: 'history', clr: ACCENT.grey }
+}
+
+function QuickLinkTile({ icon, label, onClick }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: THEME.surface, borderRadius: '16px', padding: '16px 18px',
+        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0,
+        boxShadow: hover ? '0 4px 12px rgba(0,0,0,0.10)' : '0 1px 3px rgba(0,0,0,0.06)',
+        transform: hover ? 'translateY(-1px)' : 'none',
+        transition: 'box-shadow .15s, transform .15s',
+      }}
+    >
+      <div style={{
+        width: '36px', height: '36px', borderRadius: '50%', background: color + '18',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <Icon name={icon} size={18} style={{ color }} />
+      </div>
+      <span style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+    </div>
+  )
+}
 
 export default function AdminDashboard({ setPage }) {
   const { can } = usePermissions()
@@ -46,13 +94,21 @@ export default function AdminDashboard({ setPage }) {
     }
   }
 
+  const roledPct = stats.users > 0 ? ((stats.users - stats.usersWithoutRoles) / stats.users) * 100 : 0
+
   const kpis = [
-    { label: 'Total Users', value: stats.users, icon: 'group', bg: '#E8EAF6' },
-    { label: 'Total Roles', value: stats.roles, icon: 'admin_panel_settings', bg: '#FFF3E0' },
-    { label: 'Active Sites', value: stats.sites, icon: 'location_on', bg: '#E8F5E9' },
-    { label: 'Audit (24h)', value: stats.recentAudit, icon: 'history', bg: '#FCE4EC' },
-    { label: 'Pending Invitations', value: stats.pendingInvites, icon: 'mail', bg: '#E1F5FE' },
-    { label: 'Users Without Roles', value: stats.usersWithoutRoles, icon: 'person_off', bg: stats.usersWithoutRoles > 0 ? '#FEF3C7' : '#ECEFF1', accent: stats.usersWithoutRoles > 0 ? '#D97706' : undefined },
+    { label: 'Total Users', value: stats.users, icon: 'group', accent: ACCENT.indigo, sub: 'registered profiles', progress: stats.users > 0 ? 100 : 0, page: 'admin_users' },
+    { label: 'Total Roles', value: stats.roles, icon: 'admin_panel_settings', accent: ACCENT.orange, page: 'admin_roles' },
+    { label: 'Active Sites', value: stats.sites, icon: 'location_on', accent: ACCENT.green, page: 'admin_sites' },
+    { label: 'Audit (24h)', value: stats.recentAudit, icon: 'history', accent: ACCENT.pink, sub: 'events in last 24 hours', page: 'admin_audit' },
+    { label: 'Pending Invitations', value: stats.pendingInvites, icon: 'mail', accent: ACCENT.blue, page: 'admin_invitations' },
+    {
+      label: 'Users Without Roles', value: stats.usersWithoutRoles, icon: 'person_off',
+      accent: stats.usersWithoutRoles > 0 ? ACCENT.amber : ACCENT.grey,
+      sub: `${roledPct.toFixed(0)}% of users have a role`,
+      progress: roledPct,
+      page: 'admin_users',
+    },
   ]
 
   const quickLinks = [
@@ -70,7 +126,7 @@ export default function AdminDashboard({ setPage }) {
   }
 
   return (
-    <div>
+    <div style={{ maxWidth: '1100px' }}>
       <PageHeader title="Admin Dashboard" />
 
       {loading ? (
@@ -79,67 +135,67 @@ export default function AdminDashboard({ setPage }) {
         </div>
       ) : (
         <>
-          {/* KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          {/* KPI cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '20px' }}>
             {kpis.map(k => (
-              <div key={k.label} style={{
-                background: THEME.surface, borderRadius: '14px', padding: '18px',
-                border: `1px solid ${k.accent || THEME.outlineVar}`, display: 'flex', alignItems: 'center', gap: '14px',
-              }}>
-                <div style={{
-                  width: '42px', height: '42px', borderRadius: '50%', background: k.bg,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <Icon name={k.icon} size={22} style={{ color: k.accent || color }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '22px', fontWeight: 600, color: k.accent || THEME.text }}>{k.value}</div>
-                  <div style={{ fontSize: '12px', color: THEME.textMed }}>{k.label}</div>
-                </div>
-              </div>
+              <KpiCard
+                key={k.label}
+                label={k.label}
+                value={k.value}
+                sub={k.sub}
+                icon={k.icon}
+                accent={k.accent}
+                progress={k.progress}
+                onClick={k.page ? () => setPage(k.page) : undefined}
+              />
             ))}
           </div>
 
-          {/* Recent Activity */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text, marginBottom: '12px' }}>Recent Activity</div>
-            <TableWrap>
-              <THead color={color}>
-                {['Timestamp', 'Actor', 'Table', 'Action', 'Record ID'].map(h => <Th key={h}>{h}</Th>)}
-              </THead>
-              <tbody>
-                {recentActivity.length === 0 ? (
-                  <TRow><Td colSpan={5} style={{ textAlign: 'center', color: THEME.textLow }}>No recent activity</Td></TRow>
-                ) : recentActivity.map(a => (
-                  <TRow key={a.id}>
-                    <Td style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleString()}</Td>
-                    <Td>{a.actor?.full_name || a.actor?.username || '-'}</Td>
-                    <Td><code style={{ fontSize: '11px', background: THEME.surfaceVar, padding: '2px 6px', borderRadius: '4px' }}>{a.table_name}</code></Td>
-                    <Td>{a.action}</Td>
-                    <Td style={{ fontSize: '11px', color: THEME.textLow }}>{a.record_id || '-'}</Td>
-                  </TRow>
-                ))}
-              </tbody>
-            </TableWrap>
+          {/* Recent activity */}
+          <div style={{ marginBottom: '16px' }}>
+            <DashCard>
+              <SectionTitle
+                title="Recent Activity"
+                subtitle="Latest audit log events"
+                action={
+                  <button onClick={() => setPage('admin_audit')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '12px', fontWeight: 500, color, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: 'inherit' }}>
+                    View all <Icon name="chevron_right" size={14} style={{ color }} />
+                  </button>
+                }
+              />
+              {recentActivity.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 0', color: THEME.textLow, fontSize: '13px' }}>
+                  No recent activity
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {recentActivity.map((a, i) => {
+                    const meta = actionMeta(a.action)
+                    return (
+                      <ActivityRow
+                        key={a.id}
+                        icon={meta.icon}
+                        iconColor={meta.clr}
+                        title={`${a.action || '—'} · ${a.table_name || '—'}`}
+                        sub={`${a.actor?.full_name || a.actor?.username || 'Unknown'}${a.record_id ? ` · ${a.record_id}` : ''}`}
+                        right={new Date(a.created_at).toLocaleString()}
+                        rightColor={THEME.textMed}
+                        isLast={i === recentActivity.length - 1}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+            </DashCard>
           </div>
 
-          {/* Quick Links */}
+          {/* Quick links */}
           <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text, marginBottom: '12px' }}>Quick Links</div>
+            <SectionTitle title="Quick Links" subtitle="Jump to an admin area" />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
               {quickLinks.map(ql => (
-                <div key={ql.page} onClick={() => setPage(ql.page)} style={{
-                  background: THEME.surface, borderRadius: '14px', padding: '18px',
-                  border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  transition: 'box-shadow 0.15s',
-                }}
-                  onMouseEnter={e => e.currentTarget.style.boxShadow = THEME.shadow2}
-                  onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
-                >
-                  <Icon name={ql.icon} size={20} style={{ color }} />
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: THEME.text }}>{ql.label}</span>
-                </div>
+                <QuickLinkTile key={ql.page} icon={ql.icon} label={ql.label} onClick={() => setPage(ql.page)} />
               ))}
             </div>
           </div>

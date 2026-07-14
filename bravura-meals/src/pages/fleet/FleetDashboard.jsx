@@ -4,88 +4,53 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useFleet } from '../../contexts/FleetContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
+import { Icon } from '../../components/ui'
+import { DashCard, KpiCard, DonutGauge, ProgressRow, ActivityRow, SectionTitle } from '../../components/dash'
 import FleetQuickNav from './FleetQuickNav'
 import FleetAssetDetail from './FleetAssetDetail'
 
 const color = MODULE_COLORS.fleet
 
-function SectionLabel({ children }) {
+// Accent hexes for KPI chips (literal hexes so the accent+'18' tint pattern works)
+const ACCENT = {
+  green:  '#2E7D32',
+  blue:   '#0277BD',
+  orange: '#E65100',
+  red:    '#E53935',
+  amber:  '#D97706',
+  teal:   '#00897B',
+}
+
+/* ── Section = DashCard + SectionTitle (local convenience) ────────────── */
+function Section({ title, sub, action, children, style }) {
   return (
-    <div style={{
-      fontSize: '11px', fontWeight: 600, color: THEME.textLow,
-      letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '10px',
-    }}>{children}</div>
+    <DashCard style={style}>
+      <SectionTitle title={title} subtitle={sub} action={action} />
+      {children}
+    </DashCard>
   )
 }
 
-function KpiTile({ icon, label, value, sub, accent }) {
-  const c = accent || color
+function HealthCard({ score, grade, gradeColor, components }) {
   return (
-    <div style={{
-      background: THEME.surface, borderRadius: '14px', padding: '16px',
-      border: `1px solid ${THEME.outlineVar}`, flex: '1 1 200px', minWidth: '180px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-        <div style={{
-          width: '36px', height: '36px', borderRadius: '50%',
-          background: c + '18', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <span className="material-symbols-rounded" style={{ fontSize: '18px', color: c }}>{icon}</span>
+    <Section title="Fleet Health Score" sub="Availability, PM, assignments, compliance" style={{ height: '100%', boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ flexShrink: 0, position: 'relative' }}>
+          <DonutGauge pct={score} color={gradeColor} size={130} label={`Grade ${grade}`} />
         </div>
-        <div style={{ fontSize: '12px', color: THEME.textMed, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</div>
-      </div>
-      <div style={{ fontSize: '28px', fontWeight: 700, color: THEME.text, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '6px' }}>{sub}</div>}
-    </div>
-  )
-}
-
-function HealthDonut({ score, grade, gradeColor, components }) {
-  const radius = 48
-  const stroke = 10
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference - (score / 100) * circumference
-
-  return (
-    <div style={{
-      background: THEME.surface, borderRadius: '14px', padding: '24px',
-      border: `1px solid ${THEME.outlineVar}`, minWidth: '260px',
-    }}>
-      <SectionLabel>Fleet Health Score</SectionLabel>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
-          <svg width="120" height="120" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r={radius} fill="none" stroke={THEME.outlineVar} strokeWidth={stroke} />
-            <circle cx="60" cy="60" r={radius} fill="none" stroke={gradeColor} strokeWidth={stroke}
-              strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
-              transform="rotate(-90 60 60)" style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
-          </svg>
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-          }}>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: THEME.text, lineHeight: 1 }}>{score}</div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: gradeColor, marginTop: '2px' }}>{grade}</div>
-          </div>
-        </div>
-        <div style={{ flex: 1, minWidth: '140px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ flex: 1, minWidth: '150px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {components.map(comp => (
-            <div key={comp.label}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: THEME.textMed, marginBottom: '3px' }}>
-                <span>{comp.label}</span>
-                <span>{comp.value.toFixed(1)} / 25</span>
-              </div>
-              <div style={{ height: '6px', borderRadius: '3px', background: THEME.outlineVar }}>
-                <div style={{
-                  height: '100%', borderRadius: '3px', background: gradeColor,
-                  width: `${(comp.value / 25) * 100}%`, transition: 'width 0.6s ease',
-                }} />
-              </div>
-            </div>
+            <ProgressRow
+              key={comp.label}
+              label={comp.label}
+              value={`${comp.value.toFixed(1)}/25`}
+              pct={(comp.value / 25) * 100}
+              color={gradeColor}
+            />
           ))}
         </div>
       </div>
-    </div>
+    </Section>
   )
 }
 
@@ -257,71 +222,100 @@ export default function FleetDashboard({ setPage }) {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px', color: THEME.textLow }}>
-        <span className="material-symbols-rounded" style={{ fontSize: '32px', animation: 'spin 1s linear infinite' }}>progress_activity</span>
+        <Icon name="progress_activity" size={32} style={{ animation: 'spin 1s linear infinite' }} />
       </div>
     )
   }
 
-  const availability = assets.length ? Math.round(((assetsByStatus.operational || 0) / assets.length) * 100) : 0
+  const totalAssets = assets.length
+  const operationalCount = assetsByStatus.operational || 0
+  const availability = totalAssets ? Math.round((operationalCount / totalAssets) * 100) : 0
+  const criticalWo = sortedWorkOrders.filter(w => w.priority === 'critical').length
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <FleetQuickNav setPage={setPage} current="fleet_dashboard" />
 
-      <SectionLabel>Key Performance Indicators</SectionLabel>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-        <KpiTile icon="inventory_2" label="Total Fleet" value={assets.length} sub={`${assetTypes.length} types`} />
-        <KpiTile icon="check_circle" label="Operational" value={assetsByStatus.operational || 0} sub={`${availability}% availability`} />
-        <KpiTile icon="build" label="In Maintenance" value={assetsByStatus.maintenance || 0} accent="#E65100" sub="Active service" />
-        <KpiTile icon="block" label="Grounded" value={assetsByStatus.grounded || 0} accent="#E53935" sub="Out of service" />
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
-        <KpiTile icon="assignment_ind" label="Active Assignments" value={activeAssignments.length} accent="#2E7D32" sub="Currently assigned" />
-        <KpiTile icon="engineering" label="Open Work Orders" value={openWorkOrders.length} accent="#0277BD" sub={`${sortedWorkOrders.filter(w => w.priority === 'critical').length} critical`} />
-        <KpiTile icon="warning" label="Expiring Compliance" value={expiringCompliance.length} accent={expiringCompliance.length > 0 ? '#E65100' : color} sub="Within 30 days" />
-        <KpiTile icon="checklist" label="Inspections (30d)" value={recentInspections.length} sub="Last 30 days" />
+      {/* KPI strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <KpiCard
+          icon="inventory_2" label="Total Fleet" value={totalAssets}
+          sub={`${assetTypes.length} asset types`} accent={color}
+          progress={100} onClick={() => setPage('fleet_assets')}
+        />
+        <KpiCard
+          icon="check_circle" label="Operational" value={operationalCount}
+          sub={`${availability}% availability`} accent={ACCENT.green}
+          progress={availability} onClick={() => setPage('fleet_assets')}
+        />
+        <KpiCard
+          icon="build" label="In Maintenance" value={assetsByStatus.maintenance || 0}
+          sub="Active service" accent={ACCENT.orange}
+          progress={totalAssets ? ((assetsByStatus.maintenance || 0) / totalAssets) * 100 : 0}
+          onClick={() => setPage('fleet_maintenance')}
+        />
+        <KpiCard
+          icon="block" label="Grounded" value={assetsByStatus.grounded || 0}
+          sub="Out of service" accent={ACCENT.red}
+          progress={totalAssets ? ((assetsByStatus.grounded || 0) / totalAssets) * 100 : 0}
+          onClick={() => setPage('fleet_assets')}
+        />
+        <KpiCard
+          icon="assignment_ind" label="Active Assignments" value={activeAssignments.length}
+          sub="Currently assigned" accent={ACCENT.teal}
+          progress={totalAssets ? Math.min(100, (activeAssignments.length / totalAssets) * 100) : 0}
+          onClick={() => setPage('fleet_assignments')}
+        />
+        <KpiCard
+          icon="engineering" label="Open Work Orders" value={openWorkOrders.length}
+          sub={`${criticalWo} critical`} accent={ACCENT.blue}
+          progress={openWorkOrders.length ? (criticalWo / openWorkOrders.length) * 100 : 0}
+          onClick={() => setPage('fleet_maintenance')}
+        />
+        <KpiCard
+          icon="warning" label="Expiring Compliance" value={expiringCompliance.length}
+          sub="Within 30 days" accent={expiringCompliance.length > 0 ? ACCENT.amber : color}
+          progress={totalAssets ? Math.min(100, (expiringCompliance.length / totalAssets) * 100) : 0}
+          onClick={() => setPage('fleet_compliance')}
+        />
+        <KpiCard
+          icon="checklist" label="Inspections (30d)" value={recentInspections.length}
+          sub="Last 30 days" accent={color}
+          progress={inspections.length ? (recentInspections.length / inspections.length) * 100 : 0}
+          onClick={() => setPage('fleet_inspections')}
+        />
       </div>
 
       {/* Fuel efficiency alert — top vehicles consuming above expected this month */}
       {overConsumers.length > 0 && (
-        <div style={{
-          background: THEME.surface, borderRadius: '14px', padding: '20px',
-          border: `1px solid #C6282833`, borderLeft: `4px solid #C62828`,
-          marginBottom: '20px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span className="material-symbols-rounded" style={{ fontSize: '22px', color: '#C62828' }}>trending_up</span>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: THEME.text }}>
-                  Top Over-Consuming Vehicles This Month
-                </div>
-                <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>
-                  Consuming more than {OVER_PCT_THRESHOLD}% above their expected L/100km
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/fuel/fuel_vehicle_consumption')}
-              style={{
-                background: 'transparent', border: `1px solid ${THEME.outlineVar}`,
-                borderRadius: '8px', padding: '6px 14px', cursor: 'pointer',
-                fontSize: '12px', fontWeight: 600, color: THEME.textMed, fontFamily: 'inherit',
-              }}
-            >
-              View all →
-            </button>
-          </div>
+        <DashCard style={{ marginBottom: '16px' }}>
+          <SectionTitle
+            title={
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  width: '28px', height: '28px', borderRadius: '50%', background: '#C6282818',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon name="trending_up" size={16} style={{ color: '#C62828' }} />
+                </span>
+                Top Over-Consuming Vehicles This Month
+              </span>
+            }
+            subtitle={`Consuming more than ${OVER_PCT_THRESHOLD}% above their expected L/100km`}
+            action={
+              <button onClick={() => navigate('/fuel/fuel_vehicle_consumption')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '12px', fontWeight: 500, color: '#C62828', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: 'inherit' }}>
+                View all <Icon name="chevron_right" size={14} style={{ color: '#C62828' }} />
+              </button>
+            }
+          />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
             {overConsumers.map(v => (
-              <div key={v.id} style={{
-                background: '#C6282808', borderRadius: '10px', padding: '12px',
-                border: `1px solid #C6282822`,
-              }}>
+              <div key={v.id} style={{ background: '#C6282808', borderRadius: '12px', padding: '12px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.text, marginBottom: '4px' }}>
                   {v.label}
                 </div>
-                <div style={{ fontSize: '20px', fontWeight: 700, color: '#C62828' }}>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#C62828', fontVariantNumeric: 'tabular-nums' }}>
                   +{Math.round(v.overPct)}%
                 </div>
                 <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '3px' }}>
@@ -330,167 +324,117 @@ export default function FleetDashboard({ setPage }) {
               </div>
             ))}
           </div>
-        </div>
+        </DashCard>
       )}
 
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 280px' }}>
-          <HealthDonut {...healthData} />
-        </div>
-        <div style={{ flex: '1 1 400px' }}>
-          <div style={{
-            background: THEME.surface, borderRadius: '14px', padding: '24px',
-            border: `1px solid ${THEME.outlineVar}`, height: '100%', boxSizing: 'border-box',
-          }}>
-            <SectionLabel>Fleet Status</SectionLabel>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {statuses.map(s => {
-                const count = assetsByStatus[s.key] || 0
-                const active = statusFilter === s.key
-                return (
-                  <div key={s.key} onClick={() => setStatusFilter(active ? null : s.key)} style={{
-                    flex: '1 1 100px', minWidth: '90px', padding: '14px 12px', borderRadius: '10px',
-                    borderLeft: `4px solid ${s.color}`, cursor: 'pointer',
-                    background: active ? s.color + '18' : THEME.surfaceVar,
-                    transition: 'background .15s',
-                  }}>
-                    <div style={{ fontSize: '22px', fontWeight: 700, color: THEME.text }}>{count}</div>
-                    <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>{s.label}</div>
-                  </div>
-                )
-              })}
-            </div>
-            {filteredAssets && (
-              <div style={{ marginTop: '14px', maxHeight: '140px', overflowY: 'auto' }}>
-                {filteredAssets.length === 0 ? (
-                  <div style={{ fontSize: '12px', color: THEME.textLow, padding: '8px' }}>No assets with this status</div>
-                ) : filteredAssets.map(a => (
-                  <div key={a.id} onClick={() => setDetailAsset(a)} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '6px 8px', fontSize: '12px', borderBottom: `1px solid ${THEME.outlineVar}`,
-                    cursor: 'pointer',
-                  }}>
-                    <span style={{ fontWeight: 600, color: THEME.text }}>{a.asset_number}</span>
-                    <span style={{ color: THEME.textMed }}>{a.description}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Availability gauge + health + status */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(280px, 1.6fr)', gap: '16px', marginBottom: '16px' }}>
+        <Section title="Fleet Availability" sub="Operational vs total fleet" style={{ height: '100%', boxSizing: 'border-box' }}>
+          <DonutGauge
+            pct={totalAssets ? (operationalCount / totalAssets) * 100 : null}
+            color={ACCENT.green}
+            label={`${operationalCount} of ${totalAssets}`}
+            legend={[[ACCENT.green, 'Operational'], [THEME.surfaceVar, 'Other']]}
+          />
+        </Section>
+        <HealthCard {...healthData} />
       </div>
 
-      {complianceAlerts.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <SectionLabel>Compliance Alerts</SectionLabel>
-          <div style={{
-            background: THEME.surface, borderRadius: '14px', border: `1px solid ${THEME.outlineVar}`,
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr 100px 100px 80px',
-              padding: '10px 16px', fontSize: '11px', fontWeight: 600, color: THEME.textLow,
-              textTransform: 'uppercase', letterSpacing: '.04em', borderBottom: `1px solid ${THEME.outlineVar}`,
-            }}>
-              <div>Asset</div><div>Description</div><div>Document</div><div>Expiry</div><div>Status</div>
-            </div>
-            <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
-              {complianceAlerts.map((a, i) => (
-                <div key={i} style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr 100px 100px 80px',
-                  padding: '10px 16px', fontSize: '12px', alignItems: 'center',
-                  borderBottom: i < complianceAlerts.length - 1 ? `1px solid ${THEME.outlineVar}` : 'none',
-                }}>
-                  <div style={{ fontWeight: 600, color: THEME.text }}>{a.asset_number}</div>
-                  <div style={{ color: THEME.textMed }}>{a.description}</div>
-                  <div style={{ color: THEME.textMed }}>{a.docType}</div>
-                  <div style={{ color: THEME.textMed }}>{a.expiry}</div>
-                  <div style={{
-                    display: 'inline-flex', padding: '2px 8px', borderRadius: '999px',
-                    fontSize: '10px', fontWeight: 700, background: a.color + '18', color: a.color,
-                  }}>
-                    {a.days < 0 ? `${Math.abs(a.days)}d overdue` : `${a.days}d left`}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <Section
+        title="Fleet Status" sub="Tap a status to list its assets"
+        style={{ marginBottom: '16px' }}
+      >
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {statuses.map(s => {
+            const count = assetsByStatus[s.key] || 0
+            const active = statusFilter === s.key
+            return (
+              <div key={s.key} onClick={() => setStatusFilter(active ? null : s.key)} style={{
+                flex: '1 1 100px', minWidth: '90px', padding: '14px 12px', borderRadius: '12px',
+                borderLeft: `4px solid ${s.color}`, cursor: 'pointer',
+                background: active ? s.color + '18' : THEME.surfaceVar,
+                transition: 'background .15s',
+              }}>
+                <div style={{ fontSize: '22px', fontWeight: 700, color: THEME.text, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
+                <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>{s.label}</div>
+              </div>
+            )
+          })}
         </div>
+        {filteredAssets && (
+          <div style={{ marginTop: '14px', maxHeight: '160px', overflowY: 'auto' }}>
+            {filteredAssets.length === 0 ? (
+              <div style={{ fontSize: '12px', color: THEME.textLow, padding: '8px' }}>No assets with this status</div>
+            ) : filteredAssets.map((a, i) => (
+              <div key={a.id} onClick={() => setDetailAsset(a)} style={{ cursor: 'pointer' }}>
+                <ActivityRow
+                  icon="directions_car" iconColor={statuses.find(s => s.key === statusFilter)?.color || color}
+                  title={a.asset_number} sub={a.description}
+                  isLast={i === filteredAssets.length - 1}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {complianceAlerts.length > 0 && (
+        <Section title="Compliance Alerts" sub="Documents expired or expiring soon" style={{ marginBottom: '16px' }}>
+          <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+            {complianceAlerts.map((a, i) => (
+              <ActivityRow
+                key={i}
+                icon="warning" iconColor={a.color}
+                title={`${a.asset_number} — ${a.description || ''}`}
+                sub={`${a.docType} · expires ${a.expiry}`}
+                right={a.days < 0 ? `${Math.abs(a.days)}d overdue` : `${a.days}d left`}
+                rightColor={a.color}
+                isLast={i === complianceAlerts.length - 1}
+              />
+            ))}
+          </div>
+        </Section>
       )}
 
       {sortedWorkOrders.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <SectionLabel>Maintenance Alerts</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {sortedWorkOrders.slice(0, 8).map(wo => {
-              const pColors = { critical: '#E53935', high: '#E65100', medium: '#D97706', low: '#0277BD' }
-              const pc = pColors[wo.priority] || THEME.textMed
-              return (
-                <div key={wo.id} style={{
-                  background: THEME.surface, borderRadius: '10px', padding: '14px 16px',
-                  border: `1px solid ${THEME.outlineVar}`, display: 'flex', alignItems: 'center', gap: '12px',
-                }}>
-                  <span className="material-symbols-rounded" style={{ fontSize: '20px', color: pc }}>build</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>
-                      {wo.fleet_assets?.asset_number || 'Unknown'} - {wo.fleet_assets?.description || ''}
-                    </div>
-                    <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>{wo.fault_description || wo.description || 'No description'}</div>
-                  </div>
-                  <div style={{
-                    padding: '2px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 700,
-                    background: pc + '18', color: pc, textTransform: 'uppercase',
-                  }}>{wo.priority || 'medium'}</div>
-                  <div style={{
-                    padding: '2px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 600,
-                    background: THEME.surfaceVar, color: THEME.textMed, textTransform: 'uppercase',
-                  }}>{wo.status}</div>
-                  <div style={{ fontSize: '11px', color: THEME.textLow, whiteSpace: 'nowrap' }}>
-                    {wo.created_at ? new Date(wo.created_at).toLocaleDateString() : ''}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        <Section title="Maintenance Alerts" sub="Open and in-progress work orders" style={{ marginBottom: '16px' }}>
+          {sortedWorkOrders.slice(0, 8).map((wo, i, arr) => {
+            const pColors = { critical: '#E53935', high: '#E65100', medium: '#D97706', low: '#0277BD' }
+            const pc = pColors[wo.priority] || THEME.textMed
+            return (
+              <ActivityRow
+                key={wo.id}
+                icon="build" iconColor={pc}
+                title={`${wo.fleet_assets?.asset_number || 'Unknown'} — ${wo.fleet_assets?.description || ''}`}
+                sub={`${wo.fault_description || wo.description || 'No description'} · ${wo.status}${wo.created_at ? ` · ${new Date(wo.created_at).toLocaleDateString()}` : ''}`}
+                right={(wo.priority || 'medium').toUpperCase()}
+                rightColor={pc}
+                isLast={i === Math.min(arr.length, 8) - 1}
+              />
+            )
+          })}
+        </Section>
       )}
 
       {recentTrips.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <SectionLabel>Recent Activity</SectionLabel>
-          <div style={{
-            background: THEME.surface, borderRadius: '14px', border: `1px solid ${THEME.outlineVar}`,
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '90px 1fr 1fr 80px 1fr',
-              padding: '10px 16px', fontSize: '11px', fontWeight: 600, color: THEME.textLow,
-              textTransform: 'uppercase', letterSpacing: '.04em', borderBottom: `1px solid ${THEME.outlineVar}`,
-            }}>
-              <div>Date</div><div>Asset</div><div>Operator</div><div>Distance</div><div>Purpose</div>
-            </div>
-            {recentTrips.map((t, i) => {
-              const dist = (t.end_km && t.start_km) ? `${(t.end_km - t.start_km).toFixed(0)} km` : '-'
-              return (
-                <div key={t.id || i} style={{
-                  display: 'grid', gridTemplateColumns: '90px 1fr 1fr 80px 1fr',
-                  padding: '10px 16px', fontSize: '12px', alignItems: 'center',
-                  borderBottom: i < recentTrips.length - 1 ? `1px solid ${THEME.outlineVar}` : 'none',
-                }}>
-                  <div style={{ color: THEME.textMed }}>{t.trip_date || ''}</div>
-                  <div style={{ fontWeight: 600, color: THEME.text }}>{t.fleet_assets?.asset_number || '-'}</div>
-                  <div style={{ color: THEME.textMed }}>{t.employees?.name || '-'}</div>
-                  <div style={{ color: THEME.textMed }}>{dist}</div>
-                  <div style={{ color: THEME.textMed }}>{t.purpose || '-'}</div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        <Section title="Recent Activity" sub="Latest trip logs" style={{ marginBottom: '16px' }}>
+          {recentTrips.map((t, i) => {
+            const dist = (t.end_km && t.start_km) ? `${(t.end_km - t.start_km).toFixed(0)} km` : '—'
+            return (
+              <ActivityRow
+                key={t.id || i}
+                icon="route" iconColor={color}
+                title={t.fleet_assets?.asset_number || '—'}
+                sub={`${t.trip_date || ''} · ${t.employees?.name || '—'}${t.purpose ? ` · ${t.purpose}` : ''}`}
+                right={dist}
+                isLast={i === recentTrips.length - 1}
+              />
+            )
+          })}
+        </Section>
       )}
 
-      <SectionLabel>Quick Actions</SectionLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <Section title="Quick Actions" sub="Jump to a fleet module">
         {[
           { page: 'fleet_vehicles', icon: 'directions_car', label: 'Vehicles', desc: 'Vehicle registry with compliance tracking' },
           { page: 'fleet_equipment', icon: 'construction', label: 'Heavy Equipment', desc: 'Excavators, loaders, graders, drills and more' },
@@ -502,30 +446,17 @@ export default function FleetDashboard({ setPage }) {
           { page: 'fleet_maintenance', icon: 'build', label: 'Maintenance', desc: 'Work orders, service schedules and history' },
           { page: 'fleet_compliance', icon: 'verified_user', label: 'Compliance', desc: 'Licence, insurance and COF expiry tracking' },
           { page: 'fleet_reports', icon: 'bar_chart', label: 'Reports', desc: 'Fleet analytics and reporting' },
-        ].map(item => (
-          <div key={item.page} onClick={() => setPage(item.page)} style={{
-            display: 'flex', alignItems: 'center', gap: '14px',
-            background: THEME.surface, borderRadius: '14px', padding: '14px 20px',
-            border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer',
-            transition: 'box-shadow .15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = THEME.shadow2}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
-          >
-            <div style={{
-              width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0,
-              background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span className="material-symbols-rounded" style={{ fontSize: '20px', color }}>{item.icon}</span>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '14px', fontWeight: 500, color: THEME.text }}>{item.label}</div>
-              <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>{item.desc}</div>
-            </div>
-            <span className="material-symbols-rounded" style={{ fontSize: '20px', color: THEME.textLow }}>chevron_right</span>
+        ].map((item, i, arr) => (
+          <div key={item.page} onClick={() => setPage(item.page)} style={{ cursor: 'pointer' }}>
+            <ActivityRow
+              icon={item.icon} iconColor={color}
+              title={item.label} sub={item.desc}
+              right={<Icon name="chevron_right" size={16} style={{ color: THEME.textLow }} />}
+              isLast={i === arr.length - 1}
+            />
           </div>
         ))}
-      </div>
+      </Section>
 
       {detailAsset && <FleetAssetDetail asset={detailAsset} onClose={() => setDetailAsset(null)} />}
     </div>

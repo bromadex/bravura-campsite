@@ -265,7 +265,7 @@ export default function FuelDashboard({ setPage }) {
           sub={tankStats.fillPct !== null ? `${tankStats.fillPct.toFixed(0)}% of ${tankStats.capacity.toLocaleString()} L capacity` : 'no capacity set'}
           icon="propane_tank"
           accent={ACCENT.green}
-          pct={tankStats.fillPct}
+          progress={tankStats.fillPct}
           onClick={() => setPage('fuel_tanks')}
         />
         <KpiCard
@@ -274,7 +274,7 @@ export default function FuelDashboard({ setPage }) {
           sub={fmtDate(today)}
           icon="output"
           accent={ACCENT.blue}
-          pct={issuedThisMonth > 0 ? (issuedToday / issuedThisMonth) * 100 : 0}
+          progress={issuedThisMonth > 0 ? (issuedToday / issuedThisMonth) * 100 : 0}
           onClick={() => setPage('fuel_issues')}
         />
         <KpiCard
@@ -283,7 +283,7 @@ export default function FuelDashboard({ setPage }) {
           sub={`${monthIssuances.length.toLocaleString()} issuance${monthIssuances.length === 1 ? '' : 's'}`}
           icon="trending_down"
           accent={ACCENT.violet}
-          pct={issuedPrevMonth > 0 ? (issuedThisMonth / issuedPrevMonth) * 100 : (issuedThisMonth > 0 ? 100 : 0)}
+          progress={issuedPrevMonth > 0 ? (issuedThisMonth / issuedPrevMonth) * 100 : (issuedThisMonth > 0 ? 100 : 0)}
           onClick={() => setPage('fuel_issues')}
         />
         <KpiCard
@@ -292,7 +292,7 @@ export default function FuelDashboard({ setPage }) {
           sub="deliveries"
           icon="local_shipping"
           accent={ACCENT.amber}
-          pct={issuedThisMonth > 0 ? (receivedThisMonth / (receivedThisMonth + issuedThisMonth)) * 100 : (receivedThisMonth > 0 ? 100 : 0)}
+          progress={issuedThisMonth > 0 ? (receivedThisMonth / (receivedThisMonth + issuedThisMonth)) * 100 : (receivedThisMonth > 0 ? 100 : 0)}
           onClick={() => setPage('fuel_receipts')}
         />
         <KpiCard
@@ -301,7 +301,7 @@ export default function FuelDashboard({ setPage }) {
           sub={tankStats.lowCount > 0 ? `${tankStats.lowCount} below ${LOW_PCT}%` : 'all above threshold'}
           icon="propane_tank"
           accent={ACCENT.teal}
-          pct={activeTanks.length > 0 ? ((activeTanks.length - tankStats.lowCount) / activeTanks.length) * 100 : 0}
+          progress={activeTanks.length > 0 ? ((activeTanks.length - tankStats.lowCount) / activeTanks.length) * 100 : 0}
           onClick={() => setPage('fuel_tanks')}
         />
         <KpiCard
@@ -310,7 +310,7 @@ export default function FuelDashboard({ setPage }) {
           sub="issuance acknowledgements"
           icon="pending_actions"
           accent={ACCENT.pink}
-          pct={monthIssuances.length > 0 ? (pendingAcks / monthIssuances.length) * 100 : 0}
+          progress={monthIssuances.length > 0 ? (pendingAcks / monthIssuances.length) * 100 : 0}
           onClick={() => setPage('fuel_issues')}
         />
       </div>
@@ -349,17 +349,21 @@ export default function FuelDashboard({ setPage }) {
           )}
         </Section>
         <Section title="Overall Fill" sub="On hand vs total capacity">
-          <DonutGauge pct={tankStats.fillPct} />
+          <DonutGauge
+            pct={tankStats.fillPct ?? 0}
+            color={(tankStats.fillPct ?? 0) < CRIT_PCT ? THEME.error : (tankStats.fillPct ?? 0) < WARN_PCT ? THEME.warning : ACCENT.green}
+            label="of capacity"
+          />
         </Section>
       </div>
 
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px', marginBottom: '16px' }}>
         <Section title="Daily Consumption" sub="Issuance litres per day — last 14 days">
-          <AreaChart data={dailyData} color={FUEL_CLR} />
+          <AreaChart points={dailyData.map(d => d.v)} labels={dailyData.map(d => d.label)} color={FUEL_CLR} valueSuffix=" L" />
         </Section>
         <Section title="Deliveries vs Issuances" sub="Weekly totals — last 4 weeks">
-          <PairedBarChart data={weeklyData} colorA={ACCENT.green} colorB={FUEL_CLR} labelA="Delivered" labelB="Issued" />
+          <PairedBars series={weeklyData} labels={weeklyData.map(d => d.label)} colorA={ACCENT.green} colorB={FUEL_CLR} labelA="Delivered" labelB="Issued" />
         </Section>
       </div>
 

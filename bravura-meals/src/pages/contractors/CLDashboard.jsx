@@ -1,39 +1,27 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
+import { Icon } from '../../components/ui'
+import { DashCard, KpiCard, ActivityRow, SectionTitle } from '../../components/dash'
 
 const color = MODULE_COLORS.contractors
 
-function SectionLabel({ children }) {
-  return (
-    <div style={{
-      fontSize: '11px', fontWeight: 600, color: THEME.textLow,
-      letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '10px',
-    }}>{children}</div>
-  )
+// Accent hexes for KPI chips (literal hexes so the accent+'18' tint pattern works)
+const ACCENT = {
+  green:  '#2E7D32',
+  blue:   '#1E88E5',
+  violet: '#7C4DFF',
+  amber:  '#D97706',
+  teal:   '#00897B',
 }
 
-function KpiTile({ icon, label, value, sub, accent }) {
-  const c = accent || color
-  return (
-    <div style={{
-      background: THEME.surface, borderRadius: '14px', padding: '16px',
-      border: `1px solid ${THEME.outlineVar}`, flex: '1 1 200px', minWidth: '180px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-        <div style={{
-          width: '36px', height: '36px', borderRadius: '50%',
-          background: c + '18', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <span className="material-symbols-rounded" style={{ fontSize: '18px', color: c }}>{icon}</span>
-        </div>
-        <div style={{ fontSize: '12px', color: THEME.textMed, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</div>
-      </div>
-      <div style={{ fontSize: '28px', fontWeight: 700, color: THEME.text, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '6px' }}>{sub}</div>}
-    </div>
-  )
+const STATUS_CLR = {
+  active: '#2E7D32',
+  expired: '#E53935',
+  terminated: '#E53935',
+  draft: '#D97706',
+  completed: '#0277BD',
 }
 
 export default function CLDashboard({ setPage }) {
@@ -90,63 +78,71 @@ export default function CLDashboard({ setPage }) {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px', color: THEME.textLow }}>
-        <span className="material-symbols-rounded" style={{ fontSize: '32px', animation: 'spin 1s linear infinite' }}>progress_activity</span>
+        <Icon name="progress_activity" size={32} style={{ animation: 'spin 1s linear infinite' }} />
       </div>
     )
   }
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <SectionLabel>Contract & Contractor Management</SectionLabel>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-        <KpiTile icon="business_center" label="Active Contractors" value={kpis.contractors} />
-        <KpiTile icon="description" label="Active Contracts" value={kpis.contracts} />
-        <KpiTile icon="engineering" label="Casuals Working Today" value={kpis.casualsWorking} />
-        <KpiTile icon="local_shipping" label="Hired Vehicles" value={kpis.vehicles} />
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
-        <KpiTile icon="construction" label="Hired Equipment" value={kpis.equipment} />
-        <KpiTile icon="event_busy" label="Contracts Expiring Soon" value={kpis.expiringContracts} accent={kpis.expiringContracts > 0 ? '#D97706' : color} sub="Within 30 days" />
-        <KpiTile icon="pending_actions" label="Pending Timesheet Approvals" value={kpis.pendingTimesheets} accent={kpis.pendingTimesheets > 0 ? '#D97706' : color} />
+      {/* KPI strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <KpiCard
+          icon="business_center" label="Active Contractors" value={kpis.contractors}
+          sub="Registered, not archived" accent={color}
+          progress={kpis.contractors > 0 ? 100 : 0}
+        />
+        <KpiCard
+          icon="description" label="Active Contracts" value={kpis.contracts}
+          sub="Currently running" accent={ACCENT.blue}
+          progress={kpis.contractors > 0 ? Math.min(100, (kpis.contracts / kpis.contractors) * 100) : 0}
+        />
+        <KpiCard
+          icon="engineering" label="Casuals Working Today" value={kpis.casualsWorking}
+          sub="On site now" accent={ACCENT.teal}
+          progress={kpis.casualsWorking > 0 ? 100 : 0}
+        />
+        <KpiCard
+          icon="local_shipping" label="Hired Vehicles" value={kpis.vehicles}
+          sub="Active hires" accent={ACCENT.violet}
+          progress={kpis.vehicles > 0 ? 100 : 0}
+        />
+        <KpiCard
+          icon="construction" label="Hired Equipment" value={kpis.equipment}
+          sub="Active hires" accent={ACCENT.green}
+          progress={kpis.equipment > 0 ? 100 : 0}
+        />
+        <KpiCard
+          icon="event_busy" label="Expiring Soon" value={kpis.expiringContracts}
+          sub="Contracts ending within 30 days" accent={kpis.expiringContracts > 0 ? ACCENT.amber : color}
+          progress={kpis.contracts > 0 ? Math.min(100, (kpis.expiringContracts / kpis.contracts) * 100) : 0}
+        />
+        <KpiCard
+          icon="pending_actions" label="Pending Timesheets" value={kpis.pendingTimesheets}
+          sub="Awaiting approval" accent={kpis.pendingTimesheets > 0 ? ACCENT.amber : color}
+          progress={kpis.pendingTimesheets > 0 ? 100 : 0}
+        />
       </div>
 
-      <SectionLabel>Recent Contracts</SectionLabel>
-      <div style={{
-        background: THEME.surface, borderRadius: '14px', border: `1px solid ${THEME.outlineVar}`,
-        overflow: 'hidden',
-      }}>
+      <DashCard>
+        <SectionTitle title="Recent Contracts" subtitle="Latest contracts for this site" />
         {recentContracts.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', color: THEME.textLow, fontSize: '13px' }}>No contracts yet</div>
         ) : (
-          <>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px 100px',
-              padding: '10px 16px', fontSize: '11px', fontWeight: 600, color: THEME.textLow,
-              textTransform: 'uppercase', letterSpacing: '.04em', borderBottom: `1px solid ${THEME.outlineVar}`,
-            }}>
-              <div>Contractor</div><div>Contract</div><div>Start</div><div>End</div><div>Status</div>
-            </div>
-            {recentContracts.map((c, i) => (
-              <div key={c.id} style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px 100px',
-                padding: '10px 16px', fontSize: '12px', alignItems: 'center',
-                borderBottom: i < recentContracts.length - 1 ? `1px solid ${THEME.outlineVar}` : 'none',
-              }}>
-                <div style={{ fontWeight: 600, color: THEME.text }}>{c.contractor?.name || '-'}</div>
-                <div style={{ color: THEME.textMed }}>{c.contract_number || c.title || '-'}</div>
-                <div style={{ color: THEME.textMed }}>{c.start_date || '-'}</div>
-                <div style={{ color: THEME.textMed }}>{c.end_date || '-'}</div>
-                <div>
-                  <span style={{
-                    fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px',
-                    background: color + '18', color, textTransform: 'uppercase',
-                  }}>{c.status || '-'}</span>
-                </div>
-              </div>
-            ))}
-          </>
+          recentContracts.map((c, i) => (
+            <ActivityRow
+              key={c.id}
+              icon="description"
+              iconColor={STATUS_CLR[c.status] || color}
+              title={c.contractor?.name || '—'}
+              sub={`${c.contract_number || c.title || '—'} · ${c.start_date || '—'} → ${c.end_date || 'open'}`}
+              right={(c.status || '—').toUpperCase()}
+              rightColor={STATUS_CLR[c.status] || color}
+              isLast={i === recentContracts.length - 1}
+            />
+          ))
         )}
-      </div>
+      </DashCard>
     </div>
   )
 }

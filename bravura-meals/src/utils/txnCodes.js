@@ -73,7 +73,7 @@ export const TXN_CODES = [
   { code: 'CA04', path: '/campsite/camp_rooms',       label: 'Rooms',                   module: 'campsite' },
   { code: 'CA05', path: '/campsite/camp_blocks',      label: 'Blocks',                  module: 'campsite' },
   { code: 'CA06', path: '/campsite/camp_supplies',    label: 'Camp Supplies',           module: 'campsite' },
-  { code: 'CA07', path: '/campsite/camp_transfers',   label: 'Stock Transfers',         module: 'campsite' },
+  { code: 'CA07', path: '/campsite/camp_transfers',   label: 'Site Reassignment',       module: 'campsite' },
   { code: 'CA08', path: '/campsite/camp_occ_report',  label: 'Occupancy Reports',       module: 'campsite' },
 
   // ── HR / Workforce (HR) ───────────────────────────────────────────────────
@@ -91,7 +91,7 @@ export const TXN_CODES = [
   { code: 'HR12', path: '/workforce/wf_leave_allocations', label: 'Leave Allocations',    module: 'workforce' },
   { code: 'HR13', path: '/workforce/wf_leave_types',       label: 'Leave Types',          module: 'workforce' },
   { code: 'HR14', path: '/workforce/wf_org_chart',         label: 'Org Chart',            module: 'workforce' },
-  { code: 'HR15', path: '/workforce/wf_transfers',         label: 'Site Transfers',       module: 'workforce' },
+  { code: 'HR15', path: '/workforce/wf_transfers',         label: 'Site Reassignment',    module: 'workforce' },
   { code: 'HR16', path: '/workforce/wf_leave_balances',    label: 'Leave Balance Report', module: 'workforce' },
   // Phase 3: Attendance, Training, Reports
   { code: 'HR17', path: '/workforce/wf_shifts',              label: 'Shift Management',     module: 'workforce' },
@@ -135,6 +135,20 @@ export const TXN_CODES = [
   { code: 'AD06', path: '/admin/admin_settings',    label: 'System Settings',      module: 'admin' },
   { code: 'AD07', path: '/admin/admin_permissions', label: 'Permissions Catalogue', module: 'admin' },
   { code: 'AD08', path: '/admin/admin_audit',       label: 'Audit Log',            module: 'admin' },
+
+  // ── Inventory (IN) ──────────────────────────────────────────────────────
+  { code: 'IN01', path: '/inventory/inv_dashboard',   label: 'Inventory Dashboard',  module: 'inventory' },
+  { code: 'IN02', path: '/inventory/inv_items',        label: 'Items',                module: 'inventory' },
+  { code: 'IN03', path: '/inventory/inv_categories',   label: 'Categories & UoM',     module: 'inventory' },
+  { code: 'IN04', path: '/inventory/inv_warehouses',   label: 'Warehouses',           module: 'inventory' },
+  { code: 'IN05', path: '/inventory/inv_balances',     label: 'Stock Balances',       module: 'inventory' },
+  { code: 'IN06', path: '/inventory/inv_grn',          label: 'Goods Received',       module: 'inventory' },
+  { code: 'IN07', path: '/inventory/inv_issues',       label: 'Issues & Returns',     module: 'inventory' },
+  { code: 'IN08', path: '/inventory/inv_site_moves',   label: 'Site Reassignment',    module: 'inventory' },
+  { code: 'IN09', path: '/inventory/inv_adjustments',  label: 'Adjustments',          module: 'inventory' },
+  { code: 'IN10', path: '/inventory/inv_ledger',       label: 'Stock Ledger',         module: 'inventory' },
+  { code: 'IN11', path: '/inventory/inv_reports',      label: 'Inventory Reports',    module: 'inventory' },
+  { code: 'IN12', path: '/inventory/inv_settings',     label: 'Inventory Settings',   module: 'inventory' },
 
   // ── Procurement (PR) / Feedback (FB) ──────────────────────────────────────
   { code: 'PR01', path: '/procurement/proc_suppliers', label: 'Suppliers',         module: 'procurement' },

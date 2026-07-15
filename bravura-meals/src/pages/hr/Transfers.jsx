@@ -123,8 +123,8 @@ export default function Transfers() {
 
   return (
     <div>
-      <PageHeader title="Inter-Site Transfers" site={currentSite}
-        actions={can('hr.edit') && <Button icon="sync_alt" onClick={() => { setForm(EMPTY); setModal(true) }}>New Transfer</Button>} />
+      <PageHeader title="Site Reassignment" site={currentSite}
+        actions={can('hr.edit') && <Button icon="swap_horiz" onClick={() => { setForm(EMPTY); setModal(true) }}>New Reassignment</Button>} />
 
       {loading ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div> : (
         <TableWrap>
@@ -162,11 +162,11 @@ export default function Transfers() {
         </TableWrap>
       )}
 
-      <Modal open={modal} onClose={() => setModal(false)} title="New Inter-Site Transfer"
+      <Modal open={modal} onClose={() => setModal(false)} title="New Site Reassignment"
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
             <Button variant="outlined" onClick={() => setModal(false)}>Cancel</Button>
-            <Button icon="sync_alt" onClick={create} disabled={saving}>{saving ? 'Creating…' : 'Create transfer'}</Button>
+            <Button icon="swap_horiz" onClick={create} disabled={saving}>{saving ? 'Creating…' : 'Submit'}</Button>
           </div>
         }>
         <div style={{ display: 'grid', gap: '14px' }}>

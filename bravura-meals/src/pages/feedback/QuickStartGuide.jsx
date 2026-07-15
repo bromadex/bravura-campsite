@@ -177,7 +177,7 @@ export default function QuickStartGuide() {
             <>Departments (<Code>HR06</Code>) and Designations (<Code>HR07</Code>) are archive-only — nothing is ever deleted.</>,
             <>Leave: allocate days per employee per year (<Code>HR12</Code>), then log requests in <Code>HR10</Code> — approving deducts the balance automatically. The calendar (<Code>HR11</Code>) shows who's away.</>,
             <>Documents (IDs, contracts, licences) upload on the employee's Documents tab — expiring documents show amber within 30 days, red once expired.</>,
-            <>Moving someone between sites goes through Site Transfers (<Code>HR15</Code>) — the receiving site's HR approves before the record moves.</>,
+            <>Moving someone between sites goes through Site Reassignment (<Code>HR15</Code>) — the receiving site's HR approves before the record moves.</>,
             <>Define shift patterns in Shift Management (<Code>HR17</Code>), then mark daily attendance against them in the Attendance Log (<Code>HR18</Code>).</>,
             <>Training Programs (<Code>HR19</Code>) track courses and who attended; the Skills Matrix (<Code>HR20</Code>) shows each employee's competencies and gaps at a glance.</>,
             <>Payroll: set up Salary Grades (<Code>HR25</Code>) and Components (<Code>HR26</Code>) once, run the monthly Payroll Run (<Code>HR27</Code>), then issue Salary Slips (<Code>HR28</Code>).</>,
@@ -197,6 +197,19 @@ export default function QuickStartGuide() {
             <>Casual workers (<Code>CL04</Code>) and contractor-employed staff (<Code>CL05</Code>) are separate registries — casuals are paid per shift/day/hour by us, contractor employees are paid by their company.</>,
             <>Capture daily timesheets in <Code>CL06</Code> — hours and overtime cost calculate automatically and need approval before they count.</>,
             <>Hired vehicles (<Code>CL07</Code>) and hired equipment (<Code>CL08</Code>) track rate, and whether driver/fuel/operator is included.</>,
+          ]} />
+        </Section>
+      )}
+
+      {/* Inventory */}
+      {can('inventory.view') && (
+        <Section icon="inventory_2" color={MODULE_COLORS.inventory} title="Inventory — items, stock & warehouses">
+          <Steps items={[
+            <>The Dashboard (<Code>IN01</Code>) shows total inventory value, SKU count, low-stock alerts and stock by category.</>,
+            <>Items (<Code>IN02</Code>) is your central catalogue — every material, spare, consumable and supply gets one item code (auto-generated ITM-####).</>,
+            <>Categories & UoM (<Code>IN03</Code>) organise items into a hierarchy (Electrical, Mechanical, Safety, etc.) and define measurement units.</>,
+            <>Warehouses (<Code>IN04</Code>) are site-scoped storage locations — each site gets at least a Main store; add Workshop, Kitchen, etc. as needed.</>,
+            <>Stock Balances (<Code>IN05</Code>) shows on-hand quantities per warehouse. HQ users see a cross-site matrix. Use the opening stock capture to set starting balances.</>,
           ]} />
         </Section>
       )}

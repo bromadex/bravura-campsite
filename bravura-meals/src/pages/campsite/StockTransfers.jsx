@@ -7,19 +7,7 @@ import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, StatusBadge, showToast, PageHeader } from '../../components/ui'
 
-// ── Inter-site Stock Transfers ───────────────────────────────────────────────
-// Deliberately simple, matching the actual requirement: request → source
-// approves & dispatches → destination confirms receipt → the two linked
-// supply transactions (issue at source, receive at destination) get
-// created automatically, fully auditable throughout via the existing
-// audit_log triggers already attached to this table.
-//
-// Approve & Dispatch and Confirm Receipt only ever act on the site
-// currently being viewed — dispatching only shows on a transfer where this
-// site is the source, receiving only where this site is the destination.
-// That means both actions can safely reuse CampsiteContext's already
-// site-scoped supplies data and mutation functions directly, rather than
-// needing fresh cross-site queries.
+// ── Inter-site Stock Reassignment ────────────────────────────────────────────
 export default function StockTransfers() {
   const { profile } = useAuth()
   const { currentSiteId, currentSite, accessibleSites } = useSite()
@@ -93,7 +81,7 @@ export default function StockTransfers() {
         requested_by: profile?.id,
       })
       if (error) throw error
-      showToast('Transfer request created', 'green')
+      showToast('Reassignment request created', 'green')
       setRequestModal(false)
       fetchTransfers()
     } catch (err) {
@@ -169,7 +157,7 @@ export default function StockTransfers() {
   async function doCancel() {
     const { error } = await supabase.from('stock_transfers').update({ status: 'cancelled' }).eq('id', cancelTarget.id)
     if (error) { showToast(error.message, 'red'); setCancelTarget(null); return }
-    showToast('Transfer request cancelled', 'red')
+    showToast('Request cancelled', 'red')
     setCancelTarget(null)
     fetchTransfers()
   }
@@ -177,16 +165,16 @@ export default function StockTransfers() {
   return (
     <div>
       <PageHeader
-        title="Stock Transfers"
+        title="Site Reassignment"
         site={currentSite}
-        actions={canRequest && otherSites.length > 0 && <Button onClick={openRequest} variant="filled" icon="add">New Transfer</Button>}
+        actions={canRequest && otherSites.length > 0 && <Button onClick={openRequest} variant="filled" icon="add">New Request</Button>}
       />
 
       {otherSites.length === 0 && (
         <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px', background: THEME.statusWarningBg }}>
           <Icon name="info" size={18} style={{ color: THEME.statusWarningText, flexShrink: 0 }} />
           <div style={{ fontSize: '12px', color: THEME.statusWarningText }}>
-            No other sites are accessible to you, so there's nowhere to transfer to or from yet.
+            No other sites are accessible to you, so there's nowhere to move stock to or from yet.
           </div>
         </Card>
       )}
@@ -215,7 +203,7 @@ export default function StockTransfers() {
             <Card>
               <div style={{ textAlign: 'center', padding: '32px', color: THEME.textLow }}>
                 <Icon name="sync_alt" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 10px' }} />
-                {tab === 'active' ? 'No active transfers' : 'No completed or cancelled transfers yet'}
+                {tab === 'active' ? 'No active requests' : 'No completed or cancelled reassignments yet'}
               </div>
             </Card>
           ) : (tab === 'active' ? active : history).map(t => {
@@ -288,7 +276,7 @@ export default function StockTransfers() {
       )}
 
       {/* New Transfer Modal */}
-      <Modal open={requestModal} onClose={() => setRequestModal(false)} title="New Transfer Request"
+      <Modal open={requestModal} onClose={() => setRequestModal(false)} title="New Site Reassignment"
         footer={<>
           <Button onClick={() => setRequestModal(false)} variant="text">Cancel</Button>
           <Button onClick={doRequest} variant="filled" disabled={saving}>{saving ? 'Creating…' : 'Create Request'}</Button>
@@ -348,7 +336,7 @@ export default function StockTransfers() {
         open={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={doCancel}
-        title="Cancel this transfer request?"
+        title="Cancel this request?"
         message={`Cancel the request for ${cancelTarget?.quantity} × ${cancelTarget?.item_name}? Nothing has been dispatched yet, so this is safe to cancel.`}
         confirmLabel="Cancel Request"
         danger

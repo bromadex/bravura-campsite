@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
@@ -152,6 +152,13 @@ const CLReportEquipment     = lazy(() => import('./pages/contractors/CLReportEqu
 const CLReportCostBySite    = lazy(() => import('./pages/contractors/CLReportCostBySite'))
 const CLSettings            = lazy(() => import('./pages/contractors/CLSettings'))
 
+// ── Inventory ─────────────────────────────────────────────────────────────────
+const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
+const InvItems       = lazy(() => import('./pages/inventory/InvItems'))
+const InvCategories  = lazy(() => import('./pages/inventory/InvCategories'))
+const InvWarehouses  = lazy(() => import('./pages/inventory/InvWarehouses'))
+const InvBalances    = lazy(() => import('./pages/inventory/InvBalances'))
+
 // ── Procurement ───────────────────────────────────────────────────────────────
 const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
 
@@ -201,6 +208,7 @@ const MODULE_META = {
   fuel:      { label: 'Fuel Management',       icon: 'local_gas_station',    navFn: fuelNav  },
   fleet:       { label: 'Fleet Management',      icon: 'directions_car',   navFn: fleetNav        },
   contractors: { label: 'Contract & Contractor Management', icon: 'handshake', navFn: contractorsNav },
+  inventory:   { label: 'Inventory Management',  icon: 'inventory_2',      navFn: inventoryNav    },
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
@@ -419,6 +427,18 @@ function getProcurementPage(page, can) {
   }
 }
 
+function getInventoryPage(page, can, setPage) {
+  if (!can('inventory.view')) return null
+  switch (page) {
+    case 'inv_dashboard':   return <InvDashboard setPage={setPage} />
+    case 'inv_items':       return <InvItems />
+    case 'inv_categories':  return <InvCategories />
+    case 'inv_warehouses':  return <InvWarehouses />
+    case 'inv_balances':    return <InvBalances />
+    default:                return <InvDashboard setPage={setPage} />
+  }
+}
+
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
@@ -436,6 +456,7 @@ const DEFAULT_PAGE = {
   fuel:      'fuel_dashboard',
   fleet:       'fleet_dashboard',
   contractors: 'cl_dashboard',
+  inventory:   'inv_dashboard',
   procurement: 'proc_suppliers',
   feedback:    'feedback_board',
 }
@@ -470,6 +491,7 @@ function ModuleShell() {
   if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
   if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
   if (moduleId === 'contractors') content = getContractorsPage(currentPage, can, setPage)
+  if (moduleId === 'inventory')   content = getInventoryPage(currentPage, can, setPage)
   if (moduleId === 'procurement') content = getProcurementPage(currentPage, can)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 

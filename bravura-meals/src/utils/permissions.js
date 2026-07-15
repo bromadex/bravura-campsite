@@ -86,6 +86,7 @@ export const MODULE_COLORS = {
   procurement: '#7C3AED',  // violet       – purchasing/supply chain
   feedback:    '#6B7280',  // slate        – neutral, "system meta" feel
   contractors: '#0D7377',  // deep teal    – external workforce/contracts
+  inventory:   '#B45309',  // amber-brown  – warehouses/stock
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -124,6 +125,7 @@ export const moduleAccess = {
   contractors: (role, can) => can ? can('contractors.view') : false,
   // Feedback — always open to any signed-in user. This is where the whole
   // organisation reports bugs, gaps, and suggestions during the build phase.
+  inventory: (role, can) => can ? can('inventory.view') : false,
   feedback:  r => !!r,
 }
 
@@ -140,7 +142,7 @@ export function workforceNav(role) {
   return [
     { id: 'wf_dashboard',    label: 'HR Dashboard',     section: 'Overview',     icon: 'dashboard' },
     { id: 'wf_employees',   label: 'Employees',        section: 'People',  icon: 'badge' },
-    { id: 'wf_transfers',    label: 'Site Transfers',   section: 'People',  icon: 'sync_alt' },
+    { id: 'wf_transfers',    label: 'Site Reassignment', section: 'People',  icon: 'swap_horiz' },
     { id: 'wf_leave_requests',    label: 'Leave Requests',    section: 'Leave', icon: 'event_available' },
     { id: 'wf_leave_calendar',    label: 'Leave Calendar',    section: 'Leave', icon: 'calendar_month' },
     { id: 'wf_leave_allocations', label: 'Leave Allocations', section: 'Leave', icon: 'pie_chart' },
@@ -178,7 +180,7 @@ export function campsiteNav(role) {
     { id: 'camp_rooms',       label: 'Rooms',            section: 'Management',  icon: 'meeting_room' },
     { id: 'camp_blocks',      label: 'Blocks',           section: 'Management',  icon: 'domain' },
     { id: 'camp_supplies',    label: 'Camp Supplies',    section: 'Management',  icon: 'inventory_2' },
-    { id: 'camp_transfers',   label: 'Stock Transfers',  section: 'Management',  icon: 'sync_alt' },
+    { id: 'camp_transfers',   label: 'Site Reassignment', section: 'Management',  icon: 'swap_horiz' },
     { id: 'camp_occ_report',  label: 'Occupancy Reports',section: 'Reports',     icon: 'analytics' },
   ]
 }
@@ -294,5 +296,22 @@ export function fleetNav(role, can) {
     { id: 'fleet_contractors', label: 'Contractor Equipment', section: 'Registry', icon: 'handshake' },
     { id: 'fleet_reports',     label: 'Reports',         section: 'Reports',      icon: 'bar_chart' },
     { id: 'fleet_settings',    label: 'Settings',        section: 'Admin',        icon: 'settings' },
+  ]
+}
+
+export function inventoryNav(role, can) {
+  return [
+    { id: 'inv_dashboard',    label: 'Dashboard',          section: 'Overview',   icon: 'dashboard' },
+    { id: 'inv_items',        label: 'Items',              section: 'Catalogue',  icon: 'category' },
+    { id: 'inv_categories',   label: 'Categories & UoM',   section: 'Catalogue',  icon: 'account_tree' },
+    { id: 'inv_warehouses',   label: 'Warehouses',         section: 'Warehouse',  icon: 'warehouse' },
+    { id: 'inv_balances',     label: 'Stock Balances',     section: 'Warehouse',  icon: 'inventory' },
+    { id: 'inv_grn',          label: 'Goods Received',     section: 'Operations', icon: 'move_to_inbox' },
+    { id: 'inv_issues',       label: 'Issues & Returns',   section: 'Operations', icon: 'outbox' },
+    { id: 'inv_site_moves',   label: 'Site Reassignment',  section: 'Operations', icon: 'swap_horiz' },
+    { id: 'inv_adjustments',  label: 'Adjustments',        section: 'Operations', icon: 'tune' },
+    { id: 'inv_ledger',       label: 'Stock Ledger',       section: 'Reports',    icon: 'menu_book' },
+    { id: 'inv_reports',      label: 'Reports',            section: 'Reports',    icon: 'bar_chart' },
+    { id: 'inv_settings',     label: 'Settings',           section: 'Admin',      icon: 'settings' },
   ]
 }

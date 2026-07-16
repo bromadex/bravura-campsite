@@ -34,6 +34,9 @@ const EMPTY_FORM = {
   status: 'operational', department_id: '', assigned_project: '',
   current_hours: '', expected_consumption_lph: '', tank_capacity_litres: '',
   purchase_date: '', purchase_cost: '', location: '', kva_rating: '',
+  engine_type: '', engine_serial: '', alternator_make: '', alternator_model: '',
+  alternator_serial: '', voltage: '', phase: '', frequency: '', rated_amps: '',
+  power_factor: '', rpm: '', avr_type: '', cooling_method: '', notes: '',
 }
 
 export default function FleetGenerators({ setPage }) {
@@ -105,6 +108,20 @@ export default function FleetGenerators({ setPage }) {
       purchase_cost: asset.purchase_cost || '',
       location: asset.location || '',
       kva_rating: asset.kva_rating ?? '',
+      engine_type: asset.engine_type || '',
+      engine_serial: asset.engine_serial || '',
+      alternator_make: asset.alternator_make || '',
+      alternator_model: asset.alternator_model || '',
+      alternator_serial: asset.alternator_serial || '',
+      voltage: asset.voltage ?? '',
+      phase: asset.phase ?? '',
+      frequency: asset.frequency ?? '',
+      rated_amps: asset.rated_amps ?? '',
+      power_factor: asset.power_factor ?? '',
+      rpm: asset.rpm ?? '',
+      avr_type: asset.avr_type || '',
+      cooling_method: asset.cooling_method || '',
+      notes: asset.notes || '',
     })
     setError('')
     setActiveTab(0)
@@ -131,6 +148,20 @@ export default function FleetGenerators({ setPage }) {
         assigned_project: form.assigned_project || null,
         location: form.location || null,
         kva_rating: form.kva_rating ? Number(form.kva_rating) : null,
+        engine_type: form.engine_type || null,
+        engine_serial: form.engine_serial || null,
+        alternator_make: form.alternator_make || null,
+        alternator_model: form.alternator_model || null,
+        alternator_serial: form.alternator_serial || null,
+        voltage: form.voltage ? Number(form.voltage) : null,
+        phase: form.phase ? Number(form.phase) : null,
+        frequency: form.frequency ? Number(form.frequency) : null,
+        rated_amps: form.rated_amps ? Number(form.rated_amps) : null,
+        power_factor: form.power_factor ? Number(form.power_factor) : null,
+        rpm: form.rpm ? Number(form.rpm) : null,
+        avr_type: form.avr_type || null,
+        cooling_method: form.cooling_method || null,
+        notes: form.notes || null,
       }
       if (editId) {
         await updateAsset(editId, payload)
@@ -172,7 +203,7 @@ export default function FleetGenerators({ setPage }) {
     { label: 'In Maintenance', value: kpis.maintenance, icon: 'build', tileColor: '#f59e0b' },
   ]
 
-  const tabs = ['Identity', 'Operations']
+  const tabs = ['Identity', 'Operations', 'Specifications']
 
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
@@ -390,6 +421,74 @@ export default function FleetGenerators({ setPage }) {
                 <div>
                   <div style={lbl}>Location</div>
                   <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. Main Plant Room" style={inp} />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 2 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div style={{ gridColumn: '1 / -1', fontSize: '12px', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Engine</div>
+                <div>
+                  <div style={lbl}>Engine Type</div>
+                  <input value={form.engine_type} onChange={e => setForm({ ...form, engine_type: e.target.value })} placeholder="e.g. 4-cyl air-cooled diesel" style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>Engine Serial</div>
+                  <input value={form.engine_serial} onChange={e => setForm({ ...form, engine_serial: e.target.value })} style={inp} />
+                </div>
+                <div style={{ gridColumn: '1 / -1', fontSize: '12px', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '8px' }}>Alternator</div>
+                <div>
+                  <div style={lbl}>Make</div>
+                  <input value={form.alternator_make} onChange={e => setForm({ ...form, alternator_make: e.target.value })} placeholder="e.g. Wuxi Werna" style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>Model</div>
+                  <input value={form.alternator_model} onChange={e => setForm({ ...form, alternator_model: e.target.value })} style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>Serial Number</div>
+                  <input value={form.alternator_serial} onChange={e => setForm({ ...form, alternator_serial: e.target.value })} style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>AVR Type</div>
+                  <input value={form.avr_type} onChange={e => setForm({ ...form, avr_type: e.target.value })} placeholder="e.g. SX460" style={inp} />
+                </div>
+                <div style={{ gridColumn: '1 / -1', fontSize: '12px', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '8px' }}>Electrical Ratings</div>
+                <div>
+                  <div style={lbl}>Voltage (V)</div>
+                  <input type="number" value={form.voltage} onChange={e => setForm({ ...form, voltage: e.target.value })} placeholder="380" style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>Phase</div>
+                  <select value={form.phase} onChange={e => setForm({ ...form, phase: e.target.value })} style={inp}>
+                    <option value="">—</option>
+                    <option value="1">Single Phase</option>
+                    <option value="3">Three Phase</option>
+                  </select>
+                </div>
+                <div>
+                  <div style={lbl}>Frequency (Hz)</div>
+                  <input type="number" value={form.frequency} onChange={e => setForm({ ...form, frequency: e.target.value })} placeholder="50" style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>Rated Amps (A)</div>
+                  <input type="number" value={form.rated_amps} onChange={e => setForm({ ...form, rated_amps: e.target.value })} style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>Power Factor</div>
+                  <input type="number" step="0.01" value={form.power_factor} onChange={e => setForm({ ...form, power_factor: e.target.value })} placeholder="0.8" style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>RPM</div>
+                  <input type="number" value={form.rpm} onChange={e => setForm({ ...form, rpm: e.target.value })} placeholder="1500" style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>Cooling Method</div>
+                  <input value={form.cooling_method} onChange={e => setForm({ ...form, cooling_method: e.target.value })} placeholder="e.g. IC01" style={inp} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div style={lbl}>Notes</div>
+                  <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3} style={{ ...inp, resize: 'vertical' }} />
                 </div>
               </div>
             )}

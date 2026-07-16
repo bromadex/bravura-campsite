@@ -33,7 +33,7 @@ const EMPTY_FORM = {
   serial_number: '', make: '', model: '', year: '',
   status: 'operational', department_id: '', assigned_project: '',
   current_hours: '', expected_consumption_lph: '', tank_capacity_litres: '',
-  purchase_date: '', purchase_cost: '',
+  purchase_date: '', purchase_cost: '', location: '', kva_rating: '',
 }
 
 export default function FleetGenerators({ setPage }) {
@@ -103,6 +103,8 @@ export default function FleetGenerators({ setPage }) {
       tank_capacity_litres: asset.tank_capacity_litres || '',
       purchase_date: asset.purchase_date || '',
       purchase_cost: asset.purchase_cost || '',
+      location: asset.location || '',
+      kva_rating: asset.kva_rating ?? '',
     })
     setError('')
     setActiveTab(0)
@@ -127,6 +129,8 @@ export default function FleetGenerators({ setPage }) {
         department_id: form.department_id || null,
         purchase_date: form.purchase_date || null,
         assigned_project: form.assigned_project || null,
+        location: form.location || null,
+        kva_rating: form.kva_rating ? Number(form.kva_rating) : null,
       }
       if (editId) {
         await updateAsset(editId, payload)
@@ -282,6 +286,14 @@ export default function FleetGenerators({ setPage }) {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px', fontSize: '12px' }}>
                 <div>
+                  <div style={{ color: THEME.textLow }}>kVA Rating</div>
+                  <div style={{ color: THEME.text, fontWeight: 600 }}>{a.kva_rating ? `${a.kva_rating} kVA` : '--'}</div>
+                </div>
+                <div>
+                  <div style={{ color: THEME.textLow }}>Location</div>
+                  <div style={{ color: THEME.text, fontWeight: 600 }}>{a.location || '--'}</div>
+                </div>
+                <div>
                   <div style={{ color: THEME.textLow }}>Current Hours</div>
                   <div style={{ color: THEME.text, fontWeight: 600 }}>{a.current_hours ? `${Number(a.current_hours).toLocaleString()} hrs` : '--'}</div>
                 </div>
@@ -292,10 +304,6 @@ export default function FleetGenerators({ setPage }) {
                 <div>
                   <div style={{ color: THEME.textLow }}>Department</div>
                   <div style={{ color: THEME.text, fontWeight: 600 }}>{a.departments?.name || '--'}</div>
-                </div>
-                <div>
-                  <div style={{ color: THEME.textLow }}>kVA Rating</div>
-                  <div style={{ color: THEME.text, fontWeight: 600 }}>{a.description || '--'}</div>
                 </div>
               </div>
             </div>
@@ -374,6 +382,14 @@ export default function FleetGenerators({ setPage }) {
                 <div>
                   <div style={lbl}>Year</div>
                   <input type="number" value={form.year} onChange={e => setForm({ ...form, year: e.target.value })} placeholder="2023" style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>kVA Rating</div>
+                  <input type="number" value={form.kva_rating} onChange={e => setForm({ ...form, kva_rating: e.target.value })} placeholder="500" style={inp} />
+                </div>
+                <div>
+                  <div style={lbl}>Location</div>
+                  <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. Main Plant Room" style={inp} />
                 </div>
               </div>
             )}

@@ -158,6 +158,13 @@ const InvItems       = lazy(() => import('./pages/inventory/InvItems'))
 const InvCategories  = lazy(() => import('./pages/inventory/InvCategories'))
 const InvWarehouses  = lazy(() => import('./pages/inventory/InvWarehouses'))
 const InvBalances    = lazy(() => import('./pages/inventory/InvBalances'))
+const InvGrn         = lazy(() => import('./pages/inventory/InvGrn'))
+const InvIssues      = lazy(() => import('./pages/inventory/InvIssues'))
+const InvSiteMoves   = lazy(() => import('./pages/inventory/InvSiteMoves'))
+const InvAdjustments = lazy(() => import('./pages/inventory/InvAdjustments'))
+const InvLedger      = lazy(() => import('./pages/inventory/InvLedger'))
+const InvReports     = lazy(() => import('./pages/inventory/InvReports'))
+const InvSettings    = lazy(() => import('./pages/inventory/InvSettings'))
 
 // ── Procurement ───────────────────────────────────────────────────────────────
 const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
@@ -435,6 +442,13 @@ function getInventoryPage(page, can, setPage) {
     case 'inv_categories':  return <InvCategories />
     case 'inv_warehouses':  return <InvWarehouses />
     case 'inv_balances':    return <InvBalances />
+    case 'inv_grn':         return <InvGrn />
+    case 'inv_issues':      return <InvIssues />
+    case 'inv_site_moves':  return <InvSiteMoves />
+    case 'inv_adjustments': return <InvAdjustments />
+    case 'inv_ledger':      return <InvLedger />
+    case 'inv_reports':     return <InvReports />
+    case 'inv_settings':    return <InvSettings />
     default:                return <InvDashboard setPage={setPage} />
   }
 }

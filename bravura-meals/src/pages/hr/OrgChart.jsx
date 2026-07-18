@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Icon, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { HR_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -58,6 +59,7 @@ function Node({ emp, childrenMap, depth }) {
 export default function OrgChart({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  useRealtimeSubscription('employees', { column: 'site_id', value: currentSiteId }, load)
 
   const [employees, setEmployees] = useState([])
   const [departments, setDepartments] = useState([])

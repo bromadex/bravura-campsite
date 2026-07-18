@@ -5,6 +5,7 @@ import { useSite } from '../../../contexts/SiteContext'
 import { useAuth } from '../../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast, fmtDate } from '../../../components/ui'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -40,6 +41,7 @@ export default function Appraisals() {
   const { profile } = useAuth()
   const { currentSiteId } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('appraisals', { column: 'site_id', value: currentSiteId })
 
   const [cycles, setCycles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -68,7 +70,7 @@ export default function Appraisals() {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { loadCycles() }, [loadCycles])
+  useEffect(() => { loadCycles() }, [loadCycles, rt])
 
   // Load employees for reference
   useEffect(() => {

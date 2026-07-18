@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { useSite } from '../../../contexts/SiteContext'
 import { usePermissions } from '../../../contexts/PermissionsContext'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, showToast } from '../../../components/ui'
+import { useRealtimeSubscription } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -15,6 +16,7 @@ const selStyle = {
 export default function LeaveBalanceReport() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  useRealtimeSubscription('leave_allocations', { column: 'site_id', value: currentSiteId }, load)
 
   const thisYear = new Date().getFullYear()
   const [year, setYear] = useState(thisYear)

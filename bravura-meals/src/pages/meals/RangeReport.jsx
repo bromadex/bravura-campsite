@@ -6,9 +6,11 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { PrintHeader, ReportTable } from './reports/_shared'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 export default function RangeReport({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
+  useRealtimeSubscription('meal_logs', { column: 'site_id', value: currentSiteId }, load)
   const now = new Date()
   const [start,       setStart]       = useState(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`)
   const [end,         setEnd]         = useState(today())

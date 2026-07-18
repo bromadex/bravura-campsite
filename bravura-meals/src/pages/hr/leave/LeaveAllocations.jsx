@@ -5,6 +5,7 @@ import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { useSite } from '../../../contexts/SiteContext'
 import { usePermissions } from '../../../contexts/PermissionsContext'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../../components/ui'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -18,6 +19,7 @@ export default function LeaveAllocations() {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('leave_allocations', { column: 'site_id', value: currentSiteId })
 
   const thisYear = new Date().getFullYear()
   const [year, setYear] = useState(thisYear)
@@ -55,7 +57,7 @@ export default function LeaveAllocations() {
     setLoading(false)
   }, [currentSiteId, year])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, rt])
 
   const visible = useMemo(() => {
     const q = empFilter.trim().toLowerCase()

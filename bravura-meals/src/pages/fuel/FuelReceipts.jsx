@@ -9,6 +9,7 @@ import {
   showToast, fmtDate, TableWrap, THead, Th, TRow, Td,
 } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -95,6 +96,7 @@ export default function FuelReceipts() {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
+  const rt = useRealtimeRefresh('fuel_transactions', { column: 'site_id', value: currentSiteId })
   const userId = profile?.id
   const { tanks, employees, addTransaction, deleteDelivery, softDeleteTransaction, refresh: refreshFuel } = useFuel()
 
@@ -137,7 +139,7 @@ export default function FuelReceipts() {
       .eq('status', 'active')
       .order('supplier_name')
       .then(({ data }) => setProcSuppliers(data || []))
-  }, [currentSiteId])
+  }, [currentSiteId, rt])
 
   // Load calibration table when tank changes, then auto-populate dip before for new deliveries
   useEffect(() => {

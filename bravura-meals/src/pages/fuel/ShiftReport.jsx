@@ -4,6 +4,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { useFuel } from '../../contexts/FuelContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -30,6 +31,7 @@ const fmtDate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-GB', {
 export default function ShiftReport() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fuel_transactions', { column: 'site_id', value: currentSiteId })
   const { tanks, operators } = useFuel()
 
   const [operatorId, setOperatorId] = useState('')

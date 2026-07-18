@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Button, Icon, PageHeader, showToast, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.admin
 
@@ -17,6 +18,7 @@ const fieldWrap = { marginBottom: '12px' }
 
 export default function RoleManagement({ setPage }) {
   const { can } = usePermissions()
+  useRealtimeSubscription('roles', null, fetchAll)
   const canEdit = can('users.edit')
 
   const [roles, setRoles] = useState([])

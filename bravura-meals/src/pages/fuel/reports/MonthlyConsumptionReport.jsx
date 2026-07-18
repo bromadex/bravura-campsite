@@ -5,6 +5,7 @@ import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
 import { DashCard, KpiCard, SectionTitle, ProgressRow } from '../../../components/dash'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -33,6 +34,7 @@ function Section({ title, children }) {
 export default function MonthlyConsumptionReport() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fuel_transactions', { column: 'site_id', value: currentSiteId })
 
   const thisMonth = new Date().toISOString().slice(0, 7)
   const [month, setMonth] = useState(thisMonth)
@@ -97,7 +99,7 @@ export default function MonthlyConsumptionReport() {
     setLoading(false)
   }, [currentSiteId, month])
 
-  useEffect(() => { run() }, [run])
+  useEffect(() => { run() }, [run, rt])
 
   const doExport = () => {
     if (!data) return

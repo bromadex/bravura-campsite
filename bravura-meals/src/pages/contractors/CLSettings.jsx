@@ -5,12 +5,14 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, SectionLabel, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.contractors
 
 export default function CLSettings({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('module_settings', { column: 'site_id', value: currentSiteId })
   const [settings, setSettings] = useState({
     daily_rate_default: 0,
     overtime_multiplier: 1.5,
@@ -39,7 +41,7 @@ export default function CLSettings({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch, rt])
 
   async function handleSave() {
     setSaving(true)

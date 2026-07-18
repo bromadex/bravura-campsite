@@ -6,9 +6,11 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { PrintHeader, ReportTable } from './reports/_shared'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 export default function MonthlyReport({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
+  useRealtimeSubscription('meal_logs', { column: 'site_id', value: currentSiteId }, load)
   const [month,       setMonth]       = useState(new Date().getMonth())
   const [year,        setYear]        = useState(new Date().getFullYear())
   const [employees,   setEmployees]   = useState([])

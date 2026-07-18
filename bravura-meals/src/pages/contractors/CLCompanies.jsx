@@ -7,6 +7,7 @@ import { showToast } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { nextCode } from '../../utils/autoCode'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -52,6 +53,7 @@ const EMPTY_FORM = {
 export default function CLCompanies({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  useRealtimeSubscription('contractors', { column: 'site_id', value: currentSiteId }, fetchItems)
 
   const [items, setItems] = useState([])
   const [contractCounts, setContractCounts] = useState({})

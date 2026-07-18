@@ -5,6 +5,7 @@ import { supabase } from '../../supabaseClient'
 import { Icon } from '../../components/ui'
 import { DashCard, KpiCard, ActivityRow, SectionTitle } from '../../components/dash'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -27,6 +28,7 @@ const STATUS_CLR = {
 
 export default function CLDashboard({ setPage }) {
   const { currentSiteId } = useSite()
+  useRealtimeSubscription('contractors', { column: 'site_id', value: currentSiteId }, load)
   const [loading, setLoading] = useState(true)
   const [kpis, setKpis] = useState({
     contractors: 0, contracts: 0, casualsWorking: 0, vehicles: 0,

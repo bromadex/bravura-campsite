@@ -6,6 +6,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../components/ui'
 import { nextCode } from '../../utils/autoCode'
 import QuickNav, { HR_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 const EMPTY_FORM = { name: '', code: '', parent_department_id: '', department_head_id: '', description: '' }
@@ -18,6 +19,7 @@ const inputStyle = {
 export default function Departments({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  useRealtimeSubscription('departments', { column: 'site_id', value: currentSiteId }, fetchAll)
 
   const [departments, setDepartments] = useState([])
   const [designations, setDesignations] = useState([])

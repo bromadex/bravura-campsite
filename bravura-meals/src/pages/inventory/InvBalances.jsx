@@ -7,6 +7,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -14,6 +15,7 @@ export default function InvBalances({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
+  const rt = useRealtimeRefresh('stock_balances', { column: 'site_id', value: currentSiteId })
   const [balances, setBalances] = useState([])
   const [warehouses, setWarehouses] = useState([])
   const [items, setItems] = useState([])
@@ -51,7 +53,7 @@ export default function InvBalances({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch, rt])
 
   const filtered = useMemo(() => {
     let list = balances

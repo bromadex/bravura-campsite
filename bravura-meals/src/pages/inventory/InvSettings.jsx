@@ -5,12 +5,14 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, SectionLabel, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
 export default function InvSettings({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('module_settings', { column: 'site_id', value: currentSiteId })
   const [settings, setSettings] = useState({
     auto_code_prefix: 'ITM',
     next_code_seq: 1,
@@ -49,7 +51,7 @@ export default function InvSettings({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch, rt])
 
   async function handleSave() {
     setSaving(true)

@@ -5,6 +5,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { Icon, PageHeader, showToast } from '../../components/ui'
 import { DashCard, KpiCard, ActivityRow, SectionTitle } from '../../components/dash'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.admin
 
@@ -57,6 +58,7 @@ function QuickLinkTile({ icon, label, onClick }) {
 
 export default function AdminDashboard({ setPage }) {
   const { can } = usePermissions()
+  useRealtimeSubscription('audit_log', { column: 'site_id', value: currentSiteId }, fetchData)
   const [stats, setStats] = useState({ users: 0, roles: 0, sites: 0, recentAudit: 0, pendingInvites: 0, usersWithoutRoles: 0 })
   const [recentActivity, setRecentActivity] = useState([])
   const [loading, setLoading] = useState(true)

@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.fleet
 
@@ -22,6 +23,7 @@ export default function FleetMeterReadings({ setPage }) {
   const { assets, loading } = useFleet()
   const { currentSiteId } = useSite()
   const { profile } = useAuth()
+  useRealtimeSubscription('fleet_meter_readings', { column: 'site_id', value: currentSiteId }, fetchReadings)
   const userId = profile?.id
 
   const [readings, setReadings] = useState([])

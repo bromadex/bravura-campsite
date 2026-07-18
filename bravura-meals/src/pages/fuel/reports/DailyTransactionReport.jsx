@@ -6,6 +6,7 @@ import { useFuel } from '../../../contexts/FuelContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
 import { DashCard, KpiCard, SectionTitle, ProgressRow } from '../../../components/dash'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -29,6 +30,7 @@ const TX_COLORS = { delivery: THEME.success, issuance: THEME.warning, adjustment
 export default function DailyTransactionReport() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fuel_transactions', { column: 'site_id', value: currentSiteId })
   const { tanks } = useFuel()
 
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
@@ -48,7 +50,7 @@ export default function DailyTransactionReport() {
     setLoading(false)
   }, [currentSiteId, date])
 
-  useEffect(() => { run() }, [run])
+  useEffect(() => { run() }, [run, rt])
 
   // Group by tank
   const grouped = rows ? Object.values(

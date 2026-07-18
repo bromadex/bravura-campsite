@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -13,6 +14,7 @@ export default function InvSiteMoves({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
+  const rt = useRealtimeRefresh('inventory_movements', { column: 'site_id', value: currentSiteId })
   const [movements, setMovements] = useState([])
   const [warehouses, setWarehouses] = useState([])
   const [allWarehouses, setAllWarehouses] = useState([])
@@ -49,7 +51,7 @@ export default function InvSiteMoves({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch, rt])
 
   const filtered = useMemo(() => movements, [movements])
 

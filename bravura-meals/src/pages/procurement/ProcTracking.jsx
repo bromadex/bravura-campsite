@@ -7,6 +7,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, PageHeader, StatusBadge, showToast } from '../../components/ui'
 import QuickNav from '../../components/QuickNav'
 import { PROCUREMENT_PILLS } from './ProcDashboard'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const CLR = MODULE_COLORS.procurement
 
@@ -26,6 +27,7 @@ export default function ProcTracking({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { user } = useAuth()
+  useRealtimeSubscription('po_tracking_events', { column: 'site_id', value: currentSiteId }, loadEvents)
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedPO, setSelectedPO] = useState(null)

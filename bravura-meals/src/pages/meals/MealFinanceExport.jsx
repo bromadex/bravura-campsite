@@ -5,6 +5,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Icon, Card, Button, TableWrap, THead, Th, TRow, Td, showToast } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const CLR = MODULE_COLORS.meals
 
@@ -51,6 +52,7 @@ function buildJournalLines({ perContractor, mappings, siteName, periodEnd }) {
 export default function MealFinanceExport({ setPage }) {
   const { can } = usePermissions()
   const { currentSite, currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('meal_logs', { column: 'site_id', value: currentSiteId })
 
   const [from, setFrom] = useState(firstOfMonth(todayISO()))
   const [to,   setTo]   = useState(todayISO())
@@ -72,7 +74,7 @@ export default function MealFinanceExport({ setPage }) {
         setMappings(m)
         setMappingsLoaded(true)
       })
-  }, [currentSiteId])
+  }, [currentSiteId, rt])
 
   const run = useCallback(async () => {
     if (!currentSiteId) return

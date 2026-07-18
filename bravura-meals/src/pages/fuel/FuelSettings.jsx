@@ -5,6 +5,7 @@ import { useFuel } from '../../contexts/FuelContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Icon, Modal, Button, SectionLabel, ConfirmModal, showToast } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -78,6 +79,7 @@ const modalInputStyle = {
 export default function FuelSettings() {
   const { can }             = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('fuel_settings', { column: 'site_id', value: currentSiteId })
   const { fuelTypes, addFuelType, updateFuelType, deactivateFuelType } = useFuel()
 
   const [cfg,     setCfg]     = useState(DEFAULTS)
@@ -121,7 +123,7 @@ export default function FuelSettings() {
       setMappings(seed)
       setLoading(false)
     })
-  }, [currentSiteId])
+  }, [currentSiteId, rt])
 
   if (!can('fuel.edit')) return (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>

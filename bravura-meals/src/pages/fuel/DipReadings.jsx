@@ -5,6 +5,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { useFuel } from '../../contexts/FuelContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -78,7 +79,7 @@ function TankCalibrationPanel({ tank, onClose }) {
     setRows(data || [])
   }, [tank.id])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, rt])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -431,6 +432,7 @@ function DipFormModal({ title, reading, tanks, operators, currentSiteId, onClose
 export default function DipReadings() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fuel_dip_readings', { column: 'site_id', value: currentSiteId })
   const { tanks: allTanks, operators, updateDipReading, deleteDipReading, refresh: refreshFuel } = useFuel()
   // Drums/containers tracked by issuance running balance are never physically
   // dipped — keep them out of the dip log entirely.

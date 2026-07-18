@@ -6,6 +6,7 @@ import { useAuth } from '../../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
 import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, SectionLabel, showToast } from '../../../components/ui'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 const WORKING_DAYS = 22
@@ -46,6 +47,7 @@ export default function PayrollRun() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
   const { profile } = useAuth()
+  const rt = useRealtimeRefresh('payroll_runs', { column: 'site_id', value: currentSiteId })
 
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -86,7 +88,7 @@ export default function PayrollRun() {
     }
   }, [currentSiteId, month, year])
 
-  useEffect(() => { fetchRun() }, [fetchRun])
+  useEffect(() => { fetchRun() }, [fetchRun, rt])
 
   // ── Gate (after all hooks) ────────────────────────────────────────────────
   if (!can('hr.view')) return (

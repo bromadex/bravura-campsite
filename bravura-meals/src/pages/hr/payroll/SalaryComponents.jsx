@@ -3,6 +3,7 @@ import { supabase } from '../../../supabaseClient'
 import { usePermissions } from '../../../contexts/PermissionsContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../../components/ui'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 const EMPTY_FORM = { name: '', code: '', component_type: 'allowance', is_percentage: false, amount: '', percentage: '', is_taxable: true }
@@ -20,6 +21,7 @@ const toggleLabel = { fontSize: '14px', color: THEME.text, cursor: 'pointer', us
 
 export default function SalaryComponents() {
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('salary_components', { column: 'site_id', value: currentSiteId })
 
   const [components, setComponents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -44,7 +46,7 @@ export default function SalaryComponents() {
     }
   }, [])
 
-  useEffect(() => { fetchComponents() }, [fetchComponents])
+  useEffect(() => { fetchComponents() }, [fetchComponents, rt])
 
   // ── Gate (after all hooks) ────────────────────────────────────────────────
   if (!can('hr.view')) return (

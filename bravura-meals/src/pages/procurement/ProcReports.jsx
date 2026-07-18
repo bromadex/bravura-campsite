@@ -7,12 +7,14 @@ import { Card, Icon, PageHeader, showToast } from '../../components/ui'
 import { DashCard, SectionTitle, ProgressRow } from '../../components/dash'
 import QuickNav from '../../components/QuickNav'
 import { PROCUREMENT_PILLS } from './ProcDashboard'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const CLR = MODULE_COLORS.procurement
 
 export default function ProcReports({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('purchase_orders', { column: 'site_id', value: currentSiteId })
   const [orders, setOrders] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -29,7 +31,7 @@ export default function ProcReports({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId && can('procurement.view')) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId && can('procurement.view')) fetch() }, [currentSiteId, fetch, rt])
 
   const stats = useMemo(() => {
     const supMap = Object.fromEntries(suppliers.map(s => [s.id, s.supplier_name]))

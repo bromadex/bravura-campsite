@@ -4,11 +4,13 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
 export default function InvCategories({ setPage }) {
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('item_categories', null)
   const [tab, setTab] = useState('categories')
   const [categories, setCategories] = useState([])
   const [uoms, setUoms] = useState([])
@@ -41,7 +43,7 @@ export default function InvCategories({ setPage }) {
     setLoading(false)
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => { fetch() }, [fetch, rt])
 
   function openCatNew() { setCatEditId(null); setCatForm({ name: '', parent_id: '' }); setCatModal(true) }
   function openCatEdit(c) { setCatEditId(c.id); setCatForm({ name: c.name, parent_id: c.parent_id || '' }); setCatModal(true) }

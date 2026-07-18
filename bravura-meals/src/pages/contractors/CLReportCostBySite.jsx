@@ -5,6 +5,7 @@ import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { DashCard, KpiCard, ProgressRow, SectionTitle } from '../../components/dash'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -15,6 +16,7 @@ const daysActive = (start, end) => { if (!start) return 0; const s = new Date(st
 
 export default function CLReportCostBySite({ setPage }) {
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('casual_timesheets', { column: 'site_id', value: currentSiteId })
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -30,7 +32,7 @@ export default function CLReportCostBySite({ setPage }) {
       if (sitesRes.error) { showToast(sitesRes.error.message, 'red'); setLoading(false); return }
 
       const siteMap = {}
-      ;(sitesRes.data || []).forEach(s => { siteMap[s.id] = { name: s.name, labour: 0, vehicle: 0, equipment: 0 } })
+      ;(sitesRes.data || [rt]).forEach(s => { siteMap[s.id] = { name: s.name, labour: 0, vehicle: 0, equipment: 0 } })
 
       ;(tsRes.data || []).forEach(t => {
         if (siteMap[t.site_id]) siteMap[t.site_id].labour += Number(t.total_cost || 0)

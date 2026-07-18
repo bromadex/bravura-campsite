@@ -6,12 +6,14 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, PageHeader, StatusBadge, showToast } from '../../components/ui'
 import QuickNav from '../../components/QuickNav'
 import { PROCUREMENT_PILLS } from './ProcDashboard'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const CLR = MODULE_COLORS.procurement
 
 export default function ProcOrders({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('purchase_orders', { column: 'site_id', value: currentSiteId })
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -30,7 +32,7 @@ export default function ProcOrders({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId && can('procurement.view')) fetchOrders() }, [currentSiteId, fetchOrders])
+  useEffect(() => { if (currentSiteId && can('procurement.view')) fetchOrders() }, [currentSiteId, fetchOrders, rt])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()

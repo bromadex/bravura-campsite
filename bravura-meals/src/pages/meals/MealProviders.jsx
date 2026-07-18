@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, PageHeader } from '../../components/ui'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 // Deliberately simple, per the actual requirement: each site can have one
 // or more catering providers, and the Meals module should be able to show
@@ -10,6 +11,7 @@ import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, PageH
 // no scheduling, no per-provider menus — just "who caters here."
 export default function MealProviders({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
+  useRealtimeSubscription('meal_providers', { column: 'site_id', value: currentSiteId }, fetchProviders)
 
   const [providers, setProviders] = useState([])
   const [loading,   setLoading]   = useState(true)

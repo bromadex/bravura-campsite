@@ -5,6 +5,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.fleet
 
@@ -60,6 +61,7 @@ const EMPTY_FORM = {
 export default function FleetCompliance({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fleet_compliance', { column: 'site_id', value: currentSiteId })
   const { assets, compliance, expiringCompliance, loading, fetchAll } = useFleet()
 
   const [search, setSearch] = useState('')

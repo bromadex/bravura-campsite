@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, PageHeader, Button, TableWrap, THead, Th, TRow, Td, Modal, showToast, StatCard } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 const DAY = 24 * 60 * 60 * 1000
@@ -29,6 +30,7 @@ const labelStyle = {
 export default function PPETracking({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('ppe_issues', { column: 'site_id', value: currentSiteId })
 
   const [loading, setLoading] = useState(true)
   const [issues, setIssues] = useState([])
@@ -102,7 +104,7 @@ export default function PPETracking({ setPage }) {
       fetchEmployees()
       fetchItems()
     }
-  }, [currentSiteId, fetchIssues, fetchEmployees, fetchItems])
+  }, [currentSiteId, fetchIssues, fetchEmployees, fetchItems, rt])
 
   // Derived data
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])

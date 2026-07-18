@@ -6,6 +6,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -21,6 +22,7 @@ const REPORTS = [
 export default function InvReports({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('stock_balances', { column: 'site_id', value: currentSiteId })
   const [activeReport, setActiveReport] = useState('')
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)

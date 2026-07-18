@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { DashCard, KpiCard, ProgressRow, SectionTitle } from '../../components/dash'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -21,6 +22,7 @@ function fmtMoney(n) {
 export default function CLReportCasualLabour({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('casual_timesheets', { column: 'site_id', value: currentSiteId })
   const [dateFrom, setDateFrom] = useState(firstOfMonth())
   const [dateTo, setDateTo] = useState(today())
   const [rows, setRows] = useState([])
@@ -31,7 +33,7 @@ export default function CLReportCasualLabour({ setPage }) {
 
   useEffect(() => {
     supabase.from('contractors').select('id,name').eq('is_archived', false).order('name')
-      .then(({ data }) => setContractors(data || []))
+      .then(({ data }) => setContractors(data || [rt]))
   }, [])
 
   useEffect(() => {

@@ -4,6 +4,7 @@ import { usePermissions } from '../../../contexts/PermissionsContext'
 import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../../components/ui'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 const EMPTY_FORM = { name: '', code: '', basic_salary: '' }
@@ -16,6 +17,7 @@ const inputStyle = {
 export default function SalaryGrades() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('salary_grades', { column: 'site_id', value: currentSiteId })
 
   const [grades, setGrades] = useState([])
   const [loading, setLoading] = useState(true)
@@ -43,7 +45,7 @@ export default function SalaryGrades() {
     }
   }, [currentSiteId])
 
-  useEffect(() => { fetchGrades() }, [fetchGrades])
+  useEffect(() => { fetchGrades() }, [fetchGrades, rt])
 
   // ── Gate (after all hooks) ────────────────────────────────────────────────
   if (!can('hr.view')) return (

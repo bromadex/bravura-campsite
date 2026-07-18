@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { showToast, StatusBadge } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { DashCard, KpiCard, DonutGauge, SectionTitle } from '../../components/dash'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -17,6 +18,7 @@ const daysActive = (start, end) => { if (!start) return 0; const s = new Date(st
 export default function CLReportEquipment({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('hired_equipment', { column: 'site_id', value: currentSiteId })
   const [rows, setRows] = useState([])
   const [contractors, setContractors] = useState([])
   const [filterContractor, setFilterContractor] = useState('')
@@ -25,7 +27,7 @@ export default function CLReportEquipment({ setPage }) {
 
   useEffect(() => {
     supabase.from('contractors').select('id,name').eq('is_archived', false).order('name')
-      .then(({ data }) => setContractors(data || []))
+      .then(({ data }) => setContractors(data || [rt]))
   }, [])
 
   useEffect(() => {

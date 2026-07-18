@@ -5,6 +5,7 @@ import { useSite } from '../../../contexts/SiteContext'
 import { useAuth } from '../../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast, fmtDate } from '../../../components/ui'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -34,6 +35,7 @@ export default function DisciplinaryCases() {
   const { profile } = useAuth()
   const { currentSiteId } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('disciplinary_cases', { column: 'site_id', value: currentSiteId })
 
   const [rows, setRows] = useState([])
   const [employees, setEmployees] = useState([])
@@ -67,7 +69,7 @@ export default function DisciplinaryCases() {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, rt])
 
   const empMap = useMemo(() => Object.fromEntries(employees.map(e => [e.id, e.name])), [employees])
 

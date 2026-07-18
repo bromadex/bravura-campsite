@@ -8,6 +8,7 @@ import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast, StatusBadge } from '../../components/ui'
 import { sendNotification, notifyApprovers } from '../../utils/notify'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -23,6 +24,7 @@ export default function InvPurchaseOrders({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
+  const rt = useRealtimeRefresh('purchase_orders', { column: 'site_id', value: currentSiteId })
   const [orders, setOrders] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [warehouses, setWarehouses] = useState([])
@@ -70,7 +72,7 @@ export default function InvPurchaseOrders({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch, rt])
 
   const filtered = useMemo(() => {
     let list = orders

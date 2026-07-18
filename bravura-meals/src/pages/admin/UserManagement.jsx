@@ -5,12 +5,14 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useAuth } from '../../auth/AuthContext'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, initials, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const MODULE_COLOR = '#5C6BC0' // matches MODULE_COLORS.admin in permissions.js
 
 export default function UserManagement({ setPage }) {
   const { can } = usePermissions()
   const { profile: myProfile } = useAuth()
+  useRealtimeSubscription('profiles', null, fetchAll)
   const canEdit = can('users.edit') || can('users.create')
 
   const [profiles,   setProfiles]   = useState([])

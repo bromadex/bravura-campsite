@@ -8,6 +8,7 @@ import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast, StatusBadge } from '../../components/ui'
 import { notifyApprovers } from '../../utils/notify'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -22,6 +23,7 @@ export default function InvStockTake({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
+  const rt = useRealtimeRefresh('stock_takes', { column: 'site_id', value: currentSiteId })
   const [takes, setTakes] = useState([])
   const [warehouses, setWarehouses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -55,7 +57,7 @@ export default function InvStockTake({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch, rt])
 
   async function createTake() {
     if (!newForm.warehouse_id) { showToast('Select a warehouse', 'red'); return }

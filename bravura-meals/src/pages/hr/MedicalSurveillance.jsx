@@ -7,6 +7,7 @@ import { exportCsv } from '../../utils/csv'
 import { Card, Icon, PageHeader, Button, showToast } from '../../components/ui'
 import { DashCard, KpiCard, DonutGauge, SectionTitle } from '../../components/dash'
 import QuickNav, { HR_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 const DAY = 24 * 60 * 60 * 1000
@@ -30,6 +31,7 @@ const STATUS_META = {
 export default function MedicalSurveillance({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('medical_records', { column: 'site_id', value: currentSiteId })
 
   const [loading, setLoading] = useState(true)
   const [employees, setEmployees] = useState([])
@@ -64,7 +66,7 @@ export default function MedicalSurveillance({ setPage }) {
 
   useEffect(() => {
     if (currentSiteId && can('hr.view')) fetch()
-  }, [currentSiteId, fetch])
+  }, [currentSiteId, fetch, rt])
 
   // Latest medical record per employee (records already sorted by exam_date desc)
   const rows = useMemo(() => {

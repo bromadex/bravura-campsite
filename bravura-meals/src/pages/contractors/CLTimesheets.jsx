@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -31,6 +32,7 @@ const EMPTY_ROW_FORM = {
 export default function CLTimesheets({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  useRealtimeSubscription('casual_timesheets', { column: 'site_id', value: currentSiteId }, fetchItems)
 
   const [items, setItems] = useState([])
   const [casualWorkers, setCasualWorkers] = useState([])

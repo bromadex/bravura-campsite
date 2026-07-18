@@ -5,6 +5,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.fleet
 
@@ -31,6 +32,7 @@ export default function FleetAssignments({ setPage }) {
   const { can } = usePermissions()
   const { assets, departments, assignments, loading, fetchAll } = useFleet()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fleet_assignments', { column: 'site_id', value: currentSiteId })
 
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')

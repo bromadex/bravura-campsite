@@ -5,6 +5,7 @@ import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { PageHeader, TableWrap, THead, Th, TRow, Td, Button, Icon, showToast } from '../../../components/ui'
 import Denied from '../../../components/Denied'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -53,6 +54,7 @@ const EMPTY_FORM = { title: '', description: '', trainer: '', start_date: '', en
 export default function TrainingPrograms() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('training_programs', { column: 'site_id', value: currentSiteId })
 
   const [programs, setPrograms] = useState([])
   const [loading, setLoading] = useState(true)
@@ -89,7 +91,7 @@ export default function TrainingPrograms() {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { loadPrograms() }, [loadPrograms])
+  useEffect(() => { loadPrograms() }, [loadPrograms, rt])
 
   const loadEnrollments = useCallback(async (programId) => {
     setEnrollLoading(true)

@@ -5,6 +5,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { useFuel } from '../../contexts/FuelContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -111,7 +112,7 @@ function NewReconciliationForm({ tanks, currentSiteId, profileId, onSaved, onCan
           setReconNo('RC-0001')
         }
       })
-  }, [tankId, currentSiteId])
+  }, [tankId, currentSiteId, rt])
 
   const calculate = async () => {
     if (!tankId || !periodStart || !periodEnd) return
@@ -458,6 +459,7 @@ function ReviewModal({ recon, profileId, onClose, onSaved }) {
 export default function Reconciliation() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fuel_reconciliations', { column: 'site_id', value: currentSiteId })
   const { tanks: allTanks, profile } = useFuel()
   // Dip-variance reconciliation only makes sense for tanks that are actually
   // dipped — drums/containers on an issuance running balance have no dips.

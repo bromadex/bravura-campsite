@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Icon, Card, Button, TextField, StatusBadge, Chip, showToast } from '../../components/ui'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const CLR = MODULE_COLORS.feedback
 
@@ -37,6 +38,7 @@ function relTime(ts) {
 export default function FeedbackBoard() {
   const { profile } = useAuth()
   const { currentSite, currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('feedback_submissions', null)
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -62,7 +64,7 @@ export default function FeedbackBoard() {
       })
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, rt])
 
   async function submit() {
     if (!title.trim()) { showToast('Please give it a short title', 'red'); return }

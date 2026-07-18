@@ -7,6 +7,7 @@ import { showToast, StatusBadge } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { nextCode } from '../../utils/autoCode'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -57,6 +58,7 @@ const EMPTY_FORM = {
 export default function CLContracts({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('contractor_contracts', { column: 'site_id', value: currentSiteId })
   const canEdit = can('contractors.edit')
 
   const [contracts, setContracts] = useState([])
@@ -98,7 +100,7 @@ export default function CLContracts({ setPage }) {
     }
   }, [currentSiteId])
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { loadData() }, [loadData, rt])
 
   const filtered = useMemo(() => {
     let list = contracts || []

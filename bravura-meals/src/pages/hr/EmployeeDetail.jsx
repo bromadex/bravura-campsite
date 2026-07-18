@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useAuth } from '../../auth/AuthContext'
 import { Card, Icon, PageHeader, Button, Modal, SectionLabel, showToast, fmtDate } from '../../components/ui'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -51,6 +52,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
   const { profile } = useAuth()
+  const rt = useRealtimeRefresh('employees', { column: 'site_id', value: currentSiteId })
   const userId = profile?.id
 
   const [emp, setEmp] = useState(null)
@@ -133,7 +135,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
     setLoading(false)
   }, [currentSiteId, employeeId, can])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, rt])
 
   async function changeStatus() {
     if (!stForm.status) { showToast('Select a new status', 'red'); return }

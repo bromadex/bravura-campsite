@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -32,6 +33,7 @@ function daysActive(start, end) {
 export default function CLHiredVehicles({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  useRealtimeSubscription('hired_vehicles', { column: 'site_id', value: currentSiteId }, fetchItems)
 
   const [items, setItems] = useState([])
   const [contractors, setContractors] = useState([])

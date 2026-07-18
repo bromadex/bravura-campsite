@@ -4,6 +4,7 @@ import { Card, Button, showToast, PageHeader, Icon } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const MEAL_MAPPING_META = [
   { type: 'meal_expense',     label: 'Meal Expense',     hint: 'Expense account debited when meals are consumed and billed' },
@@ -12,6 +13,7 @@ const MEAL_MAPPING_META = [
 
 export default function Settings({ setPage }) {
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('meals_finance_mapping', { column: 'site_id', value: currentSiteId })
   const [cfg,     setCfg]     = useState({ company_name: '', site_name: '', supervisor_name: '', provider_name: '' })
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
@@ -24,7 +26,7 @@ export default function Settings({ setPage }) {
       setCfg(c => ({ ...c, ...obj }))
       setLoading(false)
     })
-  }, [])
+  }, [rt])
 
   useEffect(() => {
     if (!currentSiteId) return

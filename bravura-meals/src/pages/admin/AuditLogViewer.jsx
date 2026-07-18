@@ -5,6 +5,7 @@ import { Card, Button, Modal, Icon, SectionLabel, fmtDate, PageHeader, TableWrap
 import { MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const PAGE_SIZE = 200
 
@@ -57,6 +58,7 @@ function fmtValue(v) {
 
 export default function AuditLogViewer({ setPage }) {
   const [entries,      setEntries]      = useState([])
+  useRealtimeSubscription('audit_log', { column: 'site_id', value: currentSiteId }, fetchLog)
   const [profiles,     setProfiles]     = useState({}) // id -> profile
   const [loading,      setLoading]      = useState(true)
   const [loadingMore,  setLoadingMore]  = useState(false)

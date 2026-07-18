@@ -4,10 +4,12 @@ import { useAuth } from '../../auth/AuthContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 export default function Pricing({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('meal_prices', { column: 'site_id', value: currentSiteId })
   const [prices,  setPrices]  = useState([])
   const [loading, setLoading] = useState(true)
   const [form,    setForm]    = useState({ effective_date: '', breakfast_usd: '', lunch_usd: '', supper_usd: '', notes: '' })
@@ -23,7 +25,7 @@ export default function Pricing({ setPage }) {
   // filtered by it. Found while building site-specific meal providers,
   // fixed in the same pass since the two are directly related — a
   // different caterer very plausibly means different agreed rates too.
-  useEffect(() => { if (currentSiteId) { fetchPrices(); fetchSatOverride() } }, [currentSiteId])
+  useEffect(() => { if (currentSiteId) { fetchPrices(); fetchSatOverride() } }, [currentSiteId, rt])
 
   async function fetchSatOverride() {
     const { data } = await supabase

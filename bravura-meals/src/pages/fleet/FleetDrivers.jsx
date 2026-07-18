@@ -5,6 +5,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.fleet
 
@@ -54,6 +55,7 @@ export default function FleetDrivers({ setPage }) {
   const { can } = usePermissions()
   const { employees, loading: fleetLoading } = useFleet()
   const { currentSiteId } = useSite()
+  useRealtimeSubscription('fleet_drivers', { column: 'site_id', value: currentSiteId }, fetchDrivers)
 
   const [drivers, setDrivers] = useState([])
   const [loading, setLoading] = useState(true)

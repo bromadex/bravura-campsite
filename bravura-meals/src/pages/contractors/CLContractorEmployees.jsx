@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -37,6 +38,7 @@ const EXPIRY_COLORS = {
 export default function CLContractorEmployees({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  useRealtimeSubscription('contractor_employees', { column: 'site_id', value: currentSiteId }, fetchItems)
 
   const [items, setItems] = useState([])
   const [contractors, setContractors] = useState([])

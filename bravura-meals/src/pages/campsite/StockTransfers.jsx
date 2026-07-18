@@ -7,6 +7,7 @@ import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, StatusBadge, showToast, PageHeader } from '../../components/ui'
 import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 // ── Inter-site Stock Reassignment ────────────────────────────────────────────
 export default function StockTransfers({ setPage }) {
@@ -14,6 +15,7 @@ export default function StockTransfers({ setPage }) {
   const { currentSiteId, currentSite, accessibleSites } = useSite()
   const { can } = usePermissions()
   const { supplies, recordSupplyTxn, addSupplyItem } = useCampsite()
+  useRealtimeSubscription('stock_transfers', { column: 'site_id', value: currentSiteId }, fetchTransfers)
 
   const canRequest  = can('supplies.create')
   const canDispatch = can('supplies.approve')

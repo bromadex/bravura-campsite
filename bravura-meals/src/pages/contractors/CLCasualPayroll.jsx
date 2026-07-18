@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { Card, Icon, PageHeader, Button, TableWrap, THead, Th, TRow, Td, showToast, StatCard } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.contractors
 const fmt = n => n == null ? '—' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -21,6 +22,7 @@ function todayStr() {
 export default function CLCasualPayroll({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('casual_timesheets', { column: 'site_id', value: currentSiteId })
 
   const [fromDate, setFromDate] = useState(firstOfMonth)
   const [toDate, setToDate] = useState(todayStr)

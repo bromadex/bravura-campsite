@@ -4,6 +4,7 @@ import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Button, Modal, ConfirmModal, Icon, showToast, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const MODULE_COLOR = '#5C6BC0'
 
@@ -17,6 +18,7 @@ const fieldWrap = { marginBottom: '12px' }
 
 export default function PendingInvitations({ setPage }) {
   const { can } = usePermissions()
+  useRealtimeSubscription('pending_role_assignments', { column: 'site_id', value: currentSiteId }, fetchAll)
   const canView = can('users.view')
   const canEdit = can('users.edit')
 

@@ -6,6 +6,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Icon, Card, Button, showToast, fmtDate } from '../../components/ui'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const CLR = MODULE_COLORS.meals
 
@@ -30,6 +31,7 @@ export default function MealForecasts({ setPage }) {
   const { profile } = useAuth()
   const { can }     = usePermissions()
   const { currentSite, currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('meal_forecasts', { column: 'site_id', value: currentSiteId })
 
   const [date, setDate]         = useState(todayISO())
   const [loading, setLoading]   = useState(true)
@@ -70,7 +72,7 @@ export default function MealForecasts({ setPage }) {
     setLoading(false)
   }, [currentSiteId, date])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, rt])
 
   function updateCell(contractorId, key, value) {
     setRows(prev => ({ ...prev, [contractorId]: { ...prev[contractorId], [key]: value } }))

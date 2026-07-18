@@ -5,6 +5,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.fleet
 
@@ -22,6 +23,7 @@ const DEFAULTS = {
 export default function FleetSettings({ setPage }) {
   const { currentSiteId } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('fleet_settings', { column: 'site_id', value: currentSiteId })
   const [form, setForm] = useState({ ...DEFAULTS })
   const [existingId, setExistingId] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -48,7 +50,7 @@ export default function FleetSettings({ setPage }) {
         }
         setLoading(false)
       })
-  }, [currentSiteId])
+  }, [currentSiteId, rt])
 
   const showToast = (msg) => {
     setToast(msg)

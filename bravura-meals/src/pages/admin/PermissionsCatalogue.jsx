@@ -4,6 +4,7 @@ import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Icon, PageHeader } from '../../components/ui'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const MODULE_COLOR = '#5C6BC0'
 
@@ -23,6 +24,7 @@ const inp = {
 
 export default function PermissionsCatalogue({ setPage }) {
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('permissions', null)
   const canView = can('users.view')
 
   const [permissions, setPermissions] = useState([])
@@ -33,7 +35,7 @@ export default function PermissionsCatalogue({ setPage }) {
     async function fetch() {
       setLoading(true)
       const { data } = await supabase.from('permissions').select('*').order('code')
-      setPermissions(data || [])
+      setPermissions(data || [rt])
       setLoading(false)
     }
     fetch()

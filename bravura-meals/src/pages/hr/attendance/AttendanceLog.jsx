@@ -5,6 +5,7 @@ import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
 import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../../components/ui'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -50,6 +51,7 @@ function monthStartEnd(monthStr) {
 export default function AttendanceLog() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('attendance_logs', { column: 'site_id', value: currentSiteId })
 
   const [date, setDate] = useState(todayStr())
   const [view, setView] = useState('daily') // daily | monthly
@@ -116,7 +118,7 @@ export default function AttendanceLog() {
     }
   }, [currentSiteId, month, view])
 
-  useEffect(() => { if (view === 'daily') fetchDaily() }, [fetchDaily, view])
+  useEffect(() => { if (view === 'daily') fetchDaily() }, [fetchDaily, view, rt])
   useEffect(() => { if (view === 'monthly') fetchMonthly() }, [fetchMonthly, view])
 
   // ── Gate (after all hooks) ────────────────────────────────────────────────

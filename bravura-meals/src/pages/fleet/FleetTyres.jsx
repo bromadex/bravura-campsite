@@ -6,6 +6,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.fleet
 
@@ -77,6 +78,7 @@ export default function FleetTyres({ setPage }) {
   const { can } = usePermissions()
   const { assets, loading: fleetLoading } = useFleet()
   const { currentSiteId } = useSite()
+  useRealtimeSubscription('fleet_tyres', { column: 'site_id', value: currentSiteId }, fetchTyres)
 
   const [tyres, setTyres] = useState([])
   const [loading, setLoading] = useState(true)

@@ -6,6 +6,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { Card, Button, StatCard, StatusBadge, Icon, SortTh, useSortState, showToast, today, fmtDate, PageHeader } from '../../components/ui'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 // Contractor colour pool — same as Reports
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457','#00838F']
@@ -18,6 +19,7 @@ export default function DailyEntry({ setPage }) {
   const { profile } = useAuth()
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('meal_logs', { column: 'site_id', value: currentSiteId })
 
   const [date,        setDate]        = useState(today())
   const isSaturday = new Date(date + 'T00:00:00').getDay() === 6
@@ -72,7 +74,7 @@ export default function DailyEntry({ setPage }) {
       .select('*')
       .order('name')
       .then(({ data }) => setContractors(data || []))
-  }, [currentSiteId])
+  }, [currentSiteId, rt])
 
   // Load submission + meal logs for selected date AND site. A given date
   // can now have one daily_submissions row PER SITE, not one globally —

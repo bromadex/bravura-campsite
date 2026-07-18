@@ -6,6 +6,7 @@ import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { exportCsv } from '../../../utils/csv'
 import { PageHeader, Button, Icon, showToast } from '../../../components/ui'
 import Denied from '../../../components/Denied'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -36,6 +37,7 @@ const modalStyle = {
 export default function SkillsMatrix() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('employee_skills', { column: 'site_id', value: currentSiteId })
 
   const [employees, setEmployees] = useState([])
   const [skills, setSkills] = useState([])
@@ -80,7 +82,7 @@ export default function SkillsMatrix() {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { loadData() }, [loadData, rt])
 
   const filteredEmps = useMemo(() => {
     if (deptFilter === 'all') return employees

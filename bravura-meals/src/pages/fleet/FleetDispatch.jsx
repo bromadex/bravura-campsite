@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
 import { useFleet } from '../../contexts/FleetContext'
 import FleetQuickNav from './FleetQuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.fleet
 
@@ -55,6 +56,7 @@ function SectionLabel({ children, style }) {
 export default function FleetDispatch({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fleet_trips', { column: 'site_id', value: currentSiteId })
   const {
     assets, employees, assignments, activeAssignments, trips,
     inspections, workOrders, compliance, expiringCompliance,
@@ -74,7 +76,7 @@ export default function FleetDispatch({ setPage }) {
   useEffect(() => {
     const id = setInterval(doRefresh, 60000)
     return () => clearInterval(id)
-  }, [doRefresh])
+  }, [doRefresh, rt])
 
   // Today's date string
   const today = new Date().toISOString().slice(0, 10)

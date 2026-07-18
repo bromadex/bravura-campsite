@@ -6,6 +6,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast, fmtDate } from '../../components/ui'
 import QuickNav, { HR_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -26,6 +27,7 @@ export default function Transfers({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite, allSites } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('site_transfers', { column: 'site_id', value: currentSiteId })
 
   const [rows, setRows] = useState([])
   const [employees, setEmployees] = useState([])
@@ -53,7 +55,7 @@ export default function Transfers({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, rt])
 
   // Destination lookups load when the target site changes
   useEffect(() => {

@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Icon, PageHeader, Button, SectionLabel, showToast } from '../../components/ui'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -41,6 +42,7 @@ function Section({ icon, title, open, onToggle, children }) {
 export default function EmployeeForm({ setPage, employeeId }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  useRealtimeSubscription('employees', { column: 'site_id', value: currentSiteId }, load)
   const isEdit = !!employeeId
 
   const [form, setForm] = useState(EMPTY)

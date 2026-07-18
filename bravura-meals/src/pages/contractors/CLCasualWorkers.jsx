@@ -9,6 +9,7 @@ import {
 } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.contractors
 
@@ -80,6 +81,7 @@ function medicalTone(dateStr) {
 export default function CLCasualWorkers({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  useRealtimeSubscription('casual_workers', { column: 'site_id', value: currentSiteId }, fetchAll)
 
   const [workers, setWorkers] = useState([])
   const [contractors, setContractors] = useState([])

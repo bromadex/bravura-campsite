@@ -7,6 +7,7 @@ import { showToast, Icon } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { DashCard, KpiCard, AreaChart, SectionTitle } from '../../components/dash'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.contractors
 
@@ -32,6 +33,7 @@ function fmtMoney(n) {
 export default function CLCostDashboard({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('casual_timesheets', { column: 'site_id', value: currentSiteId })
 
   const [dateFrom, setDateFrom] = useState(firstOfMonth())
   const [dateTo, setDateTo] = useState(today())
@@ -53,7 +55,7 @@ export default function CLCostDashboard({ setPage }) {
     setLoading(false)
   }
 
-  useEffect(() => { fetchSummary() }, [currentSiteId, dateFrom, dateTo])
+  useEffect(() => { fetchSummary() }, [currentSiteId, dateFrom, dateTo, rt])
 
   useEffect(() => {
     if (!currentSiteId) return

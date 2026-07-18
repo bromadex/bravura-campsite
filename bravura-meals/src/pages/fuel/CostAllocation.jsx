@@ -4,6 +4,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -27,6 +28,7 @@ const DEPT_COLORS = ['#D97706', '#1A6B52', '#3B82F6', '#8B5CF6', '#EC4899', '#F5
 export default function CostAllocation() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fuel_transactions', { column: 'site_id', value: currentSiteId })
 
   if (!can('fuel.view')) return (
     <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>

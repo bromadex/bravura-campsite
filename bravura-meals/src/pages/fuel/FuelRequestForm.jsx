@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, showToast } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -212,6 +213,7 @@ export default function FuelRequestForm({ setPage }) {
   const { can }                          = usePermissions()
   const { currentSiteId }                = useSite()
   const { profile }                      = useAuth()
+  const rt = useRealtimeRefresh('fuel_requests', { column: 'site_id', value: currentSiteId })
   const { vehicles, equipment, fuelTypes, loading: fuelLoading } = useFuel()
 
   const [form,       setForm]       = useState(EMPTY)
@@ -228,7 +230,7 @@ export default function FuelRequestForm({ setPage }) {
       .eq('site_id', currentSiteId)
       .maybeSingle()
       .then(({ data }) => setSettings(data))
-  }, [currentSiteId])
+  }, [currentSiteId, rt])
 
   if (!can('fuel.view')) return (
     <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>

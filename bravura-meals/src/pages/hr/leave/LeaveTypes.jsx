@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { useSite } from '../../../contexts/SiteContext'
 import { usePermissions } from '../../../contexts/PermissionsContext'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../../components/ui'
+import { useRealtimeSubscription } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 const EMPTY = { name: '', code: '', description: '', is_paid: true, max_days_per_year: '', carry_over_days: 0, requires_approval: true, advance_notice_days: 1 }
@@ -16,6 +17,7 @@ const inputStyle = {
 export default function LeaveTypes() {
   const { currentSite } = useSite()
   const { can } = usePermissions()
+  useRealtimeSubscription('leave_types', { column: 'site_id', value: currentSiteId }, load)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)

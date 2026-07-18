@@ -1,5 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabaseClient'
+
+export function useRealtimeRefresh(table, filter) {
+  const [tick, setTick] = useState(0)
+  useRealtimeSubscription(table, filter, () => setTick(n => n + 1))
+  return tick
+}
 
 export function useRealtimeSubscription(table, filter, onUpdate) {
   const callbackRef = useRef(onUpdate)

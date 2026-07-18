@@ -6,12 +6,14 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, PageHeader, StatusBadge, showToast } from '../../components/ui'
 import { DashCard, KpiCard, ProgressRow, SectionTitle } from '../../components/dash'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
 export default function InvDashboard({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('stock_balances', { column: 'site_id', value: currentSiteId })
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState([])
   const [warehouses, setWarehouses] = useState([])
@@ -55,7 +57,7 @@ export default function InvDashboard({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId && can('inventory.view')) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId && can('inventory.view')) fetch() }, [currentSiteId, fetch, rt])
 
   const stats = useMemo(() => {
     const totalSkus = items.length

@@ -7,6 +7,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, StatusBadge, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -21,6 +22,7 @@ export default function InvItems({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const { profile } = useAuth()
+  const rt = useRealtimeRefresh('items', null)
 
   const [items, setItems] = useState([])
   const [categories, setCategories] = useState([])
@@ -53,7 +55,7 @@ export default function InvItems({ setPage }) {
     setLoading(false)
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => { fetch() }, [fetch, rt])
 
   const filtered = useMemo(() => {
     let list = items

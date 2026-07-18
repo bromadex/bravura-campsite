@@ -4,6 +4,7 @@ import { usePermissions } from '../../../contexts/PermissionsContext'
 import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../../components/ui'
+import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -27,6 +28,7 @@ function calcDuration(start, end) {
 export default function ShiftManagement() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  const rt = useRealtimeRefresh('shifts', { column: 'site_id', value: currentSiteId })
 
   const [shifts, setShifts] = useState([])
   const [assignments, setAssignments] = useState([])
@@ -67,7 +69,7 @@ export default function ShiftManagement() {
     }
   }, [currentSiteId])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => { fetchAll() }, [fetchAll, rt])
 
   // ── Gate (after all hooks) ────────────────────────────────────────────────
   if (!can('hr.view')) return (

@@ -6,6 +6,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Icon, PageHeader, Button, SectionLabel, showToast } from '../../components/ui'
 import QuickNav, { HR_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -43,6 +44,7 @@ export default function HRSettings({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  useRealtimeSubscription('module_settings', { column: 'site_id', value: currentSiteId }, load)
 
   const [form, setForm] = useState(DEFAULTS)
   const [employmentTypes, setEmploymentTypes] = useState([])

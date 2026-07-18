@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { useSite } from '../../../contexts/SiteContext'
 import { usePermissions } from '../../../contexts/PermissionsContext'
 import { Icon, PageHeader, Button, Modal, showToast, MONTHS } from '../../../components/ui'
+import { useRealtimeSubscription } from '../../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.workforce
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -11,6 +12,7 @@ const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 export default function LeaveCalendar() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
+  useRealtimeSubscription('leave_requests', { column: 'site_id', value: currentSiteId }, load)
 
   const now = new Date()
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })   // m: 0-11

@@ -7,10 +7,12 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { useSite } from '../../contexts/SiteContext'
 import { PrintHeader, ReportTable } from './reports/_shared'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 export default function DailyReport({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  useRealtimeSubscription('meal_logs', { column: 'site_id', value: currentSiteId }, load)
   const showCosts = can('meals.approve')
 
   const [date,        setDate]        = useState(today())

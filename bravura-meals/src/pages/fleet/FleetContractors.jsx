@@ -4,6 +4,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.fleet
 
@@ -45,6 +46,7 @@ const EMPTY_FORM = {
 export default function FleetContractors({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  useRealtimeSubscription('fleet_contractor_equipment', { column: 'site_id', value: currentSiteId }, fetchItems)
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)

@@ -6,6 +6,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, PageHeader, StatusBadge, showToast } from '../../components/ui'
 import { DashCard, KpiCard, ProgressRow, SectionTitle } from '../../components/dash'
 import QuickNav, { PROCUREMENT_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.procurement
 
@@ -14,6 +15,7 @@ export { PROCUREMENT_PILLS }
 export default function ProcDashboard({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('purchase_orders', { column: 'site_id', value: currentSiteId })
   const [loading, setLoading] = useState(true)
   const [pos, setPos] = useState([])
   const [rfqs, setRfqs] = useState([])
@@ -40,7 +42,7 @@ export default function ProcDashboard({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId && can('procurement.view')) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId && can('procurement.view')) fetch() }, [currentSiteId, fetch, rt])
 
   const stats = useMemo(() => {
     const activePOs = pos.filter(p => !['cancelled', 'completed'].includes(p.status))

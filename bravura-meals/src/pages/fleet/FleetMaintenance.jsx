@@ -6,6 +6,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const color = MODULE_COLORS.fleet
 
@@ -72,6 +73,7 @@ export default function FleetMaintenance({ setPage }) {
   const { can } = usePermissions()
   const { assets, workOrders, loading, fetchAll } = useFleet()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('fleet_maintenance', { column: 'site_id', value: currentSiteId })
 
   const [search, setSearch] = useState('')
   const [filterPriority, setFilterPriority] = useState('all')
@@ -107,7 +109,7 @@ export default function FleetMaintenance({ setPage }) {
     setMaintLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (activeTab === 'history') fetchMaintenance() }, [activeTab, fetchMaintenance])
+  useEffect(() => { if (activeTab === 'history') fetchMaintenance() }, [activeTab, fetchMaintenance, rt])
 
   // Fetch all items once (global, usually <500)
   const fetchItems = useCallback(async () => {

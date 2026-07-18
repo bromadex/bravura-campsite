@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, Modal, SectionLabel, StatusBadge, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 const TYPES = ['main', 'workshop', 'electrical', 'kitchen', 'fuel_store', 'other']
@@ -12,6 +13,7 @@ const TYPES = ['main', 'workshop', 'electrical', 'kitchen', 'fuel_store', 'other
 export default function InvWarehouses({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('warehouses', { column: 'site_id', value: currentSiteId })
   const [warehouses, setWarehouses] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
@@ -36,7 +38,7 @@ export default function InvWarehouses({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch])
+  useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch, rt])
 
   function genCode(name, type) {
     const prefix = (currentSite?.name || 'SITE').substring(0, 3).toUpperCase()

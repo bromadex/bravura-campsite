@@ -129,6 +129,41 @@ export default function CLCostDashboard({ setPage }) {
       addHiredCosts(vehicles)
       addHiredCosts(equipment)
 
+      // Add meal costs for linked contractor workers
+      const { data: linkedWorkers } = await supabase
+        .from('contractor_employees')
+        .select('employee_id')
+        .eq('site_id', currentSiteId)
+        .eq('meals_authorised', true)
+        .not('employee_id', 'is', null)
+      const empIds = (linkedWorkers || []).map(w => w.employee_id).filter(Boolean)
+      if (empIds.length > 0) {
+        const { data: mealLogs } = await supabase
+          .from('meal_logs')
+          .select('date, had_breakfast, had_lunch, had_supper')
+          .in('employee_id', empIds)
+          .gte('date', isoFrom)
+          .lte('date', isoTo)
+        const { data: priceRow } = await supabase
+          .from('meal_prices')
+          .select('breakfast_usd, lunch_usd, supper_usd')
+          .eq('site_id', currentSiteId)
+          .lte('effective_date', isoTo)
+          .order('effective_date', { ascending: false })
+          .limit(1)
+        const mp = priceRow?.[0] || { breakfast_usd: 0, lunch_usd: 0, supper_usd: 0 }
+        ;(mealLogs || []).forEach(ml => {
+          const d = new Date(ml.date)
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+          const bucket = months.find(m => m.key === key)
+          if (bucket) {
+            if (ml.had_breakfast) bucket.total += Number(mp.breakfast_usd || 0)
+            if (ml.had_lunch) bucket.total += Number(mp.lunch_usd || 0)
+            if (ml.had_supper) bucket.total += Number(mp.supper_usd || 0)
+          }
+        })
+      }
+
       setMonthlyData(months)
       setMonthlyLoading(false)
     }
@@ -140,8 +175,10 @@ export default function CLCostDashboard({ setPage }) {
     vehicle: acc.vehicle + Number(r.vehicle_cost),
     equipment: acc.equipment + Number(r.equipment_cost),
     fuel: acc.fuel + Number(r.fuel_cost),
+    meals: acc.meals + Number(r.meal_cost || 0),
+    accommodation: acc.accommodation + Number(r.accommodation_cost || 0),
     total: acc.total + Number(r.total_cost),
-  }), { labour: 0, vehicle: 0, equipment: 0, fuel: 0, total: 0 }), [rows])
+  }), { labour: 0, vehicle: 0, equipment: 0, fuel: 0, meals: 0, accommodation: 0, total: 0 }), [rows])
 
   const topContractor = rows[0]
 
@@ -155,9 +192,10 @@ export default function CLCostDashboard({ setPage }) {
 
   function handleExport() {
     exportCsv(`contractor-costs_${dateFrom}_to_${dateTo}.csv`,
-      ['Contractor', 'Labour', 'Vehicles', 'Equipment', 'Fuel', 'Total Cost', 'Contract Value', 'Spent To Date'],
+      ['Contractor', 'Labour', 'Vehicles', 'Equipment', 'Fuel', 'Meals', 'Accommodation', 'Total Cost', 'Contract Value', 'Spent To Date'],
       rows.map(r => [
         r.contractor_name, r.labour_cost, r.vehicle_cost, r.equipment_cost, r.fuel_cost,
+        r.meal_cost || 0, r.accommodation_cost || 0,
         r.total_cost, r.contract_value, r.spent_to_date,
       ]))
   }
@@ -166,6 +204,7 @@ export default function CLCostDashboard({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_cost_dashboard" />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <div style={{ fontSize: '20px', fontWeight: 500, color: THEME.text }}>Cost Dashboard</div>
@@ -192,6 +231,8 @@ export default function CLCostDashboard({ setPage }) {
         <KpiCard icon="local_shipping" label="Vehicles" value={fmtMoney(totals.vehicle)} sub={`${share(totals.vehicle).toFixed(0)}% of total`} accent={ACCENT.violet} progress={share(totals.vehicle)} />
         <KpiCard icon="construction" label="Equipment" value={fmtMoney(totals.equipment)} sub={`${share(totals.equipment).toFixed(0)}% of total`} accent={ACCENT.green} progress={share(totals.equipment)} />
         <KpiCard icon="local_gas_station" label="Fuel" value={fmtMoney(totals.fuel)} sub={`${share(totals.fuel).toFixed(0)}% of total`} accent={ACCENT.amber} progress={share(totals.fuel)} />
+        <KpiCard icon="restaurant" label="Meals" value={fmtMoney(totals.meals)} sub={`${share(totals.meals).toFixed(0)}% of total`} accent="#E65100" progress={share(totals.meals)} />
+        <KpiCard icon="hotel" label="Accommodation" value={fmtMoney(totals.accommodation)} sub={`${share(totals.accommodation).toFixed(0)}% of total`} accent="#5D4037" progress={share(totals.accommodation)} />
       </div>
 
       {/* Top-contractor callout */}
@@ -226,7 +267,7 @@ export default function CLCostDashboard({ setPage }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr>
-                  {['Contractor', 'Labour', 'Vehicles', 'Equipment', 'Fuel', 'Total Cost', 'Contract Value', 'Spent To Date'].map((h, i) => (
+                  {['Contractor', 'Labour', 'Vehicles', 'Equipment', 'Fuel', 'Meals', 'Accomm.', 'Total Cost', 'Contract Value', 'Spent To Date'].map((h, i) => (
                     <th key={i} style={{ padding: '8px 12px', textAlign: i === 0 ? 'left' : 'right', fontWeight: 600, color: THEME.textLow, fontSize: '11px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '.03em' }}>{h}</th>
                   ))}
                 </tr>
@@ -242,6 +283,8 @@ export default function CLCostDashboard({ setPage }) {
                       <td style={{ padding: '10px 12px', textAlign: 'right', color: THEME.textMed, fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(r.vehicle_cost)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', color: THEME.textMed, fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(r.equipment_cost)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', color: THEME.textMed, fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(r.fuel_cost)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', color: THEME.textMed, fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(r.meal_cost)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', color: THEME.textMed, fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(r.accommodation_cost)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: THEME.text, fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(r.total_cost)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', color: THEME.textMed, fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(r.contract_value)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: overBudget ? THEME.statusErrorText : THEME.textMed, fontVariantNumeric: 'tabular-nums' }}>
@@ -262,7 +305,6 @@ export default function CLCostDashboard({ setPage }) {
         <SectionTitle title="Monthly Cost Trends" subtitle="Total contractor costs (USD) by month — last 6 months" />
         {monthlyLoading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: THEME.textLow }}>
-      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_cost_dashboard" />
             <Icon name="progress_activity" size={24} style={{ animation: 'spin 1s linear infinite' }} />
           </div>
         ) : (
@@ -275,8 +317,7 @@ export default function CLCostDashboard({ setPage }) {
       </DashCard>
 
       <div style={{ marginTop: '16px', fontSize: '11px', color: THEME.textLow }}>
-        Meals and accommodation costs are not yet included — contractor employees and casual
-        workers aren't linked to meal or room-assignment records today.
+        Meal costs are calculated from linked employee meal logs. Accommodation uses a $5/day/worker notional rate for housed contractor employees.
       </div>
     </div>
   )

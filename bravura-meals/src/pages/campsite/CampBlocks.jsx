@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, StatusBadge, showToast, PageHeader } from '../../components/ui'
+import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 
 const EMPTY = { name: '', description: '', is_active: true }
 
-export default function CampBlocks() {
+export default function CampBlocks({ setPage }) {
   const { blocks, rooms, addBlock, updateBlock, deleteBlock, loading } = useCampsite()
   const [modal,   setModal]   = useState(false)
   const [editing, setEditing] = useState(null)
@@ -66,6 +67,7 @@ export default function CampBlocks() {
             return (
               <Card key={block.id}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_blocks" />
                   <div>
                     <div style={{ fontSize: '16px', fontWeight: 600, color: THEME.text }}>{block.name}</div>
                     {block.description && <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '2px' }}>{block.description}</div>}

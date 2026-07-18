@@ -8,6 +8,7 @@ import {
   Button, Modal, ConfirmModal, SectionLabel, Chip, showToast,
 } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.contractors
 
@@ -76,7 +77,7 @@ function medicalTone(dateStr) {
   return { color: THEME.textLow, label: dateStr }
 }
 
-export default function CLCasualWorkers() {
+export default function CLCasualWorkers({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
 
@@ -391,6 +392,7 @@ export default function CLCasualWorkers() {
         </>}
       >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_casuals" />
           <div>
             <SectionLabel>Name *</SectionLabel>
             <input type="text" value={form.name} autoFocus

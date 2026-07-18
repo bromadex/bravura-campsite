@@ -6,10 +6,11 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
-export default function InvGrn() {
+export default function InvGrn({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
@@ -132,6 +133,7 @@ export default function InvGrn() {
 
   return (
     <div>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_grn" />
       <PageHeader title="Goods Received (GRN)" site={currentSite} actions={
         <div style={{ display: 'flex', gap: '8px' }}>
           {can('inventory.view') && <Button icon="download" onClick={handleExport}>Export</Button>}

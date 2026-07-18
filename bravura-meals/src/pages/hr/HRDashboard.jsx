@@ -5,6 +5,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { Card, Icon, PageHeader, Button, showToast, fmtDate } from '../../components/ui'
 import { DashCard, KpiCard, AreaChart, DonutGauge, ActivityRow, SectionTitle } from '../../components/dash'
+import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
 

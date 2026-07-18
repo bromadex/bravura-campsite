@@ -4,6 +4,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { Icon } from '../../components/ui'
 import { DashCard, KpiCard, ActivityRow, SectionTitle } from '../../components/dash'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.contractors
 
@@ -85,6 +86,7 @@ export default function CLDashboard({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_dashboard" />
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '20px' }}>
         <KpiCard

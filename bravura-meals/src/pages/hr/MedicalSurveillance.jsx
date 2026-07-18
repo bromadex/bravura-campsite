@@ -6,6 +6,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, PageHeader, Button, showToast } from '../../components/ui'
 import { DashCard, KpiCard, DonutGauge, SectionTitle } from '../../components/dash'
+import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
 const DAY = 24 * 60 * 60 * 1000
@@ -233,6 +234,7 @@ export default function MedicalSurveillance({ setPage }) {
                 <div style={{ color: THEME.textMed, fontSize: '13px' }}>All active employees have a medical record on file.</div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
+      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_medicals" />
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
                       <tr>

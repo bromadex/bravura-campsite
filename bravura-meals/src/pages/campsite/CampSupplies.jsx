@@ -4,8 +4,9 @@ import { useAuth } from '../../auth/AuthContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, MONTHS, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 
-export default function CampSupplies() {
+export default function CampSupplies({ setPage }) {
   const { profile } = useAuth()
   const { can } = usePermissions()
   const canEdit   = can('supplies.edit')
@@ -477,6 +478,7 @@ export default function CampSupplies() {
           const over = item && item.balance != null && parseFloat(row.quantity) > parseFloat(item.balance)
           return (
             <div key={idx} style={{ padding: '10px 12px', border: `1px solid ${over ? THEME.error : THEME.outlineVar}`, borderRadius: '12px', marginBottom: '10px' }}>
+      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_supplies" />
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
                 <select value={row.itemId} onChange={e => updateBulkRow(idx, { itemId: e.target.value })}
                   style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}>

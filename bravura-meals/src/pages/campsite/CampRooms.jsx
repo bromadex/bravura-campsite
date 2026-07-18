@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 
 const EMPTY = { room_number: '', block_id: '', room_type: 'accommodation', capacity: 1, notes: '' }
 
@@ -49,7 +50,7 @@ function friendlyError(err) {
   return msg
 }
 
-export default function CampRooms() {
+export default function CampRooms({ setPage }) {
   const { rooms, blocks, assignments, addRoom, updateRoom, deleteRoom, setMaintenance, loading } = useCampsite()
 
   const [modal,        setModal]        = useState(false)
@@ -257,6 +258,7 @@ export default function CampRooms() {
                   <Td>
                     {occupiable ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_rooms" />
                         <span style={{ fontSize: '13px', fontWeight: 600, color: occ > 0 ? THEME.primary : THEME.textLow }}>
                           {occ}/{room.capacity}
                         </span>

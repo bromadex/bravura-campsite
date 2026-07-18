@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -14,7 +15,7 @@ const TYPE_LABELS = {
   adjustment: 'Adjustment', stock_take: 'Stock Take',
 }
 
-export default function InvLedger() {
+export default function InvLedger({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const [movements, setMovements] = useState([])
@@ -95,6 +96,7 @@ export default function InvLedger() {
 
   return (
     <div>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_ledger" />
       <PageHeader title="Stock Ledger" site={currentSite} actions={
         <Button icon="download" onClick={handleExport}>Export</Button>
       } />

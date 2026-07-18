@@ -6,10 +6,11 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
-export default function InvBalances() {
+export default function InvBalances({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
@@ -197,6 +198,7 @@ export default function InvBalances() {
           <Button variant="filled" onClick={postOpening} disabled={saving}>{saving ? 'Recording...' : 'Record Opening'}</Button>
         </>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_balances" />
           <div>
             <SectionLabel>Item *</SectionLabel>
             <select value={openingForm.item_id} onChange={e => setOpeningForm({ ...openingForm, item_id: e.target.value })} style={inp}>

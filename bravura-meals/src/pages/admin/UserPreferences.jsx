@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Icon, Button, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 
 const MODULES = [
   { key: 'meals', label: 'Meals' },
@@ -37,7 +38,7 @@ function loadPref(key, fallback) {
   catch { return fallback }
 }
 
-export default function UserPreferences() {
+export default function UserPreferences({ setPage }) {
   const { profile } = useAuth()
 
   const [notifPrefs, setNotifPrefs] = useState(() => loadPref('notification_prefs', { meals: true, fuel: true, inventory: true, fleet: true, hr: true, contractors: true }))
@@ -57,6 +58,7 @@ export default function UserPreferences() {
 
   return (
     <div>
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_preferences" />
       <PageHeader title="My Preferences" />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>

@@ -6,6 +6,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { showToast, StatusBadge } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { nextCode } from '../../utils/autoCode'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.contractors
 
@@ -53,7 +54,7 @@ const EMPTY_FORM = {
   retention_pct: '', status: 'active', notes: '',
 }
 
-export default function CLContracts() {
+export default function CLContracts({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const canEdit = can('contractors.edit')
@@ -375,6 +376,7 @@ export default function CLContracts() {
                         <div>{c.start_date || '—'} → {c.end_date || 'Open'}</div>
                         {expiringSoon && (
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 600, color: THEME.statusWarningText, marginTop: '2px' }}>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_contracts" />
                             <span className="material-symbols-rounded" style={{ fontSize: '12px' }}>warning</span>
                             Expires in {daysUntil(c.end_date)}d
                           </div>

@@ -5,10 +5,11 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
-export default function InvSiteMoves() {
+export default function InvSiteMoves({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
@@ -93,6 +94,7 @@ export default function InvSiteMoves() {
 
   return (
     <div>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_site_moves" />
       <PageHeader title="Site Reassignment" site={currentSite} actions={
         can('inventory.create') && <Button icon="swap_horiz" variant="filled" onClick={() => {
           setForm({ item_id: '', from_warehouse_id: '', to_warehouse_id: '', qty: '', notes: '' })

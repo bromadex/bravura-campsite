@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast, fmtDate } from '../../components/ui'
+import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -35,7 +36,7 @@ const badgeStyle = (meta) => ({
 
 const EMPTY = { employee_id: '', exit_type: 'Resignation', last_working_date: '', exit_interview_date: '', exit_interview_notes: '' }
 
-export default function ExitManagement() {
+export default function ExitManagement({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId } = useSite()
   const { can } = usePermissions()
@@ -184,6 +185,7 @@ export default function ExitManagement() {
       {addModal && (
         <Modal title="New Exit Record" onClose={() => setAddModal(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_exit" />
             <div>
               <SectionLabel>Employee</SectionLabel>
               <select style={selectStyle} value={form.employee_id} onChange={e => setForm(p => ({ ...p, employee_id: e.target.value }))}>

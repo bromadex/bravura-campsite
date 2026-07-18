@@ -4,11 +4,12 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, Modal, SectionLabel, StatusBadge, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 const TYPES = ['main', 'workshop', 'electrical', 'kitchen', 'fuel_store', 'other']
 
-export default function InvWarehouses() {
+export default function InvWarehouses({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const [warehouses, setWarehouses] = useState([])
@@ -105,6 +106,7 @@ export default function InvWarehouses() {
 
   return (
     <div>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_warehouses" />
       <PageHeader title="Warehouses" site={currentSite} actions={
         can('inventory.create') && <Button icon="add" variant="filled" onClick={openNew}>New Warehouse</Button>
       } />

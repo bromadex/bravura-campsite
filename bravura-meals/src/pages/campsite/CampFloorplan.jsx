@@ -9,8 +9,9 @@ import RoomTooltip from './floorplan/RoomTooltip'
 import RoomDetailPanel from './floorplan/RoomDetailPanel'
 import EmployeeDragList from './floorplan/EmployeeDragList'
 import { getRoomOccupancyStatus } from './floorplan/geometry'
+import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 
-export default function CampFloorplan() {
+export default function CampFloorplan({ setPage }) {
   const { profile } = useAuth()
   const {
     blocks, rooms, fixtures, assignments, employees, contractors,
@@ -265,6 +266,7 @@ export default function CampFloorplan() {
 function MiniStat({ label, value, color }) {
   return (
     <div style={{ textAlign: 'center', padding: '8px', background: THEME.surfaceVar, borderRadius: '10px' }}>
+      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_floorplan" />
       <div style={{ fontSize: '18px', fontWeight: 700, color: color || THEME.text }}>{value}</div>
       <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '2px' }}>{label}</div>
     </div>

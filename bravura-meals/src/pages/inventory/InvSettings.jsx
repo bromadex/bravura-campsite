@@ -4,10 +4,11 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
-export default function InvSettings() {
+export default function InvSettings({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const [settings, setSettings] = useState({
@@ -78,6 +79,7 @@ export default function InvSettings() {
 
   return (
     <div>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_settings" />
       <PageHeader title="Inventory Settings" site={currentSite} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>

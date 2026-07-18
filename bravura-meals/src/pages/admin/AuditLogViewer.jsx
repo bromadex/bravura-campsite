@@ -4,6 +4,7 @@ import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, Icon, SectionLabel, fmtDate, PageHeader, TableWrap, THead, Th, TRow, Td, showToast } from '../../components/ui'
 import { MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
+import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 
 const PAGE_SIZE = 200
 
@@ -54,7 +55,7 @@ function fmtValue(v) {
   return String(v)
 }
 
-export default function AuditLogViewer() {
+export default function AuditLogViewer({ setPage }) {
   const [entries,      setEntries]      = useState([])
   const [profiles,     setProfiles]     = useState({}) // id -> profile
   const [loading,      setLoading]      = useState(true)
@@ -244,6 +245,7 @@ export default function AuditLogViewer() {
               if (changes.length === 0) return <div style={{ fontSize: '13px', color: THEME.textLow, padding: '10px 0' }}>No field-level differences recorded.</div>
               return (
                 <div style={{ borderRadius: '10px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden' }}>
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_audit" />
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                     <thead>
                       <tr style={{ background: THEME.surfaceVar }}>

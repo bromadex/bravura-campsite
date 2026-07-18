@@ -4,10 +4,11 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader } from '../../components/ui'
 import { DashCard, KpiCard, SectionTitle, DonutGauge, ProgressRow } from '../../components/dash'
+import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 
 const CLR = MODULE_COLORS.campsite
 
-export default function CampOccupancyReport() {
+export default function CampOccupancyReport({ setPage }) {
   const { currentSite } = useSite()
   const { blocks, rooms, assignments, loading } = useCampsite()
 
@@ -59,6 +60,7 @@ export default function CampOccupancyReport() {
 
   return (
     <div className="print-page">
+      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_occ_report" />
       {/* Print header */}
       <div className="print-only" style={{ display: 'none', marginBottom: '16px' }}>
         <div style={{ borderBottom: `3px solid ${CLR}`, paddingBottom: '10px', marginBottom: '12px' }}>

@@ -6,9 +6,10 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, StatusBadge, showToast, PageHeader } from '../../components/ui'
+import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 
 // ── Inter-site Stock Reassignment ────────────────────────────────────────────
-export default function StockTransfers() {
+export default function StockTransfers({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite, accessibleSites } = useSite()
   const { can } = usePermissions()
@@ -213,6 +214,7 @@ export default function StockTransfers() {
             return (
               <Card key={t.id} style={{ padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_transfers" />
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <Icon name={isOutgoing ? 'north_east' : 'south_west'} size={20} style={{ color: isOutgoing ? THEME.warning : THEME.success }} />
                     <div>

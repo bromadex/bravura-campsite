@@ -5,6 +5,7 @@ import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { Card, Button, StatCard, StatusBadge, Icon, SortTh, useSortState, showToast, today, fmtDate, PageHeader } from '../../components/ui'
+import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
 // Contractor colour pool — same as Reports
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457','#00838F']
@@ -13,7 +14,7 @@ function coColor(contractors, id) {
   return CO_COLORS[Math.max(idx, 0) % CO_COLORS.length]
 }
 
-export default function DailyEntry() {
+export default function DailyEntry({ setPage }) {
   const { profile } = useAuth()
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
@@ -789,6 +790,7 @@ function MealTick({ on, meal, editable, onClick }) {
         boxShadow: on ? `0 2px 8px ${p.active}33` : 'none',
       }}
     >
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_entry" />
       {on && (
         <span
           className="material-symbols-rounded filled"

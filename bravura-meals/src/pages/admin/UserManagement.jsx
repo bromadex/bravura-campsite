@@ -4,10 +4,11 @@ import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useAuth } from '../../auth/AuthContext'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, initials, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 
 const MODULE_COLOR = '#5C6BC0' // matches MODULE_COLORS.admin in permissions.js
 
-export default function UserManagement() {
+export default function UserManagement({ setPage }) {
   const { can } = usePermissions()
   const { profile: myProfile } = useAuth()
   const canEdit = can('users.edit') || can('users.create')
@@ -224,6 +225,7 @@ export default function UserManagement() {
                 <TRow key={p.id}>
                   <Td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', opacity: p.is_suspended ? 0.55 : 1 }}>
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_users" />
                       <div style={{
                         width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',

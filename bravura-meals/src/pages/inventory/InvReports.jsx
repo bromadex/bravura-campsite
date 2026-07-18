@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -15,7 +16,7 @@ const REPORTS = [
   { id: 'reorder', label: 'Reorder Report', icon: 'shopping_cart', desc: 'Items at or below reorder level' },
 ]
 
-export default function InvReports() {
+export default function InvReports({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const [activeReport, setActiveReport] = useState('')
@@ -102,6 +103,7 @@ export default function InvReports() {
 
   return (
     <div>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_reports" />
       <PageHeader title="Inventory Reports" site={currentSite} actions={
         activeReport && data.length > 0 && <Button icon="download" onClick={exportReport}>Export</Button>
       } />

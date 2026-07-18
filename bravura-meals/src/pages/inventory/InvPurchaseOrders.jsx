@@ -7,6 +7,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast, StatusBadge } from '../../components/ui'
 import { sendNotification, notifyApprovers } from '../../utils/notify'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -18,7 +19,7 @@ const STATUS_COLORS = {
   cancelled:          { bg: THEME.statusErrorBg,    text: THEME.statusErrorText,    label: 'Cancelled' },
 }
 
-export default function InvPurchaseOrders() {
+export default function InvPurchaseOrders({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()

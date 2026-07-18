@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, showToast } from '../../components/ui'
+import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
 const PAGE_SIZE = 25
@@ -118,6 +119,7 @@ export default function EmployeesList({ setPage }) {
 
   return (
     <div>
+      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_employees" />
       <PageHeader
         title="Employees"
         site={currentSite}

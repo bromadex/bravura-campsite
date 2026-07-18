@@ -5,6 +5,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast, fmtDate } from '../../components/ui'
+import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -21,7 +22,7 @@ const inputStyle = {
 
 const EMPTY = { employee_id: '', to_site_id: '', to_department_id: '', to_designation_id: '', transfer_date: new Date().toISOString().slice(0, 10), reason: '' }
 
-export default function Transfers() {
+export default function Transfers({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite, allSites } = useSite()
   const { can } = usePermissions()
@@ -150,6 +151,7 @@ export default function Transfers() {
                   <Td align="right">
                     {t.status === 'pending' && (
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_transfers" />
                         {can('hr.approve') && <Button icon="check" onClick={() => complete(t)}>Complete</Button>}
                         {can('hr.edit') && <Button variant="outlined" onClick={() => cancel(t)}>Cancel</Button>}
                       </div>

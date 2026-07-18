@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Icon, Card, Button, showToast, fmtDate } from '../../components/ui'
+import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
 const CLR = MODULE_COLORS.meals
 
@@ -25,7 +26,7 @@ function readiness(sub, forecasts) {
   return { color: THEME.success, label: 'Complete', icon: 'check_circle' }
 }
 
-export default function MealForecasts() {
+export default function MealForecasts({ setPage }) {
   const { profile } = useAuth()
   const { can }     = usePermissions()
   const { currentSite, currentSiteId } = useSite()
@@ -275,6 +276,7 @@ function TotalCard({ icon, label, value, color }) {
   return (
     <Card style={{ padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_forecasts" />
         <div style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>{label}</div>
         <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: color + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name={icon} size={15} style={{ color }} />

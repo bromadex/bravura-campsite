@@ -3,10 +3,11 @@ import { useCampsite } from '../../contexts/CampsiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 
 const tabs = ['Active', 'History', 'On Leave']
 
-export default function CampAssignments() {
+export default function CampAssignments({ setPage }) {
   const { profile } = useAuth()
   const { rooms, blocks, employees, assignments, returnFromLeave,
           assignRoom, transferRoom, releaseRoom, loading } = useCampsite()
@@ -249,6 +250,7 @@ export default function CampAssignments() {
           <Button onClick={doAssign} variant="filled" disabled={saving}>{saving ? 'Assigning…' : 'Assign'}</Button>
         </>}>
         <div style={{ marginBottom: '14px' }}>
+      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_assignments" />
           <SectionLabel>Employee *</SectionLabel>
           <select value={assignEmpId} onChange={e => setAssignEmpId(e.target.value)}
             style={{ width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}>

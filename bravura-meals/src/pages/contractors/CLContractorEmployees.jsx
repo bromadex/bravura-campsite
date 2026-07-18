@@ -4,6 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.contractors
 
@@ -33,7 +34,7 @@ const EXPIRY_COLORS = {
   none:    { border: THEME.outlineVar, text: THEME.textLow },
 }
 
-export default function CLContractorEmployees() {
+export default function CLContractorEmployees({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
 
@@ -339,6 +340,7 @@ export default function CLContractorEmployees() {
             maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
             boxShadow: THEME.shadow3,
           }}>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_employees" />
             <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text }}>
                 {editId ? 'Edit Employee' : 'Add Employee'}

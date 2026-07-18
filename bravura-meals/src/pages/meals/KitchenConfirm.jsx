@@ -4,8 +4,9 @@ import { useAuth } from '../../auth/AuthContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, today, fmtDate, PageHeader } from '../../components/ui'
+import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
-export default function KitchenConfirm() {
+export default function KitchenConfirm({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
 
@@ -249,6 +250,7 @@ export default function KitchenConfirm() {
                   const color = waste == null ? THEME.textLow : waste === 0 ? THEME.success : waste > 0 ? THEME.warning : THEME.error
                   return (
                     <div key={k} style={{ textAlign: 'center' }}>
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_kitchen" />
                       <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em' }}>
                         {['Breakfast','Lunch',supperLabel][i]} waste
                       </div>

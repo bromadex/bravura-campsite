@@ -284,40 +284,27 @@ function getWorkforcePage(page, role, can, setPage) {
 
 function getCampsitePage(page, role, setPage, can) {
   switch (page) {
-    case 'camp_headcount':   return <CampHeadcount />
-    case 'camp_floorplan':   return <CampFloorplan />
-    case 'camp_assignments': return <CampAssignments />
-    case 'camp_rooms':       return <CampRooms />
-    // accommodation.create: System Admin + Camp Supervisor have it, Meal
-    // Officer does not under the approved matrix (no Accommodation grant at
-    // all) — narrower than the old AM list for Meal Officer specifically.
-    // Same "tighten now, broaden later" principle already agreed for
-    // Employees/Leave; zero practical effect today since only Admin is active.
-    case 'camp_blocks':      return can('accommodation.create') ? <CampBlocks /> : null
-    case 'camp_supplies':    return <CampSupplies />
-    case 'camp_transfers':   return <StockTransfers />
-    case 'camp_occ_report':  return <CampOccupancyReport />
-    default:                 return <CampHeadcount />
+    case 'camp_headcount':   return <CampHeadcount setPage={setPage} />
+    case 'camp_floorplan':   return <CampFloorplan setPage={setPage} />
+    case 'camp_assignments': return <CampAssignments setPage={setPage} />
+    case 'camp_rooms':       return <CampRooms setPage={setPage} />
+    case 'camp_blocks':      return can('accommodation.create') ? <CampBlocks setPage={setPage} /> : null
+    case 'camp_supplies':    return <CampSupplies setPage={setPage} />
+    case 'camp_transfers':   return <StockTransfers setPage={setPage} />
+    case 'camp_occ_report':  return <CampOccupancyReport setPage={setPage} />
+    default:                 return <CampHeadcount setPage={setPage} />
   }
 }
 
 function getMealsPage(page, role, setPage, can) {
   switch (page) {
     case 'meals_dashboard': return <Dashboard setPage={setPage} />
-    case 'meals_forecasts':      return can('meals.create')  ? <MealForecasts />     : null
+    case 'meals_forecasts':      return can('meals.create')  ? <MealForecasts setPage={setPage} />     : null
     case 'meals_finance_export': return can('meals.approve') ? <MealFinanceExport /> : null
-    // meals.create: System Admin + Meal Officer — exact match to old MA list.
-    case 'meals_entry':     return can('meals.create') ? <DailyEntry />     : null
-    // meals.approve: System Admin only under current grants — Camp
-    // Supervisor (old 'approver') has zero Meals permissions in the approved
-    // matrix. Same tighten-now pattern as everywhere else in this swap.
-    case 'meals_approvals': return can('meals.approve') ? <Approvals />      : null
-    // meals.edit: System Admin + Kitchen Staff — exact match to old list.
-    case 'meals_kitchen':   return can('meals.edit') ? <KitchenConfirm /> : null
-    // meals.view: previously had NO page-level gate at all — only the nav
-    // item was conditionally hidden. This closes that gap rather than
-    // narrowing anything that was actually reachable through normal use.
-    case 'meals_flags':     return can('meals.view') ? <Flags /> : null
+    case 'meals_entry':     return can('meals.create') ? <DailyEntry setPage={setPage} />     : null
+    case 'meals_approvals': return can('meals.approve') ? <Approvals setPage={setPage} />      : null
+    case 'meals_kitchen':   return can('meals.edit') ? <KitchenConfirm setPage={setPage} /> : null
+    case 'meals_flags':     return can('meals.view') ? <Flags setPage={setPage} /> : null
     // meals.view: old gate was "everyone except kitchen" (a deny-list).
     // Kitchen Staff DOES hold meals.view under the approved matrix, so this
     // is a deliberate, harmless broadening — they can now see read-only
@@ -330,12 +317,12 @@ function getMealsPage(page, role, setPage, can) {
     // financial visibility sits with Finance Officer/Admin. Same pattern.
     case 'meals_billing':   return can('meals.approve') ? <Billing />  : null
     // meals.edit: System Admin + Pricing Officer — exact match to old list.
-    case 'meals_providers': return can('meals.edit') ? <MealProviders /> : null
-    case 'meals_pricing':   return can('meals.edit') ? <Pricing />  : null
+    case 'meals_providers': return can('meals.edit') ? <MealProviders setPage={setPage} /> : null
+    case 'meals_pricing':   return can('meals.edit') ? <Pricing setPage={setPage} />  : null
     // meals.delete: used here as a proxy for "most trusted tier" since
     // there's no dedicated settings permission yet — matches the old
     // super_admin-only gate exactly (only System/Group Admin hold Delete).
-    case 'meals_settings':  return can('meals.delete') ? <Settings /> : null
+    case 'meals_settings':  return can('meals.delete') ? <Settings setPage={setPage} /> : null
     default:                return <Dashboard setPage={setPage} />
   }
 }
@@ -344,14 +331,14 @@ function getMealsPage(page, role, setPage, can) {
 function getAdminPage(page, can, setPage) {
   switch (page) {
     case 'admin_dashboard':   return can('users.view') ? <AdminDashboard setPage={setPage} /> : null
-    case 'admin_users':       return can('users.view') ? <UserManagement /> : null
-    case 'admin_roles':       return can('users.view') ? <RoleManagement /> : null
-    case 'admin_sites':       return can('users.view') ? <SiteManagement /> : null
-    case 'admin_invitations': return can('users.view') ? <PendingInvitations /> : null
-    case 'admin_settings':    return can('users.view') ? <SystemSettings /> : null
-    case 'admin_permissions': return can('users.view') ? <PermissionsCatalogue /> : null
-    case 'admin_audit':       return can('users.view') ? <AuditLogViewer /> : null
-    case 'admin_preferences': return <UserPreferences />
+    case 'admin_users':       return can('users.view') ? <UserManagement setPage={setPage} /> : null
+    case 'admin_roles':       return can('users.view') ? <RoleManagement setPage={setPage} /> : null
+    case 'admin_sites':       return can('users.view') ? <SiteManagement setPage={setPage} /> : null
+    case 'admin_invitations': return can('users.view') ? <PendingInvitations setPage={setPage} /> : null
+    case 'admin_settings':    return can('users.view') ? <SystemSettings setPage={setPage} /> : null
+    case 'admin_permissions': return can('users.view') ? <PermissionsCatalogue setPage={setPage} /> : null
+    case 'admin_audit':       return can('users.view') ? <AuditLogViewer setPage={setPage} /> : null
+    case 'admin_preferences': return <UserPreferences setPage={setPage} />
     default:                  return can('users.view') ? <AdminDashboard setPage={setPage} /> : null
   }
 }
@@ -412,23 +399,23 @@ function getFleetPage(page, setPage) {
 
 function getContractorsPage(page, can, setPage) {
   switch (page) {
-    case 'cl_dashboard':            return can('contractors.view') ? <CLDashboard /> : null
-    case 'cl_companies':            return can('contractors.view') ? <CLCompanies /> : null
-    case 'cl_contracts':            return can('contractors.view') ? <CLContracts /> : null
-    case 'cl_casual_workers':       return can('contractors.view') ? <CLCasualWorkers /> : null
-    case 'cl_contractor_employees': return can('contractors.view') ? <CLContractorEmployees /> : null
-    case 'cl_timesheets':           return can('contractors.view') ? <CLTimesheets /> : null
-    case 'cl_hired_vehicles':       return can('contractors.view') ? <CLHiredVehicles /> : null
-    case 'cl_hired_equipment':      return can('contractors.view') ? <CLHiredEquipment /> : null
-    case 'cl_cost_dashboard':       return can('contractors.view') ? <CLCostDashboard /> : null
+    case 'cl_dashboard':            return can('contractors.view') ? <CLDashboard setPage={setPage} /> : null
+    case 'cl_companies':            return can('contractors.view') ? <CLCompanies setPage={setPage} /> : null
+    case 'cl_contracts':            return can('contractors.view') ? <CLContracts setPage={setPage} /> : null
+    case 'cl_casual_workers':       return can('contractors.view') ? <CLCasualWorkers setPage={setPage} /> : null
+    case 'cl_contractor_employees': return can('contractors.view') ? <CLContractorEmployees setPage={setPage} /> : null
+    case 'cl_timesheets':           return can('contractors.view') ? <CLTimesheets setPage={setPage} /> : null
+    case 'cl_hired_vehicles':       return can('contractors.view') ? <CLHiredVehicles setPage={setPage} /> : null
+    case 'cl_hired_equipment':      return can('contractors.view') ? <CLHiredEquipment setPage={setPage} /> : null
+    case 'cl_cost_dashboard':       return can('contractors.view') ? <CLCostDashboard setPage={setPage} /> : null
     case 'cl_reports':              return can('contractors.view') ? <CLReports setPage={setPage} /> : null
     case 'cl_report_casual_labour': return can('contractors.view') ? <CLReportCasualLabour setPage={setPage} /> : null
     case 'cl_report_timesheets':    return can('contractors.view') ? <CLReportTimesheets setPage={setPage} /> : null
     case 'cl_report_vehicles':      return can('contractors.view') ? <CLReportVehicles setPage={setPage} /> : null
     case 'cl_report_equipment':     return can('contractors.view') ? <CLReportEquipment setPage={setPage} /> : null
     case 'cl_report_cost_by_site':  return can('contractors.view') ? <CLReportCostBySite setPage={setPage} /> : null
-    case 'cl_settings':             return can('contractors.edit') ? <CLSettings /> : null
-    default:                        return can('contractors.view') ? <CLDashboard /> : null
+    case 'cl_settings':             return can('contractors.edit') ? <CLSettings setPage={setPage} /> : null
+    default:                        return can('contractors.view') ? <CLDashboard setPage={setPage} /> : null
   }
 }
 
@@ -443,20 +430,20 @@ function getInventoryPage(page, can, setPage) {
   if (!can('inventory.view')) return null
   switch (page) {
     case 'inv_dashboard':   return <InvDashboard setPage={setPage} />
-    case 'inv_items':       return <InvItems />
-    case 'inv_categories':  return <InvCategories />
-    case 'inv_warehouses':  return <InvWarehouses />
-    case 'inv_balances':    return <InvBalances />
-    case 'inv_grn':         return <InvGrn />
-    case 'inv_issues':      return <InvIssues />
-    case 'inv_site_moves':  return <InvSiteMoves />
-    case 'inv_adjustments': return <InvAdjustments />
-    case 'inv_ledger':      return <InvLedger />
-    case 'inv_reports':     return <InvReports />
-    case 'inv_settings':    return <InvSettings />
-    case 'inv_stock_take':  return <InvStockTake />
-    case 'inv_requisitions': return <InvRequisitions />
-    case 'inv_purchase_orders': return <InvPurchaseOrders />
+    case 'inv_items':       return <InvItems setPage={setPage} />
+    case 'inv_categories':  return <InvCategories setPage={setPage} />
+    case 'inv_warehouses':  return <InvWarehouses setPage={setPage} />
+    case 'inv_balances':    return <InvBalances setPage={setPage} />
+    case 'inv_grn':         return <InvGrn setPage={setPage} />
+    case 'inv_issues':      return <InvIssues setPage={setPage} />
+    case 'inv_site_moves':  return <InvSiteMoves setPage={setPage} />
+    case 'inv_adjustments': return <InvAdjustments setPage={setPage} />
+    case 'inv_ledger':      return <InvLedger setPage={setPage} />
+    case 'inv_reports':     return <InvReports setPage={setPage} />
+    case 'inv_settings':    return <InvSettings setPage={setPage} />
+    case 'inv_stock_take':  return <InvStockTake setPage={setPage} />
+    case 'inv_requisitions': return <InvRequisitions setPage={setPage} />
+    case 'inv_purchase_orders': return <InvPurchaseOrders setPage={setPage} />
     default:                return <InvDashboard setPage={setPage} />
   }
 }

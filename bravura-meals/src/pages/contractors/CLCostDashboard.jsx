@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { showToast, Icon } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { DashCard, KpiCard, AreaChart, SectionTitle } from '../../components/dash'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.contractors
 
@@ -28,7 +29,7 @@ function fmtMoney(n) {
   return `$${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-export default function CLCostDashboard() {
+export default function CLCostDashboard({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
 
@@ -261,6 +262,7 @@ export default function CLCostDashboard() {
         <SectionTitle title="Monthly Cost Trends" subtitle="Total contractor costs (USD) by month — last 6 months" />
         {monthlyLoading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: THEME.textLow }}>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_cost_dashboard" />
             <Icon name="progress_activity" size={24} style={{ animation: 'spin 1s linear infinite' }} />
           </div>
         ) : (

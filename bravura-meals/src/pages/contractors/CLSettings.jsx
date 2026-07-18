@@ -4,10 +4,11 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.contractors
 
-export default function CLSettings() {
+export default function CLSettings({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const [settings, setSettings] = useState({
@@ -68,6 +69,7 @@ export default function CLSettings() {
 
   return (
     <div>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_settings" />
       <PageHeader title="Contractor Settings" site={currentSite} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>

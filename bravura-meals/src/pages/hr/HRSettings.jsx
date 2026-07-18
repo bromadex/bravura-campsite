@@ -5,6 +5,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Icon, PageHeader, Button, SectionLabel, showToast } from '../../components/ui'
+import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -38,7 +39,7 @@ function Toggle({ value, onChange, disabled }) {
   )
 }
 
-export default function HRSettings() {
+export default function HRSettings({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
@@ -101,6 +102,7 @@ export default function HRSettings() {
 
   return (
     <div style={{ maxWidth: '720px' }}>
+      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_settings" />
       <PageHeader title="HR Settings" site={currentSite} />
 
       {!canEdit && (

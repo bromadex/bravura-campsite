@@ -7,6 +7,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast, StatusBadge } from '../../components/ui'
 import { sendNotification, notifyApprovers } from '../../utils/notify'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -26,7 +27,7 @@ const PRIORITY_COLORS = {
   urgent: { bg: THEME.statusErrorBg,   text: THEME.statusErrorText },
 }
 
-export default function InvRequisitions() {
+export default function InvRequisitions({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
@@ -253,6 +254,7 @@ export default function InvRequisitions() {
                     <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '12px' }}>{r.requester?.full_name || '—'}</td>
                     <td style={{ padding: '8px 10px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_requisitions" />
                         {r.status === 'draft' && can('inventory.edit') && (
                           <button onClick={() => openEdit(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
                             <Icon name="edit" size={16} style={{ color: THEME.textMed }} />

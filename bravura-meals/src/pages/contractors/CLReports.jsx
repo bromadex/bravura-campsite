@@ -1,4 +1,5 @@
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.contractors
 
@@ -17,6 +18,7 @@ const PLANNED_REPORTS = [
 export default function CLReports({ setPage }) {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_reports" />
       <div style={{ fontSize: '11px', fontWeight: 600, color: THEME.textLow, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '16px' }}>
         Reports
       </div>

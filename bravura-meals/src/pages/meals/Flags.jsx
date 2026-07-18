@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
+import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
 const REASON_LABELS = {
   count_mismatch:     'Count Mismatch',
@@ -13,7 +14,7 @@ const REASON_LABELS = {
   other:              'Other',
 }
 
-export default function Flags() {
+export default function Flags({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
@@ -222,6 +223,7 @@ export default function Flags() {
 
               {/* Raised by */}
               <div style={{ fontSize: '12px', color: THEME.textLow, marginBottom: '14px' }}>
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_flags" />
                 Raised by <strong style={{ color: THEME.textMed }}>{selected.raised_by_profile?.full_name || selected.raised_by_profile?.username}</strong>
                 {' on '}{new Date(selected.raised_at).toLocaleString()}
               </div>

@@ -7,6 +7,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast, StatusBadge } from '../../components/ui'
 import { notifyApprovers } from '../../utils/notify'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -17,7 +18,7 @@ const STATUS_COLORS = {
   cancelled:   { bg: THEME.statusErrorBg,   text: THEME.statusErrorText,   label: 'Cancelled' },
 }
 
-export default function InvStockTake() {
+export default function InvStockTake({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile } = useAuth()
@@ -323,6 +324,7 @@ export default function InvStockTake() {
               const withVar = lines.filter(l => l.counted_qty != null && l.counted_qty !== l.system_qty).length
               return (
                 <div style={{ padding: '12px 10px', fontSize: '12px', color: THEME.textMed, borderTop: `1px solid ${THEME.outlineVar}` }}>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_stock_take" />
                   {counted}/{lines.length} counted · {withVar} variance{withVar !== 1 ? 's' : ''}
                 </div>
               )

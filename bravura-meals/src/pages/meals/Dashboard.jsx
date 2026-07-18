@@ -5,6 +5,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, StatCard, StatusBadge, Icon, fmtDate, today } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
+import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457','#00838F']
 
@@ -203,6 +204,7 @@ export default function Dashboard({ setPage }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_dashboard" />
 
       {/* Site + provider context */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>

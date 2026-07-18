@@ -3,13 +3,14 @@ import { supabase } from '../../supabaseClient'
 import { Card, Button, showToast, PageHeader, Icon } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
+import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
 const MEAL_MAPPING_META = [
   { type: 'meal_expense',     label: 'Meal Expense',     hint: 'Expense account debited when meals are consumed and billed' },
   { type: 'accounts_payable', label: 'Accounts Payable', hint: 'Liability account credited pending catering supplier payment' },
 ]
 
-export default function Settings() {
+export default function Settings({ setPage }) {
   const { currentSiteId } = useSite()
   const [cfg,     setCfg]     = useState({ company_name: '', site_name: '', supervisor_name: '', provider_name: '' })
   const [loading, setLoading] = useState(true)
@@ -79,6 +80,7 @@ export default function Settings() {
 
   return (
     <div style={{ maxWidth: '540px' }}>
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_settings" />
       <PageHeader title="Settings" />
 
       <Card style={{ marginBottom: '16px' }}>

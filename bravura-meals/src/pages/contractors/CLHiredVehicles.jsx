@@ -4,6 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.contractors
 
@@ -28,7 +29,7 @@ function daysActive(start, end) {
   return Math.max(0, Math.round((e - s) / 86400000))
 }
 
-export default function CLHiredVehicles() {
+export default function CLHiredVehicles({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
 
@@ -286,6 +287,7 @@ export default function CLHiredVehicles() {
             maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
             boxShadow: THEME.shadow3,
           }}>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_vehicles" />
             <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text }}>
                 {editId ? 'Edit Hired Vehicle' : 'Add Hired Vehicle'}

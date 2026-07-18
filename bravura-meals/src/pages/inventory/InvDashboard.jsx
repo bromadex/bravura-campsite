@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, PageHeader, showToast } from '../../components/ui'
 import { DashCard, KpiCard, DonutGauge, ProgressRow, SectionTitle } from '../../components/dash'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -99,6 +100,7 @@ export default function InvDashboard({ setPage }) {
 
   return (
     <div>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_dashboard" />
       <PageHeader title="Inventory Dashboard" site={currentSite} />
 
       {loading ? (

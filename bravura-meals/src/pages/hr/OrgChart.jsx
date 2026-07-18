@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Icon, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -54,7 +55,7 @@ function Node({ emp, childrenMap, depth }) {
   )
 }
 
-export default function OrgChart() {
+export default function OrgChart({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
 
@@ -114,6 +115,7 @@ export default function OrgChart() {
 
   return (
     <div>
+      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_org_chart" />
       <PageHeader title="Org Chart" site={currentSite}
         actions={
           <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}

@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../components/ui'
 import { nextCode } from '../../utils/autoCode'
+import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
 const EMPTY_FORM = { name: '', code: '', parent_department_id: '', department_head_id: '', description: '' }
@@ -14,7 +15,7 @@ const inputStyle = {
   borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
 }
 
-export default function Departments() {
+export default function Departments({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
 
@@ -163,6 +164,7 @@ export default function Departments() {
 
   return (
     <div>
+      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_departments" />
       <PageHeader
         title="Departments"
         site={currentSite?.name}

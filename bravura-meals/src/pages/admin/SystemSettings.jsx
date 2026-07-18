@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Button, Modal, Icon, showToast, PageHeader } from '../../components/ui'
+import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 
 const MODULE_COLOR = '#5C6BC0'
 
@@ -14,7 +15,7 @@ const inp = {
 const lbl = { fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }
 const fieldWrap = { marginBottom: '12px' }
 
-export default function SystemSettings() {
+export default function SystemSettings({ setPage }) {
   const { can } = usePermissions()
   const canView = can('users.view')
   const canEdit = can('users.edit')
@@ -121,6 +122,7 @@ export default function SystemSettings() {
 
   return (
     <div>
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_settings" />
       <PageHeader
         title={<>System Settings <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '6px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{settings.length}</span></>}
         action={canEdit && <Button onClick={openAdd} icon="add" style={{ background: MODULE_COLOR, color: '#fff' }}>Add Setting</Button>}

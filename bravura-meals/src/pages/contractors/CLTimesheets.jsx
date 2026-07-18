@@ -4,6 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.contractors
 
@@ -27,7 +28,7 @@ const EMPTY_ROW_FORM = {
   hours_worked: '0', overtime_hours: '0', supervisor_id: '', notes: '',
 }
 
-export default function CLTimesheets() {
+export default function CLTimesheets({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
 
@@ -495,6 +496,7 @@ export default function CLTimesheets() {
                 const hours = calcHours(r.clock_in, r.clock_out, r.break_minutes)
                 return (
                   <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_timesheets" />
                     <select style={{ ...inp, flex: '2' }} value={r.casual_worker_id} onChange={e => updateBulkRow(i, 'casual_worker_id', e.target.value)}>
                       <option value="">-- Worker --</option>
                       {casualWorkers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}

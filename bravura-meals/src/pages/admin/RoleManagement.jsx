@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Button, Icon, PageHeader, showToast, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.admin
 
@@ -14,7 +15,7 @@ const inp = {
 const lbl = { fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }
 const fieldWrap = { marginBottom: '12px' }
 
-export default function RoleManagement() {
+export default function RoleManagement({ setPage }) {
   const { can } = usePermissions()
   const canEdit = can('users.edit')
 
@@ -252,6 +253,7 @@ export default function RoleManagement() {
                   const allSelected = perms.every(p => editModal.permIds.has(p.id))
                   return (
                   <div key={mod} style={{ marginBottom: '12px' }}>
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_roles" />
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color, letterSpacing: '0.5px' }}>{mod}</div>
                       <button type="button" onClick={() => toggleModule(perms, allSelected)} style={{

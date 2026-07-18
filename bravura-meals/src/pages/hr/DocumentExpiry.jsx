@@ -6,6 +6,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, PageHeader, Button, showToast } from '../../components/ui'
 import { DashCard, KpiCard, DonutGauge, SectionTitle } from '../../components/dash'
+import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
 const DAY = 24 * 60 * 60 * 1000

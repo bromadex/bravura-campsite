@@ -4,6 +4,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Icon, PageHeader, showToast } from '../../components/ui'
 import { DashCard, KpiCard, ActivityRow, SectionTitle } from '../../components/dash'
+import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.admin
 
@@ -192,6 +193,7 @@ export default function AdminDashboard({ setPage }) {
 
           {/* Quick links */}
           <div style={{ marginBottom: '24px' }}>
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_dashboard" />
             <SectionTitle title="Quick Links" subtitle="Jump to an admin area" />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
               {quickLinks.map(ql => (

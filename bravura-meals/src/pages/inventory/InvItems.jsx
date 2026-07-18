@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, StatusBadge, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -16,7 +17,7 @@ const EMPTY = {
   standard_cost: '', location: '', photo_url: '', status: 'active',
 }
 
-export default function InvItems() {
+export default function InvItems({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const { profile } = useAuth()
@@ -180,6 +181,7 @@ export default function InvItems() {
 
   return (
     <div>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_items" />
       <PageHeader title="Items" actions={
         <div style={{ display: 'flex', gap: '8px' }}>
           {can('inventory.edit') && <Button icon="download" onClick={handleExport}>Export</Button>}

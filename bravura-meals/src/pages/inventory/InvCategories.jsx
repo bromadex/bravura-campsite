@@ -3,10 +3,11 @@ import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.inventory
 
-export default function InvCategories() {
+export default function InvCategories({ setPage }) {
   const { can } = usePermissions()
   const [tab, setTab] = useState('categories')
   const [categories, setCategories] = useState([])
@@ -103,6 +104,7 @@ export default function InvCategories() {
 
   return (
     <div>
+      <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_categories" />
       <PageHeader title="Categories & Units of Measure" actions={
         can('inventory.create') && (
           <Button icon="add" variant="filled" onClick={tab === 'categories' ? openCatNew : openUomNew}>

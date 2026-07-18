@@ -5,8 +5,9 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
+import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
-export default function Approvals() {
+export default function Approvals({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
 
@@ -317,6 +318,7 @@ export default function Approvals() {
                       background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`,
                       borderRadius: '8px',
                     }}>
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_approvals" />
                       <div style={{ fontSize: '11px', fontWeight: 700, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>
                         Audit trail
                       </div>

@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Button, Icon, PageHeader, showToast, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.admin
 
@@ -14,7 +15,7 @@ const inp = {
 const lbl = { fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }
 const fieldWrap = { marginBottom: '12px' }
 
-export default function SiteManagement() {
+export default function SiteManagement({ setPage }) {
   const { can } = usePermissions()
   const canEdit = can('users.edit')
 
@@ -87,6 +88,7 @@ export default function SiteManagement() {
 
   return (
     <div>
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_sites" />
       <PageHeader title="Site Management" />
 
       {canEdit && (

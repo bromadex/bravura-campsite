@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { nextCode } from '../../utils/autoCode'
+import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.contractors
 
@@ -48,7 +49,7 @@ const EMPTY_FORM = {
   notes: '', status: 'active',
 }
 
-export default function CLCompanies() {
+export default function CLCompanies({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
 
@@ -560,6 +561,7 @@ export default function CLCompanies() {
 function DetailField({ label, value }) {
   return (
     <div>
+      <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_companies" />
       <div style={{ fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '3px' }}>{label}</div>
       <div style={{ fontSize: '13px', color: THEME.text }}>{value || '-'}</div>
     </div>

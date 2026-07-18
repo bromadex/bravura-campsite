@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, Icon, PageHeader } from '../../components/ui'
+import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 
 const MODULE_COLOR = '#5C6BC0'
 
@@ -20,7 +21,7 @@ const inp = {
   color: THEME.text, fontFamily: 'inherit', boxSizing: 'border-box',
 }
 
-export default function PermissionsCatalogue() {
+export default function PermissionsCatalogue({ setPage }) {
   const { can } = usePermissions()
   const canView = can('users.view')
 
@@ -138,6 +139,7 @@ export default function PermissionsCatalogue() {
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '8px 4px', borderBottom: `1px solid ${THEME.outlineVar}`,
                     }}>
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_permissions" />
                       <span style={{ fontSize: '13px', fontWeight: 500, color: THEME.text, fontFamily: 'monospace' }}>
                         {p.code}
                       </span>

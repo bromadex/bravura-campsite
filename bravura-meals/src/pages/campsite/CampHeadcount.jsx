@@ -10,6 +10,7 @@ import {
   ROOM_STATUS_COLORS,
 } from './floorplan/geometry'
 import RoomTooltip from './floorplan/RoomTooltip'
+import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457']
 
@@ -186,7 +187,7 @@ function BlockMinimap({ block, rooms, assignments, onRoomHover, onRoomLeave }) {
 }
 
 // ── Main dashboard ────────────────────────────────────────────────────────────
-export default function CampHeadcount() {
+export default function CampHeadcount({ setPage }) {
   const { currentSite } = useSite()
   const { kpis, blocks, employees, contractors, rooms, assignments, loading } = useCampsite()
 
@@ -334,6 +335,7 @@ export default function CampHeadcount() {
                 const pct = kpis.totalEmployees > 0 ? Math.round(co.empCount / kpis.totalEmployees * 100) : 0
                 return (
                   <div key={co.id}>
+      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_headcount" />
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 500, color: THEME.text }}>{co.name}</span>
                       <div style={{ display: 'flex', gap: '12px', fontSize: '12px' }}>

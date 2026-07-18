@@ -197,6 +197,7 @@ export default function QuickStartGuide() {
             <>Casual workers (<Code>CL04</Code>) and contractor-employed staff (<Code>CL05</Code>) are separate registries — casuals are paid per shift/day/hour by us, contractor employees are paid by their company.</>,
             <>Capture daily timesheets in <Code>CL06</Code> — hours and overtime cost calculate automatically and need approval before they count.</>,
             <>Hired vehicles (<Code>CL07</Code>) and hired equipment (<Code>CL08</Code>) track rate, and whether driver/fuel/operator is included.</>,
+            <>Casual Payroll (<Code>CL12</Code>) aggregates approved timesheets by worker for any period — cost breakdown with CSV export for Finance.</>,
           ]} />
         </Section>
       )}

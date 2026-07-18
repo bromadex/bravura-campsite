@@ -152,6 +152,7 @@ const CLReportVehicles      = lazy(() => import('./pages/contractors/CLReportVeh
 const CLReportEquipment     = lazy(() => import('./pages/contractors/CLReportEquipment'))
 const CLReportCostBySite    = lazy(() => import('./pages/contractors/CLReportCostBySite'))
 const CLSettings            = lazy(() => import('./pages/contractors/CLSettings'))
+const CLCasualPayroll       = lazy(() => import('./pages/contractors/CLCasualPayroll'))
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
@@ -419,6 +420,7 @@ function getContractorsPage(page, can, setPage) {
     case 'cl_report_vehicles':      return can('contractors.view') ? <CLReportVehicles setPage={setPage} /> : null
     case 'cl_report_equipment':     return can('contractors.view') ? <CLReportEquipment setPage={setPage} /> : null
     case 'cl_report_cost_by_site':  return can('contractors.view') ? <CLReportCostBySite setPage={setPage} /> : null
+    case 'cl_casual_payroll':        return can('contractors.view') ? <CLCasualPayroll setPage={setPage} /> : null
     case 'cl_settings':             return can('contractors.edit') ? <CLSettings setPage={setPage} /> : null
     default:                        return can('contractors.view') ? <CLDashboard setPage={setPage} /> : null
   }

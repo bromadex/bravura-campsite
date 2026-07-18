@@ -14,6 +14,8 @@ const REPORTS = [
   { id: 'movement_summary', label: 'Movement Summary', icon: 'swap_vert', desc: 'In/out totals by item over a period' },
   { id: 'slow_moving', label: 'Slow-Moving Items', icon: 'hourglass_empty', desc: 'Items with no movement in 30+ days' },
   { id: 'reorder', label: 'Reorder Report', icon: 'shopping_cart', desc: 'Items at or below reorder level' },
+  { id: 'consumption', label: 'Consumption Report', icon: 'trending_down', desc: 'Items issued by employee/department' },
+  { id: 'abc_analysis', label: 'ABC Analysis', icon: 'analytics', desc: 'Classify items by consumption value (80/15/5)' },
 ]
 
 export default function InvReports({ setPage }) {
@@ -22,6 +24,8 @@ export default function InvReports({ setPage }) {
   const [activeReport, setActiveReport] = useState('')
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
+  const [periodFrom, setPeriodFrom] = useState(() => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10))
+  const [periodTo, setPeriodTo] = useState(() => new Date().toISOString().slice(0, 10))
 
   const runReport = useCallback(async (reportId) => {
     if (!currentSiteId) return
@@ -71,13 +75,61 @@ export default function InvReports({ setPage }) {
           .not('warehouse', 'is', null)
         if (error) throw error
         setData((rows || []).filter(r => r.warehouse?.site_id === currentSiteId && r.item?.reorder_level && r.on_hand_qty <= r.item.reorder_level).sort((a, b) => a.on_hand_qty - b.on_hand_qty))
+      } else if (reportId === 'consumption') {
+        const { data: rows, error } = await supabase.from('inventory_movements')
+          .select('item_id, quantity, created_at, issued_to_name, issued_to_department, movement_type, item:items!inventory_movements_item_id_fkey(item_code, description), warehouse:warehouses!inventory_movements_warehouse_id_fkey(name, site_id)')
+          .gte('created_at', periodFrom + 'T00:00:00')
+          .lte('created_at', periodTo + 'T23:59:59')
+          .like('movement_type', '%issue%')
+          .not('warehouse', 'is', null)
+        if (error) throw error
+        setData((rows || []).filter(r => r.warehouse?.site_id === currentSiteId).map(r => ({
+          issued_to_name: r.issued_to_name || '—',
+          issued_to_department: r.issued_to_department || '—',
+          item_code: r.item?.item_code,
+          description: r.item?.description,
+          qty: Math.abs(r.quantity || 0),
+          date: r.created_at?.slice(0, 10),
+        })).sort((a, b) => (a.issued_to_name || '').localeCompare(b.issued_to_name || '')))
+      } else if (reportId === 'abc_analysis') {
+        const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString()
+        const { data: moves, error: mErr } = await supabase.from('inventory_movements')
+          .select('item_id, quantity, item:items!inventory_movements_item_id_fkey(item_code, description), warehouse:warehouses!inventory_movements_warehouse_id_fkey(site_id)')
+          .gte('created_at', oneYearAgo)
+          .like('movement_type', '%issue%')
+        if (mErr) throw mErr
+        const siteMoves = (moves || []).filter(r => r.warehouse?.site_id === currentSiteId)
+        const { data: balances, error: bErr } = await supabase.from('stock_balances')
+          .select('item_id, valuation_rate, warehouse:warehouses!stock_balances_warehouse_id_fkey(site_id)')
+          .not('warehouse', 'is', null)
+        if (bErr) throw bErr
+        const rateMap = {}
+        ;(balances || []).filter(b => b.warehouse?.site_id === currentSiteId).forEach(b => { if (!rateMap[b.item_id]) rateMap[b.item_id] = b.valuation_rate || 0 })
+        const itemMap = {}
+        siteMoves.forEach(r => {
+          const key = r.item_id
+          if (!itemMap[key]) itemMap[key] = { item_code: r.item?.item_code, description: r.item?.description, totalQty: 0, item_id: key }
+          itemMap[key].totalQty += Math.abs(r.quantity || 0)
+        })
+        const items = Object.values(itemMap).map(it => ({
+          ...it,
+          annual_value: it.totalQty * (rateMap[it.item_id] || 0),
+        })).filter(it => it.annual_value > 0).sort((a, b) => b.annual_value - a.annual_value)
+        const grandTotal = items.reduce((s, it) => s + it.annual_value, 0)
+        let cumulative = 0
+        items.forEach(it => {
+          cumulative += it.annual_value
+          it.cumulative_pct = grandTotal > 0 ? (cumulative / grandTotal) * 100 : 0
+          it.abc_class = it.cumulative_pct <= 80 ? 'A' : it.cumulative_pct <= 95 ? 'B' : 'C'
+        })
+        setData(items)
       }
     } catch (err) {
       console.error('InvReports:', err)
       showToast('Report failed', 'red')
     }
     setLoading(false)
-  }, [currentSiteId])
+  }, [currentSiteId, periodFrom, periodTo])
 
   function exportReport() {
     if (activeReport === 'valuation') {
@@ -92,6 +144,12 @@ export default function InvReports({ setPage }) {
     } else if (activeReport === 'reorder') {
       exportCsv('reorder_report.csv', ['Item Code', 'Description', 'Warehouse', 'On Hand', 'Reorder Level', 'Reorder Qty'],
         data.map(r => [r.item?.item_code, r.item?.description, r.warehouse?.name, r.on_hand_qty, r.item?.reorder_level, r.item?.reorder_qty]))
+    } else if (activeReport === 'consumption') {
+      exportCsv('consumption_report.csv', ['Employee/Dept', 'Department', 'Item Code', 'Description', 'Qty Issued', 'Date'],
+        data.map(r => [r.issued_to_name, r.issued_to_department, r.item_code, r.description, r.qty, r.date]))
+    } else if (activeReport === 'abc_analysis') {
+      exportCsv('abc_analysis.csv', ['Item Code', 'Description', 'Annual Value', 'Cumulative %', 'Class'],
+        data.map(r => [r.item_code, r.description, r.annual_value?.toFixed(2), r.cumulative_pct?.toFixed(1) + '%', r.abc_class]))
     }
   }
 
@@ -135,6 +193,18 @@ export default function InvReports({ setPage }) {
             <span style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>{REPORTS.find(r => r.id === activeReport)?.label}</span>
             <span style={{ marginLeft: 'auto', fontSize: '12px', color: THEME.textLow }}>{data.length} rows</span>
           </div>
+
+          {activeReport === 'consumption' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <label style={{ fontSize: '12px', color: THEME.textMed, fontWeight: 600 }}>From</label>
+              <input type="date" value={periodFrom} onChange={e => setPeriodFrom(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: '6px', border: `1px solid ${THEME.outlineVar}`, background: THEME.cardBg, color: THEME.text, fontSize: '13px', fontFamily: 'inherit' }} />
+              <label style={{ fontSize: '12px', color: THEME.textMed, fontWeight: 600 }}>To</label>
+              <input type="date" value={periodTo} onChange={e => setPeriodTo(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: '6px', border: `1px solid ${THEME.outlineVar}`, background: THEME.cardBg, color: THEME.text, fontSize: '13px', fontFamily: 'inherit' }} />
+              <Button icon="refresh" onClick={() => runReport('consumption')} style={{ fontSize: '12px' }}>Refresh</Button>
+            </div>
+          )}
 
           {loading ? (
             <Card style={{ textAlign: 'center', padding: '40px', color: THEME.textMed }}>Running report...</Card>
@@ -205,6 +275,42 @@ export default function InvReports({ setPage }) {
                         <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>{r.item?.reorder_qty || '—'}</td>
                       </tr>
                     ))}
+                  </tbody>
+                </>}
+                {activeReport === 'consumption' && <>
+                  <thead><tr>{['Employee/Dept', 'Department', 'Item Code', 'Description', 'Qty Issued', 'Date'].map(h => <th key={h} style={{ ...th, textAlign: h === 'Qty Issued' ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {data.length === 0 ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: THEME.textLow }}>No issues found for this period</td></tr> :
+                    data.map((r, i) => (
+                      <tr key={i} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                        <td style={{ padding: '8px 10px', fontWeight: 600, color: THEME.text }}>{r.issued_to_name}</td>
+                        <td style={{ padding: '8px 10px', color: THEME.textMed }}>{r.issued_to_department}</td>
+                        <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: '12px', color: ACCENT, fontWeight: 600 }}>{r.item_code}</td>
+                        <td style={{ padding: '8px 10px', color: THEME.text }}>{r.description}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>{r.qty}</td>
+                        <td style={{ padding: '8px 10px', color: THEME.textMed }}>{r.date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </>}
+                {activeReport === 'abc_analysis' && <>
+                  <thead><tr>{['Item Code', 'Description', 'Annual Value', 'Cumulative %', 'Class'].map(h => <th key={h} style={{ ...th, textAlign: ['Annual Value', 'Cumulative %'].includes(h) ? 'right' : h === 'Class' ? 'center' : 'left' }}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {data.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: THEME.textLow }}>No consumption data for ABC analysis</td></tr> :
+                    data.map((r, i) => {
+                      const classColor = r.abc_class === 'A' ? THEME.error : r.abc_class === 'B' ? THEME.warning || '#f59e0b' : '#16a34a'
+                      return (
+                        <tr key={i} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                          <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: '12px', color: ACCENT, fontWeight: 600 }}>{r.item_code}</td>
+                          <td style={{ padding: '8px 10px', color: THEME.text }}>{r.description}</td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: THEME.text }}>${r.annual_value?.toFixed(2)}</td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right', color: THEME.textMed }}>{r.cumulative_pct?.toFixed(1)}%</td>
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                            <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: 700, color: '#fff', background: classColor }}>{r.abc_class}</span>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </>}
               </table>

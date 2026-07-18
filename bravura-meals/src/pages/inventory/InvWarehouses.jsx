@@ -37,15 +37,22 @@ export default function InvWarehouses() {
 
   useEffect(() => { if (currentSiteId) fetch() }, [currentSiteId, fetch])
 
+  function genCode(name, type) {
+    const prefix = (currentSite?.name || 'SITE').substring(0, 3).toUpperCase()
+    const suffix = type.toUpperCase().replace('_', '')
+    const seq = warehouses.filter(w => w.type === type).length + 1
+    return `${prefix}-${suffix}${seq > 1 ? seq : ''}`
+  }
+
   function openNew() {
     setEditId(null)
-    setForm({ code: '', name: '', type: 'main' })
+    setForm({ name: '', type: 'main' })
     setModal(true)
   }
 
   function openEdit(w) {
     setEditId(w.id)
-    setForm({ code: w.code || '', name: w.name || '', type: w.type || 'main' })
+    setForm({ name: w.name || '', type: w.type || 'main' })
     setModal(true)
   }
 
@@ -55,10 +62,11 @@ export default function InvWarehouses() {
     try {
       const row = {
         name: form.name.trim(),
-        code: form.code.trim() || null,
+        code: editId ? undefined : genCode(form.name, form.type),
         type: form.type,
         site_id: currentSiteId,
       }
+      if (editId) delete row.code
       if (editId) {
         const { error } = await supabase.from('warehouses').update(row).eq('id', editId)
         if (error) throw error
@@ -151,10 +159,6 @@ export default function InvWarehouses() {
           <div>
             <SectionLabel>Name *</SectionLabel>
             <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={inp} />
-          </div>
-          <div>
-            <SectionLabel>Code</SectionLabel>
-            <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="e.g. KAM-MAIN" style={inp} />
           </div>
           <div>
             <SectionLabel>Type</SectionLabel>

@@ -127,7 +127,7 @@ export default function InvItems() {
         showToast('Item updated', 'green')
       } else {
         const nextCode = await generateCode()
-        row.item_code = form.item_code.trim() || nextCode
+        row.item_code = nextCode
         const { error } = await supabase.from('items').insert(row)
         if (error) throw error
         showToast('Item created', 'green')
@@ -257,8 +257,11 @@ export default function InvItems() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div>
             <SectionLabel>Item Code</SectionLabel>
-            <input value={form.item_code} onChange={e => setForm({ ...form, item_code: e.target.value })}
-              placeholder="Auto-generated if blank" style={inp} />
+            {editId ? (
+              <div style={{ ...inp, background: THEME.surfaceVar, color: THEME.textMed, display: 'flex', alignItems: 'center' }}>{form.item_code}</div>
+            ) : (
+              <div style={{ ...inp, background: THEME.surfaceVar, color: THEME.textLow, fontStyle: 'italic', display: 'flex', alignItems: 'center' }}>Auto-generated</div>
+            )}
           </div>
           <div>
             <SectionLabel>Status</SectionLabel>

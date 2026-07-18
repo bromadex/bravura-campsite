@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import { sendNotification, notifyApprovers } from '../../utils/notify'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -133,6 +134,9 @@ export default function InvRequisitions() {
         )
         if (lineErr) throw lineErr
         showToast(andSubmit ? 'Requisition submitted' : 'Requisition updated', 'green')
+        if (andSubmit) {
+          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'requisition_submitted', title: 'Requisition Submitted', body: `A requisition has been submitted and needs your approval.`, actionUrl: '/inventory/requisitions' })
+        }
       } else {
         const reqNo = await genReqNo()
         const { data: newReq, error } = await supabase.from('purchase_requisitions').insert({
@@ -157,6 +161,9 @@ export default function InvRequisitions() {
         )
         if (lineErr) throw lineErr
         showToast(`Requisition ${reqNo} created`, 'green')
+        if (andSubmit) {
+          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'requisition_submitted', title: 'Requisition Submitted', body: `Requisition ${reqNo} has been submitted and needs your approval.`, actionUrl: '/inventory/requisitions' })
+        }
       }
       setModal(false)
       fetch()
@@ -173,6 +180,9 @@ export default function InvRequisitions() {
     }).eq('id', req.id)
     if (error) { showToast(error.message, 'red'); return }
     showToast('Requisition approved', 'green')
+    if (req.requested_by) {
+      sendNotification({ recipientId: req.requested_by, type: 'requisition_approved', title: 'Requisition Approved', body: `Your requisition ${req.requisition_no} has been approved.`, actionUrl: '/inventory/requisitions' })
+    }
     fetch()
   }
 
@@ -181,6 +191,9 @@ export default function InvRequisitions() {
     const { error } = await supabase.from('purchase_requisitions').update({ status: 'rejected' }).eq('id', req.id)
     if (error) { showToast(error.message, 'red'); return }
     showToast('Requisition rejected', 'green')
+    if (req.requested_by) {
+      sendNotification({ recipientId: req.requested_by, type: 'requisition_approved', title: 'Requisition Rejected', body: `Your requisition ${req.requisition_no} has been rejected.`, actionUrl: '/inventory/requisitions' })
+    }
     fetch()
   }
 

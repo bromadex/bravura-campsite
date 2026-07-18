@@ -234,6 +234,50 @@ export function StatusBadge({ status }) {
     long_leave:          { bg: THEME.statusTertiaryBg, color: THEME.statusTertiaryText, label: 'Long Leave' },
     temporary_assignment:{ bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Temporary Assignment' },
     transferred:         { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Transferred' },
+    // Fleet asset statuses
+    operational:         { bg: THEME.statusSuccessBg,  color: THEME.statusSuccessText,  label: 'Operational' },
+    maintenance:         { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Maintenance' },
+    grounded:            { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Grounded' },
+    awaiting_parts:      { bg: THEME.statusTertiaryBg, color: THEME.statusTertiaryText, label: 'Awaiting Parts' },
+    decommissioned:      { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Decommissioned' },
+    // Fleet inspection results
+    pass:                { bg: THEME.statusSuccessBg,  color: THEME.statusSuccessText,  label: 'Pass' },
+    pass_with_defects:   { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Pass w/ Defects' },
+    unsafe:              { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Unsafe' },
+    // Fleet tyre statuses
+    fitted:              { bg: THEME.statusSuccessBg,  color: THEME.statusSuccessText,  label: 'Fitted' },
+    stock:               { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Stock' },
+    retreaded:           { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Retreaded' },
+    scrapped:            { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Scrapped' },
+    // Fleet accident severity
+    minor:               { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Minor' },
+    moderate:            { bg: THEME.statusWarningBg,   color: THEME.statusWarningText,  label: 'Moderate' },
+    major:               { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Major' },
+    write_off:           { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Write-Off' },
+    // Fleet accident statuses
+    reported:            { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Reported' },
+    investigating:       { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Investigating' },
+    // Fleet maintenance
+    scheduled:           { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Scheduled' },
+    awaiting_approval:   { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Awaiting Approval' },
+    waiting_for_parts:   { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Waiting for Parts' },
+    critical:            { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Critical' },
+    medium:              { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Medium' },
+    // Contractor statuses
+    expired:             { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Expired' },
+    suspended:           { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Suspended' },
+    // Inventory / procurement
+    sent:                { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Sent' },
+    partially_received:  { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Partial' },
+    received:            { bg: THEME.statusSuccessBg,  color: THEME.statusSuccessText,  label: 'Received' },
+    rejected:            { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Rejected' },
+    ordered:             { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Ordered' },
+    urgent:              { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Urgent' },
+    high:                { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'High' },
+    normal:              { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Normal' },
+    low:                 { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Low' },
+    overdue:             { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Overdue' },
+    closed:              { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Closed' },
   }
   const s = map[status] || { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: status }
   return (

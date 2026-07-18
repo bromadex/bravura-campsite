@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import { notifyApprovers } from '../../utils/notify'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -165,6 +166,7 @@ export default function InvStockTake() {
       if (upErr) throw upErr
 
       showToast(`${variances.length} adjustment(s) posted`, 'green')
+      notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.view', type: 'stock_take_completed', title: 'Stock Take Completed', body: `A stock take has been completed with ${variances.length} adjustment(s).`, actionUrl: '/inventory/stock-take' })
       setDetailModal(false)
       fetch()
     } catch (err) {

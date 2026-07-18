@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { StatusBadge } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
@@ -33,18 +34,6 @@ const EXPIRY_COLORS = {
   none:     { border: THEME.outlineVar,        bg: THEME.surface,         text: THEME.textLow },
 }
 
-function StatusBadge({ status }) {
-  const s = STATUS_MAP[status] || STATUS_MAP.operational
-  return (
-    <span style={{
-      display: 'inline-block', fontSize: '11px', fontWeight: 600,
-      padding: '2px 10px', borderRadius: '999px',
-      background: s.bg, color: s.text,
-    }}>
-      {s.label}
-    </span>
-  )
-}
 
 function ExpiryChip({ label, dateStr }) {
   const st = expiryStatus(dateStr)

@@ -212,6 +212,7 @@ export function mealsNav(role, can) {
 
 export function adminNav(role) {
   return [
+    { id: 'admin_preferences', label: 'My Preferences',       section: 'Personal',        icon: 'person' },
     { id: 'admin_dashboard',   label: 'Dashboard',            section: 'Overview',        icon: 'dashboard' },
     { id: 'admin_users',       label: 'Users & Roles',        section: 'Access Control',  icon: 'manage_accounts' },
     { id: 'admin_roles',       label: 'Role Management',      section: 'Access Control',  icon: 'shield_person' },

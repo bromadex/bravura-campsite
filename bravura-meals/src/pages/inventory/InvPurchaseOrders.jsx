@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import { sendNotification, notifyApprovers } from '../../utils/notify'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -133,6 +134,9 @@ export default function InvPurchaseOrders() {
         )
         if (lineErr) throw lineErr
         showToast(sendIt ? 'PO sent' : 'PO updated', 'green')
+        if (sendIt) {
+          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'inventory_approval', title: 'Purchase Order Sent', body: `A purchase order has been sent and may need your attention.`, actionUrl: '/inventory/purchase-orders' })
+        }
       } else {
         const poNo = await genPoNo()
         const { data: newPo, error } = await supabase.from('purchase_orders').insert({
@@ -151,6 +155,9 @@ export default function InvPurchaseOrders() {
           await supabase.from('purchase_requisitions').update({ status: 'ordered' }).eq('id', form.requisition_id)
         }
         showToast(`PO ${poNo} created`, 'green')
+        if (sendIt) {
+          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'inventory_approval', title: 'Purchase Order Sent', body: `Purchase order ${poNo} has been sent.`, actionUrl: '/inventory/purchase-orders' })
+        }
       }
       setModal(false)
       fetch()
@@ -200,6 +207,9 @@ export default function InvPurchaseOrders() {
       }).eq('id', receivePo.id)
 
       showToast(`Received ${toReceive.length} item(s) against ${receivePo.po_number}`, 'green')
+      if (receivePo.created_by) {
+        sendNotification({ recipientId: receivePo.created_by, type: 'inventory_po_received', title: 'Goods Received', body: `${toReceive.length} item(s) received against ${receivePo.po_number}.`, actionUrl: '/inventory/purchase-orders' })
+      }
       setReceiveModal(false)
       fetch()
     } catch (err) {

@@ -83,6 +83,7 @@ const SiteManagement     = lazy(() => import('./pages/admin/SiteManagement'))
 const PendingInvitations = lazy(() => import('./pages/admin/PendingInvitations'))
 const SystemSettings     = lazy(() => import('./pages/admin/SystemSettings'))
 const PermissionsCatalogue = lazy(() => import('./pages/admin/PermissionsCatalogue'))
+const UserPreferences      = lazy(() => import('./pages/admin/UserPreferences'))
 
 // ── Fleet pages ───────────────────────────────────────────────────────────────
 const FleetDashboard      = lazy(() => import('./pages/fleet/FleetDashboard'))
@@ -350,6 +351,7 @@ function getAdminPage(page, can, setPage) {
     case 'admin_settings':    return can('users.view') ? <SystemSettings /> : null
     case 'admin_permissions': return can('users.view') ? <PermissionsCatalogue /> : null
     case 'admin_audit':       return can('users.view') ? <AuditLogViewer /> : null
+    case 'admin_preferences': return <UserPreferences />
     default:                  return can('users.view') ? <AdminDashboard setPage={setPage} /> : null
   }
 }

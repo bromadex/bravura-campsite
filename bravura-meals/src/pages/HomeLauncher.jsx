@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MODULE_COLORS, THEME, moduleAccess } from '../utils/permissions'
+import { resolveNotifStyle } from '../utils/notify'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
 import { useSite } from '../contexts/SiteContext'
@@ -280,22 +281,7 @@ export default function HomeLauncher({ onEnterModule }) {
                   <div style={{ fontSize: '13px' }}>No notifications yet</div>
                 </div>
               ) : notifications.map(n => {
-                const tc =
-                    n.type === 'fuel_alert'      ? '#EF4444'
-                  : n.type === 'fuel_warning'    ? '#F59E0B'
-                  : n.type === 'meals_submitted' ? '#1558A6'
-                  : n.type === 'meals_approved'  ? '#386A20'
-                  : n.type === 'meals_returned'  ? '#7D5700'
-                  : n.type === 'meals_confirmed' ? '#386A20'
-                  : THEME.textMed
-                const ti =
-                    n.type === 'fuel_alert'      ? 'warning'
-                  : n.type === 'fuel_warning'    ? 'info'
-                  : n.type === 'meals_submitted' ? 'upload'
-                  : n.type === 'meals_approved'  ? 'check_circle'
-                  : n.type === 'meals_returned'  ? 'undo'
-                  : n.type === 'meals_confirmed' ? 'restaurant'
-                  : 'notifications'
+                const { icon: ti, color: tc } = resolveNotifStyle(n.type, THEME)
                 const age = Date.now() - new Date(n.created_at).getTime()
                 const ageStr = age < 3600000 ? `${Math.floor(age / 60000)}m ago` : age < 86400000 ? `${Math.floor(age / 3600000)}h ago` : new Date(n.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
                 return (

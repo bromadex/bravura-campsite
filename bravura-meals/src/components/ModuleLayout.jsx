@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
 import { useSite } from '../contexts/SiteContext'
 import { THEME, ROLE_LABELS, MODULE_COLORS } from '../utils/permissions'
+import { resolveNotifStyle } from '../utils/notify'
 import { supabase } from '../supabaseClient'
 import SiteSwitcher from './SiteSwitcher'
 
@@ -512,22 +513,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 </div>
               ) : (
                 notifications.map(n => {
-                  const typeColor =
-                      n.type === 'fuel_alert'       ? THEME.error
-                    : n.type === 'fuel_warning'     ? THEME.warning
-                    : n.type === 'meals_submitted'  ? THEME.info
-                    : n.type === 'meals_approved'   ? THEME.success
-                    : n.type === 'meals_returned'   ? THEME.warning
-                    : n.type === 'meals_confirmed'  ? THEME.success
-                    : THEME.textMed
-                  const typeIcon =
-                      n.type === 'fuel_alert'       ? 'warning'
-                    : n.type === 'fuel_warning'     ? 'info'
-                    : n.type === 'meals_submitted'  ? 'upload'
-                    : n.type === 'meals_approved'   ? 'check_circle'
-                    : n.type === 'meals_returned'   ? 'undo'
-                    : n.type === 'meals_confirmed'  ? 'restaurant'
-                    : 'notifications'
+                  const { icon: typeIcon, color: typeColor } = resolveNotifStyle(n.type, THEME)
                   const ts = new Date(n.created_at)
                   const age = Date.now() - ts.getTime()
                   const ageStr = age < 3600000 ? `${Math.floor(age / 60000)}m ago`

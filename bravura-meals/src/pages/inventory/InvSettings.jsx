@@ -10,7 +10,17 @@ const ACCENT = MODULE_COLORS.inventory
 export default function InvSettings() {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
-  const [settings, setSettings] = useState({ auto_code_prefix: 'ITM', next_code_seq: 1 })
+  const [settings, setSettings] = useState({
+    auto_code_prefix: 'ITM',
+    next_code_seq: 1,
+    low_stock_threshold: 10,
+    reorder_point: 5,
+    grn_prefix: 'GRN',
+    grn_next_seq: 1,
+    require_adjustment_approval: true,
+    default_warehouse_id: '',
+  })
+  const [warehouses, setWarehouses] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -18,13 +28,20 @@ export default function InvSettings() {
     if (!currentSiteId) return
     setLoading(true)
     try {
-      const { data, error } = await supabase.from('module_settings')
-        .select('*')
-        .eq('site_id', currentSiteId)
-        .eq('module', 'inventory')
-        .maybeSingle()
-      if (error) throw error
-      if (data?.settings) setSettings(data.settings)
+      const [settingsRes, whRes] = await Promise.all([
+        supabase.from('module_settings')
+          .select('*')
+          .eq('site_id', currentSiteId)
+          .eq('module', 'inventory')
+          .maybeSingle(),
+        supabase.from('warehouses')
+          .select('id, name')
+          .eq('site_id', currentSiteId)
+          .order('name'),
+      ])
+      if (settingsRes.error) throw settingsRes.error
+      if (settingsRes.data?.settings) setSettings(prev => ({ ...prev, ...settingsRes.data.settings }))
+      if (!whRes.error) setWarehouses(whRes.data || [])
     } catch (err) {
       console.error('InvSettings:', err)
     }
@@ -55,7 +72,7 @@ export default function InvSettings() {
     return <Card style={{ textAlign: 'center', padding: '40px' }}><Icon name="lock" size={28} style={{ color: THEME.textLow }} /><div style={{ marginTop: '10px', color: THEME.textMed, fontSize: '14px' }}>No access.</div></Card>
   }
 
-  const inp = { width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '12px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', background: THEME.surface, color: THEME.text }
+  const inp = { width: '100%', padding: '10px 14px', border: `1px solid ${THEME.outline}`, borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', background: THEME.surface, color: THEME.text }
 
   if (loading) return <Card style={{ textAlign: 'center', padding: '40px', color: THEME.textMed }}>Loading...</Card>
 
@@ -64,7 +81,8 @@ export default function InvSettings() {
       <PageHeader title="Inventory Settings" site={currentSite} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
-        <Card style={{ padding: '24px' }}>
+        {/* Item Code Settings */}
+        <Card style={{ padding: '24px', borderRadius: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: ACCENT + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="tag" size={20} style={{ color: ACCENT }} />
@@ -84,7 +102,74 @@ export default function InvSettings() {
           </div>
         </Card>
 
-        <Card style={{ padding: '24px' }}>
+        {/* Low Stock & Reorder */}
+        <Card style={{ padding: '24px', borderRadius: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: ACCENT + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="warning" size={20} style={{ color: ACCENT }} />
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text }}>Stock Thresholds</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <SectionLabel>Low Stock Threshold (default)</SectionLabel>
+              <input type="number" min="0" value={settings.low_stock_threshold} onChange={e => setSettings({ ...settings, low_stock_threshold: parseInt(e.target.value) || 0 })} style={inp} />
+              <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>Default minimum quantity before a low-stock alert is triggered for new items.</div>
+            </div>
+            <div>
+              <SectionLabel>Reorder Point (default)</SectionLabel>
+              <input type="number" min="0" value={settings.reorder_point} onChange={e => setSettings({ ...settings, reorder_point: parseInt(e.target.value) || 0 })} style={inp} />
+              <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>Default reorder point for newly created items.</div>
+            </div>
+          </div>
+        </Card>
+
+        {/* GRN Auto-numbering */}
+        <Card style={{ padding: '24px', borderRadius: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: ACCENT + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="receipt" size={20} style={{ color: ACCENT }} />
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text }}>GRN Auto-numbering</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <SectionLabel>GRN Prefix</SectionLabel>
+              <input value={settings.grn_prefix || ''} onChange={e => setSettings({ ...settings, grn_prefix: e.target.value.toUpperCase() })} placeholder="GRN" style={inp} />
+              <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>Vouchers will be numbered as {settings.grn_prefix || 'GRN'}-0001, etc.</div>
+            </div>
+            <div>
+              <SectionLabel>Next GRN Sequence</SectionLabel>
+              <input type="number" min="1" value={settings.grn_next_seq || 1} onChange={e => setSettings({ ...settings, grn_next_seq: parseInt(e.target.value) || 1 })} style={inp} />
+            </div>
+          </div>
+        </Card>
+
+        {/* Approval & Defaults */}
+        <Card style={{ padding: '24px', borderRadius: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: ACCENT + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="tune" size={20} style={{ color: ACCENT }} />
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text }}>Defaults & Approval</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', color: THEME.text }}>
+              <input type="checkbox" checked={settings.require_adjustment_approval} onChange={e => setSettings({ ...settings, require_adjustment_approval: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: ACCENT }} />
+              Require Approval for Adjustments
+            </label>
+            <div>
+              <SectionLabel>Default Warehouse</SectionLabel>
+              <select value={settings.default_warehouse_id || ''} onChange={e => setSettings({ ...settings, default_warehouse_id: e.target.value })} style={inp}>
+                <option value="">-- None --</option>
+                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+          </div>
+        </Card>
+
+        {/* Module Info */}
+        <Card style={{ padding: '24px', borderRadius: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: ACCENT + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="info" size={20} style={{ color: ACCENT }} />

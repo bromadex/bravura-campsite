@@ -221,6 +221,20 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* Procurement */}
+      {can('procurement.view') && (
+        <Section icon="storefront" color={MODULE_COLORS.procurement} title="Procurement">
+          <Steps items={[
+            <>The Procurement Dashboard (<Code>PR01</Code>) shows active POs, in-transit orders, delayed deliveries, open RFQs, and total spend at a glance.</>,
+            <>Suppliers (<Code>PR02</Code>) — register and manage your supplier directory per site.</>,
+            <>RFQs (<Code>PR03</Code>) — create Requests for Quotation with line items, send to suppliers, and compare responses to award contracts.</>,
+            <>Orders (<Code>PR04</Code>) — view all purchase orders with delivery status, priority, and current location filters.</>,
+            <>Tracking (<Code>PR05</Code>) — track goods in transit with a timeline of events (dispatched, at customs, delivered, etc.). Adding events auto-updates the PO status and location.</>,
+            <>Reports (<Code>PR06</Code>) — spend by supplier, monthly trends, average lead time, and priority breakdown.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* Admin */}
       {can('users.view') && (
         <Section icon="admin_panel_settings" color={MODULE_COLORS.admin} title="Administration">

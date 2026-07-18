@@ -279,6 +279,18 @@ export function StatusBadge({ status }) {
     overdue:             { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Overdue' },
     closed:              { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Closed' },
     planned:             { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Planned' },
+    // Inventory stock alerts
+    out_of_stock:        { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Out of Stock' },
+    low_stock:           { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Low Stock' },
+    // Procurement delivery + RFQ
+    at_customs:          { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'At Customs' },
+    at_warehouse:        { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'At Warehouse' },
+    delivered:           { bg: THEME.statusSuccessBg,  color: THEME.statusSuccessText,  label: 'Delivered' },
+    delayed:             { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Delayed' },
+    responses_received:  { bg: THEME.statusInfoBg,     color: THEME.statusInfoText,     label: 'Responses In' },
+    evaluated:           { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Evaluated' },
+    awarded:             { bg: THEME.statusSuccessBg,  color: THEME.statusSuccessText,  label: 'Awarded' },
+    pending_approval:    { bg: THEME.statusWarningBg,  color: THEME.statusWarningText,  label: 'Pending Approval' },
   }
   const s = map[status] || { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: status }
   return (

@@ -149,6 +149,9 @@ export const TXN_CODES = [
   { code: 'IN10', path: '/inventory/inv_ledger',       label: 'Stock Ledger',         module: 'inventory' },
   { code: 'IN11', path: '/inventory/inv_reports',      label: 'Inventory Reports',    module: 'inventory' },
   { code: 'IN12', path: '/inventory/inv_settings',     label: 'Inventory Settings',   module: 'inventory' },
+  { code: 'IN13', path: '/inventory/inv_stock_take',   label: 'Stock Take',           module: 'inventory' },
+  { code: 'IN14', path: '/inventory/inv_requisitions', label: 'Purchase Requisitions', module: 'inventory' },
+  { code: 'IN15', path: '/inventory/inv_purchase_orders', label: 'Purchase Orders',   module: 'inventory' },
 
   // ── Procurement (PR) / Feedback (FB) ──────────────────────────────────────
   { code: 'PR01', path: '/procurement/proc_suppliers', label: 'Suppliers',         module: 'procurement' },

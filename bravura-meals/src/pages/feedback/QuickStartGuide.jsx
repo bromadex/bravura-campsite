@@ -210,6 +210,13 @@ export default function QuickStartGuide() {
             <>Categories & UoM (<Code>IN03</Code>) organise items into a hierarchy (Electrical, Mechanical, Safety, etc.) and define measurement units.</>,
             <>Warehouses (<Code>IN04</Code>) are site-scoped storage locations — each site gets at least a Main store; add Workshop, Kitchen, etc. as needed.</>,
             <>Stock Balances (<Code>IN05</Code>) shows on-hand quantities per warehouse. HQ users see a cross-site matrix. Use the opening stock capture to set starting balances.</>,
+            <>Goods Received (<Code>IN06</Code>) records stock arriving at a warehouse — voucher number, supplier, multi-line items with quantities and costs.</>,
+            <>Issues & Returns (<Code>IN07</Code>) issues stock to employees/departments and records returns back to the warehouse.</>,
+            <>Site Reassignment (<Code>IN08</Code>) transfers stock between warehouses or sites, creating paired transfer-out and transfer-in movements.</>,
+            <>Adjustments (<Code>IN09</Code>) allows authorised users to add or subtract stock with a mandatory reason — requires the Approve permission.</>,
+            <>Stock Take (<Code>IN13</Code>) runs a physical count against system balances — auto-populates a count sheet, calculates variances, and posts adjustments on approval.</>,
+            <>Requisitions (<Code>IN14</Code>) let site staff request materials. Draft, submit for approval, then convert approved requisitions into Purchase Orders.</>,
+            <>Purchase Orders (<Code>IN15</Code>) track procurement end-to-end — create from scratch or from an approved requisition, send to supplier, then receive goods against the PO.</>,
           ]} />
         </Section>
       )}

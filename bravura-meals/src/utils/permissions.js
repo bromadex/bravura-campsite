@@ -312,6 +312,9 @@ export function inventoryNav(role, can) {
     { id: 'inv_adjustments',  label: 'Adjustments',        section: 'Operations', icon: 'tune' },
     { id: 'inv_ledger',       label: 'Stock Ledger',       section: 'Reports',    icon: 'menu_book' },
     { id: 'inv_reports',      label: 'Reports',            section: 'Reports',    icon: 'bar_chart' },
+    { id: 'inv_stock_take',    label: 'Stock Take',         section: 'Operations', icon: 'fact_check' },
+    { id: 'inv_requisitions',  label: 'Requisitions',       section: 'Purchasing', icon: 'request_quote' },
+    { id: 'inv_purchase_orders', label: 'Purchase Orders',  section: 'Purchasing', icon: 'shopping_cart' },
     { id: 'inv_settings',     label: 'Settings',           section: 'Admin',      icon: 'settings' },
   ]
 }

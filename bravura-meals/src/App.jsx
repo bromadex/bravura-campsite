@@ -235,38 +235,38 @@ function getWorkforcePage(page, role, can, setPage) {
   const [base, param] = (page || '').split(':')
   switch (base) {
     case 'wf_dashboard':       return can('hr.view') || can('employees.view') ? <HRDashboard setPage={setPage} /> : null
-    case 'wf_departments':     return can('hr.view') ? <HRDepartments /> : null
-    case 'wf_designations':    return can('hr.view') ? <HRDesignations /> : null
-    case 'wf_settings':        return can('hr.view') ? <HRSettings /> : null
+    case 'wf_departments':     return can('hr.view') ? <HRDepartments setPage={setPage} /> : null
+    case 'wf_designations':    return can('hr.view') ? <HRDesignations setPage={setPage} /> : null
+    case 'wf_settings':        return can('hr.view') ? <HRSettings setPage={setPage} /> : null
     case 'wf_employee_form':   return can('hr.create') || can('hr.edit')
       ? <HREmployeeForm setPage={setPage} employeeId={param || null} /> : null
     case 'wf_employee_detail': return can('hr.view')
       ? <HREmployeeDetail setPage={setPage} employeeId={param} /> : null
-    case 'wf_leave_types':       return can('hr.view') ? <HRLeaveTypes /> : null
-    case 'wf_leave_allocations': return can('hr.view') ? <HRLeaveAllocations /> : null
-    case 'wf_leave_requests':    return can('hr.view') ? <HRLeaveRequests /> : null
-    case 'wf_leave_calendar':    return can('hr.view') ? <HRLeaveCalendar /> : null
-    case 'wf_leave_balances':    return can('hr.view') ? <HRLeaveBalances /> : null
-    case 'wf_org_chart':         return can('hr.view') ? <HROrgChart /> : null
-    case 'wf_transfers':         return can('hr.view') ? <HRTransfers /> : null
-    case 'wf_shifts':            return can('hr.view') ? <HRShifts /> : null
-    case 'wf_attendance':        return can('hr.view') ? <HRAttendance /> : null
-    case 'wf_training':          return can('hr.view') ? <HRTraining /> : null
-    case 'wf_skills':            return can('hr.view') ? <HRSkills /> : null
-    case 'wf_headcount_report':  return can('hr.view') ? <HRHeadcountReport /> : null
-    case 'wf_leave_report':      return can('hr.view') ? <HRLeaveReport /> : null
-    case 'wf_turnover_report':   return can('hr.view') ? <HRTurnoverReport /> : null
-    case 'wf_attendance_report': return can('hr.view') ? <HRAttendanceReport /> : null
+    case 'wf_leave_types':       return can('hr.view') ? <HRLeaveTypes setPage={setPage} /> : null
+    case 'wf_leave_allocations': return can('hr.view') ? <HRLeaveAllocations setPage={setPage} /> : null
+    case 'wf_leave_requests':    return can('hr.view') ? <HRLeaveRequests setPage={setPage} /> : null
+    case 'wf_leave_calendar':    return can('hr.view') ? <HRLeaveCalendar setPage={setPage} /> : null
+    case 'wf_leave_balances':    return can('hr.view') ? <HRLeaveBalances setPage={setPage} /> : null
+    case 'wf_org_chart':         return can('hr.view') ? <HROrgChart setPage={setPage} /> : null
+    case 'wf_transfers':         return can('hr.view') ? <HRTransfers setPage={setPage} /> : null
+    case 'wf_shifts':            return can('hr.view') ? <HRShifts setPage={setPage} /> : null
+    case 'wf_attendance':        return can('hr.view') ? <HRAttendance setPage={setPage} /> : null
+    case 'wf_training':          return can('hr.view') ? <HRTraining setPage={setPage} /> : null
+    case 'wf_skills':            return can('hr.view') ? <HRSkills setPage={setPage} /> : null
+    case 'wf_headcount_report':  return can('hr.view') ? <HRHeadcountReport setPage={setPage} /> : null
+    case 'wf_leave_report':      return can('hr.view') ? <HRLeaveReport setPage={setPage} /> : null
+    case 'wf_turnover_report':   return can('hr.view') ? <HRTurnoverReport setPage={setPage} /> : null
+    case 'wf_attendance_report': return can('hr.view') ? <HRAttendanceReport setPage={setPage} /> : null
     // Payroll and disciplinary hold the most sensitive HR data — gated on
     // hr.edit, not plain hr.view (audit finding: view-only HR users should
     // not see salaries or case files).
-    case 'wf_salary_grades':     return can('hr.edit') ? <HRSalaryGrades /> : null
-    case 'wf_salary_components': return can('hr.edit') ? <HRSalaryComponents /> : null
-    case 'wf_payroll':           return can('hr.edit') ? <HRPayrollRun /> : null
-    case 'wf_salary_slips':      return can('hr.edit') ? <HRSalarySlips /> : null
-    case 'wf_appraisals':        return can('hr.view') ? <HRAppraisals /> : null
-    case 'wf_disciplinary':      return can('hr.edit') ? <HRDisciplinary /> : null
-    case 'wf_exit':              return can('hr.view') ? <HRExitManagement /> : null
+    case 'wf_salary_grades':     return can('hr.edit') ? <HRSalaryGrades setPage={setPage} /> : null
+    case 'wf_salary_components': return can('hr.edit') ? <HRSalaryComponents setPage={setPage} /> : null
+    case 'wf_payroll':           return can('hr.edit') ? <HRPayrollRun setPage={setPage} /> : null
+    case 'wf_salary_slips':      return can('hr.edit') ? <HRSalarySlips setPage={setPage} /> : null
+    case 'wf_appraisals':        return can('hr.view') ? <HRAppraisals setPage={setPage} /> : null
+    case 'wf_disciplinary':      return can('hr.edit') ? <HRDisciplinary setPage={setPage} /> : null
+    case 'wf_exit':              return can('hr.view') ? <HRExitManagement setPage={setPage} /> : null
     case 'wf_medicals':          return can('hr.view') ? <HRMedicalSurveillance setPage={setPage} /> : null
     case 'wf_document_expiry':   return can('hr.view') ? <HRDocumentExpiry setPage={setPage} /> : null
     // Employee list: the Phase 1 HR list supersedes the original page but
@@ -352,26 +352,26 @@ function getFuelPage(page, setPage, can) {
   switch (page) {
     case 'fuel_dashboard': return can('fuel.view')   ? <FuelDashboard setPage={setPage} /> : null
     case 'fuel_ledger':    return can('fuel.view')   ? <FuelTransactions setPage={setPage} /> : null
-    case 'fuel_receipts':  return can('fuel.create') ? <FuelReceipts />                    : null
+    case 'fuel_receipts':  return can('fuel.create') ? <FuelReceipts setPage={setPage} />   : null
     case 'fuel_issues':    return can('fuel.view')         ? <FuelIssues setPage={setPage} />                    : null
     case 'fuel_issuance':     return can('fuel.create') ? <FuelIssuance setPage={setPage} />     : null
     case 'fuel_transactions': return can('fuel.view')   ? <FuelTransactions setPage={setPage} /> : null
-    case 'fuel_dips':          return can('fuel.create') ? <DipReadings />                           : null
-    case 'fuel_bowsers':       return can('fuel.view')   ? <BowserDispatches />                      : null
-    case 'fuel_reconciliation':return can('fuel.create') ? <Reconciliation />                         : null
-    case 'fuel_shift_report':  return can('fuel.view')   ? <ShiftReport />                            : null
-    case 'fuel_report_daily':  return can('fuel.view')   ? <DailyTransactionReport />                 : null
-    case 'fuel_report_monthly':return can('fuel.view')   ? <MonthlyConsumptionReport />               : null
-    case 'fuel_report_deliveries': return can('fuel.view') ? <DeliveryReport />                       : null
-    case 'fuel_report_variance':   return can('fuel.view') ? <VarianceReport />                       : null
-    case 'fuel_vehicle_consumption': return can('fuel.view') ? <VehicleConsumption />                 : null
+    case 'fuel_dips':          return can('fuel.create') ? <DipReadings setPage={setPage} />          : null
+    case 'fuel_bowsers':       return can('fuel.view')   ? <BowserDispatches setPage={setPage} />     : null
+    case 'fuel_reconciliation':return can('fuel.create') ? <Reconciliation setPage={setPage} />       : null
+    case 'fuel_shift_report':  return can('fuel.view')   ? <ShiftReport setPage={setPage} />          : null
+    case 'fuel_report_daily':  return can('fuel.view')   ? <DailyTransactionReport setPage={setPage} /> : null
+    case 'fuel_report_monthly':return can('fuel.view')   ? <MonthlyConsumptionReport setPage={setPage} /> : null
+    case 'fuel_report_deliveries': return can('fuel.view') ? <DeliveryReport setPage={setPage} />     : null
+    case 'fuel_report_variance':   return can('fuel.view') ? <VarianceReport setPage={setPage} />     : null
+    case 'fuel_vehicle_consumption': return can('fuel.view') ? <VehicleConsumption setPage={setPage} /> : null
     case 'fuel_forecasting':   return can('fuel.view')     ? <Forecasting setPage={setPage} />        : null
-    case 'fuel_cost_allocation':   return can('fuel.view') ? <CostAllocation />                       : null
-    case 'fuel_finance_export':    return can('fuel.edit') ? <FinanceExport />                        : null
+    case 'fuel_cost_allocation':   return can('fuel.view') ? <CostAllocation setPage={setPage} />      : null
+    case 'fuel_finance_export':    return can('fuel.edit') ? <FinanceExport setPage={setPage} />      : null
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports setPage={setPage} />   : null
     case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks setPage={setPage} />     : null
-    case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes />                          : null
-    case 'fuel_settings':     return can('fuel.edit')   ? <FuelSettings />                           : null
+    case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes setPage={setPage} />         : null
+    case 'fuel_settings':     return can('fuel.edit')   ? <FuelSettings setPage={setPage} />         : null
     case 'fuel_request_form':  return can('fuel.view')   ? <FuelRequestForm setPage={setPage} />  : null
     case 'fuel_requests_list': return can('fuel.view')   ? <FuelRequests setPage={setPage} />      : null
     default:               return can('fuel.view')   ? <FuelDashboard setPage={setPage} />  : null

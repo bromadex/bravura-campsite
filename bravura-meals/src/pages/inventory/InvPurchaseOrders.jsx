@@ -5,7 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
-import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast, StatusBadge } from '../../components/ui'
 import { sendNotification, notifyApprovers } from '../../utils/notify'
 
 const ACCENT = MODULE_COLORS.inventory
@@ -291,7 +291,7 @@ export default function InvPurchaseOrders() {
                     <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 500 }}>{o.supplier?.name || '—'}</td>
                     <td style={{ padding: '8px 10px', color: THEME.textMed }}>{o.warehouse?.name || '—'}</td>
                     <td style={{ padding: '8px 10px' }}>
-                      <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, background: s.bg, color: s.text }}>{s.label}</span>
+                      <StatusBadge status={o.status} />
                     </td>
                     <td style={{ padding: '8px 10px', textAlign: 'right' }}>{o.lines?.length || 0}</td>
                     <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>{o.total_amount ? `$${o.total_amount.toFixed(2)}` : '—'}</td>

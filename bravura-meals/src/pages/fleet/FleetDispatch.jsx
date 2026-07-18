@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { StatusBadge } from '../../components/ui'
 import { usePermissions } from '../../hooks/usePermissions'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
@@ -269,13 +270,8 @@ export default function FleetDispatch({ setPage }) {
                     </div>
                   )}
                   {insp && (
-                    <div style={{
-                      display: 'inline-block', marginTop: '6px', fontSize: '10px', fontWeight: 600,
-                      padding: '2px 8px', borderRadius: '999px',
-                      background: insp.overall_result === 'pass' ? '#2E7D3218' : insp.overall_result === 'unsafe' ? '#C6282818' : '#F9A82518',
-                      color: insp.overall_result === 'pass' ? '#2E7D32' : insp.overall_result === 'unsafe' ? '#C62828' : '#F9A825',
-                    }}>
-                      {insp.overall_result || 'inspected'}
+                    <div style={{ marginTop: '6px' }}>
+                      <StatusBadge status={insp.overall_result || 'inspected'} />
                     </div>
                   )}
 

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { StatusBadge } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
@@ -24,18 +25,6 @@ const STATUS_MAP = {
   cancelled:          { label: 'Cancelled',          bg: '#fde8e8', text: '#dc2626' },
 }
 
-function Badge({ map, value }) {
-  const s = map[value] || { label: value, bg: THEME.statusNeutralBg, text: THEME.statusNeutralText }
-  return (
-    <span style={{
-      display: 'inline-block', fontSize: '11px', fontWeight: 600,
-      padding: '2px 10px', borderRadius: '999px',
-      background: s.bg, color: s.text, whiteSpace: 'nowrap',
-    }}>
-      {s.label}
-    </span>
-  )
-}
 
 const EMPTY_FORM = {
   work_order_number: '', asset_id: '', fault_description: '',
@@ -506,9 +495,9 @@ export default function FleetMaintenance({ setPage }) {
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: THEME.text, whiteSpace: 'nowrap', borderBottom: `1px solid ${THEME.outlineVar}` }}>{wo.work_order_number}</td>
                       <td style={{ padding: '10px 14px', color: THEME.textMed, borderBottom: `1px solid ${THEME.outlineVar}`, maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wo.fleet_assets?.asset_number || '-'}</td>
                       <td style={{ padding: '10px 14px', color: THEME.text, borderBottom: `1px solid ${THEME.outlineVar}`, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wo.fault_description || '-'}</td>
-                      <td style={{ padding: '10px 14px', borderBottom: `1px solid ${THEME.outlineVar}` }}><Badge map={PRIORITY_MAP} value={wo.priority} /></td>
+                      <td style={{ padding: '10px 14px', borderBottom: `1px solid ${THEME.outlineVar}` }}><StatusBadge status={wo.priority} /></td>
                       <td style={{ padding: '10px 14px', color: THEME.textMed, borderBottom: `1px solid ${THEME.outlineVar}` }}>{wo.assigned_technician || '-'}</td>
-                      <td style={{ padding: '10px 14px', borderBottom: `1px solid ${THEME.outlineVar}` }}><Badge map={STATUS_MAP} value={wo.status} /></td>
+                      <td style={{ padding: '10px 14px', borderBottom: `1px solid ${THEME.outlineVar}` }}><StatusBadge status={wo.status} /></td>
                       <td style={{ padding: '10px 14px', color: THEME.textMed, borderBottom: `1px solid ${THEME.outlineVar}`, whiteSpace: 'nowrap' }}>{wo.created_at ? new Date(wo.created_at).toLocaleDateString() : '-'}</td>
                       <td style={{ padding: '10px 14px', borderBottom: `1px solid ${THEME.outlineVar}` }}>
                         {can('fleet.edit') && wo.status !== 'completed' && wo.status !== 'cancelled' && (

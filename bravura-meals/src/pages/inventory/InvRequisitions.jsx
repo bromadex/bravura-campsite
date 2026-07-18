@@ -5,7 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
-import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast, StatusBadge } from '../../components/ui'
 import { sendNotification, notifyApprovers } from '../../utils/notify'
 
 const ACCENT = MODULE_COLORS.inventory
@@ -243,10 +243,10 @@ export default function InvRequisitions() {
                     <td style={{ padding: '8px 10px', fontWeight: 600, color: ACCENT, fontFamily: 'monospace', fontSize: '12px' }}>{r.requisition_no}</td>
                     <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '12px' }}>{new Date(r.created_at).toLocaleDateString()}</td>
                     <td style={{ padding: '8px 10px' }}>
-                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: 600, background: p.bg, color: p.text, textTransform: 'capitalize' }}>{r.priority}</span>
+                      <StatusBadge status={r.priority} />
                     </td>
                     <td style={{ padding: '8px 10px' }}>
-                      <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, background: s.bg, color: s.text }}>{s.label}</span>
+                      <StatusBadge status={r.status} />
                     </td>
                     <td style={{ padding: '8px 10px', textAlign: 'right' }}>{r.lines?.length || 0}</td>
                     <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>{est > 0 ? `$${est.toFixed(2)}` : '—'}</td>

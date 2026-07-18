@@ -278,6 +278,7 @@ export function StatusBadge({ status }) {
     low:                 { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Low' },
     overdue:             { bg: THEME.statusErrorBg,    color: THEME.statusErrorText,    label: 'Overdue' },
     closed:              { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Closed' },
+    planned:             { bg: THEME.statusNeutralBg,  color: THEME.statusNeutralText,  label: 'Planned' },
   }
   const s = map[status] || { bg: THEME.statusNeutralBg, color: THEME.statusNeutralText, label: status }
   return (

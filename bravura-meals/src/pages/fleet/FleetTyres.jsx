@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { StatusBadge } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
@@ -365,7 +366,7 @@ export default function FleetTyres({ setPage }) {
                     <td style={{ padding: '10px 14px', color: THEME.textMed }}>{t.position || '-'}</td>
                     <td style={{ padding: '10px 14px', color: THEME.text }}>{t.fleet_assets?.asset_number || '-'}</td>
                     <td style={{ padding: '10px 14px' }}>
-                      <span style={{ display: 'inline-block', fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '999px', background: st.bg, color: st.text }}>{st.label}</span>
+                      <StatusBadge status={t.status} />
                     </td>
                     <td style={{ padding: '10px 14px' }}>
                       <TreadGauge depth={t.tread_depth_mm} min={t.min_tread_mm} />

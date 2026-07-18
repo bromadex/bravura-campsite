@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { StatusBadge } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -14,18 +15,6 @@ const RESULT_MAP = {
   unsafe:            { label: 'Unsafe',            bg: THEME.statusErrorBg,   text: THEME.statusErrorText },
 }
 
-function ResultBadge({ result }) {
-  const s = RESULT_MAP[result] || RESULT_MAP.pass
-  return (
-    <span style={{
-      display: 'inline-block', fontSize: '11px', fontWeight: 600,
-      padding: '2px 10px', borderRadius: '999px',
-      background: s.bg, color: s.text,
-    }}>
-      {s.label}
-    </span>
-  )
-}
 
 const EMPTY_FORM = {
   asset_id: '', operator_id: '', inspection_date: '', odometer_reading: '',
@@ -270,7 +259,7 @@ export default function FleetInspections({ setPage }) {
                       {i.odometer_reading != null ? Number(i.odometer_reading).toLocaleString() + ' km' : '-'}
                       {i.hours_reading != null ? ' / ' + Number(i.hours_reading).toLocaleString() + ' hrs' : ''}
                     </td>
-                    <td style={tdStyle}><ResultBadge result={i.overall_result} /></td>
+                    <td style={tdStyle}><StatusBadge status={i.overall_result} /></td>
                   </tr>
                 ))}
               </tbody>

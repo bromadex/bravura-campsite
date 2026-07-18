@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { StatusBadge } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
@@ -13,20 +14,6 @@ const STATUS_MAP = {
   decommissioned:   { label: 'Decommissioned',  dot: '#9ca3af', bg: THEME.statusNeutralBg,   text: THEME.statusNeutralText },
 }
 
-function StatusBadge({ status }) {
-  const s = STATUS_MAP[status] || STATUS_MAP.operational
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '6px',
-      fontSize: '11px', fontWeight: 600,
-      padding: '2px 10px', borderRadius: '999px',
-      background: s.bg, color: s.text,
-    }}>
-      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
-      {s.label}
-    </span>
-  )
-}
 
 const EMPTY_FORM = {
   asset_type_id: '', asset_number: '', description: '', registration: '',

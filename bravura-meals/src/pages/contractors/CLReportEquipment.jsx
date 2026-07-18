@@ -3,7 +3,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { supabase } from '../../supabaseClient'
-import { showToast } from '../../components/ui'
+import { showToast, StatusBadge } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { DashCard, KpiCard, DonutGauge, SectionTitle } from '../../components/dash'
 
@@ -138,11 +138,7 @@ export default function CLReportEquipment({ setPage }) {
                   <td style={{ ...td, textAlign: 'right' }}>{r.daysActive}</td>
                   <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{fmtMoney(r.estimatedCost)}</td>
                   <td style={td}>
-                    <span style={{
-                      fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase',
-                      background: r.status === 'active' ? (THEME.statusGreenBg || '#e6f4ea') : THEME.statusNeutralBg,
-                      color: r.status === 'active' ? (THEME.statusGreenText || '#1e7e34') : THEME.statusNeutralText,
-                    }}>{r.status}</span>
+                    <StatusBadge status={r.status} />
                   </td>
                 </tr>
               ))}

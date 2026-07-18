@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { StatusBadge } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
@@ -14,18 +15,6 @@ const STATUS_MAP = {
   decommissioned:   { label: 'Decommissioned',  bg: THEME.statusNeutralBg,   text: THEME.statusNeutralText },
 }
 
-function StatusBadge({ status }) {
-  const s = STATUS_MAP[status] || STATUS_MAP.operational
-  return (
-    <span style={{
-      display: 'inline-block', fontSize: '11px', fontWeight: 600,
-      padding: '2px 10px', borderRadius: '999px',
-      background: s.bg, color: s.text,
-    }}>
-      {s.label}
-    </span>
-  )
-}
 
 const TABS = ['Identity', 'Operations', 'Finance']
 

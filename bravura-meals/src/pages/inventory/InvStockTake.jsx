@@ -5,7 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
-import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast, StatusBadge } from '../../components/ui'
 import { notifyApprovers } from '../../utils/notify'
 
 const ACCENT = MODULE_COLORS.inventory
@@ -227,7 +227,7 @@ export default function InvStockTake() {
                     <td style={{ padding: '8px 10px', fontWeight: 600, color: ACCENT, fontFamily: 'monospace', fontSize: '12px' }}>{t.reference}</td>
                     <td style={{ padding: '8px 10px', color: THEME.text }}>{t.warehouse?.name || '—'}</td>
                     <td style={{ padding: '8px 10px' }}>
-                      <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, background: s.bg, color: s.text }}>{s.label}</span>
+                      <StatusBadge status={t.status} />
                     </td>
                     <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '12px' }}>{t.started_at ? new Date(t.started_at).toLocaleDateString() : '—'}</td>
                     <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '12px' }}>{t.completed_at ? new Date(t.completed_at).toLocaleDateString() : '—'}</td>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { StatusBadge } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
 import { useFleet } from '../../contexts/FleetContext'
@@ -33,14 +34,6 @@ const STATUS_MAP = {
   decommissioned: { label: 'Decommissioned', bg: THEME.statusNeutralBg,  text: THEME.statusNeutralText },
 }
 
-function Badge({ label, bg, color }) {
-  return (
-    <span style={{
-      display: 'inline-block', fontSize: '11px', fontWeight: 600,
-      padding: '2px 10px', borderRadius: '999px', background: bg, color,
-    }}>{label}</span>
-  )
-}
 
 function StatCard({ label, value, sub, icon }) {
   return (
@@ -199,7 +192,7 @@ export default function FleetAssetDetail({ asset, onClose }) {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Badge label={st.label} bg={st.bg} color={st.text} />
+              <StatusBadge status={asset.status} />
               <button onClick={onClose} style={{
                 background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: '4px',
               }}>
@@ -403,8 +396,8 @@ function MaintenanceTab({ workOrders }) {
               <tr key={wo.id} style={{ borderBottom: `1px solid ${THEME.outline}` }}>
                 <td style={{ padding: '7px 6px', fontWeight: 600, color: THEME.text }}>{wo.work_order_number}</td>
                 <td style={{ padding: '7px 6px', color: THEME.text, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wo.fault_description}</td>
-                <td style={{ padding: '7px 6px' }}><Badge label={wo.priority} bg={pc.bg} color={pc.text} /></td>
-                <td style={{ padding: '7px 6px' }}><Badge label={wo.status?.replace(/_/g, ' ')} bg={sc.bg} color={sc.text} /></td>
+                <td style={{ padding: '7px 6px' }}><StatusBadge status={wo.priority} /></td>
+                <td style={{ padding: '7px 6px' }}><StatusBadge status={wo.status} /></td>
                 <td style={{ padding: '7px 6px', color: THEME.textLow }}>{wo.created_at?.slice(0, 10)}</td>
               </tr>
             )
@@ -446,7 +439,7 @@ function InspectionsTab({ inspections }) {
               <tr key={ins.id} style={{ borderBottom: `1px solid ${THEME.outline}` }}>
                 <td style={{ padding: '7px 6px', color: THEME.text }}>{ins.inspection_date}</td>
                 <td style={{ padding: '7px 6px', color: THEME.text }}>{ins.employees?.name || '—'}</td>
-                <td style={{ padding: '7px 6px' }}><Badge label={ins.overall_result} bg={rc.bg} color={rc.text} /></td>
+                <td style={{ padding: '7px 6px' }}><StatusBadge status={ins.overall_result} /></td>
                 <td style={{ padding: '7px 6px', color: THEME.text, fontWeight: 600 }}>{ins.overall_score ?? '—'}</td>
                 <td style={{ padding: '7px 6px', color: THEME.textLow }}>{ins.next_due_date || '—'}</td>
               </tr>
@@ -501,7 +494,7 @@ function TripsTab({ trips }) {
                   <td style={{ padding: '7px 6px', color: THEME.text }}>{t.employees?.name || '—'}</td>
                   <td style={{ padding: '7px 6px', color: THEME.text }}>{[t.origin, t.destination].filter(Boolean).join(' → ') || '—'}</td>
                   <td style={{ padding: '7px 6px', fontWeight: 600, color: THEME.text }}>{t.distance_km ? `${t.distance_km} km` : '—'}</td>
-                  <td style={{ padding: '7px 6px' }}><Badge label={t.status} bg={sc.bg} color={sc.text} /></td>
+                  <td style={{ padding: '7px 6px' }}><StatusBadge status={t.status} /></td>
                 </tr>
               )
             })}

@@ -3,7 +3,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
-import { showToast } from '../../components/ui'
+import { showToast, StatusBadge } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { nextCode } from '../../utils/autoCode'
 
@@ -27,18 +27,6 @@ const STATUS_MAP = {
   cancelled: { label: 'Cancelled', bg: THEME.statusErrorBg,    text: THEME.statusErrorText },
 }
 
-function StatusBadge({ status }) {
-  const s = STATUS_MAP[status] || STATUS_MAP.active
-  return (
-    <span style={{
-      display: 'inline-block', fontSize: '11px', fontWeight: 600,
-      padding: '2px 10px', borderRadius: '999px',
-      background: s.bg, color: s.text, whiteSpace: 'nowrap',
-    }}>
-      {s.label}
-    </span>
-  )
-}
 
 function fmtCurrency(v) {
   if (v == null || v === '') return '$0.00'

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { StatusBadge } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
@@ -291,11 +292,11 @@ export default function FleetAccidents({ setPage }) {
                     <td style={{ padding: '10px 14px', color: THEME.text }}>{a.fleet_assets?.asset_number || '-'}</td>
                     <td style={{ padding: '10px 14px', color: THEME.textMed, textTransform: 'capitalize' }}>{(a.incident_type || '').replace('_', ' ')}</td>
                     <td style={{ padding: '10px 14px' }}>
-                      <span style={{ display: 'inline-block', fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '999px', background: sev.bg, color: sev.text }}>{sev.label}</span>
+                      <StatusBadge status={a.severity} />
                     </td>
                     <td style={{ padding: '10px 14px', color: THEME.text }}>{a.injuries ?? 0}</td>
                     <td style={{ padding: '10px 14px' }}>
-                      <span style={{ display: 'inline-block', fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '999px', background: st.bg, color: st.text }}>{st.label}</span>
+                      <StatusBadge status={a.status} />
                     </td>
                     <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', color: THEME.text }}>{fmt(a.repair_cost)}</td>
                   </tr>

@@ -8,7 +8,7 @@ import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { useSite } from '../../contexts/SiteContext'
 import { PrintHeader, ReportTable } from './reports/_shared'
 
-export default function DailyReport() {
+export default function DailyReport({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const showCosts = can('meals.approve')

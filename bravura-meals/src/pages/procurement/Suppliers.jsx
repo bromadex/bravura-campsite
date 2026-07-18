@@ -5,10 +5,11 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import QuickNav, { PROCUREMENT_PILLS } from '../../components/QuickNav'
 
 const CLR = MODULE_COLORS.procurement
 
-export default function Suppliers() {
+export default function Suppliers({ setPage }) {
   const { suppliers, fetchAll } = useProcurement()
   const { currentSiteId } = useSite()
   const { user } = useAuth()
@@ -131,6 +132,7 @@ export default function Suppliers() {
 
   return (
     <div style={{ padding: '24px', fontFamily: "'Google Sans','Segoe UI',Arial,sans-serif" }}>
+      <QuickNav pills={PROCUREMENT_PILLS} setPage={setPage} current="proc_suppliers" />
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>

@@ -82,6 +82,15 @@ export const INVENTORY_PILLS = [
   { id: 'inv_settings',        label: 'Settings',      icon: 'settings',        color: '#546E7A' },
 ]
 
+export const PROCUREMENT_PILLS = [
+  { id: 'proc_dashboard', label: 'Dashboard',  icon: 'dashboard',      color: '#7C3AED' },
+  { id: 'proc_suppliers', label: 'Suppliers',   icon: 'business',       color: '#1565C0' },
+  { id: 'proc_rfqs',      label: 'RFQs',        icon: 'request_quote',  color: '#00838F' },
+  { id: 'proc_orders',    label: 'Orders',      icon: 'shopping_cart',  color: '#2E7D32' },
+  { id: 'proc_tracking',  label: 'Tracking',    icon: 'local_shipping', color: '#E65100' },
+  { id: 'proc_reports',   label: 'Reports',     icon: 'bar_chart',      color: '#C62828' },
+]
+
 export const CONTRACTOR_PILLS = [
   { id: 'cl_dashboard',  label: 'Dashboard',   icon: 'dashboard',       color: '#0D7377' },
   { id: 'cl_contractors', label: 'Contractors', icon: 'business',        color: '#1565C0' },

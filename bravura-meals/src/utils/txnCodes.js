@@ -155,7 +155,12 @@ export const TXN_CODES = [
   { code: 'IN15', path: '/inventory/inv_purchase_orders', label: 'Purchase Orders',   module: 'inventory' },
 
   // ── Procurement (PR) / Feedback (FB) ──────────────────────────────────────
-  { code: 'PR01', path: '/procurement/proc_suppliers', label: 'Suppliers',         module: 'procurement' },
+  { code: 'PR01', path: '/procurement/proc_dashboard', label: 'Procurement Dashboard', module: 'procurement' },
+  { code: 'PR02', path: '/procurement/proc_suppliers', label: 'Suppliers',             module: 'procurement' },
+  { code: 'PR03', path: '/procurement/proc_rfqs',      label: 'RFQs',                  module: 'procurement' },
+  { code: 'PR04', path: '/procurement/proc_orders',    label: 'Purchase Orders',       module: 'procurement' },
+  { code: 'PR05', path: '/procurement/proc_tracking',  label: 'Order Tracking',        module: 'procurement' },
+  { code: 'PR06', path: '/procurement/proc_reports',   label: 'Procurement Reports',   module: 'procurement' },
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },
 ]

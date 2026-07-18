@@ -48,7 +48,7 @@ function buildJournalLines({ perContractor, mappings, siteName, periodEnd }) {
   return lines
 }
 
-export default function MealFinanceExport() {
+export default function MealFinanceExport({ setPage }) {
   const { can } = usePermissions()
   const { currentSite, currentSiteId } = useSite()
 

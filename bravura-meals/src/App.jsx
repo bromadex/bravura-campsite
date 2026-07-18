@@ -171,7 +171,12 @@ const InvRequisitions = lazy(() => import('./pages/inventory/InvRequisitions'))
 const InvPurchaseOrders = lazy(() => import('./pages/inventory/InvPurchaseOrders'))
 
 // ── Procurement ───────────────────────────────────────────────────────────────
+const ProcDashboard = lazy(() => import('./pages/procurement/ProcDashboard'))
 const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
+const ProcRFQ = lazy(() => import('./pages/procurement/ProcRFQ'))
+const ProcOrders = lazy(() => import('./pages/procurement/ProcOrders'))
+const ProcTracking = lazy(() => import('./pages/procurement/ProcTracking'))
+const ProcReports = lazy(() => import('./pages/procurement/ProcReports'))
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
@@ -300,7 +305,7 @@ function getMealsPage(page, role, setPage, can) {
   switch (page) {
     case 'meals_dashboard': return <Dashboard setPage={setPage} />
     case 'meals_forecasts':      return can('meals.create')  ? <MealForecasts setPage={setPage} />     : null
-    case 'meals_finance_export': return can('meals.approve') ? <MealFinanceExport /> : null
+    case 'meals_finance_export': return can('meals.approve') ? <MealFinanceExport setPage={setPage} /> : null
     case 'meals_entry':     return can('meals.create') ? <DailyEntry setPage={setPage} />     : null
     case 'meals_approvals': return can('meals.approve') ? <Approvals setPage={setPage} />      : null
     case 'meals_kitchen':   return can('meals.edit') ? <KitchenConfirm setPage={setPage} /> : null
@@ -309,13 +314,13 @@ function getMealsPage(page, role, setPage, can) {
     // Kitchen Staff DOES hold meals.view under the approved matrix, so this
     // is a deliberate, harmless broadening — they can now see read-only
     // meal-count reports they couldn't before. Not a narrowing for anyone.
-    case 'meals_daily':     return can('meals.view') ? <DailyReport />   : null
-    case 'meals_range':     return can('meals.view') ? <RangeReport />   : null
-    case 'meals_monthly':   return can('meals.view') ? <MonthlyReport /> : null
+    case 'meals_daily':     return can('meals.view') ? <DailyReport setPage={setPage} />   : null
+    case 'meals_range':     return can('meals.view') ? <RangeReport setPage={setPage} />   : null
+    case 'meals_monthly':   return can('meals.view') ? <MonthlyReport setPage={setPage} /> : null
     // meals.approve: System Admin only today — Camp Supervisor and Pricing
     // Officer could see Billing under the old list; under the matrix,
     // financial visibility sits with Finance Officer/Admin. Same pattern.
-    case 'meals_billing':   return can('meals.approve') ? <Billing />  : null
+    case 'meals_billing':   return can('meals.approve') ? <Billing setPage={setPage} />  : null
     // meals.edit: System Admin + Pricing Officer — exact match to old list.
     case 'meals_providers': return can('meals.edit') ? <MealProviders setPage={setPage} /> : null
     case 'meals_pricing':   return can('meals.edit') ? <Pricing setPage={setPage} />  : null
@@ -419,10 +424,15 @@ function getContractorsPage(page, can, setPage) {
   }
 }
 
-function getProcurementPage(page, can) {
+function getProcurementPage(page, can, setPage) {
   switch (page) {
-    case 'proc_suppliers': return can('procurement.view') ? <ProcSuppliers /> : null
-    default:               return can('procurement.view') ? <ProcSuppliers /> : null
+    case 'proc_dashboard': return can('procurement.view') ? <ProcDashboard setPage={setPage} /> : null
+    case 'proc_suppliers': return can('procurement.view') ? <ProcSuppliers setPage={setPage} /> : null
+    case 'proc_rfqs':      return can('procurement.view') ? <ProcRFQ setPage={setPage} /> : null
+    case 'proc_orders':    return can('procurement.view') ? <ProcOrders setPage={setPage} /> : null
+    case 'proc_tracking':  return can('procurement.view') ? <ProcTracking setPage={setPage} /> : null
+    case 'proc_reports':   return can('procurement.view') ? <ProcReports setPage={setPage} /> : null
+    default:               return can('procurement.view') ? <ProcDashboard setPage={setPage} /> : null
   }
 }
 
@@ -466,7 +476,7 @@ const DEFAULT_PAGE = {
   fleet:       'fleet_dashboard',
   contractors: 'cl_dashboard',
   inventory:   'inv_dashboard',
-  procurement: 'proc_suppliers',
+  procurement: 'proc_dashboard',
   feedback:    'feedback_board',
 }
 
@@ -501,7 +511,7 @@ function ModuleShell() {
   if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
   if (moduleId === 'contractors') content = getContractorsPage(currentPage, can, setPage)
   if (moduleId === 'inventory')   content = getInventoryPage(currentPage, can, setPage)
-  if (moduleId === 'procurement') content = getProcurementPage(currentPage, can)
+  if (moduleId === 'procurement') content = getProcurementPage(currentPage, can, setPage)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 
   const AccessDenied = (

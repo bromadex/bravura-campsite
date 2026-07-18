@@ -7,7 +7,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { PrintHeader, ReportTable } from './reports/_shared'
 
-export default function MonthlyReport() {
+export default function MonthlyReport({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const [month,       setMonth]       = useState(new Date().getMonth())
   const [year,        setYear]        = useState(new Date().getFullYear())

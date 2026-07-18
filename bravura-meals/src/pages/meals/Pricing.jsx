@@ -5,7 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
 
-export default function Pricing() {
+export default function Pricing({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
   const [prices,  setPrices]  = useState([])

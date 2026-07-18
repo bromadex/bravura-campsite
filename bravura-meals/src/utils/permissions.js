@@ -257,7 +257,12 @@ export function fuelNav(role, can) {
 
 export function procurementNav(role, can) {
   return [
-    { id: 'proc_suppliers', label: 'Suppliers', section: 'Registry', icon: 'business', show: can('procurement.view') },
+    { id: 'proc_dashboard', label: 'Dashboard',  section: 'Overview',   icon: 'dashboard',      show: can('procurement.view') },
+    { id: 'proc_suppliers', label: 'Suppliers',   section: 'Registry',   icon: 'business',       show: can('procurement.view') },
+    { id: 'proc_rfqs',      label: 'RFQs',        section: 'Purchasing', icon: 'request_quote',  show: can('procurement.view') },
+    { id: 'proc_orders',    label: 'Orders',      section: 'Purchasing', icon: 'shopping_cart',  show: can('procurement.view') },
+    { id: 'proc_tracking',  label: 'Tracking',    section: 'Logistics',  icon: 'local_shipping', show: can('procurement.view') },
+    { id: 'proc_reports',   label: 'Reports',     section: 'Analytics',  icon: 'bar_chart',      show: can('procurement.view') },
   ].filter(item => item.show !== false)
 }
 

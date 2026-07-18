@@ -7,7 +7,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { PrintHeader, ReportTable } from './reports/_shared'
 
-export default function RangeReport() {
+export default function RangeReport({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const now = new Date()
   const [start,       setStart]       = useState(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`)

@@ -4,7 +4,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { Card, Button, StatCard, showToast, fmtDate, today, MONTHS, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 
-export default function Billing() {
+export default function Billing({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const [tab,       setTab]       = useState('daily')
   const [dailyDate, setDailyDate] = useState(today())

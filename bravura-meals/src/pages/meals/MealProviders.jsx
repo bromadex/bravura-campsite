@@ -8,7 +8,7 @@ import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, PageH
 // or more catering providers, and the Meals module should be able to show
 // which provider is responsible for the current site. No pricing tie-in,
 // no scheduling, no per-provider menus — just "who caters here."
-export default function MealProviders() {
+export default function MealProviders({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
 
   const [providers, setProviders] = useState([])

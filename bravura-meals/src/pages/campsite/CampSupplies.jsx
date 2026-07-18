@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
+import { useSite } from '../../contexts/SiteContext'
+import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, fmtDate, MONTHS, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
@@ -9,6 +11,7 @@ import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 export default function CampSupplies({ setPage }) {
   const { profile } = useAuth()
   const { can } = usePermissions()
+  const { currentSiteId } = useSite()
   const canEdit   = can('supplies.edit')
   const canDelete = can('supplies.delete')
   const {
@@ -198,6 +201,48 @@ export default function CampSupplies({ setPage }) {
     }).filter(i => i.received > 0 || i.issued > 0)
   }, [supplies, supplyTxns, repMonth, repYear])
 
+  // ── Request from Central Stores ──
+  const [reqModal, setReqModal] = useState(false)
+  const [reqSaving, setReqSaving] = useState(false)
+  const [invItems, setInvItems] = useState([])
+  const [warehouses, setWarehouses] = useState([])
+  const [reqForm, setReqForm] = useState({ warehouse_id: '', priority: 'normal', notes: '' })
+  const makeReqLine = () => ({ item_id: '', quantity: '', notes: '' })
+  const [reqLines, setReqLines] = useState(() => Array.from({ length: 3 }, makeReqLine))
+
+  useEffect(() => {
+    if (!reqModal) return
+    supabase.from('items').select('id, item_code, description').eq('is_active', true).order('item_code').then(({ data }) => setInvItems(data || []))
+    supabase.from('warehouses').select('id, name').eq('site_id', currentSiteId).eq('is_active', true).then(({ data }) => {
+      setWarehouses(data || [])
+      if (data?.length === 1) setReqForm(f => ({ ...f, warehouse_id: data[0].id }))
+    })
+  }, [reqModal, currentSiteId])
+
+  async function submitRequisition() {
+    const validLines = reqLines.filter(l => l.item_id && parseFloat(l.quantity) > 0)
+    if (!reqForm.warehouse_id) { showToast('Select a warehouse', 'red'); return }
+    if (validLines.length === 0) { showToast('Add at least one item', 'red'); return }
+    setReqSaving(true)
+    try {
+      const { data: req, error } = await supabase.from('purchase_requisitions').insert({
+        site_id: currentSiteId, warehouse_id: reqForm.warehouse_id,
+        priority: reqForm.priority, notes: reqForm.notes || 'Camp supplies request',
+        status: 'submitted', requested_by: profile?.id,
+      }).select('id').single()
+      if (error) throw error
+      const { error: lineErr } = await supabase.from('requisition_lines').insert(
+        validLines.map(l => ({ requisition_id: req.id, item_id: l.item_id, quantity: parseFloat(l.quantity), notes: l.notes }))
+      )
+      if (lineErr) throw lineErr
+      showToast('Requisition submitted to Central Stores', 'green')
+      setReqModal(false)
+      setReqLines(Array.from({ length: 3 }, makeReqLine))
+      setReqForm({ warehouse_id: '', priority: 'normal', notes: '' })
+    } catch (err) { showToast(err.message, 'red') }
+    finally { setReqSaving(false) }
+  }
+
   const balanceColor = (balance) => parseFloat(balance) <= 0 ? THEME.error : parseFloat(balance) < 10 ? THEME.warning : THEME.success
 
   return (
@@ -209,6 +254,7 @@ export default function CampSupplies({ setPage }) {
           <Button onClick={() => openTxn('issue')}   variant="tonal"    icon="remove_circle">Issue Stock</Button>
           <Button onClick={openBulk}                 variant="tonal"    icon="playlist_remove">Bulk Issue</Button>
           <Button onClick={() => setItemModal(true)} variant="outlined" icon="add">Add Item</Button>
+          <Button onClick={() => setReqModal(true)} variant="outlined" icon="inventory_2">Request from Stores</Button>
         </>}
       />
 
@@ -621,6 +667,65 @@ export default function CampSupplies({ setPage }) {
         confirmLabel={saving ? 'Deleting…' : 'Delete'}
         danger
       />
+
+      {/* ── Request from Central Stores ── */}
+      <Modal open={reqModal} onClose={() => setReqModal(false)} title="Request from Central Stores" wide>
+        <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '14px' }}>
+          Create an inventory requisition for items the camp needs from the central warehouse.
+        </div>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '180px' }}>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase' }}>Warehouse</label>
+            <select value={reqForm.warehouse_id} onChange={e => setReqForm(f => ({ ...f, warehouse_id: e.target.value }))}
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, fontSize: '13px', fontFamily: 'inherit' }}>
+              <option value="">Select…</option>
+              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+          </div>
+          <div style={{ minWidth: '120px' }}>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase' }}>Priority</label>
+            <select value={reqForm.priority} onChange={e => setReqForm(f => ({ ...f, priority: e.target.value }))}
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, fontSize: '13px', fontFamily: 'inherit' }}>
+              {['low', 'normal', 'high', 'urgent'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+            </select>
+          </div>
+        </div>
+        <SectionLabel>Items</SectionLabel>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginBottom: '10px' }}>
+          <thead>
+            <tr>{['Item', 'Qty', 'Notes', ''].map(h => <th key={h} style={{ textAlign: 'left', padding: '6px 8px', color: THEME.textLow, fontWeight: 600, fontSize: '11px', borderBottom: `1px solid ${THEME.outlineVar}` }}>{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {reqLines.map((line, i) => (
+              <tr key={i} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                <td style={{ padding: '4px 6px' }}>
+                  <select value={line.item_id} onChange={e => { const l = [...reqLines]; l[i] = { ...l[i], item_id: e.target.value }; setReqLines(l) }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '5px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, fontSize: '12px', fontFamily: 'inherit' }}>
+                    <option value="">Select item…</option>
+                    {invItems.map(it => <option key={it.id} value={it.id}>{it.item_code} — {it.description}</option>)}
+                  </select>
+                </td>
+                <td style={{ padding: '4px 6px', width: '80px' }}>
+                  <input type="number" min="1" value={line.quantity} onChange={e => { const l = [...reqLines]; l[i] = { ...l[i], quantity: e.target.value }; setReqLines(l) }}
+                    placeholder="Qty" style={{ width: '100%', padding: '6px', borderRadius: '5px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, fontSize: '12px', fontFamily: 'inherit' }} />
+                </td>
+                <td style={{ padding: '4px 6px' }}>
+                  <input value={line.notes} onChange={e => { const l = [...reqLines]; l[i] = { ...l[i], notes: e.target.value }; setReqLines(l) }}
+                    placeholder="Notes" style={{ width: '100%', padding: '6px', borderRadius: '5px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, fontSize: '12px', fontFamily: 'inherit' }} />
+                </td>
+                <td style={{ padding: '4px 6px', width: '36px' }}>
+                  {reqLines.length > 1 && <Icon name="close" size={16} style={{ cursor: 'pointer', color: THEME.textLow }} onClick={() => setReqLines(reqLines.filter((_, j) => j !== i))} />}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <Button variant="text" icon="add" onClick={() => setReqLines([...reqLines, makeReqLine()])} style={{ fontSize: '12px', marginBottom: '14px' }}>Add row</Button>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <Button variant="outlined" onClick={() => setReqModal(false)}>Cancel</Button>
+          <Button variant="filled" icon="send" onClick={submitRequisition} disabled={reqSaving}>{reqSaving ? 'Submitting…' : 'Submit Requisition'}</Button>
+        </div>
+      </Modal>
     </div>
   )
 }

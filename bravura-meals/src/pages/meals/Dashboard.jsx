@@ -5,6 +5,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { Card, StatCard, StatusBadge, Icon, fmtDate, today } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
 const CO_COLORS = ['#9C2A2A','#1A6B52','#4A3C8C','#1558A6','#BF5400','#2E7D32','#AD1457','#00838F']
@@ -33,6 +34,7 @@ export default function Dashboard({ setPage }) {
   // matching zero employees, silently, since the status migration.
   useEffect(() => { if (currentSiteId) load() }, [currentSiteId])
   useAutoRefresh(() => { if (currentSiteId) load() })
+  useRealtimeSubscription('daily_submissions', { column: 'site_id', value: currentSiteId }, () => { if (currentSiteId) load() })
 
   async function load() {
     setLoading(true)
@@ -207,6 +209,7 @@ export default function Dashboard({ setPage }) {
       <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_dashboard" />
 
       {/* Site + provider context */}
+      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#22c55e', verticalAlign: 'middle' }} title="Live updates" />
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.primary }}>
           <Icon name="location_on" size={12} style={{ color: THEME.primary }} />

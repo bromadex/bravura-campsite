@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, today, fmtDate, PageHeader } from '../../components/ui'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 export default function KitchenConfirm({ setPage }) {
   const { profile } = useAuth()
@@ -31,6 +32,7 @@ export default function KitchenConfirm({ setPage }) {
   // now have one submission PER SITE, so site has to be part of the lookup,
   // not just the date.
   useEffect(() => { if (currentSiteId) loadDate(date) }, [date, currentSiteId])
+  useRealtimeSubscription('daily_submissions', { column: 'site_id', value: currentSiteId }, () => { if (currentSiteId) loadDate(date) })
 
   async function loadDate(d) {
     setLoading(true)
@@ -117,7 +119,7 @@ export default function KitchenConfirm({ setPage }) {
   return (
     <div style={{ maxWidth: '600px' }}>
       <PageHeader
-        title="Kitchen Confirmation"
+        title={<>Kitchen Confirmation<span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#22c55e', marginLeft: 8, verticalAlign: 'middle' }} title="Live updates" /></>}
         site={currentSite}
         actions={
           <input

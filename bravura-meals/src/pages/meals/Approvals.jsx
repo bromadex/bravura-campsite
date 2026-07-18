@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
 export default function Approvals({ setPage }) {
@@ -26,6 +27,7 @@ export default function Approvals({ setPage }) {
     if (currentSiteId) fetchSubmissions()
   }, [currentSiteId])
   useAutoRefresh(() => { if (currentSiteId) fetchSubmissions() })
+  useRealtimeSubscription('daily_submissions', { column: 'site_id', value: currentSiteId }, () => { if (currentSiteId) fetchSubmissions() })
 
   async function fetchSubmissions() {
     setLoading(true)
@@ -142,7 +144,7 @@ export default function Approvals({ setPage }) {
 
   return (
     <div>
-      <PageHeader title="Approvals" site={currentSite} />
+      <PageHeader title={<>Approvals<span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#22c55e', marginLeft: 8, verticalAlign: 'middle' }} title="Live updates" /></>} site={currentSite} />
 
       <div style={{ display: 'grid', gridTemplateColumns: selected ? '320px 1fr' : '1fr', gap: '20px' }}>
 

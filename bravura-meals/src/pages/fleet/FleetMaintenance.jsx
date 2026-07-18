@@ -86,6 +86,14 @@ export default function FleetMaintenance({ setPage }) {
   const [maintenance, setMaintenance] = useState([])
   const [maintLoading, setMaintLoading] = useState(false)
 
+  // Parts from stock
+  const [allItems, setAllItems] = useState([])
+  const [siteStockMap, setSiteStockMap] = useState({}) // { item_id: { on_hand_qty, warehouse_id, valuation_rate } }
+  const [stockParts, setStockParts] = useState([]) // [{ item_id, item_code, description, qty, unit_cost, available }]
+  const [itemSearch, setItemSearch] = useState('')
+  const [showItemPicker, setShowItemPicker] = useState(false)
+  const [existingWoParts, setExistingWoParts] = useState([]) // for viewing completed WO parts
+
   const fetchMaintenance = useCallback(async () => {
     if (!currentSiteId) return
     setMaintLoading(true)
@@ -100,6 +108,49 @@ export default function FleetMaintenance({ setPage }) {
   }, [currentSiteId])
 
   useEffect(() => { if (activeTab === 'history') fetchMaintenance() }, [activeTab, fetchMaintenance])
+
+  // Fetch all items once (global, usually <500)
+  const fetchItems = useCallback(async () => {
+    if (allItems.length > 0) return
+    const { data } = await supabase
+      .from('items')
+      .select('id, item_code, description, standard_cost, average_cost')
+      .eq('is_active', true)
+      .order('item_code')
+      .limit(500)
+    setAllItems(data || [])
+  }, [allItems.length])
+
+  // Fetch stock balances for current site
+  const fetchSiteStock = useCallback(async () => {
+    if (!currentSiteId) return
+    const { data } = await supabase
+      .from('stock_balances')
+      .select('item_id, on_hand_qty, warehouse_id, valuation_rate, warehouses!inner(site_id)')
+      .eq('warehouses.site_id', currentSiteId)
+    const map = {}
+    ;(data || []).forEach(sb => {
+      if (!map[sb.item_id] || sb.on_hand_qty > map[sb.item_id].on_hand_qty) {
+        map[sb.item_id] = { on_hand_qty: Number(sb.on_hand_qty), warehouse_id: sb.warehouse_id, valuation_rate: Number(sb.valuation_rate || 0) }
+      }
+    })
+    setSiteStockMap(map)
+  }, [currentSiteId])
+
+  // Fetch parts for an existing maintenance record (via work order)
+  const fetchWoParts = useCallback(async (woId) => {
+    const { data: maintRows } = await supabase
+      .from('fleet_maintenance')
+      .select('id')
+      .eq('work_order_id', woId)
+      .limit(1)
+    if (!maintRows || maintRows.length === 0) { setExistingWoParts([]); return }
+    const { data: parts } = await supabase
+      .from('fleet_maintenance_parts')
+      .select('*')
+      .eq('maintenance_id', maintRows[0].id)
+    setExistingWoParts(parts || [])
+  }, [])
 
   const kpis = useMemo(() => {
     const all = workOrders || []
@@ -140,7 +191,9 @@ export default function FleetMaintenance({ setPage }) {
   function openAdd() {
     setEditId(null); setCloseMode(false)
     setForm({ ...EMPTY_FORM, work_order_number: generateWONumber() })
+    setStockParts([]); setItemSearch(''); setShowItemPicker(false); setExistingWoParts([])
     setError(''); setModalOpen(true)
+    fetchItems(); fetchSiteStock()
   }
 
   function openEdit(wo) {
@@ -158,7 +211,10 @@ export default function FleetMaintenance({ setPage }) {
       status: wo.status || 'scheduled',
       notes: wo.notes || '',
     })
+    setStockParts([]); setItemSearch(''); setShowItemPicker(false); setExistingWoParts([])
     setError(''); setModalOpen(true)
+    fetchItems(); fetchSiteStock()
+    if (wo.status === 'completed') fetchWoParts(wo.id)
   }
 
   function openClose(wo) {
@@ -178,11 +234,45 @@ export default function FleetMaintenance({ setPage }) {
       findings: '', labour_hours_actual: '', labour_rate: '',
       parts_cost: '', other_cost: '',
     })
+    setStockParts([]); setItemSearch(''); setShowItemPicker(false); setExistingWoParts([])
     setError(''); setModalOpen(true)
+    fetchItems(); fetchSiteStock()
   }
 
+  const stockPartsCost = stockParts.reduce((sum, p) => sum + (Number(p.qty) || 0) * (Number(p.unit_cost) || 0), 0)
   const labourTotal = Number(form.labour_hours_actual || 0) * Number(form.labour_rate || 0)
-  const totalCost = labourTotal + Number(form.parts_cost || 0) + Number(form.other_cost || 0)
+  const totalCost = labourTotal + Number(form.parts_cost || 0) + Number(form.other_cost || 0) + stockPartsCost
+
+  const filteredItems = useMemo(() => {
+    if (!itemSearch.trim()) return allItems.slice(0, 20)
+    const q = itemSearch.toLowerCase()
+    return allItems.filter(it =>
+      it.item_code.toLowerCase().includes(q) || it.description.toLowerCase().includes(q)
+    ).slice(0, 20)
+  }, [allItems, itemSearch])
+
+  function addStockPart(item) {
+    if (stockParts.some(p => p.item_id === item.id)) return
+    const stock = siteStockMap[item.id]
+    setStockParts(prev => [...prev, {
+      item_id: item.id,
+      item_code: item.item_code,
+      description: item.description,
+      qty: 1,
+      unit_cost: item.average_cost || item.standard_cost || 0,
+      available: stock ? stock.on_hand_qty : 0,
+      warehouse_id: stock ? stock.warehouse_id : null,
+    }])
+    setItemSearch(''); setShowItemPicker(false)
+  }
+
+  function updateStockPartQty(item_id, qty) {
+    setStockParts(prev => prev.map(p => p.item_id === item_id ? { ...p, qty } : p))
+  }
+
+  function removeStockPart(item_id) {
+    setStockParts(prev => prev.filter(p => p.item_id !== item_id))
+  }
 
   async function handleSave() {
     if (!form.work_order_number || !form.fault_description) {
@@ -229,7 +319,49 @@ export default function FleetMaintenance({ setPage }) {
           completion_date: new Date().toISOString().slice(0, 10),
           notes: form.notes || null,
         }
-        await supabase.from('fleet_maintenance').insert(maintPayload)
+        const { data: maintData } = await supabase.from('fleet_maintenance').insert(maintPayload).select('id').single()
+
+        // Insert stock parts into fleet_maintenance_parts and create inventory movements
+        if (maintData && stockParts.length > 0) {
+          const partsRows = stockParts.map(p => ({
+            maintenance_id: maintData.id,
+            part_name: p.description,
+            part_number: p.item_code,
+            quantity: Number(p.qty) || 0,
+            unit_cost: Number(p.unit_cost) || 0,
+            total_cost: (Number(p.qty) || 0) * (Number(p.unit_cost) || 0),
+          }))
+          await supabase.from('fleet_maintenance_parts').insert(partsRows)
+
+          // Create inventory issue movements for parts with a warehouse
+          const movements = stockParts
+            .filter(p => p.warehouse_id && Number(p.qty) > 0)
+            .map(p => ({
+              item_id: p.item_id,
+              warehouse_id: p.warehouse_id,
+              movement_type: 'issue',
+              quantity: -(Number(p.qty)),
+              unit_cost: Number(p.unit_cost) || 0,
+              value: -(Number(p.qty) * (Number(p.unit_cost) || 0)),
+              voucher_type: 'fleet_wo',
+              voucher_no: form.work_order_number,
+              source_module: 'fleet',
+            }))
+          if (movements.length > 0) {
+            await supabase.from('inventory_movements').insert(movements)
+            // Update stock balances
+            for (const p of stockParts.filter(sp => sp.warehouse_id && Number(sp.qty) > 0)) {
+              const newQty = p.available - Number(p.qty)
+              await supabase.from('stock_balances')
+                .update({ on_hand_qty: newQty, updated_at: new Date().toISOString() })
+                .eq('item_id', p.item_id)
+                .eq('warehouse_id', p.warehouse_id)
+            }
+          }
+        }
+      } else if (stockParts.length > 0 && !closeMode) {
+        // For non-close saves (creating/editing WO), find or create a maintenance record to attach parts
+        // Parts are only saved when closing a WO, so we skip here
       }
 
       await fetchAll()
@@ -584,6 +716,138 @@ export default function FleetMaintenance({ setPage }) {
                       {Object.entries(STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                     </select>
                   </div>
+                  {/* Parts from Stock section */}
+                  <div style={{ gridColumn: '1 / -1', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: THEME.text, marginBottom: '8px', marginTop: '4px' }}>
+                      Parts from Stock
+                    </div>
+
+                    {/* Existing WO parts (read-only for completed) */}
+                    {editId && existingWoParts.length > 0 && form.status === 'completed' && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                          <thead>
+                            <tr style={{ background: THEME.surfaceVar }}>
+                              <th style={{ padding: '6px 10px', textAlign: 'left', color: THEME.textMed, fontWeight: 600 }}>Code</th>
+                              <th style={{ padding: '6px 10px', textAlign: 'left', color: THEME.textMed, fontWeight: 600 }}>Description</th>
+                              <th style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed, fontWeight: 600 }}>Qty</th>
+                              <th style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed, fontWeight: 600 }}>Unit Cost</th>
+                              <th style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed, fontWeight: 600 }}>Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {existingWoParts.map(p => (
+                              <tr key={p.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                                <td style={{ padding: '6px 10px', color: THEME.text, fontWeight: 600 }}>{p.part_number || '-'}</td>
+                                <td style={{ padding: '6px 10px', color: THEME.text }}>{p.part_name}</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'right', color: THEME.text }}>{p.quantity}</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed }}>R {Number(p.unit_cost || 0).toFixed(2)}</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600, color: THEME.text }}>R {Number(p.total_cost || 0).toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Item search and picker (not for completed WOs) */}
+                    {form.status !== 'completed' && (
+                      <>
+                        <div style={{ position: 'relative', marginBottom: '8px' }}>
+                          <input
+                            style={inp}
+                            placeholder="Search items by code or description..."
+                            value={itemSearch}
+                            onChange={e => { setItemSearch(e.target.value); setShowItemPicker(true) }}
+                            onFocus={() => setShowItemPicker(true)}
+                          />
+                          {showItemPicker && filteredItems.length > 0 && (
+                            <div style={{
+                              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                              background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
+                              borderRadius: '8px', boxShadow: THEME.shadow2, maxHeight: '200px', overflowY: 'auto',
+                            }}>
+                              {filteredItems.map(it => {
+                                const stock = siteStockMap[it.id]
+                                const already = stockParts.some(p => p.item_id === it.id)
+                                return (
+                                  <div key={it.id}
+                                    onClick={() => !already && addStockPart(it)}
+                                    style={{
+                                      padding: '8px 12px', cursor: already ? 'default' : 'pointer',
+                                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                      borderBottom: `1px solid ${THEME.outlineVar}`,
+                                      opacity: already ? 0.5 : 1,
+                                      background: already ? THEME.surfaceVar : 'transparent',
+                                    }}
+                                    onMouseEnter={e => { if (!already) e.currentTarget.style.background = THEME.surfaceVar }}
+                                    onMouseLeave={e => { if (!already) e.currentTarget.style.background = 'transparent' }}
+                                  >
+                                    <div>
+                                      <span style={{ fontSize: '12px', fontWeight: 600, color: THEME.text }}>{it.item_code}</span>
+                                      <span style={{ fontSize: '12px', color: THEME.textMed, marginLeft: '8px' }}>{it.description}</span>
+                                    </div>
+                                    <span style={{ fontSize: '11px', color: stock && stock.on_hand_qty > 0 ? THEME.statusSuccessText : THEME.textLow }}>
+                                      Stock: {stock ? stock.on_hand_qty : 0}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Selected parts table */}
+                        {stockParts.length > 0 && (
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginTop: '4px' }}>
+                            <thead>
+                              <tr style={{ background: THEME.surfaceVar }}>
+                                <th style={{ padding: '6px 10px', textAlign: 'left', color: THEME.textMed, fontWeight: 600 }}>Code</th>
+                                <th style={{ padding: '6px 10px', textAlign: 'left', color: THEME.textMed, fontWeight: 600 }}>Description</th>
+                                <th style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed, fontWeight: 600 }}>Stock</th>
+                                <th style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed, fontWeight: 600 }}>Qty</th>
+                                <th style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed, fontWeight: 600 }}>Cost</th>
+                                <th style={{ padding: '6px 10px', width: '36px' }}></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stockParts.map(p => (
+                                <tr key={p.item_id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                                  <td style={{ padding: '6px 10px', fontWeight: 600, color: THEME.text }}>{p.item_code}</td>
+                                  <td style={{ padding: '6px 10px', color: THEME.text, maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</td>
+                                  <td style={{ padding: '6px 10px', textAlign: 'right', color: Number(p.qty) > p.available ? '#dc2626' : THEME.textMed }}>{p.available}</td>
+                                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>
+                                    <input type="number" min="1" step="1" value={p.qty}
+                                      onChange={e => updateStockPartQty(p.item_id, e.target.value)}
+                                      style={{ ...inp, width: '60px', padding: '4px 6px', textAlign: 'right' }}
+                                    />
+                                  </td>
+                                  <td style={{ padding: '6px 10px', textAlign: 'right', color: THEME.text, whiteSpace: 'nowrap' }}>
+                                    R {((Number(p.qty) || 0) * (Number(p.unit_cost) || 0)).toFixed(2)}
+                                  </td>
+                                  <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                                    <button onClick={() => removeStockPart(p.item_id)} style={{
+                                      background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
+                                    }}>
+                                      <span className="material-symbols-rounded" style={{ fontSize: '16px', color: '#dc2626' }}>close</span>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr>
+                                <td colSpan="4" style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, fontSize: '12px', color: THEME.text }}>Stock Parts Total:</td>
+                                <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, fontSize: '12px', color: THEME.text }}>R {stockPartsCost.toFixed(2)}</td>
+                                <td></td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        )}
+                      </>
+                    )}
+                  </div>
+
                   <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
                     <label style={lbl}>Notes</label>
                     <textarea style={{ ...inp, minHeight: '60px', resize: 'vertical' }} value={form.notes} onChange={e => set('notes', e.target.value)} />
@@ -630,6 +894,102 @@ export default function FleetMaintenance({ setPage }) {
                     </div>
                   </div>
 
+                  {/* Parts from Stock (close mode) */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: THEME.text, marginBottom: '8px' }}>
+                      Parts from Stock
+                    </div>
+                    <div style={{ position: 'relative', marginBottom: '8px' }}>
+                      <input
+                        style={inp}
+                        placeholder="Search items by code or description..."
+                        value={itemSearch}
+                        onChange={e => { setItemSearch(e.target.value); setShowItemPicker(true) }}
+                        onFocus={() => setShowItemPicker(true)}
+                      />
+                      {showItemPicker && filteredItems.length > 0 && (
+                        <div style={{
+                          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                          background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
+                          borderRadius: '8px', boxShadow: THEME.shadow2, maxHeight: '200px', overflowY: 'auto',
+                        }}>
+                          {filteredItems.map(it => {
+                            const stock = siteStockMap[it.id]
+                            const already = stockParts.some(p => p.item_id === it.id)
+                            return (
+                              <div key={it.id}
+                                onClick={() => !already && addStockPart(it)}
+                                style={{
+                                  padding: '8px 12px', cursor: already ? 'default' : 'pointer',
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                  borderBottom: `1px solid ${THEME.outlineVar}`,
+                                  opacity: already ? 0.5 : 1,
+                                  background: already ? THEME.surfaceVar : 'transparent',
+                                }}
+                                onMouseEnter={e => { if (!already) e.currentTarget.style.background = THEME.surfaceVar }}
+                                onMouseLeave={e => { if (!already) e.currentTarget.style.background = 'transparent' }}
+                              >
+                                <div>
+                                  <span style={{ fontSize: '12px', fontWeight: 600, color: THEME.text }}>{it.item_code}</span>
+                                  <span style={{ fontSize: '12px', color: THEME.textMed, marginLeft: '8px' }}>{it.description}</span>
+                                </div>
+                                <span style={{ fontSize: '11px', color: stock && stock.on_hand_qty > 0 ? THEME.statusSuccessText : THEME.textLow }}>
+                                  Stock: {stock ? stock.on_hand_qty : 0}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    {stockParts.length > 0 && (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead>
+                          <tr style={{ background: THEME.surfaceVar }}>
+                            <th style={{ padding: '6px 10px', textAlign: 'left', color: THEME.textMed, fontWeight: 600 }}>Code</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'left', color: THEME.textMed, fontWeight: 600 }}>Description</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed, fontWeight: 600 }}>Stock</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed, fontWeight: 600 }}>Qty</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'right', color: THEME.textMed, fontWeight: 600 }}>Cost</th>
+                            <th style={{ padding: '6px 10px', width: '36px' }}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stockParts.map(p => (
+                            <tr key={p.item_id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                              <td style={{ padding: '6px 10px', fontWeight: 600, color: THEME.text }}>{p.item_code}</td>
+                              <td style={{ padding: '6px 10px', color: THEME.text, maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</td>
+                              <td style={{ padding: '6px 10px', textAlign: 'right', color: Number(p.qty) > p.available ? '#dc2626' : THEME.textMed }}>{p.available}</td>
+                              <td style={{ padding: '4px 6px', textAlign: 'right' }}>
+                                <input type="number" min="1" step="1" value={p.qty}
+                                  onChange={e => updateStockPartQty(p.item_id, e.target.value)}
+                                  style={{ ...inp, width: '60px', padding: '4px 6px', textAlign: 'right' }}
+                                />
+                              </td>
+                              <td style={{ padding: '6px 10px', textAlign: 'right', color: THEME.text, whiteSpace: 'nowrap' }}>
+                                R {((Number(p.qty) || 0) * (Number(p.unit_cost) || 0)).toFixed(2)}
+                              </td>
+                              <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                                <button onClick={() => removeStockPart(p.item_id)} style={{
+                                  background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
+                                }}>
+                                  <span className="material-symbols-rounded" style={{ fontSize: '16px', color: '#dc2626' }}>close</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td colSpan="4" style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, fontSize: '12px', color: THEME.text }}>Stock Parts Total:</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, fontSize: '12px', color: THEME.text }}>R {stockPartsCost.toFixed(2)}</td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    )}
+                  </div>
+
                   {/* Cost summary */}
                   <div style={{
                     background: THEME.surfaceVar, borderRadius: '10px', padding: '14px 16px', marginTop: '4px',
@@ -639,9 +999,15 @@ export default function FleetMaintenance({ setPage }) {
                       <span>R {labourTotal.toFixed(2)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
-                      <span>Parts</span>
+                      <span>Parts (manual)</span>
                       <span>R {Number(form.parts_cost || 0).toFixed(2)}</span>
                     </div>
+                    {stockPartsCost > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
+                        <span>Parts from stock ({stockParts.length} item{stockParts.length !== 1 ? 's' : ''})</span>
+                        <span>R {stockPartsCost.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '8px' }}>
                       <span>Other</span>
                       <span>R {Number(form.other_cost || 0).toFixed(2)}</span>

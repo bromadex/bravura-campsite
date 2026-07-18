@@ -20,6 +20,7 @@ import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
 const HRDocumentExpiry      = lazy(() => import('./pages/hr/DocumentExpiry'))
+const PPETracking           = lazy(() => import('./pages/hr/PPETracking'))
 const HRDashboard      = lazy(() => import('./pages/hr/HRDashboard'))
 const HRDepartments    = lazy(() => import('./pages/hr/Departments'))
 const HRDesignations   = lazy(() => import('./pages/hr/Designations'))
@@ -270,6 +271,7 @@ function getWorkforcePage(page, role, can, setPage) {
     case 'wf_exit':              return can('hr.view') ? <HRExitManagement setPage={setPage} /> : null
     case 'wf_medicals':          return can('hr.view') ? <HRMedicalSurveillance setPage={setPage} /> : null
     case 'wf_document_expiry':   return can('hr.view') ? <HRDocumentExpiry setPage={setPage} /> : null
+    case 'wf_ppe':               return can('hr.view') ? <PPETracking setPage={setPage} /> : null
     // Employee list: the Phase 1 HR list supersedes the original page but
     // keeps the same id — bookmarks and the HR01 T-code keep working.
     // (Legacy workforce/Employees.jsx fallback removed with the old

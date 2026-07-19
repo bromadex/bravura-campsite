@@ -51,7 +51,7 @@ LEFT JOIN LATERAL (
   FROM casual_timesheets ct
   WHERE ct.casual_worker_id = ce.id
     AND ct.date >= CURRENT_DATE - 30
-    AND ct.status = 'approved'
+    AND ct.approved = true
 ) ts ON true
 LEFT JOIN LATERAL (
   SELECT COUNT(*) AS meal_count
@@ -82,7 +82,7 @@ LEFT JOIN LATERAL (
   FROM casual_timesheets ct2
   WHERE ct2.casual_worker_id = cw.id
     AND ct2.date >= CURRENT_DATE - 30
-    AND ct2.status = 'approved'
+    AND ct2.approved = true
 ) ts2 ON true
 LEFT JOIN LATERAL (
   SELECT COUNT(*) AS meal_count

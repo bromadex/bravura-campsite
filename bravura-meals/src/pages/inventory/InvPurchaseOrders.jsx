@@ -51,10 +51,10 @@ export default function InvPurchaseOrders({ setPage }) {
     try {
       const [poRes, supRes, whRes, itemRes, reqRes] = await Promise.all([
         supabase.from('purchase_orders')
-          .select('*, supplier:procurement_suppliers!purchase_orders_supplier_id_fkey(name), warehouse:warehouses!purchase_orders_warehouse_id_fkey(name), creator:profiles!purchase_orders_created_by_fkey(full_name), lines:po_lines(id, item_id, quantity, unit_cost, received_qty, line_total, item:items!po_lines_item_id_fkey(item_code, description))')
+          .select('*, supplier:procurement_suppliers!purchase_orders_supplier_id_fkey(supplier_name), warehouse:warehouses!purchase_orders_warehouse_id_fkey(name), creator:profiles!purchase_orders_created_by_fkey(full_name), lines:po_lines(id, item_id, quantity, unit_cost, received_qty, line_total, item:items!po_lines_item_id_fkey(item_code, description))')
           .eq('site_id', currentSiteId)
           .order('created_at', { ascending: false }),
-        supabase.from('procurement_suppliers').select('id, name').eq('is_active', true).order('name'),
+        supabase.from('procurement_suppliers').select('id, supplier_name').eq('site_id', currentSiteId).order('supplier_name'),
         supabase.from('warehouses').select('id, name').eq('site_id', currentSiteId).eq('is_active', true).order('name'),
         supabase.from('items').select('id, item_code, description').eq('is_archived', false).order('description'),
         supabase.from('purchase_requisitions').select('id, requisition_no, lines:requisition_lines(item_id, quantity, estimated_cost)')
@@ -79,7 +79,7 @@ export default function InvPurchaseOrders({ setPage }) {
     if (statusFilter) list = list.filter(o => o.status === statusFilter)
     if (search) {
       const q = search.toLowerCase()
-      list = list.filter(o => o.po_number?.toLowerCase().includes(q) || o.supplier?.name?.toLowerCase().includes(q))
+      list = list.filter(o => o.po_number?.toLowerCase().includes(q) || o.supplier?.supplier_name?.toLowerCase().includes(q))
     }
     return list
   }, [orders, search, statusFilter])
@@ -224,7 +224,7 @@ export default function InvPurchaseOrders({ setPage }) {
   function handleExport() {
     const headers = ['PO #', 'Date', 'Supplier', 'Status', 'Items', 'Total', 'Created By']
     const rows = filtered.map(o => [
-      o.po_number, o.order_date || '', o.supplier?.name || '', o.status,
+      o.po_number, o.order_date || '', o.supplier?.supplier_name || '', o.status,
       o.lines?.length || 0, o.total_amount?.toFixed(2) || '', o.creator?.full_name || '',
     ])
     exportCsv('purchase_orders.csv', headers, rows)
@@ -291,7 +291,7 @@ export default function InvPurchaseOrders({ setPage }) {
                   <tr key={o.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                     <td style={{ padding: '8px 10px', fontWeight: 600, color: ACCENT, fontFamily: 'monospace', fontSize: '12px' }}>{o.po_number}</td>
                     <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '12px' }}>{o.order_date || '—'}</td>
-                    <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 500 }}>{o.supplier?.name || '—'}</td>
+                    <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 500 }}>{o.supplier?.supplier_name || '—'}</td>
                     <td style={{ padding: '8px 10px', color: THEME.textMed }}>{o.warehouse?.name || '—'}</td>
                     <td style={{ padding: '8px 10px' }}>
                       <StatusBadge status={o.status} />
@@ -333,7 +333,7 @@ export default function InvPurchaseOrders({ setPage }) {
               <SectionLabel>Supplier *</SectionLabel>
               <select value={form.supplier_id} onChange={e => setForm({ ...form, supplier_id: e.target.value })} style={inp}>
                 <option value="">— Select —</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplier_name}</option>)}
               </select>
             </div>
             <div>

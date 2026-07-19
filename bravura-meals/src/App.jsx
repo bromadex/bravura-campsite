@@ -22,6 +22,7 @@ const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'
 const HRDocumentExpiry      = lazy(() => import('./pages/hr/DocumentExpiry'))
 const PPETracking           = lazy(() => import('./pages/hr/PPETracking'))
 const HRDashboard      = lazy(() => import('./pages/hr/HRDashboard'))
+const HRAnalytics      = lazy(() => import('./pages/hr/HRAnalytics'))
 const HRDepartments    = lazy(() => import('./pages/hr/Departments'))
 const HRDesignations   = lazy(() => import('./pages/hr/Designations'))
 const HRSettings       = lazy(() => import('./pages/hr/HRSettings'))
@@ -237,6 +238,7 @@ function getWorkforcePage(page, role, can, setPage) {
   const [base, param] = (page || '').split(':')
   switch (base) {
     case 'wf_dashboard':       return can('hr.view') || can('employees.view') ? <HRDashboard setPage={setPage} /> : null
+    case 'wf_analytics':       return can('hr.view') ? <HRAnalytics setPage={setPage} /> : null
     case 'wf_departments':     return can('hr.view') ? <HRDepartments setPage={setPage} /> : null
     case 'wf_designations':    return can('hr.view') ? <HRDesignations setPage={setPage} /> : null
     case 'wf_settings':        return can('hr.view') ? <HRSettings setPage={setPage} /> : null

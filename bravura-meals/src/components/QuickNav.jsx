@@ -64,6 +64,7 @@ export const HR_PILLS = [
   { id: 'wf_payroll',         label: 'Payroll',     icon: 'calculate',        color: '#4527A0' },
   { id: 'wf_appraisals',      label: 'Appraisals',  icon: 'star_rate',        color: '#D97706' },
   { id: 'wf_headcount_report', label: 'Reports',    icon: 'people',           color: '#C62828' },
+  { id: 'wf_analytics',       label: 'Analytics',   icon: 'analytics',        color: '#7B1FA2' },
   { id: 'wf_settings',        label: 'Settings',    icon: 'settings',         color: '#546E7A' },
 ]
 

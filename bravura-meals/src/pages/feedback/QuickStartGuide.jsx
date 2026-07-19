@@ -184,6 +184,7 @@ export default function QuickStartGuide() {
             <>Appraisals (<Code>HR29</Code>) record performance reviews; Disciplinary Cases (<Code>HR30</Code>) keep a permanent hearing-and-outcome trail; leavers go through Exit Management (<Code>HR31</Code>).</>,
             <>Compliance: Medical Surveillance (<Code>HR32</Code>) tracks fitness-for-work exams due and overdue, and the Document Expiry register (<Code>HR33</Code>) lists every expiring ID, licence and contract in one place.</>,
             <>PPE Tracking (<Code>HR34</Code>) records protective equipment issued to each employee — replacement dates flag automatically when kit is due or overdue.</>,
+            <>HR Analytics (<Code>HR35</Code>) provides cross-module workforce analytics: headcount trends, department breakdowns, tenure distribution, meal costs, accommodation, fleet usage, leave days, and skills gap analysis per employee. Uses server-side RPCs for efficient aggregation.</>,
           ]} />
         </Section>
       )}

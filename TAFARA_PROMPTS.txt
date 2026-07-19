@@ -9,10 +9,15 @@ STATUS AT A GLANCE (July 2026)
   Phase 2 — Leave, Documents, Org Chart, Transfers, Medical ...... DONE (0102, 0103)
   Phase 3 — Attendance/Shifts, Training, Skills, HR Reports ...... DONE (0106, 0107)
   Phase 4 — Payroll, Appraisals, Disciplinary, Exit .............. DONE (0108, 0109, 0110)
-  Phase 5 — HR Analytics/AI ....................................... FUTURE
+  Phase 5 — HR Analytics (no AI) .................................. DONE (0150)
 
-HR module is functionally complete end to end. Remaining work is Phase 5
-(analytics/AI) plus whatever new session Clement/Tafara agree on next.
+HR module is functionally complete end to end including analytics.
+Phase 5 analytics (HR35) provides: cross-module workforce cost summary
+(meals, accommodation, fleet, leave, skills via server-side RPCs),
+department analytics, tenure distribution, employment type breakdown,
+headcount trends, skills gap identification, and turnover rate tracking.
+AI integration deferred to a future phase.
+Migration 0150 creates rpc_workforce_cost_summary and rpc_department_analytics.
 
 For a sibling module built the same way — contract & casual labour
 management — see CONTRACTOR_PROMPTS.txt (module CL, migration 0083,

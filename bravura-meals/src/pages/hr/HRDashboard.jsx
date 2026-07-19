@@ -4,7 +4,8 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { Card, Icon, PageHeader, Button, showToast, fmtDate } from '../../components/ui'
-import { DashCard, KpiCard, AreaChart, DonutGauge, ActivityRow, SectionTitle } from '../../components/dash'
+import { DashCard, KpiCard, AreaChart, DonutGauge, ActivityRow, SectionTitle, ProgressRow } from '../../components/dash'
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 
 const ACCENT = MODULE_COLORS.workforce
@@ -39,6 +40,9 @@ export default function HRDashboard({ setPage }) {
   const [stats, setStats] = useState({ total: 0, active: 0, onLeave: 0, newThisMonth: 0, terminatedThisMonth: 0 })
   const [employees, setEmployees] = useState([])
   const [activity, setActivity] = useState([])
+  const [deptHeadcounts, setDeptHeadcounts] = useState([])
+
+  useRealtimeSubscription('employees', { column: 'site_id', value: currentSiteId }, fetchAll)
 
   useEffect(() => {
     if (currentSiteId && can('hr.view')) fetchAll()
@@ -54,7 +58,7 @@ export default function HRDashboard({ setPage }) {
 
       const { data: emps, error: empErr } = await supabase
         .from('employees')
-        .select('id, status, start_date, is_archived')
+        .select('id, status, start_date, is_archived, department_id')
         .eq('site_id', currentSiteId)
       if (empErr) throw empErr
 
@@ -83,6 +87,19 @@ export default function HRDashboard({ setPage }) {
         .order('created_at', { ascending: false })
         .limit(10)
       if (histErr) throw histErr
+
+      // Department headcounts
+      const { data: depts } = await supabase
+        .from('departments')
+        .select('id, name')
+        .eq('site_id', currentSiteId)
+      if (depts && depts.length) {
+        const counts = depts.map(d => ({
+          name: d.name,
+          count: rows.filter(e => e.department_id === d.id).length,
+        }))
+        setDeptHeadcounts(counts.sort((a, b) => b.count - a.count))
+      }
 
       let rowsOut = hist || []
       const ids = [...new Set(rowsOut.map(h => h.changed_by).filter(Boolean))]
@@ -213,6 +230,26 @@ export default function HRDashboard({ setPage }) {
           />
         </DashCard>
       </div>
+
+      {/* Department headcount */}
+      {deptHeadcounts.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          <DashCard>
+            <SectionTitle title="Department Headcount" subtitle="Active and on-leave employees per department" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {deptHeadcounts.map(d => (
+                <ProgressRow
+                  key={d.name}
+                  label={d.name}
+                  value={d.count}
+                  pct={stats.total > 0 ? (d.count / stats.total) * 100 : 0}
+                  color={ACCENT}
+                />
+              ))}
+            </div>
+          </DashCard>
+        </div>
+      )}
 
       {/* Recent activity */}
       <div style={{ marginBottom: '16px' }}>

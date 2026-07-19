@@ -82,7 +82,7 @@ export default function PPETracking({ setPage }) {
         .eq('is_archived', false)
         .order('name')
       setEmployees(data || [])
-    } catch { setEmployees([]) }
+    } catch { setEmployees([]); showToast('Failed to load PPE data', 'red') }
   }, [currentSiteId])
 
   const fetchItems = useCallback(async () => {
@@ -95,7 +95,7 @@ export default function PPETracking({ setPage }) {
         .or('category.ilike.%PPE%,category.ilike.%Safety%,category.ilike.%protective%')
         .order('description')
       setItems(data || [])
-    } catch { setItems([]) }
+    } catch { setItems([]); showToast('Failed to load PPE data', 'red') }
   }, [currentSiteId])
 
   useEffect(() => {

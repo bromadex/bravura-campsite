@@ -26,16 +26,22 @@ export default function ProcDashboard({ setPage }) {
     if (!currentSiteId) return
     setLoading(true)
     try {
-      const [poRes, rfqRes, supRes, evRes] = await Promise.all([
+      const [poRes, rfqRes, supRes] = await Promise.all([
         supabase.from('purchase_orders').select('id, po_number, supplier_id, total_amount, status, delivery_status, priority, created_at').eq('site_id', currentSiteId),
         supabase.from('rfqs').select('id, rfq_number, title, status, deadline, created_at').eq('site_id', currentSiteId),
         supabase.from('procurement_suppliers').select('id, supplier_name, status').eq('site_id', currentSiteId),
-        supabase.from('po_tracking_events').select('id, po_id, event_type, location, notes, created_at').order('created_at', { ascending: false }).limit(20),
       ])
       setPos(poRes.data || [])
       setRfqs(rfqRes.data || [])
       setSuppliers(supRes.data || [])
-      setEvents(evRes.data || [])
+      // Scope tracking events to POs belonging to this site
+      const poIds = (poRes.data || []).map(p => p.id)
+      if (poIds.length > 0) {
+        const evRes = await supabase.from('po_tracking_events').select('id, po_id, event_type, location, notes, created_at').in('po_id', poIds).order('created_at', { ascending: false }).limit(20)
+        setEvents(evRes.data || [])
+      } else {
+        setEvents([])
+      }
     } catch (err) {
       showToast('Failed to load procurement data', 'red')
     }

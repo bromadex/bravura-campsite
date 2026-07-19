@@ -368,7 +368,7 @@ export default function FuelIssuance({ setPage }) {
         litres_manual: req.quantity_requested ? String(req.quantity_requested) : '',
         use_meter:     false,
       }))
-    } catch { /* ignore malformed data */ }
+    } catch (e) { console.warn('FuelIssuance: failed to parse fuel_request_prefill from sessionStorage', e) }
   }, [vehicles, equipment])
 
   if (!can('fuel.create')) return (

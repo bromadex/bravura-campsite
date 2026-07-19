@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
+import { useSite } from '../../contexts/SiteContext'
 import { Icon, PageHeader, showToast } from '../../components/ui'
-import { DashCard, KpiCard, ActivityRow, SectionTitle } from '../../components/dash'
+import { DashCard, KpiCard, ActivityRow, SectionTitle, AreaChart, DonutGauge } from '../../components/dash'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
@@ -58,9 +59,11 @@ function QuickLinkTile({ icon, label, onClick }) {
 
 export default function AdminDashboard({ setPage }) {
   const { can } = usePermissions()
+  const { currentSiteId } = useSite()
   useRealtimeSubscription('audit_log', { column: 'site_id', value: currentSiteId }, fetchData)
-  const [stats, setStats] = useState({ users: 0, roles: 0, sites: 0, recentAudit: 0, pendingInvites: 0, usersWithoutRoles: 0 })
+  const [stats, setStats] = useState({ users: 0, roles: 0, sites: 0, recentAudit: 0, pendingInvites: 0, usersWithoutRoles: 0, activeUsers: 0, inactiveUsers: 0 })
   const [recentActivity, setRecentActivity] = useState([])
+  const [auditVolume, setAuditVolume] = useState({ points: [], labels: [] })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { fetchData() }, [])
@@ -88,8 +91,27 @@ export default function AdminDashboard({ setPage }) {
         recentAudit: auditCountRes.count || 0,
         pendingInvites: invitesRes.count || 0,
         usersWithoutRoles,
+        activeUsers: (usersRes.count || 0) - usersWithoutRoles,
+        inactiveUsers: usersWithoutRoles,
       })
       setRecentActivity(activityRes.data || [])
+
+      // Audit volume over last 12 months
+      const now = new Date()
+      const volumePoints = []
+      const volumeLabels = []
+      for (let i = 11; i >= 0; i--) {
+        const start = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999)
+        const { count } = await supabase
+          .from('audit_log')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', start.toISOString())
+          .lte('created_at', end.toISOString())
+        volumePoints.push(count || 0)
+        volumeLabels.push(start.toLocaleDateString(undefined, { month: 'short' }))
+      }
+      setAuditVolume({ points: volumePoints, labels: volumeLabels })
     } catch (err) {
       showToast(err.message, 'red')
     } finally {
@@ -152,6 +174,27 @@ export default function AdminDashboard({ setPage }) {
                 onClick={k.page ? () => setPage(k.page) : undefined}
               />
             ))}
+          </div>
+
+          {/* Audit volume + user status */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.2fr) minmax(220px, 1fr)', gap: '16px', marginBottom: '16px' }}>
+            <DashCard>
+              <SectionTitle title="Audit Log Volume" subtitle="Events per month — last 12 months" />
+              {auditVolume.points.length > 0 ? (
+                <AreaChart points={auditVolume.points} labels={auditVolume.labels} color={ACCENT.pink} />
+              ) : (
+                <div style={{ color: THEME.textLow, fontSize: '13px', padding: '20px 0' }}>No data</div>
+              )}
+            </DashCard>
+            <DashCard>
+              <SectionTitle title="User Status" subtitle="Active vs inactive users" />
+              <DonutGauge
+                pct={stats.users > 0 ? (stats.activeUsers / stats.users) * 100 : 0}
+                color={ACCENT.green}
+                label="with roles"
+                legend={[[ACCENT.green, `Active ${stats.activeUsers}`], [ACCENT.grey, `No role ${stats.inactiveUsers}`]]}
+              />
+            </DashCard>
           </div>
 
           {/* Recent activity */}

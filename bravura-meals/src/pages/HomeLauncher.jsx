@@ -44,6 +44,120 @@ function useViewport() {
   return vp
 }
 
+// ── Cross-module KPI summary row ─────────────────────────────────────────────
+function KpiSummaryRow({ currentSiteId, can }) {
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    if (!currentSiteId) return
+    let cancelled = false
+
+    async function load() {
+      try {
+        const results = {}
+
+        // Pending approvals (leave + procurement)
+        if (can('hr.view') || can('procurement.view')) {
+          let approvalCount = 0
+          if (can('hr.view')) {
+            const { count } = await supabase
+              .from('leave_requests')
+              .select('*', { count: 'exact', head: true })
+              .eq('site_id', currentSiteId)
+              .eq('status', 'pending')
+            approvalCount += (count || 0)
+          }
+          if (can('procurement.view')) {
+            const { count } = await supabase
+              .from('purchase_requisitions')
+              .select('*', { count: 'exact', head: true })
+              .eq('site_id', currentSiteId)
+              .eq('status', 'pending')
+            approvalCount += (count || 0)
+          }
+          results.pendingApprovals = approvalCount
+        }
+
+        // Low stock items
+        if (can('inventory.view')) {
+          const { data } = await supabase
+            .from('stock_balances')
+            .select('on_hand_qty, items(reorder_level)')
+            .eq('site_id', currentSiteId)
+          const lowStock = (data || []).filter(r => r.items && r.on_hand_qty <= (r.items.reorder_level || 0))
+          results.lowStock = lowStock.length
+        }
+
+        // Expiring documents (within 30 days)
+        if (can('hr.view')) {
+          const thirtyDays = new Date()
+          thirtyDays.setDate(thirtyDays.getDate() + 30)
+          const { count } = await supabase
+            .from('employee_documents')
+            .select('*', { count: 'exact', head: true })
+            .eq('site_id', currentSiteId)
+            .lte('expiry_date', thirtyDays.toISOString().split('T')[0])
+            .gte('expiry_date', new Date().toISOString().split('T')[0])
+          results.expiringDocs = count || 0
+        }
+
+        // Active employees
+        if (can('hr.view')) {
+          const { count } = await supabase
+            .from('employees')
+            .select('*', { count: 'exact', head: true })
+            .eq('site_id', currentSiteId)
+            .eq('status', 'active')
+          results.activeEmployees = count || 0
+        }
+
+        if (!cancelled) setStats(results)
+      } catch (e) {
+        // graceful degradation — show nothing
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [currentSiteId, can])
+
+  if (!stats || Object.keys(stats).length === 0) return null
+
+  const cards = []
+  if (stats.pendingApprovals !== undefined) cards.push({ label: 'Pending Approvals', value: stats.pendingApprovals, icon: 'pending_actions', color: '#F59E0B' })
+  if (stats.lowStock !== undefined) cards.push({ label: 'Low Stock Items', value: stats.lowStock, icon: 'inventory', color: '#EF4444' })
+  if (stats.expiringDocs !== undefined) cards.push({ label: 'Expiring Documents', value: stats.expiringDocs, icon: 'description', color: '#8B5CF6' })
+  if (stats.activeEmployees !== undefined) cards.push({ label: 'Active Employees', value: stats.activeEmployees, icon: 'group', color: '#10B981' })
+
+  if (cards.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '28px', width: '100%', maxWidth: '720px' }}>
+      {cards.map(c => (
+        <div key={c.label} style={{
+          background: THEME.surface,
+          border: `1px solid ${THEME.outlineVar}`,
+          borderRadius: '10px',
+          padding: '12px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          minWidth: '150px',
+          flex: '1 1 150px',
+          maxWidth: '200px',
+        }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: c.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span className="material-symbols-rounded" style={{ fontSize: '18px', color: c.color }}>{c.icon}</span>
+          </div>
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.text, lineHeight: 1.2 }}>{c.value}</div>
+            <div style={{ fontSize: '11px', color: THEME.textMed, lineHeight: 1.3 }}>{c.label}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function HomeLauncher({ onEnterModule }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
@@ -232,6 +346,9 @@ export default function HomeLauncher({ onEnterModule }) {
             Welcome back, <span style={{ fontWeight: 700 }}>{profile?.full_name?.split(' ')[0] || profile?.username}</span>
           </h1>
         </div>
+
+        {/* KPI summary row */}
+        <KpiSummaryRow currentSiteId={currentSite?.id} can={can} />
 
         {/* Module tiles — responsive: 2 cols mobile, 3 tablet, 5 desktop */}
         {(() => {

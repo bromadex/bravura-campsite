@@ -211,7 +211,7 @@ export function CampsiteProvider({ children }) {
         throw new Error('Cannot change to this room type while people are assigned here. Release or transfer them first.')
       }
       if (existingBeds.length > 0) {
-        await supabase.from('beds').delete().in('id', existingBeds.map(b => b.id))
+        await supabase.from('beds').update({ status: 'removed' }).in('id', existingBeds.map(b => b.id))
       }
       payload = { ...data, capacity: 0 }
     } else if (data.capacity != null) {
@@ -237,7 +237,7 @@ export function CampsiteProvider({ children }) {
           throw new Error(`Cannot reduce capacity — ${existingBeds.length - removable.length} bed(s) in this room are currently occupied. Release or transfer those assignments first.`)
         }
         const toRemove = removable.slice(0, Math.abs(diff)).map(b => b.id)
-        await supabase.from('beds').delete().in('id', toRemove)
+        await supabase.from('beds').update({ status: 'removed' }).in('id', toRemove)
       }
     }
 

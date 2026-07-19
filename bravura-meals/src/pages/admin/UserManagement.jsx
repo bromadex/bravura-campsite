@@ -120,7 +120,7 @@ export default function UserManagement({ setPage }) {
       setRevokeTarget(null)
       return
     }
-    const { error } = await supabase.from('user_roles').delete().eq('id', revokeTarget.id)
+    const { error } = await supabase.from('user_roles').update({ is_active: false }).eq('id', revokeTarget.id)
     if (error) { showToast(error.message, 'red'); setRevokeTarget(null); return }
     showToast('Role revoked', 'red')
     setRevokeTarget(null)
@@ -159,7 +159,7 @@ export default function UserManagement({ setPage }) {
         return
       }
       if (theirGrants.length > 0) {
-        const { error: revokeErr } = await supabase.from('user_roles').delete().eq('user_id', target.id)
+        const { error: revokeErr } = await supabase.from('user_roles').update({ is_active: false }).eq('user_id', target.id)
         if (revokeErr) throw revokeErr
       }
       const { error } = await supabase.rpc('rpc_set_user_suspended', { p_user_id: target.id, p_suspend: true })

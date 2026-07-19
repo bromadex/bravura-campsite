@@ -134,7 +134,7 @@ export default function SkillsMatrix() {
   const handleRemoveCell = async () => {
     if (!editCell?.existing) return
     setSaving(true)
-    const { error } = await supabase.from('employee_skills').delete().eq('id', editCell.existing.id)
+    const { error } = await supabase.from('employee_skills').update({ is_archived: true }).eq('id', editCell.existing.id)
     setSaving(false)
     if (error) { showToast('Remove failed: ' + error.message, 'red'); return }
     showToast('Skill removed', 'green')

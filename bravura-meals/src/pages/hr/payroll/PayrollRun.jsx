@@ -154,7 +154,7 @@ export default function PayrollRun() {
       let runId
       if (run && run.status === 'draft') {
         // Delete existing slips and update run
-        await supabase.from('salary_slips').delete().eq('payroll_run_id', run.id)
+        await supabase.from('salary_slips').update({ is_archived: true }).eq('payroll_run_id', run.id)
         runId = run.id
       } else {
         const { data: newRun, error: runErr } = await supabase.from('payroll_runs').insert({

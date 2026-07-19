@@ -65,7 +65,7 @@ export default function CLHiredVehicles({ setPage }) {
   async function fetchLookups() {
     if (!currentSiteId) return
     const [c1, c2, c3] = await Promise.all([
-      supabase.from('contractors').select('id, name').eq('is_archived', false).order('name'),
+      supabase.from('contractors').select('id, name').eq('is_archived', false).or(`site_id.eq.${currentSiteId},site_id.is.null`).order('name'),
       supabase.from('contractor_contracts').select('id, contract_number, title').eq('site_id', currentSiteId).order('created_at', { ascending: false }),
       supabase.from('employees').select('id, name').eq('site_id', currentSiteId).order('name'),
     ])

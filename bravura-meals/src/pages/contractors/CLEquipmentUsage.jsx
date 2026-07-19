@@ -58,11 +58,14 @@ export default function CLEquipmentUsage({ setPage }) {
     setLoading(false)
   }
 
+  const [fuelTxns, setFuelTxns] = useState([])
+  const [fleetTrips, setFleetTrips] = useState([])
+
   async function fetchEquipment() {
     if (!currentSiteId) return
     const { data } = await supabase
       .from('hired_equipment')
-      .select('id, description, serial_number, hourly_rate, daily_rate, contractor:contractors(id, name)')
+      .select('id, description, serial_number, hourly_rate, daily_rate, fleet_asset_id, fuel_included, contractor:contractors(id, name)')
       .eq('site_id', currentSiteId)
       .eq('is_archived', false)
       .eq('status', 'active')
@@ -70,7 +73,33 @@ export default function CLEquipmentUsage({ setPage }) {
     setEquipment(data || [])
   }
 
+  async function fetchLinkedData() {
+    if (!currentSiteId || !equipment.length) return
+    const assetIds = equipment.filter(e => e.fleet_asset_id).map(e => e.fleet_asset_id)
+    if (!assetIds.length) return
+
+    const [fuelRes, tripRes] = await Promise.all([
+      supabase.from('fuel_transactions')
+        .select('id, transaction_date, equipment_id, litres, total_cost, docket_number, notes')
+        .eq('site_id', currentSiteId)
+        .in('equipment_id', assetIds)
+        .gte('transaction_date', dateFrom)
+        .lte('transaction_date', dateTo)
+        .order('transaction_date', { ascending: false }),
+      supabase.from('fleet_trips')
+        .select('id, trip_date, asset_id, operator_id, start_hours, end_hours, operating_hours, purpose, destination')
+        .eq('site_id', currentSiteId)
+        .in('asset_id', assetIds)
+        .gte('trip_date', dateFrom)
+        .lte('trip_date', dateTo)
+        .order('trip_date', { ascending: false }),
+    ])
+    setFuelTxns(fuelRes.data || [])
+    setFleetTrips(tripRes.data || [])
+  }
+
   useEffect(() => { fetchLogs(); fetchEquipment() }, [currentSiteId, dateFrom, dateTo])
+  useEffect(() => { fetchLinkedData() }, [equipment, dateFrom, dateTo])
 
   const filtered = useMemo(() => {
     let list = logs
@@ -87,38 +116,59 @@ export default function CLEquipmentUsage({ setPage }) {
     return list
   }, [logs, filterEquip, search])
 
+  const assetToEquipMap = useMemo(() => {
+    const m = {}
+    equipment.forEach(e => { if (e.fleet_asset_id) m[e.fleet_asset_id] = e.id })
+    return m
+  }, [equipment])
+
   const costSummary = useMemo(() => {
     const byEquip = {}
+    const initEquip = (eid, desc, contractor, hourlyRate, dailyRate) => {
+      if (!byEquip[eid]) byEquip[eid] = {
+        id: eid, description: desc, contractor,
+        hourlyRate, dailyRate,
+        totalHours: 0, totalDowntime: 0, totalFuelLitres: 0,
+        fuelCost: 0, tripHours: 0, days: 0, hireCost: 0,
+      }
+    }
     filtered.forEach(l => {
       const eid = l.equipment_id
-      if (!byEquip[eid]) {
-        byEquip[eid] = {
-          id: eid,
-          description: l.equipment?.description || '-',
-          contractor: l.equipment?.contractor?.name || '-',
-          hourlyRate: Number(l.equipment?.hourly_rate || 0),
-          dailyRate: Number(l.equipment?.daily_rate || 0),
-          totalHours: 0, totalDowntime: 0, totalFuel: 0, days: 0, totalCost: 0,
-        }
-      }
+      initEquip(eid, l.equipment?.description || '-', l.equipment?.contractor?.name || '-',
+        Number(l.equipment?.hourly_rate || 0), Number(l.equipment?.daily_rate || 0))
       const hrs = Number(l.hours_worked || 0)
       byEquip[eid].totalHours += hrs
       byEquip[eid].totalDowntime += Number(l.downtime_hours || 0)
-      byEquip[eid].totalFuel += Number(l.fuel_litres || 0)
+      byEquip[eid].totalFuelLitres += Number(l.fuel_litres || 0)
       byEquip[eid].days += 1
       const rate = byEquip[eid].hourlyRate
-      byEquip[eid].totalCost += rate > 0 ? hrs * rate : byEquip[eid].dailyRate
+      byEquip[eid].hireCost += rate > 0 ? hrs * rate : byEquip[eid].dailyRate
     })
-    return Object.values(byEquip).sort((a, b) => b.totalCost - a.totalCost)
-  }, [filtered])
+    fuelTxns.forEach(ft => {
+      const eid = assetToEquipMap[ft.equipment_id]
+      if (!eid) return
+      if (byEquip[eid]) byEquip[eid].fuelCost += Number(ft.total_cost || 0)
+    })
+    fleetTrips.forEach(tr => {
+      const eid = assetToEquipMap[tr.asset_id]
+      if (!eid) return
+      if (byEquip[eid]) byEquip[eid].tripHours += Number(tr.operating_hours || 0)
+    })
+    return Object.values(byEquip).map(r => ({
+      ...r, totalCost: r.hireCost + r.fuelCost,
+    })).sort((a, b) => b.totalCost - a.totalCost)
+  }, [filtered, fuelTxns, fleetTrips, assetToEquipMap])
 
   const kpis = useMemo(() => ({
     totalHours: filtered.reduce((s, l) => s + Number(l.hours_worked || 0), 0),
     totalCost: costSummary.reduce((s, e) => s + e.totalCost, 0),
+    fuelCost: costSummary.reduce((s, e) => s + e.fuelCost, 0),
     entries: filtered.length,
     avgHoursPerDay: filtered.length > 0 ? (filtered.reduce((s, l) => s + Number(l.hours_worked || 0), 0) / filtered.length).toFixed(1) : '0',
     totalDowntime: filtered.reduce((s, l) => s + Number(l.downtime_hours || 0), 0),
-  }), [filtered, costSummary])
+    fuelTxnCount: fuelTxns.length,
+    tripCount: fleetTrips.length,
+  }), [filtered, costSummary, fuelTxns, fleetTrips])
 
   function openAdd() {
     setEditId(null)
@@ -239,17 +289,18 @@ export default function CLEquipmentUsage({ setPage }) {
       </div>
 
       {/* KPI Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '16px' }}>
         <KpiCard label="Total Hours" value={kpis.totalHours.toFixed(1)} icon="schedule" accent={color} />
-        <KpiCard label="Total Cost" value={fmtMoney(kpis.totalCost)} icon="payments" accent="#2E7D32" />
-        <KpiCard label="Entries" value={kpis.entries} icon="list_alt" accent="#1565C0" />
-        <KpiCard label="Avg Hrs/Entry" value={kpis.avgHoursPerDay} icon="avg_pace" accent="#6A1B9A" />
-        <KpiCard label="Downtime" value={`${kpis.totalDowntime.toFixed(1)}h`} icon="pause_circle" accent="#E65100" />
+        <KpiCard label="Hire Cost" value={fmtMoney(kpis.totalCost - kpis.fuelCost)} icon="payments" accent="#2E7D32" />
+        <KpiCard label="Fuel Cost" value={fmtMoney(kpis.fuelCost)} icon="local_gas_station" accent="#E65100" sub={`${kpis.fuelTxnCount} transactions`} />
+        <KpiCard label="Total Cost" value={fmtMoney(kpis.totalCost)} icon="account_balance" accent="#C62828" />
+        <KpiCard label="Fleet Trips" value={kpis.tripCount} icon="route" accent="#1565C0" />
+        <KpiCard label="Downtime" value={`${kpis.totalDowntime.toFixed(1)}h`} icon="pause_circle" accent="#6A1B9A" />
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
-        {[{ id: 'log', label: 'Usage Log', icon: 'list_alt' }, { id: 'costing', label: 'Cost Summary', icon: 'payments' }].map(t => (
+        {[{ id: 'log', label: 'Usage Log', icon: 'list_alt' }, { id: 'costing', label: 'Cost Summary', icon: 'payments' }, { id: 'linked', label: 'Fuel & Trips', icon: 'link' }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             display: 'inline-flex', alignItems: 'center', gap: '5px',
             padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
@@ -366,11 +417,11 @@ export default function CLEquipmentUsage({ setPage }) {
                 <tr style={{ background: THEME.surfaceVar }}>
                   <th style={th}>Equipment</th>
                   <th style={th}>Contractor</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Total Hours</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Days Logged</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Downtime (h)</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Fuel (L)</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Hourly Rate</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Hours</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Days</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Hire Cost</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Fuel Cost</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Trip Hrs</th>
                   <th style={{ ...th, textAlign: 'right' }}>Total Cost</th>
                 </tr>
               </thead>
@@ -383,9 +434,9 @@ export default function CLEquipmentUsage({ setPage }) {
                     <td style={td}>{r.contractor}</td>
                     <td style={{ ...td, textAlign: 'right' }}>{r.totalHours.toFixed(1)}</td>
                     <td style={{ ...td, textAlign: 'right' }}>{r.days}</td>
-                    <td style={{ ...td, textAlign: 'right', color: r.totalDowntime > 0 ? THEME.statusWarningText : THEME.textMed }}>{r.totalDowntime.toFixed(1)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>{r.totalFuel.toFixed(1)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>{fmtMoney(r.hourlyRate)}</td>
+                    <td style={{ ...td, textAlign: 'right' }}>{fmtMoney(r.hireCost)}</td>
+                    <td style={{ ...td, textAlign: 'right', color: r.fuelCost > 0 ? '#E65100' : THEME.textMed }}>{fmtMoney(r.fuelCost)}</td>
+                    <td style={{ ...td, textAlign: 'right' }}>{r.tripHours.toFixed(1)}</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: color }}>{fmtMoney(r.totalCost)}</td>
                   </tr>
                 ))}
@@ -394,9 +445,9 @@ export default function CLEquipmentUsage({ setPage }) {
                     <td colSpan={2} style={{ ...td, fontWeight: 700 }}>TOTAL</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{costSummary.reduce((s, r) => s + r.totalHours, 0).toFixed(1)}</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{costSummary.reduce((s, r) => s + r.days, 0)}</td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{costSummary.reduce((s, r) => s + r.totalDowntime, 0).toFixed(1)}</td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{costSummary.reduce((s, r) => s + r.totalFuel, 0).toFixed(1)}</td>
-                    <td style={td}></td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{fmtMoney(costSummary.reduce((s, r) => s + r.hireCost, 0))}</td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: '#E65100' }}>{fmtMoney(costSummary.reduce((s, r) => s + r.fuelCost, 0))}</td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{costSummary.reduce((s, r) => s + r.tripHours, 0).toFixed(1)}</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: color }}>{fmtMoney(costSummary.reduce((s, r) => s + r.totalCost, 0))}</td>
                   </tr>
                 )}
@@ -404,6 +455,82 @@ export default function CLEquipmentUsage({ setPage }) {
             </table>
           </div>
         </DashCard>
+      )}
+
+      {tab === 'linked' && (
+        <>
+          <SectionTitle title="Fuel Transactions" subtitle={`Fuel issued to linked equipment (${fuelTxns.length} records)`} style={{ marginBottom: '12px' }} />
+          <DashCard style={{ padding: 0, marginBottom: '20px' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: THEME.surfaceVar }}>
+                    <th style={th}>Date</th>
+                    <th style={th}>Equipment</th>
+                    <th style={{ ...th, textAlign: 'right' }}>Litres</th>
+                    <th style={{ ...th, textAlign: 'right' }}>Cost</th>
+                    <th style={th}>Docket</th>
+                    <th style={th}>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fuelTxns.length === 0 ? (
+                    <tr><td colSpan={6} style={{ ...td, textAlign: 'center', color: THEME.textMed }}>
+                      {equipment.some(e => e.fleet_asset_id) ? 'No fuel transactions in this period' : 'No equipment linked to fleet assets — set fleet_asset_id on hired equipment to see fuel data'}
+                    </td></tr>
+                  ) : fuelTxns.map(ft => {
+                    const eq = equipment.find(e => e.fleet_asset_id === ft.equipment_id)
+                    return (
+                      <tr key={ft.id}>
+                        <td style={td}>{ft.transaction_date}</td>
+                        <td style={{ ...td, fontWeight: 600 }}>{eq?.description || '-'}</td>
+                        <td style={{ ...td, textAlign: 'right' }}>{Number(ft.litres).toFixed(1)}</td>
+                        <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: '#E65100' }}>{fmtMoney(ft.total_cost)}</td>
+                        <td style={td}>{ft.docket_number || '-'}</td>
+                        <td style={{ ...td, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ft.notes || '-'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </DashCard>
+
+          <SectionTitle title="Fleet Trips" subtitle={`Trips logged against linked equipment (${fleetTrips.length} records)`} style={{ marginBottom: '12px' }} />
+          <DashCard style={{ padding: 0 }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: THEME.surfaceVar }}>
+                    <th style={th}>Date</th>
+                    <th style={th}>Equipment</th>
+                    <th style={{ ...th, textAlign: 'right' }}>Hours</th>
+                    <th style={th}>Purpose</th>
+                    <th style={th}>Destination</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fleetTrips.length === 0 ? (
+                    <tr><td colSpan={5} style={{ ...td, textAlign: 'center', color: THEME.textMed }}>
+                      {equipment.some(e => e.fleet_asset_id) ? 'No fleet trips in this period' : 'No equipment linked to fleet assets'}
+                    </td></tr>
+                  ) : fleetTrips.map(tr => {
+                    const eq = equipment.find(e => e.fleet_asset_id === tr.asset_id)
+                    return (
+                      <tr key={tr.id}>
+                        <td style={td}>{tr.trip_date}</td>
+                        <td style={{ ...td, fontWeight: 600 }}>{eq?.description || '-'}</td>
+                        <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{Number(tr.operating_hours || 0).toFixed(1)}</td>
+                        <td style={td}>{tr.purpose || '-'}</td>
+                        <td style={td}>{tr.destination || '-'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </DashCard>
+        </>
       )}
 
       {/* Modal */}

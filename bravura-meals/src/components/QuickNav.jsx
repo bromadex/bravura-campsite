@@ -101,6 +101,7 @@ export const CONTRACTOR_PILLS = [
   { id: 'cl_timesheets', label: 'Timesheets',  icon: 'schedule',        color: '#00838F' },
   { id: 'cl_vehicles',   label: 'Vehicles',    icon: 'local_shipping',  color: '#5D4037' },
   { id: 'cl_equipment',  label: 'Equipment',   icon: 'construction',    color: '#455A64' },
+  { id: 'cl_equipment_usage', label: 'Usage Log', icon: 'timer',          color: '#37474F' },
   { id: 'cl_casual_payroll', label: 'Payroll', icon: 'payments',        color: '#AD1457' },
   { id: 'cl_reports',    label: 'Reports',     icon: 'bar_chart',       color: '#C62828' },
   { id: 'cl_settings',   label: 'Settings',    icon: 'settings',        color: '#546E7A' },

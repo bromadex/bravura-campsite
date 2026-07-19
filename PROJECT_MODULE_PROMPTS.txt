@@ -1,0 +1,306 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    BRAVURA ERP — PROJECT MODULE (PJ)                        ║
+║                         Roadmap & Implementation Prompts                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+MODULE OVERVIEW
+═══════════════════════════════════════════════════════════════════════════════
+
+The Project Module manages construction/mining projects across Bravura sites.
+It tracks project lifecycle from planning through execution to closeout, with
+full cost tracking that aggregates data from existing modules (contractors,
+fleet, inventory, meals, HR/workforce).
+
+Module code: PJ
+Permission pattern: projects.view / projects.create / projects.edit /
+                    projects.delete / projects.approve
+T-code range: PJ01–PJ20
+
+Key differentiator: This is a CROSS-MODULE AGGREGATION layer. Projects don't
+duplicate data — they link to existing records (fleet trips, contractor hours,
+inventory issues, equipment usage) via a project_id FK on those tables.
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 1 — FOUNDATION (Tables + Registry + Dashboard)
+═══════════════════════════════════════════════════════════════════════════════
+Migration: 0085_projects_foundation.sql
+
+Tables:
+  projects
+    - id UUID PK
+    - site_id UUID NOT NULL FK sites
+    - project_code TEXT NOT NULL UNIQUE (auto: PJ-001, PJ-002...)
+    - name TEXT NOT NULL
+    - description TEXT
+    - project_type TEXT CHECK ('construction','mining','maintenance','infrastructure','other')
+    - status TEXT CHECK ('planning','active','on_hold','completed','cancelled') DEFAULT 'planning'
+    - priority TEXT CHECK ('low','medium','high','critical') DEFAULT 'medium'
+    - start_date DATE
+    - target_end_date DATE
+    - actual_end_date DATE
+    - budget NUMERIC(14,2)
+    - project_manager UUID FK employees(id)
+    - client TEXT (internal/external client name)
+    - location TEXT
+    - notes TEXT
+    - is_archived BOOLEAN DEFAULT false
+    - archived_at TIMESTAMPTZ
+    - created_at TIMESTAMPTZ DEFAULT now()
+    - created_by UUID FK auth.users
+
+  project_phases
+    - id UUID PK
+    - project_id UUID NOT NULL FK projects
+    - name TEXT NOT NULL
+    - description TEXT
+    - sequence INT NOT NULL
+    - status TEXT CHECK ('pending','in_progress','completed','skipped') DEFAULT 'pending'
+    - start_date DATE
+    - end_date DATE
+    - budget_allocation NUMERIC(14,2)
+    - notes TEXT
+    - created_at TIMESTAMPTZ DEFAULT now()
+
+  project_members
+    - id UUID PK
+    - project_id UUID NOT NULL FK projects
+    - employee_id UUID FK employees
+    - role TEXT NOT NULL (e.g. 'manager','engineer','supervisor','labourer')
+    - assigned_date DATE DEFAULT CURRENT_DATE
+    - removed_date DATE
+    - is_active BOOLEAN DEFAULT true
+
+Pages:
+  PJ01 — ProjectDashboard.jsx
+    - Active projects count, budget vs actual spend, overdue projects
+    - Project status breakdown (DonutGauge)
+    - Top 5 projects by spend (bar chart)
+    - Recent activity feed
+
+  PJ02 — ProjectList.jsx
+    - CRUD for projects (registry)
+    - Filters: status, type, priority, manager
+    - Table with progress indicator (phases completed / total)
+    - Quick actions: change status, assign manager
+
+  PJ03 — ProjectDetail.jsx
+    - Single project view with tabs:
+      Tab 1: Overview (KPIs, timeline, budget gauge)
+      Tab 2: Phases (gantt-style timeline or list)
+      Tab 3: Team (project_members)
+      Tab 4: Costs (aggregated from linked modules)
+      Tab 5: Documents (future - link to attachments)
+
+QuickNav pills:
+  { id: 'pj_dashboard',  label: 'Dashboard',  icon: 'dashboard',     color: '#1B5E20' }
+  { id: 'pj_projects',   label: 'Projects',   icon: 'folder_open',   color: '#2E7D32' }
+  { id: 'pj_tasks',      label: 'Tasks',      icon: 'checklist',     color: '#1565C0' }
+  { id: 'pj_costs',      label: 'Costs',      icon: 'payments',      color: '#E65100' }
+  { id: 'pj_resources',  label: 'Resources',  icon: 'group',         color: '#6A1B9A' }
+  { id: 'pj_reports',    label: 'Reports',    icon: 'bar_chart',     color: '#C62828' }
+  { id: 'pj_settings',   label: 'Settings',   icon: 'settings',      color: '#546E7A' }
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 2 — TASK MANAGEMENT & PROGRESS
+═══════════════════════════════════════════════════════════════════════════════
+Migration: 0086_project_tasks.sql
+
+Tables:
+  project_tasks
+    - id UUID PK
+    - project_id UUID NOT NULL FK projects
+    - phase_id UUID FK project_phases
+    - title TEXT NOT NULL
+    - description TEXT
+    - status TEXT CHECK ('todo','in_progress','review','done','blocked') DEFAULT 'todo'
+    - priority TEXT CHECK ('low','medium','high','critical') DEFAULT 'medium'
+    - assigned_to UUID FK employees
+    - due_date DATE
+    - completed_date DATE
+    - estimated_hours NUMERIC(8,2)
+    - actual_hours NUMERIC(8,2)
+    - depends_on UUID FK project_tasks (simple single dependency)
+    - notes TEXT
+    - is_archived BOOLEAN DEFAULT false
+    - created_at TIMESTAMPTZ DEFAULT now()
+
+  project_task_updates
+    - id UUID PK
+    - task_id UUID NOT NULL FK project_tasks
+    - update_type TEXT CHECK ('comment','status_change','progress','blocker')
+    - content TEXT
+    - old_status TEXT
+    - new_status TEXT
+    - created_by UUID FK auth.users
+    - created_at TIMESTAMPTZ DEFAULT now()
+
+Pages:
+  PJ04 — ProjectTasks.jsx
+    - Kanban board view (columns: todo, in_progress, review, done, blocked)
+    - List view toggle
+    - Drag-and-drop status changes
+    - Filter by assignee, phase, priority
+    - Quick-add task inline
+
+  PJ05 — ProjectProgress.jsx
+    - Gantt-style timeline (phases + tasks)
+    - Phase completion percentages
+    - Critical path highlighting (tasks that are blocking others)
+    - Milestone markers
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 3 — COST TRACKING & CROSS-MODULE LINKING
+═══════════════════════════════════════════════════════════════════════════════
+Migration: 0087_project_costs.sql
+
+Schema changes (add project_id to existing tables):
+  ALTER TABLE fleet_trips ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE equipment_usage_log ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE inventory_issues ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE hired_equipment ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE hired_vehicles ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE casual_timesheets ADD COLUMN project_id UUID REFERENCES projects(id);
+
+New table:
+  project_cost_entries (for manual/miscellaneous costs not from other modules)
+    - id UUID PK
+    - project_id UUID NOT NULL FK projects
+    - phase_id UUID FK project_phases
+    - cost_category TEXT NOT NULL ('labour','materials','equipment','transport','fuel','other')
+    - description TEXT NOT NULL
+    - amount NUMERIC(14,2) NOT NULL
+    - cost_date DATE NOT NULL
+    - vendor TEXT
+    - reference_number TEXT
+    - approved BOOLEAN DEFAULT false
+    - approved_by UUID FK auth.users
+    - notes TEXT
+    - is_archived BOOLEAN DEFAULT false
+    - created_at TIMESTAMPTZ DEFAULT now()
+
+RPC: rpc_project_cost_summary(project_id UUID)
+  Returns aggregated costs from all linked modules:
+    - Fleet trips (fuel cost from fleet_trips where project_id = X)
+    - Equipment hours (equipment_usage_log × hourly_rate)
+    - Materials (inventory_issues value where project_id = X)
+    - Hired equipment (hired_equipment daily_rate × days)
+    - Hired vehicles (hired_vehicles daily_rate × days)
+    - Casual labour (casual_timesheets hours × rate where project_id = X)
+    - Manual entries (project_cost_entries)
+  Grouped by cost_category with subtotals.
+
+Pages:
+  PJ06 — ProjectCosts.jsx
+    - Budget vs Actual gauge (% spent)
+    - Cost breakdown by category (stacked bar or pie)
+    - Cost trend over time (line chart)
+    - Detailed line items from all sources
+    - Manual cost entry form
+    - Filter by phase, category, date range
+    - Link to source record (click → navigate to fleet trip, inventory issue, etc.)
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 4 — RESOURCE MANAGEMENT & SCHEDULING
+═══════════════════════════════════════════════════════════════════════════════
+Migration: 0088_project_resources.sql
+
+Tables:
+  project_resource_allocations
+    - id UUID PK
+    - project_id UUID NOT NULL FK projects
+    - resource_type TEXT CHECK ('employee','equipment','vehicle') NOT NULL
+    - resource_id UUID NOT NULL (polymorphic — employee, hired_equipment, or fleet_asset)
+    - allocation_pct NUMERIC(5,2) DEFAULT 100 (% of time allocated)
+    - start_date DATE NOT NULL
+    - end_date DATE
+    - notes TEXT
+    - created_at TIMESTAMPTZ DEFAULT now()
+
+Pages:
+  PJ07 — ProjectResources.jsx
+    - Resource calendar/matrix (who is on which project, when)
+    - Over-allocation warnings (employee on >100% across projects)
+    - Equipment utilization view
+    - Drag to reassign resources between projects
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 5 — REPORTING & ANALYTICS
+═══════════════════════════════════════════════════════════════════════════════
+Migration: 0089_project_reports_rpcs.sql (RPCs only, no new tables)
+
+RPCs:
+  rpc_project_portfolio_summary(site_id UUID)
+    - All projects: status, budget, actual spend, variance, % complete
+  rpc_project_resource_utilization(site_id UUID, date_from DATE, date_to DATE)
+    - Resource usage across projects
+
+Pages:
+  PJ08 — ProjectReports.jsx
+    - Portfolio overview (all projects side by side)
+    - Budget variance report
+    - Resource utilization report
+    - Timeline adherence (planned vs actual dates)
+    - Cost per project per month trend
+    - CSV export for all reports
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 6 — APPROVALS & WORKFLOWS (FUTURE)
+═══════════════════════════════════════════════════════════════════════════════
+
+  - Project creation approval workflow
+  - Budget change requests (when actual > budget by threshold)
+  - Phase gate approvals (can't move to next phase without sign-off)
+  - Cost approval thresholds per role
+
+═══════════════════════════════════════════════════════════════════════════════
+IMPLEMENTATION NOTES
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Module registration:
+   - Add to permissions table: projects.view/create/edit/delete/approve
+   - Add MODULE_COLORS.projects in utils/permissions.js
+   - Add projectsNav to navigation config
+   - Add PROJECT_PILLS to QuickNav.jsx
+   - Add module tile to HomeLauncher.jsx
+   - Register routes in App.jsx
+
+2. Cross-module linking strategy:
+   - Adding project_id to existing tables is OPTIONAL on those tables
+   - When creating a fleet trip, equipment usage, inventory issue, etc.,
+     the user gets a "Project" dropdown (only shows active projects)
+   - The project cost RPC aggregates by querying WHERE project_id = X
+   - This means NO data duplication — single source of truth
+
+3. Project codes:
+   - Auto-generated: PJ-001, PJ-002, etc. (per site)
+   - Stored in module_settings table (like employee numbers BRA-xxx)
+
+4. Dashboard connects to contractor module:
+   - Equipment usage linked via project_id on equipment_usage_log
+   - Hired vehicles linked via project_id on hired_vehicles
+   - Casual timesheets linked via project_id on casual_timesheets
+   - This gives instant project costing without manual entry
+
+5. Migration numbering: 0085–0089 (general range, not HR)
+
+═══════════════════════════════════════════════════════════════════════════════
+PRIORITY ORDER
+═══════════════════════════════════════════════════════════════════════════════
+
+Phase 1 → Phase 3 → Phase 2 → Phase 5 → Phase 4 → Phase 6
+
+Rationale: Foundation first, then cost tracking (highest business value —
+knowing what projects cost), then tasks (operational), then reports, then
+resource management (complex), then workflows (nice-to-have).
+
+═══════════════════════════════════════════════════════════════════════════════
+STATUS
+═══════════════════════════════════════════════════════════════════════════════
+
+Phase 1: NOT STARTED
+Phase 2: NOT STARTED
+Phase 3: NOT STARTED
+Phase 4: NOT STARTED
+Phase 5: NOT STARTED
+Phase 6: FUTURE

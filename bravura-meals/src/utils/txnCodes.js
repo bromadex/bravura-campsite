@@ -129,6 +129,7 @@ export const TXN_CODES = [
   { code: 'CL10', path: '/contractors/cl_reports',              label: 'CL Reports',            module: 'contractors' },
   { code: 'CL11', path: '/contractors/cl_settings',             label: 'CL Settings',           module: 'contractors' },
   { code: 'CL12', path: '/contractors/cl_casual_payroll',      label: 'Casual Payroll',        module: 'contractors' },
+  { code: 'CL13', path: '/contractors/cl_equipment_usage',    label: 'Equipment Usage',       module: 'contractors' },
 
   // ── Admin (AD) ────────────────────────────────────────────────────────────
   { code: 'AD01', path: '/admin/admin_dashboard',   label: 'Admin Dashboard',      module: 'admin' },

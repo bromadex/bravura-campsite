@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS equipment_usage_log (
 ALTER TABLE equipment_usage_log ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY eul_select ON equipment_usage_log FOR SELECT
-  USING (site_id IN (SELECT site_id FROM user_roles WHERE user_id = auth.uid() AND is_active = true));
+  USING (site_id IN (SELECT site_id FROM user_roles WHERE user_id = auth.uid()));
 
 CREATE POLICY eul_insert ON equipment_usage_log FOR INSERT
   WITH CHECK (EXISTS (

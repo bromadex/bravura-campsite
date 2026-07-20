@@ -488,7 +488,7 @@ export default function FuelSettings() {
       )}
 
       {/* ── Fuel Type Modal ── */}
-      <Modal
+      <Modal dirty={true}
         open={ftModal}
         onClose={() => setFtModal(false)}
         title={ftEdit ? 'Edit Fuel Type' : 'Add Fuel Type'}

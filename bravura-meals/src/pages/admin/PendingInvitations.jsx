@@ -138,7 +138,7 @@ export default function PendingInvitations({ setPage }) {
       )}
 
       {/* Add Invitation Modal */}
-      <Modal
+      <Modal dirty={true}
         open={showAdd}
         onClose={() => { setShowAdd(false); setForm({ email: '', full_name: '', username: '', role_id: '' }) }}
         title="Add Pending Invitation"

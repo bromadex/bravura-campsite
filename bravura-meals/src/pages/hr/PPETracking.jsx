@@ -310,7 +310,7 @@ export default function PPETracking({ setPage }) {
       </div>
 
       {/* Issue PPE Modal */}
-      <Modal
+      <Modal dirty={true}
         open={showModal}
         onClose={() => setShowModal(false)}
         title="Issue PPE"

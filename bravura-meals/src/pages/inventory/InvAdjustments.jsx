@@ -165,7 +165,7 @@ export default function InvAdjustments({ setPage }) {
         </Card>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Stock Adjustment"
+      <Modal dirty={true} open={modalOpen} onClose={() => setModalOpen(false)} title="Stock Adjustment"
         footer={<>
           <Button variant="text" onClick={() => setModalOpen(false)}>Cancel</Button>
           <Button variant="filled" onClick={handleSubmit} disabled={saving}>{saving ? 'Saving...' : 'Record Adjustment'}</Button>

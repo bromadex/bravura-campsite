@@ -185,7 +185,7 @@ export default function ExitManagement({ setPage }) {
 
       {/* Add Exit Record Modal */}
       {addModal && (
-        <Modal title="New Exit Record" onClose={() => setAddModal(false)}>
+        <Modal dirty={true} title="New Exit Record" onClose={() => setAddModal(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_exit" />
             <div>
@@ -220,7 +220,7 @@ export default function ExitManagement({ setPage }) {
 
       {/* Detail Modal */}
       {detailModal && (
-        <Modal title={`Exit - ${empMap[detailModal.employee_id] || 'Employee'}`} onClose={() => setDetailModal(null)}>
+        <Modal dirty={true} title={`Exit - ${empMap[detailModal.employee_id] || 'Employee'}`} onClose={() => setDetailModal(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div><SectionLabel>Exit Type</SectionLabel><div style={{ fontSize: 14 }}>{detailModal.exit_type}</div></div>

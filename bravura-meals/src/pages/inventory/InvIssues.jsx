@@ -194,7 +194,7 @@ export default function InvIssues({ setPage }) {
         </Card>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={mode === 'issue' ? 'Issue Stock' : 'Return Stock'}
+      <Modal dirty={true} open={modalOpen} onClose={() => setModalOpen(false)} title={mode === 'issue' ? 'Issue Stock' : 'Return Stock'}
         footer={<>
           <Button variant="text" onClick={() => setModalOpen(false)}>Cancel</Button>
           <Button variant="filled" onClick={handleSubmit} disabled={saving}>{saving ? 'Saving...' : mode === 'issue' ? 'Issue' : 'Return'}</Button>

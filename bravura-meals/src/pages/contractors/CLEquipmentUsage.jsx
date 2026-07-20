@@ -3,7 +3,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
-import { showToast } from '../../components/ui'
+import { showToast, ModalOverlay } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
 import { KpiCard, DashCard, SectionTitle } from '../../components/dash'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
@@ -535,11 +535,7 @@ export default function CLEquipmentUsage({ setPage }) {
 
       {/* Modal */}
       {modalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,.45)',
-        }} onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
+        <ModalOverlay onClose={() => setModalOpen(false)} dirty={true}>
           <div style={{
             background: THEME.surface, borderRadius: '18px', width: '580px', maxWidth: '95vw',
             maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -637,7 +633,7 @@ export default function CLEquipmentUsage({ setPage }) {
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )

@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { ModalOverlay } from '../../components/ui'
 import QuickNav, { PROCUREMENT_PILLS } from '../../components/QuickNav'
 
 const CLR = MODULE_COLORS.procurement
@@ -215,12 +216,10 @@ export default function Suppliers({ setPage }) {
 
       {/* ── Add/Edit Modal ── */}
       {showForm && (
-        <>
-          <div onClick={() => setShowForm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.35)', zIndex: 900 }} />
+        <ModalOverlay onClose={() => setShowForm(false)} dirty={true}>
           <div style={{
-            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
             background: THEME.surface, borderRadius: '14px', width: '480px', maxWidth: '95vw',
-            maxHeight: '90vh', overflowY: 'auto', zIndex: 901,
+            maxHeight: '90vh', overflowY: 'auto',
             boxShadow: '0 20px 60px rgba(0,0,0,.25)',
           }}>
             <div style={{ padding: '20px 24px', borderBottom: `1px solid ${THEME.outlineVar}` }}>
@@ -269,7 +268,7 @@ export default function Suppliers({ setPage }) {
               </button>
             </div>
           </div>
-        </>
+        </ModalOverlay>
       )}
     </div>
   )

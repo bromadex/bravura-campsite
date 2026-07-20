@@ -280,7 +280,7 @@ export default function InvRequisitions({ setPage }) {
         </Card>
       )}
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editId ? 'Edit Requisition' : 'New Purchase Requisition'}
+      <Modal dirty={true} open={modal} onClose={() => setModal(false)} title={editId ? 'Edit Requisition' : 'New Purchase Requisition'}
         footer={<>
           <Button variant="text" onClick={() => setModal(false)}>Cancel</Button>
           <Button variant="outlined" onClick={() => handleSave(false)} disabled={saving}>Save Draft</Button>

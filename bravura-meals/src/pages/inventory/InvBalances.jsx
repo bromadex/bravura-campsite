@@ -194,7 +194,7 @@ export default function InvBalances({ setPage }) {
         </Card>
       )}
 
-      <Modal open={openingModal} onClose={() => setOpeningModal(false)} title="Capture Opening Stock"
+      <Modal dirty={true} open={openingModal} onClose={() => setOpeningModal(false)} title="Capture Opening Stock"
         footer={<>
           <Button variant="text" onClick={() => setOpeningModal(false)}>Cancel</Button>
           <Button variant="filled" onClick={postOpening} disabled={saving}>{saving ? 'Recording...' : 'Record Opening'}</Button>

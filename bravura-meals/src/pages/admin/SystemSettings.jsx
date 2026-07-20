@@ -189,7 +189,7 @@ export default function SystemSettings({ setPage }) {
       )}
 
       {/* Add/Edit Modal */}
-      <Modal
+      <Modal dirty={true}
         open={showModal}
         onClose={() => setShowModal(false)}
         title={editItem ? 'Edit Setting' : 'Add Setting'}

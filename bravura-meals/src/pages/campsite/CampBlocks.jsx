@@ -99,7 +99,7 @@ export default function CampBlocks({ setPage }) {
         </div>
       )}
 
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editing ? `Edit — ${editing.name}` : 'Add New Block'}

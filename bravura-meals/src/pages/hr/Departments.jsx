@@ -229,7 +229,7 @@ export default function Departments({ setPage }) {
         </TableWrap>
       )}
 
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editing ? `Edit — ${editing.name}` : 'Add Department'}

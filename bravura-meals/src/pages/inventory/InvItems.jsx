@@ -253,7 +253,7 @@ export default function InvItems({ setPage }) {
         </Card>
       )}
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editId ? 'Edit Item' : 'New Item'}
+      <Modal dirty={true} open={modal} onClose={() => setModal(false)} title={editId ? 'Edit Item' : 'New Item'}
         footer={<>
           <Button variant="text" onClick={() => setModal(false)}>Cancel</Button>
           <Button variant="filled" onClick={save} disabled={saving}>{saving ? 'Saving...' : editId ? 'Update' : 'Create'}</Button>

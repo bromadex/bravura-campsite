@@ -154,7 +154,7 @@ export default function InvWarehouses({ setPage }) {
         </div>
       )}
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editId ? 'Edit Warehouse' : 'New Warehouse'}
+      <Modal dirty={true} open={modal} onClose={() => setModal(false)} title={editId ? 'Edit Warehouse' : 'New Warehouse'}
         footer={<>
           <Button variant="text" onClick={() => setModal(false)}>Cancel</Button>
           <Button variant="filled" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>

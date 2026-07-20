@@ -4,7 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
-import { showToast, Icon } from '../../components/ui'
+import { showToast, Icon, ModalOverlay } from '../../components/ui'
 import { KpiCard, DashCard, DonutGauge, ProgressRow, SectionTitle } from '../../components/dash'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
@@ -903,8 +903,7 @@ export default function PJDetail({ projectId, setPage }) {
 
       {/* ── TASK DETAIL MODAL ───────────────────────────────────────── */}
       {taskModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'rgba(0,0,0,.45)', paddingTop: '5vh', overflowY: 'auto' }}
-          onClick={e => { if (e.target === e.currentTarget) setTaskModal(null) }}>
+        <ModalOverlay onClose={() => setTaskModal(null)} dirty={true} style={{ alignItems: 'flex-start', paddingTop: '5vh', overflowY: 'auto' }}>
           <div style={{ background: THEME.surface, borderRadius: '18px', width: '600px', maxWidth: '95vw', boxShadow: THEME.shadow3, padding: '24px', marginBottom: '5vh' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text }}>Task Details</div>
@@ -1020,13 +1019,12 @@ export default function PJDetail({ projectId, setPage }) {
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* ── PHASE MODAL ─────────────────────────────────────────── */}
       {phaseModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.45)' }}
-          onClick={e => { if (e.target === e.currentTarget) setPhaseModal(false) }}>
+        <ModalOverlay onClose={() => setPhaseModal(false)} dirty={true}>
           <div style={{ background: THEME.surface, borderRadius: '18px', width: '480px', maxWidth: '95vw', boxShadow: THEME.shadow3, padding: '24px' }}>
             <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text, marginBottom: '16px' }}>{editPhaseId ? 'Edit Phase' : 'Add Phase'}</div>
             <div style={fieldWrap}><label style={lbl}>Name *</label><input style={inp} value={phaseForm.name} onChange={e => setPhaseForm(f => ({ ...f, name: e.target.value }))} /></div>
@@ -1050,13 +1048,12 @@ export default function PJDetail({ projectId, setPage }) {
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* ── MEMBER MODAL ────────────────────────────────────────── */}
       {memberModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.45)' }}
-          onClick={e => { if (e.target === e.currentTarget) setMemberModal(false) }}>
+        <ModalOverlay onClose={() => setMemberModal(false)} dirty={true}>
           <div style={{ background: THEME.surface, borderRadius: '18px', width: '400px', maxWidth: '95vw', boxShadow: THEME.shadow3, padding: '24px' }}>
             <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text, marginBottom: '16px' }}>Add Team Member</div>
             <div style={fieldWrap}><label style={lbl}>User</label><select style={inp} value={memberForm.user_id} onChange={e => setMemberForm(f => ({ ...f, user_id: e.target.value }))}>
@@ -1071,13 +1068,12 @@ export default function PJDetail({ projectId, setPage }) {
               <button onClick={addMember} disabled={memberSaving} style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: memberSaving ? 0.6 : 1 }}>{memberSaving ? 'Adding...' : 'Add'}</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* ── LABEL MODAL ─────────────────────────────────────────── */}
       {labelModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.45)' }}
-          onClick={e => { if (e.target === e.currentTarget) setLabelModal(false) }}>
+        <ModalOverlay onClose={() => setLabelModal(false)} dirty={true}>
           <div style={{ background: THEME.surface, borderRadius: '18px', width: '400px', maxWidth: '95vw', boxShadow: THEME.shadow3, padding: '24px' }}>
             <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text, marginBottom: '16px' }}>Add Label</div>
             <div style={fieldWrap}><label style={lbl}>Name</label><input style={inp} value={labelForm.name} onChange={e => setLabelForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Safety, Electrical, Urgent" /></div>
@@ -1097,7 +1093,7 @@ export default function PJDetail({ projectId, setPage }) {
               <button onClick={addLabel} disabled={labelSaving} style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: labelSaving ? 0.6 : 1 }}>{labelSaving ? 'Adding...' : 'Add'}</button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )

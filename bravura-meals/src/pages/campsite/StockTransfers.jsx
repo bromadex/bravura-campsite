@@ -280,7 +280,7 @@ export default function StockTransfers({ setPage }) {
       )}
 
       {/* New Transfer Modal */}
-      <Modal open={requestModal} onClose={() => setRequestModal(false)} title="New Site Reassignment"
+      <Modal dirty={true} open={requestModal} onClose={() => setRequestModal(false)} title="New Site Reassignment"
         footer={<>
           <Button onClick={() => setRequestModal(false)} variant="text">Cancel</Button>
           <Button onClick={doRequest} variant="filled" disabled={saving}>{saving ? 'Creating…' : 'Create Request'}</Button>

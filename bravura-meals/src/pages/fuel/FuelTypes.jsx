@@ -169,7 +169,7 @@ export default function FuelTypes() {
         )}
       </Card>
 
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editItem ? 'Edit Fuel Type' : 'Add Fuel Type'}

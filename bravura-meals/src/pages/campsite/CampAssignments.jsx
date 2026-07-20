@@ -244,7 +244,7 @@ export default function CampAssignments({ setPage }) {
       )}
 
       {/* ── Assign Modal ── */}
-      <Modal open={assignModal} onClose={() => setAssignModal(false)} title="Assign Room"
+      <Modal dirty={true} open={assignModal} onClose={() => setAssignModal(false)} title="Assign Room"
         footer={<>
           <Button onClick={() => setAssignModal(false)} variant="text">Cancel</Button>
           <Button onClick={doAssign} variant="filled" disabled={saving}>{saving ? 'Assigning…' : 'Assign'}</Button>
@@ -281,7 +281,7 @@ export default function CampAssignments({ setPage }) {
       </Modal>
 
       {/* ── Transfer Modal ── */}
-      <Modal open={transferModal} onClose={() => setTransferModal(false)} title={`Transfer Room — ${transferTarget?.employee?.name}`}
+      <Modal dirty={true} open={transferModal} onClose={() => setTransferModal(false)} title={`Transfer Room — ${transferTarget?.employee?.name}`}
         footer={<>
           <Button onClick={() => setTransferModal(false)} variant="text">Cancel</Button>
           <Button onClick={doTransfer} variant="filled" disabled={saving}>{saving ? 'Transferring…' : 'Transfer'}</Button>
@@ -309,7 +309,7 @@ export default function CampAssignments({ setPage }) {
       </Modal>
 
       {/* ── Release Confirm ── */}
-      <Modal open={!!releaseTarget} onClose={() => setReleaseTarget(null)} title={`Release Room — ${releaseTarget?.employee?.name}`}
+      <Modal dirty={true} open={!!releaseTarget} onClose={() => setReleaseTarget(null)} title={`Release Room — ${releaseTarget?.employee?.name}`}
         footer={<>
           <Button onClick={() => setReleaseTarget(null)} variant="text">Cancel</Button>
           <Button onClick={doRelease} variant="danger" disabled={saving}>{saving ? 'Releasing…' : 'Release Room'}</Button>

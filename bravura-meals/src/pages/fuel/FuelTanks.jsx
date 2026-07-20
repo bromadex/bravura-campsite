@@ -657,7 +657,7 @@ export default function FuelTanks({ setPage }) {
       )}
 
       {/* Add / Edit Modal */}
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editItem ? 'Edit Tank' : 'Add Tank'}

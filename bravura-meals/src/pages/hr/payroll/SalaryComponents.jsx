@@ -233,7 +233,7 @@ export default function SalaryComponents() {
         </TableWrap>
       )}
 
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editing ? `Edit — ${editing.name}` : 'Add Salary Component'}

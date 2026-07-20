@@ -284,7 +284,7 @@ export default function UserManagement({ setPage }) {
       )}
 
       {/* Manage Access Modal */}
-      <Modal
+      <Modal dirty={true}
         open={!!manageTarget}
         onClose={() => { setManageTarget(null); setNewRoleId(''); setNewSiteId('ALL') }}
         title={`Manage Access — ${manageTarget?.full_name || manageTarget?.username}`}

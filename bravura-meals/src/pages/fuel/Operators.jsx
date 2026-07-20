@@ -310,7 +310,7 @@ export default function Operators() {
       </Card>
 
       {/* Add / Edit Modal */}
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editItem ? 'Edit Operator' : 'Add Operator'}

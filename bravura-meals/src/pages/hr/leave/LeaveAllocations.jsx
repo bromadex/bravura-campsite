@@ -160,7 +160,7 @@ export default function LeaveAllocations() {
       )}
 
       {/* Bulk allocate */}
-      <Modal open={bulkOpen} onClose={() => setBulkOpen(false)} title={`Bulk Allocate — ${year}`}
+      <Modal dirty={true} open={bulkOpen} onClose={() => setBulkOpen(false)} title={`Bulk Allocate — ${year}`}
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
             <Button variant="outlined" onClick={() => setBulkOpen(false)}>Cancel</Button>
@@ -206,7 +206,7 @@ export default function LeaveAllocations() {
       </Modal>
 
       {/* Manual adjust */}
-      <Modal open={adjOpen} onClose={() => setAdjOpen(false)} title={`Adjust — ${adjRow?.employee?.name || ''}`}
+      <Modal dirty={true} open={adjOpen} onClose={() => setAdjOpen(false)} title={`Adjust — ${adjRow?.employee?.name || ''}`}
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
             <Button variant="outlined" onClick={() => setAdjOpen(false)}>Cancel</Button>

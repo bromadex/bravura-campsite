@@ -268,7 +268,7 @@ export default function Equipment() {
       </Card>
 
       {/* Add / Edit Modal */}
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editItem ? 'Edit Equipment' : 'Add Equipment'}
@@ -358,7 +358,7 @@ function EquipmentDetailModal({ equipment, transactions, onClose }) {
 
   if (!equipment) return null
   return (
-    <Modal
+    <Modal dirty={true}
       open={!!equipment}
       onClose={onClose}
       title={`${equipment.equipment_number} · ${equipment.name}`}

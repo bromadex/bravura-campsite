@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { StatusBadge } from '../../components/ui'
+import { StatusBadge, ModalOverlay } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
@@ -297,12 +297,8 @@ export default function FleetHeavyEquipment({ setPage }) {
       )}
 
       {modalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,.45)',
-        }} onClick={() => setModalOpen(false)}>
-          <div onClick={e => e.stopPropagation()} style={{
+        <ModalOverlay onClose={() => setModalOpen(false)} dirty={true}>
+          <div style={{
             background: THEME.surface, borderRadius: '16px', padding: '28px',
             width: '560px', maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto',
             boxShadow: THEME.shadow3,
@@ -463,7 +459,7 @@ export default function FleetHeavyEquipment({ setPage }) {
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )

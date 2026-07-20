@@ -303,7 +303,7 @@ export default function ShiftManagement() {
       )}
 
       {/* Shift Modal */}
-      <Modal open={shiftModal} onClose={() => setShiftModal(false)} title={editing ? 'Edit Shift' : 'Add Shift'} footer={
+      <Modal dirty={true} open={shiftModal} onClose={() => setShiftModal(false)} title={editing ? 'Edit Shift' : 'Add Shift'} footer={
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {editing && canEdit && (
             <Button variant="outline" onClick={archiveShift} disabled={saving}
@@ -341,7 +341,7 @@ export default function ShiftManagement() {
       </Modal>
 
       {/* Assignment Modal */}
-      <Modal open={assignModal} onClose={() => setAssignModal(false)} title="Assign Employee to Shift" footer={
+      <Modal dirty={true} open={assignModal} onClose={() => setAssignModal(false)} title="Assign Employee to Shift" footer={
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           <Button variant="outline" onClick={() => setAssignModal(false)}>Cancel</Button>
           <Button variant="filled" onClick={saveAssignment} disabled={saving}>{saving ? 'Saving...' : 'Assign'}</Button>

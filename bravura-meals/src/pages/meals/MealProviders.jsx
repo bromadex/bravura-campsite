@@ -140,7 +140,7 @@ export default function MealProviders({ setPage }) {
       )}
 
       {/* Add / Edit Modal */}
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editing ? `Edit — ${editing.name}` : 'Add Meal Provider'}

@@ -321,7 +321,7 @@ export default function InvPurchaseOrders({ setPage }) {
         </Card>
       )}
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editId ? 'Edit Purchase Order' : 'New Purchase Order'}
+      <Modal dirty={true} open={modal} onClose={() => setModal(false)} title={editId ? 'Edit Purchase Order' : 'New Purchase Order'}
         footer={<>
           <Button variant="text" onClick={() => setModal(false)}>Cancel</Button>
           <Button variant="outlined" onClick={() => handleSave(false)} disabled={saving}>Save Draft</Button>
@@ -388,7 +388,7 @@ export default function InvPurchaseOrders({ setPage }) {
         </div>
       </Modal>
 
-      <Modal open={receiveModal} onClose={() => setReceiveModal(false)} title={`Receive: ${receivePo?.po_number || ''}`}
+      <Modal dirty={true} open={receiveModal} onClose={() => setReceiveModal(false)} title={`Receive: ${receivePo?.po_number || ''}`}
         footer={<>
           <Button variant="text" onClick={() => setReceiveModal(false)}>Cancel</Button>
           <Button variant="filled" onClick={handleReceive} disabled={receiveSaving}>{receiveSaving ? 'Receiving...' : 'Receive Goods'}</Button>

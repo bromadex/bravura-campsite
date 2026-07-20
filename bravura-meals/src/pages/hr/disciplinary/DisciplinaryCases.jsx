@@ -182,7 +182,7 @@ export default function DisciplinaryCases() {
 
       {/* Add Case Modal */}
       {addModal && (
-        <Modal title="New Disciplinary Case" onClose={() => setAddModal(false)}>
+        <Modal dirty={true} title="New Disciplinary Case" onClose={() => setAddModal(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <SectionLabel>Employee</SectionLabel>
@@ -212,7 +212,7 @@ export default function DisciplinaryCases() {
 
       {/* Detail Modal */}
       {detailModal && (
-        <Modal title={`Case ${detailModal.case_number}`} onClose={() => setDetailModal(null)}>
+        <Modal dirty={true} title={`Case ${detailModal.case_number}`} onClose={() => setDetailModal(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div><SectionLabel>Employee</SectionLabel><div style={{ fontSize: 14 }}>{empMap[detailModal.employee_id] || detailModal.employee_id}</div></div>

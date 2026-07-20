@@ -508,7 +508,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
       )}
 
       {/* Change status modal */}
-      <Modal open={statusModal} onClose={() => setStatusModal(false)} title="Change Status"
+      <Modal dirty={true} open={statusModal} onClose={() => setStatusModal(false)} title="Change Status"
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
             <Button variant="outlined" onClick={() => setStatusModal(false)}>Cancel</Button>
@@ -553,7 +553,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
       </Modal>
 
       {/* Upload document modal */}
-      <Modal open={docModal} onClose={() => setDocModal(false)} title="Upload Document"
+      <Modal dirty={true} open={docModal} onClose={() => setDocModal(false)} title="Upload Document"
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
             <Button variant="outlined" onClick={() => setDocModal(false)}>Cancel</Button>
@@ -591,7 +591,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
       </Modal>
 
       {/* Add medical record modal */}
-      <Modal open={medModal} onClose={() => setMedModal(false)} title="Add Medical Record"
+      <Modal dirty={true} open={medModal} onClose={() => setMedModal(false)} title="Add Medical Record"
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
             <Button variant="outlined" onClick={() => setMedModal(false)}>Cancel</Button>

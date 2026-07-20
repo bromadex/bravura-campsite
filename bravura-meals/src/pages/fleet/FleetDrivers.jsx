@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { ModalOverlay } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
@@ -362,11 +363,7 @@ export default function FleetDrivers({ setPage }) {
       )}
 
       {modalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,.45)',
-        }} onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
+        <ModalOverlay onClose={() => setModalOpen(false)} dirty={true}>
           <div style={{
             background: THEME.surface, borderRadius: '18px', width: '560px', maxWidth: '95vw',
             maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -526,7 +523,7 @@ export default function FleetDrivers({ setPage }) {
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )

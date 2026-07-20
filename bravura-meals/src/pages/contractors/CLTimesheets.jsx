@@ -3,7 +3,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
-import { showToast } from '../../components/ui'
+import { showToast, ModalOverlay } from '../../components/ui'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
@@ -374,11 +374,7 @@ export default function CLTimesheets({ setPage }) {
       )}
 
       {modalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,.45)',
-        }} onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
+        <ModalOverlay onClose={() => setModalOpen(false)} dirty={true}>
           <div style={{
             background: THEME.surface, borderRadius: '18px', width: '600px', maxWidth: '95vw',
             maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -469,15 +465,11 @@ export default function CLTimesheets({ setPage }) {
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {bulkOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,.45)',
-        }} onClick={e => { if (e.target === e.currentTarget) setBulkOpen(false) }}>
+        <ModalOverlay onClose={() => setBulkOpen(false)} dirty={true}>
           <div style={{
             background: THEME.surface, borderRadius: '18px', width: '700px', maxWidth: '95vw',
             maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -539,7 +531,7 @@ export default function CLTimesheets({ setPage }) {
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )

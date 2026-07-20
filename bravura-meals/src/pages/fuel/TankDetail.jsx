@@ -326,7 +326,7 @@ function PumpsTab({ tank, pumps, canEdit }) {
         </TableWrap>
       )}
 
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editItem ? 'Edit Pump' : 'Add Pump'}

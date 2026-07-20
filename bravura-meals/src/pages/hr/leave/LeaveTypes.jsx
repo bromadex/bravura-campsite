@@ -118,7 +118,7 @@ export default function LeaveTypes() {
         </TableWrap>
       )}
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Edit Leave Type' : 'Add Leave Type'}
+      <Modal dirty={true} open={modal} onClose={() => setModal(false)} title={editing ? 'Edit Leave Type' : 'Add Leave Type'}
         footer={
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
             <div>{editing?.is_active && <Button variant="danger" icon="archive" onClick={archiveType}>Archive</Button>}</div>

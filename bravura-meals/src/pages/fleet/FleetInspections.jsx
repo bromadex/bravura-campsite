@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { StatusBadge } from '../../components/ui'
+import { StatusBadge, ModalOverlay } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -271,11 +271,7 @@ export default function FleetInspections({ setPage }) {
       )}
 
       {modalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,.45)',
-        }} onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
+        <ModalOverlay onClose={() => setModalOpen(false)} dirty={true}>
           <div style={{
             background: THEME.surface, borderRadius: '18px', width: '560px', maxWidth: '95vw',
             maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -372,7 +368,7 @@ export default function FleetInspections({ setPage }) {
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )

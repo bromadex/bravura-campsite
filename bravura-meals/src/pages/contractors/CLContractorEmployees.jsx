@@ -3,7 +3,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
-import { showToast } from '../../components/ui'
+import { showToast, ModalOverlay } from '../../components/ui'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
@@ -332,11 +332,7 @@ export default function CLContractorEmployees({ setPage }) {
       )}
 
       {modalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,.45)',
-        }} onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
+        <ModalOverlay onClose={() => setModalOpen(false)} dirty={true}>
           <div style={{
             background: THEME.surface, borderRadius: '18px', width: '640px', maxWidth: '95vw',
             maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -468,15 +464,11 @@ export default function CLContractorEmployees({ setPage }) {
               </div>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {importOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,.45)',
-        }} onClick={e => { if (e.target === e.currentTarget) setImportOpen(false) }}>
+        <ModalOverlay onClose={() => setImportOpen(false)} dirty={true}>
           <div style={{
             background: THEME.surface, borderRadius: '18px', width: '560px', maxWidth: '95vw',
             maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -561,7 +553,7 @@ export default function CLContractorEmployees({ setPage }) {
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )

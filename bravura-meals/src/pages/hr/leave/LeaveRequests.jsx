@@ -212,7 +212,7 @@ export default function LeaveRequests() {
       )}
 
       {/* New request */}
-      <Modal open={reqOpen} onClose={() => setReqOpen(false)} title="New Leave Request"
+      <Modal dirty={true} open={reqOpen} onClose={() => setReqOpen(false)} title="New Leave Request"
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
             <Button variant="outlined" onClick={() => setReqOpen(false)}>Cancel</Button>
@@ -264,7 +264,7 @@ export default function LeaveRequests() {
       </Modal>
 
       {/* Reject */}
-      <Modal open={rejOpen} onClose={() => setRejOpen(false)} title={`Reject — ${rejTarget?.employee?.name || ''}`}
+      <Modal dirty={true} open={rejOpen} onClose={() => setRejOpen(false)} title={`Reject — ${rejTarget?.employee?.name || ''}`}
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
             <Button variant="outlined" onClick={() => setRejOpen(false)}>Cancel</Button>

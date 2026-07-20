@@ -166,7 +166,7 @@ export default function Transfers({ setPage }) {
         </TableWrap>
       )}
 
-      <Modal open={modal} onClose={() => setModal(false)} title="New Site Reassignment"
+      <Modal dirty={true} open={modal} onClose={() => setModal(false)} title="New Site Reassignment"
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
             <Button variant="outlined" onClick={() => setModal(false)}>Cancel</Button>

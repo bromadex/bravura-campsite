@@ -310,7 +310,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
       </div>
 
       {/* ── Assign Modal ── */}
-      <Modal open={assignModal} onClose={() => { setAssignModal(false); setAssignBedId('') }} title={`Assign to Room ${room.room_number}`}
+      <Modal dirty={true} open={assignModal} onClose={() => { setAssignModal(false); setAssignBedId('') }} title={`Assign to Room ${room.room_number}`}
         footer={<>
           <Button onClick={() => setAssignModal(false)} variant="text">Cancel</Button>
           <Button
@@ -424,7 +424,7 @@ export default function RoomDetailPanel({ room, onClose, profile }) {
       </Modal>
 
       {/* ── Transfer Modal ── */}
-      <Modal open={!!transferTarget} onClose={() => { setTransferTarget(null); setTransferBedId('') }} title={`Move ${transferTarget?.employee?.name || transferTarget?.visitor?.name}`}
+      <Modal dirty={true} open={!!transferTarget} onClose={() => { setTransferTarget(null); setTransferBedId('') }} title={`Move ${transferTarget?.employee?.name || transferTarget?.visitor?.name}`}
         footer={<>
           <Button onClick={() => { setTransferTarget(null); setTransferBedId('') }} variant="text">Cancel</Button>
           <Button onClick={doTransfer} variant="filled" disabled={saving}>{saving ? 'Moving…' : 'Move'}</Button>

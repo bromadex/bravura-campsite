@@ -271,7 +271,7 @@ export default function Vehicles() {
       </Card>
 
       {/* ── Add / Edit Modal ─────────────────────────────────────────────── */}
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editItem ? 'Edit Vehicle' : 'Add Vehicle'}
@@ -385,7 +385,7 @@ function VehicleDetailModal({ vehicle, transactions, onClose }) {
   if (!vehicle) return null
   const desc = [vehicle.make, vehicle.model].filter(Boolean).join(' ') || vehicle.description || '—'
   return (
-    <Modal
+    <Modal dirty={true}
       open={!!vehicle}
       onClose={onClose}
       title={`${vehicle.registration || vehicle.fleet_number} · ${desc}`}

@@ -312,7 +312,7 @@ export default function CampRooms({ setPage }) {
       )}
 
       {/* ── Add / Edit Modal ── */}
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editing ? `Edit Room ${editing.room_number}` : 'Add New Room'}
@@ -392,7 +392,7 @@ export default function CampRooms({ setPage }) {
       </Modal>
 
       {/* ── Maintenance Modal ── */}
-      <Modal
+      <Modal dirty={true}
         open={!!maintTarget}
         onClose={() => setMaintTarget(null)}
         title={maintTarget?.is_maintenance

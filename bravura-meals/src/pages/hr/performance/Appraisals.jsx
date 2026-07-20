@@ -242,7 +242,7 @@ export default function Appraisals() {
 
       {/* Add Cycle Modal */}
       {cycleModal && (
-        <Modal title="New Appraisal Cycle" onClose={() => setCycleModal(false)}>
+        <Modal dirty={true} title="New Appraisal Cycle" onClose={() => setCycleModal(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <SectionLabel>Name</SectionLabel>
@@ -263,7 +263,7 @@ export default function Appraisals() {
 
       {/* Appraisal Form Modal */}
       {appraisalModal && (
-        <Modal title={`Appraisal - ${empMap[appraisalModal.employee_id] || 'Employee'}`} onClose={() => setAppraisalModal(null)}>
+        <Modal dirty={true} title={`Appraisal - ${empMap[appraisalModal.employee_id] || 'Employee'}`} onClose={() => setAppraisalModal(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <SectionLabel>Self Assessment</SectionLabel>
             <div style={{ display: 'flex', gap: 12 }}>

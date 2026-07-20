@@ -169,7 +169,7 @@ export default function Designations({ setPage }) {
         </TableWrap>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Designation' : 'Add Designation'}
+      <Modal dirty={true} open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Designation' : 'Add Designation'}
         footer={
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', width: '100%' }}>
             <div>

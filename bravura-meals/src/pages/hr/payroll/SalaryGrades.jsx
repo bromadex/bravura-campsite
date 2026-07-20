@@ -185,7 +185,7 @@ export default function SalaryGrades() {
         </TableWrap>
       )}
 
-      <Modal
+      <Modal dirty={true}
         open={modal}
         onClose={() => setModal(false)}
         title={editing ? `Edit — ${editing.name}` : 'Add Salary Grade'}

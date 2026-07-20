@@ -243,7 +243,7 @@ export default function InvStockTake({ setPage }) {
         </Card>
       )}
 
-      <Modal open={newModal} onClose={() => setNewModal(false)} title="New Stock Take"
+      <Modal dirty={true} open={newModal} onClose={() => setNewModal(false)} title="New Stock Take"
         footer={<>
           <Button variant="text" onClick={() => setNewModal(false)}>Cancel</Button>
           <Button variant="filled" onClick={createTake} disabled={saving}>{saving ? 'Creating...' : 'Start Stock Take'}</Button>
@@ -266,7 +266,7 @@ export default function InvStockTake({ setPage }) {
         </div>
       </Modal>
 
-      <Modal open={detailModal} onClose={() => setDetailModal(false)} title={`Stock Take: ${activeTake?.reference || ''}`}
+      <Modal dirty={true} open={detailModal} onClose={() => setDetailModal(false)} title={`Stock Take: ${activeTake?.reference || ''}`}
         footer={<div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', width: '100%' }}>
           <Button icon="download" variant="text" onClick={exportTake}>Export</Button>
           <div style={{ display: 'flex', gap: '8px' }}>

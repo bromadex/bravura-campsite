@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { THEME } from '../utils/permissions'
 
 // ── Material Symbol icon helper ───────────────────────────────────────────────
@@ -124,12 +125,36 @@ export function Chip({ children, active, onClick, color }) {
   )
 }
 
+// ── Discard-guard strip (shared by Modal + ModalOverlay) ────────────────────
+function DiscardBar({ onDiscard, onKeep }) {
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2,
+      background: THEME.surface, borderTop: `1px solid ${THEME.outlineVar}`,
+      padding: '12px 22px', display: 'flex', alignItems: 'center', gap: '10px',
+      boxShadow: '0 -4px 16px rgba(0,0,0,.10)',
+    }}>
+      <Icon name="warning" size={18} style={{ color: THEME.warning, flexShrink: 0 }} />
+      <span style={{ fontSize: '13px', color: THEME.text, flex: 1 }}>You have unsaved changes</span>
+      <Button variant="text" onClick={onKeep}>Keep editing</Button>
+      <Button variant="danger" onClick={onDiscard}>Discard</Button>
+    </div>
+  )
+}
+
 // ── Modal — Fiori Dialog ─────────────────────────────────────────────────────
-export function Modal({ open, onClose, title, children, footer }) {
+export function Modal({ open, onClose, title, children, footer, dirty, maxWidth }) {
+  const [showDiscard, setShowDiscard] = useState(false)
   if (!open) return null
+  function handleBackdrop(e) {
+    if (e.target !== e.currentTarget) return
+    if (dirty) { setShowDiscard(true); return }
+    onClose()
+  }
+  function handleDiscard() { setShowDiscard(false); onClose() }
   return (
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={handleBackdrop}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(15,15,15,.42)',
         zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -138,10 +163,10 @@ export function Modal({ open, onClose, title, children, footer }) {
     >
       <div style={{
         background: THEME.surface, borderRadius: '12px', padding: 0,
-        maxWidth: '560px', width: '100%', margin: '16px',
+        maxWidth: maxWidth || '560px', width: '100%', margin: '16px',
         boxShadow: '0 20px 48px rgba(0,0,0,.20), 0 4px 12px rgba(0,0,0,.10)',
         border: `1px solid ${THEME.outlineVar}`,
-        overflow: 'hidden',
+        overflow: 'hidden', position: 'relative',
       }}>
         <div style={{
           padding: '16px 22px',
@@ -158,7 +183,30 @@ export function Modal({ open, onClose, title, children, footer }) {
             {footer}
           </div>
         )}
+        {showDiscard && <DiscardBar onDiscard={handleDiscard} onKeep={() => setShowDiscard(false)} />}
       </div>
+    </div>
+  )
+}
+
+// ── ModalOverlay — for inline modals that don't use <Modal> ─────────────────
+export function ModalOverlay({ onClose, dirty, children, style }) {
+  const [showDiscard, setShowDiscard] = useState(false)
+  function handleBackdrop(e) {
+    if (e.target !== e.currentTarget) return
+    if (dirty) { setShowDiscard(true); return }
+    onClose()
+  }
+  function handleDiscard() { setShowDiscard(false); onClose() }
+  return (
+    <div onClick={handleBackdrop} style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(0,0,0,.45)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      ...style,
+    }}>
+      {children}
+      {showDiscard && <DiscardBar onDiscard={handleDiscard} onKeep={() => setShowDiscard(false)} />}
     </div>
   )
 }
@@ -532,8 +580,7 @@ export function Td({ children, align, style }) {
   return <td style={{ padding: '10px 14px', textAlign: align, color: THEME.text, ...style }}>{children}</td>
 }
 
-// need useState for useSortState
-import { useState } from 'react'
+// need useState for useSortState (moved to top of file)
 import { useTheme } from '../contexts/ThemeContext'
 
 // ── Theme toggle — sun/moon switch ────────────────────────────────────────────

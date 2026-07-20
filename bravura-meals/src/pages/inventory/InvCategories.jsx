@@ -182,7 +182,7 @@ export default function InvCategories({ setPage }) {
       )}
 
       {/* Category modal */}
-      <Modal open={catModal} onClose={() => setCatModal(false)} title={catEditId ? 'Edit Category' : 'New Category'}
+      <Modal dirty={true} open={catModal} onClose={() => setCatModal(false)} title={catEditId ? 'Edit Category' : 'New Category'}
         footer={<>
           <Button variant="text" onClick={() => setCatModal(false)}>Cancel</Button>
           <Button variant="filled" onClick={saveCat} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
@@ -203,7 +203,7 @@ export default function InvCategories({ setPage }) {
       </Modal>
 
       {/* UoM modal */}
-      <Modal open={uomModal} onClose={() => setUomModal(false)} title={uomEditId ? 'Edit Unit of Measure' : 'New Unit of Measure'}
+      <Modal dirty={true} open={uomModal} onClose={() => setUomModal(false)} title={uomEditId ? 'Edit Unit of Measure' : 'New Unit of Measure'}
         footer={<>
           <Button variant="text" onClick={() => setUomModal(false)}>Cancel</Button>
           <Button variant="filled" onClick={saveUom} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>

@@ -363,7 +363,7 @@ export default function FuelIssues({ setPage }) {
       </Card>
 
       {/* ── Edit Transaction Modal ── */}
-      <Modal
+      <Modal dirty={true}
         open={!!editTarget}
         onClose={() => setEditTarget(null)}
         title="Edit Transaction"
@@ -429,7 +429,7 @@ export default function FuelIssues({ setPage }) {
       </Modal>
 
       {/* ── Delete Confirmation Modal ── */}
-      <Modal
+      <Modal dirty={true}
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         title="Delete Transaction"
@@ -478,7 +478,7 @@ export default function FuelIssues({ setPage }) {
       </Modal>
 
       {/* ── Audit Trail Modal ── */}
-      <Modal
+      <Modal dirty={true}
         open={!!auditTarget}
         onClose={() => { setAuditTarget(null); setAuditLogs([]) }}
         title="Audit Trail"
@@ -604,7 +604,7 @@ export default function FuelIssues({ setPage }) {
       </Modal>
 
       {/* Acknowledge / Query manual issuance */}
-      <Modal
+      <Modal dirty={true}
         open={!!ackTarget}
         onClose={() => { setAckTarget(null); setAckNote('') }}
         title="Acknowledge fuel issuance"

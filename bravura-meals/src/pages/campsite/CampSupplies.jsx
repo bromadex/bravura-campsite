@@ -429,7 +429,7 @@ export default function CampSupplies({ setPage }) {
       )}
 
       {/* ── Txn Modal ── */}
-      <Modal open={txnModal} onClose={() => setTxnModal(false)}
+      <Modal dirty={true} open={txnModal} onClose={() => setTxnModal(false)}
         title={txnType === 'receive' ? 'Receive Stock' : 'Issue Stock'}
         footer={<>
           <Button onClick={() => setTxnModal(false)} variant="text">Cancel</Button>
@@ -496,7 +496,7 @@ export default function CampSupplies({ setPage }) {
       </Modal>
 
       {/* ── Bulk Issue Modal ── */}
-      <Modal open={bulkModal} onClose={() => !bulkSaving && setBulkModal(false)} title="Bulk Issue Stock"
+      <Modal dirty={true} open={bulkModal} onClose={() => !bulkSaving && setBulkModal(false)} title="Bulk Issue Stock"
         footer={<>
           <Button onClick={() => setBulkModal(false)} variant="text" disabled={bulkSaving}>Cancel</Button>
           <Button onClick={doBulkIssue} variant="danger" disabled={bulkSaving}>
@@ -583,7 +583,7 @@ export default function CampSupplies({ setPage }) {
       </Modal>
 
       {/* ── Add Item Modal ── */}
-      <Modal open={itemModal} onClose={() => setItemModal(false)} title="Add Supply Item"
+      <Modal dirty={true} open={itemModal} onClose={() => setItemModal(false)} title="Add Supply Item"
         footer={<>
           <Button onClick={() => setItemModal(false)} variant="text">Cancel</Button>
           <Button onClick={doAddItem} variant="filled" disabled={saving}>{saving ? 'Saving…' : 'Add Item'}</Button>
@@ -603,7 +603,7 @@ export default function CampSupplies({ setPage }) {
       </Modal>
 
       {/* ── Edit Transaction Modal ── */}
-      <Modal open={!!editTxn} onClose={() => setEditTxn(null)}
+      <Modal dirty={true} open={!!editTxn} onClose={() => setEditTxn(null)}
         title={`Edit ${editTxn?.txn_type === 'receive' ? 'Receipt' : 'Issue'} — ${editTxn?.item?.name || ''}`}
         footer={<>
           <Button onClick={() => setEditTxn(null)} variant="text">Cancel</Button>
@@ -669,7 +669,7 @@ export default function CampSupplies({ setPage }) {
       />
 
       {/* ── Request from Central Stores ── */}
-      <Modal open={reqModal} onClose={() => setReqModal(false)} title="Request from Central Stores" wide>
+      <Modal dirty={true} open={reqModal} onClose={() => setReqModal(false)} title="Request from Central Stores" wide>
         <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '14px' }}>
           Create an inventory requisition for items the camp needs from the central warehouse.
         </div>

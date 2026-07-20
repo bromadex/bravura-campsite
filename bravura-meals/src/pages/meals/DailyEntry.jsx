@@ -360,6 +360,7 @@ export default function DailyEntry({ setPage }) {
 
   return (
     <div>
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_entry" />
       {/* ── Header ── */}
       <PageHeader
         title="Daily Meal Entry"
@@ -792,7 +793,6 @@ function MealTick({ on, meal, editable, onClick }) {
         boxShadow: on ? `0 2px 8px ${p.active}33` : 'none',
       }}
     >
-      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_entry" />
       {on && (
         <span
           className="material-symbols-rounded filled"

@@ -132,7 +132,7 @@ function KpiSummaryRow({ currentSiteId, can }) {
   if (cards.length === 0) return null
 
   return (
-    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '28px', width: '100%', maxWidth: '720px' }}>
+    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '28px', width: '100%', maxWidth: '720px' }}>
       {cards.map(c => (
         <div key={c.label} style={{
           background: THEME.surface,
@@ -348,9 +348,6 @@ export default function HomeLauncher({ onEnterModule }) {
           </h1>
         </div>
 
-        {/* KPI summary row */}
-        <KpiSummaryRow currentSiteId={currentSite?.id} can={can} />
-
         {/* Module tiles — responsive: 2 cols mobile, 3 tablet, 5 desktop */}
         {(() => {
           const perRow = isMobile ? 2 : isTablet ? 3 : 5
@@ -367,6 +364,9 @@ export default function HomeLauncher({ onEnterModule }) {
             </div>
           )
         })()}
+
+        {/* KPI summary row */}
+        <KpiSummaryRow currentSiteId={currentSite?.id} can={can} />
       </div>
 
       {/* ── Footer ── */}

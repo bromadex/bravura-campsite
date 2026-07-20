@@ -79,15 +79,15 @@ export default function InvReports({ setPage }) {
         setData((rows || []).filter(r => r.warehouse?.site_id === currentSiteId && r.item?.reorder_level && r.on_hand_qty <= r.item.reorder_level).sort((a, b) => a.on_hand_qty - b.on_hand_qty))
       } else if (reportId === 'consumption') {
         const { data: rows, error } = await supabase.from('inventory_movements')
-          .select('item_id, quantity, created_at, issued_to_name, issued_to_department, movement_type, item:items!inventory_movements_item_id_fkey(item_code, description), warehouse:warehouses!inventory_movements_warehouse_id_fkey(name, site_id)')
+          .select('item_id, quantity, created_at, movement_type, item:items!inventory_movements_item_id_fkey(item_code, description), warehouse:warehouses!inventory_movements_warehouse_id_fkey(name, site_id), employee:employees!inventory_movements_issued_to_employee_id_fkey(name), department:departments!inventory_movements_department_id_fkey(name)')
           .gte('created_at', periodFrom + 'T00:00:00')
           .lte('created_at', periodTo + 'T23:59:59')
           .like('movement_type', '%issue%')
           .not('warehouse', 'is', null)
         if (error) throw error
         setData((rows || []).filter(r => r.warehouse?.site_id === currentSiteId).map(r => ({
-          issued_to_name: r.issued_to_name || '—',
-          issued_to_department: r.issued_to_department || '—',
+          issued_to_name: r.employee?.name || '—',
+          issued_to_department: r.department?.name || '—',
           item_code: r.item?.item_code,
           description: r.item?.description,
           qty: Math.abs(r.quantity || 0),

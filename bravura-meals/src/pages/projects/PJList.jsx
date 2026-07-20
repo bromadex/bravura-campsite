@@ -104,8 +104,10 @@ export default function PJList({ setPage }) {
   }, [projects, filterStatus, filterType, search])
 
   async function generateCode() {
-    const { count } = await supabase.from('projects').select('id', { count: 'exact', head: true }).eq('site_id', currentSiteId)
-    return `PJ-${String((count || 0) + 1).padStart(3, '0')}`
+    const { data } = await supabase.from('projects').select('project_code').eq('site_id', currentSiteId).like('project_code', 'PJ-%').order('project_code', { ascending: false }).limit(1)
+    const last = data?.[0]?.project_code
+    const next = last ? parseInt(last.replace('PJ-', ''), 10) + 1 : 1
+    return `PJ-${String(next).padStart(3, '0')}`
   }
 
   function openAdd() {

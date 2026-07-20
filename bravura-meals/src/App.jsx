@@ -521,7 +521,7 @@ function ModuleShell() {
   const { moduleId, pageId } = useParams()
   const navigate = useNavigate()
   const { profile } = useAuth()
-  const { can } = usePermissions()
+  const { can, loading: permsLoading } = usePermissions()
   const role = profile.role
 
   const meta = MODULE_META[moduleId]
@@ -566,7 +566,7 @@ function ModuleShell() {
     >
       <ErrorBoundary level="page">
         <Suspense fallback={PageLoader}>
-          {content || AccessDenied}
+          {content || (permsLoading ? PageLoader : AccessDenied)}
         </Suspense>
       </ErrorBoundary>
     </ModuleLayout>
@@ -593,7 +593,7 @@ function ModuleShell() {
 function FuelDetailShell({ page, children }) {
   const navigate = useNavigate()
   const { profile } = useAuth()
-  const { can } = usePermissions()
+  const { can, loading: permsLoading } = usePermissions()
   const meta = MODULE_META.fuel
   const navItems = meta.navFn(profile.role, can)
 
@@ -613,12 +613,12 @@ function FuelDetailShell({ page, children }) {
       >
         <ErrorBoundary level="page">
           <Suspense fallback={PageLoader}>
-            {can('fuel.view') ? children : (
+            {can('fuel.view') ? children : (permsLoading ? PageLoader : (
               <div style={{ textAlign: 'center', padding: '80px 24px', color: THEME.textLow }}>
                 <span className="material-symbols-rounded" style={{ fontSize: '56px', color: THEME.outline, display: 'block', marginBottom: '14px' }}>lock</span>
                 <p style={{ fontSize: '15px' }}>You don't have access to this section.</p>
               </div>
-            )}
+            ))}
           </Suspense>
         </ErrorBoundary>
       </ModuleLayout>

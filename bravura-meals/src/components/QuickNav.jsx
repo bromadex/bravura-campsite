@@ -107,6 +107,11 @@ export const CONTRACTOR_PILLS = [
   { id: 'cl_settings',   label: 'Settings',    icon: 'settings',        color: '#546E7A' },
 ]
 
+export const PROJECT_PILLS = [
+  { id: 'pj_dashboard', label: 'Dashboard',  icon: 'dashboard',   color: '#1B5E20' },
+  { id: 'pj_projects',  label: 'Projects',   icon: 'folder_open', color: '#2E7D32' },
+]
+
 export const ADMIN_PILLS = [
   { id: 'admin_dashboard',   label: 'Dashboard',    icon: 'dashboard',         color: '#5C6BC0' },
   { id: 'admin_users',       label: 'Users',        icon: 'manage_accounts',   color: '#1565C0' },

@@ -205,6 +205,19 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* Projects */}
+      {can('projects.view') && (
+        <Section icon="engineering" color={MODULE_COLORS.projects} title="Projects — plan, track & collaborate">
+          <Steps items={[
+            <>The Dashboard (<Code>PJ01</Code>) shows KPIs — active projects, overdue count, total budget — plus status breakdown and top projects by budget.</>,
+            <>Create and manage projects in the Project List (<Code>PJ02</Code>) — card or table view, with status/type filters and search.</>,
+            <>Click into any project for its workspace (<Code>PJ03</Code>) — phases, team members, labels and progress tracking all in one place.</>,
+            <>Phases break each project into sequenced milestones with budget allocation, dates and weighted progress.</>,
+            <>Team members are assigned with roles (manager, contributor, viewer) and granular permissions for tasks, docs and comments.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* Inventory */}
       {can('inventory.view') && (
         <Section icon="inventory_2" color={MODULE_COLORS.inventory} title="Inventory — items, stock & warehouses">

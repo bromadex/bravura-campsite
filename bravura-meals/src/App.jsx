@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
@@ -182,6 +182,11 @@ const ProcOrders = lazy(() => import('./pages/procurement/ProcOrders'))
 const ProcTracking = lazy(() => import('./pages/procurement/ProcTracking'))
 const ProcReports = lazy(() => import('./pages/procurement/ProcReports'))
 
+// ── Projects ─────────────────────────────────────────────────────────────────
+const PJDashboard = lazy(() => import('./pages/projects/PJDashboard'))
+const PJList      = lazy(() => import('./pages/projects/PJList'))
+const PJDetail    = lazy(() => import('./pages/projects/PJDetail'))
+
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
 const QuickStartGuide          = lazy(() => import('./pages/feedback/QuickStartGuide'))
@@ -230,6 +235,7 @@ const MODULE_META = {
   contractors: { label: 'Contract & Contractor Management', icon: 'handshake', navFn: contractorsNav },
   inventory:   { label: 'Inventory Management',  icon: 'inventory_2',      navFn: inventoryNav    },
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
+  projects:    { label: 'Project Management',    icon: 'engineering',      navFn: projectsNav     },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
 
@@ -466,6 +472,19 @@ function getInventoryPage(page, can, setPage) {
   }
 }
 
+function getProjectsPage(page, can, setPage) {
+  if (!can('projects.view')) return null
+  if (page && page.startsWith('pj_detail_')) {
+    const projectId = page.replace('pj_detail_', '')
+    return <PJDetail setPage={setPage} projectId={projectId} />
+  }
+  switch (page) {
+    case 'pj_dashboard': return <PJDashboard setPage={setPage} />
+    case 'pj_projects':  return <PJList setPage={setPage} />
+    default:             return <PJDashboard setPage={setPage} />
+  }
+}
+
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
@@ -485,6 +504,7 @@ const DEFAULT_PAGE = {
   contractors: 'cl_dashboard',
   inventory:   'inv_dashboard',
   procurement: 'proc_dashboard',
+  projects:    'pj_dashboard',
   feedback:    'feedback_board',
 }
 
@@ -520,6 +540,7 @@ function ModuleShell() {
   if (moduleId === 'contractors') content = getContractorsPage(currentPage, can, setPage)
   if (moduleId === 'inventory')   content = getInventoryPage(currentPage, can, setPage)
   if (moduleId === 'procurement') content = getProcurementPage(currentPage, can, setPage)
+  if (moduleId === 'projects')  content = getProjectsPage(currentPage, can, setPage)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 
   const AccessDenied = (

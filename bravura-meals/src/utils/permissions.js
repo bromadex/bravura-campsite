@@ -87,6 +87,7 @@ export const MODULE_COLORS = {
   feedback:    '#6B7280',  // slate        – neutral, "system meta" feel
   contractors: '#0D7377',  // deep teal    – external workforce/contracts
   inventory:   '#B45309',  // amber-brown  – warehouses/stock
+  projects:    '#1B5E20',  // deep green   – project management
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -126,6 +127,7 @@ export const moduleAccess = {
   // Feedback — always open to any signed-in user. This is where the whole
   // organisation reports bugs, gaps, and suggestions during the build phase.
   inventory: (role, can) => can ? can('inventory.view') : false,
+  projects:  (role, can) => can ? can('projects.view') : false,
   feedback:  r => !!r,
 }
 
@@ -279,6 +281,13 @@ export function contractorsNav(role, can) {
     { id: 'cl_cost_dashboard',       label: 'Cost Dashboard',      section: 'Costs',        icon: 'payments' },
     { id: 'cl_reports',              label: 'Reports',             section: 'Reports',      icon: 'bar_chart' },
     { id: 'cl_settings',             label: 'Settings',            section: 'Admin',        icon: 'settings' },
+  ]
+}
+
+export function projectsNav(role, can) {
+  return [
+    { id: 'pj_dashboard', label: 'Dashboard',  section: 'Overview',  icon: 'dashboard' },
+    { id: 'pj_projects',  label: 'Projects',   section: 'Projects',  icon: 'folder_open' },
   ]
 }
 

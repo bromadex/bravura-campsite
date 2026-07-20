@@ -83,8 +83,8 @@ function KpiSummaryRow({ currentSiteId, can }) {
         if (can('inventory.view')) {
           const { data } = await supabase
             .from('stock_balances')
-            .select('on_hand_qty, items(reorder_level)')
-            .eq('site_id', currentSiteId)
+            .select('on_hand_qty, items(reorder_level), warehouses!inner(site_id)')
+            .eq('warehouses.site_id', currentSiteId)
           const lowStock = (data || []).filter(r => r.items && r.on_hand_qty <= (r.items.reorder_level || 0))
           results.lowStock = lowStock.length
         }

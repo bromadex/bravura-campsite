@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
+import { useSite } from '../../contexts/SiteContext'
 import { Card, Button, Modal, ConfirmModal, Icon, showToast, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
@@ -18,7 +19,9 @@ const fieldWrap = { marginBottom: '12px' }
 
 export default function PendingInvitations({ setPage }) {
   const { can } = usePermissions()
-  useRealtimeSubscription('pending_role_assignments', { column: 'site_id', value: currentSiteId }, fetchAll)
+  const { currentSiteId } = useSite()
+  const [tick, setTick] = useState(0)
+  useRealtimeSubscription('pending_role_assignments', { column: 'site_id', value: currentSiteId }, () => setTick(t => t + 1))
   const canView = can('users.view')
   const canEdit = can('users.edit')
 
@@ -31,7 +34,7 @@ export default function PendingInvitations({ setPage }) {
   const [form, setForm] = useState({ email: '', full_name: '', username: '', role_id: '' })
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => { fetchAll() }, [])
+  useEffect(() => { fetchAll() }, [tick])
 
   async function fetchAll() {
     setLoading(true)

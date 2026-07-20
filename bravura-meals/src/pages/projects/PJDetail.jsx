@@ -93,6 +93,18 @@ export default function PJDetail({ projectId, setPage }) {
   const dragItem = useRef(null)
   const dragOverCol = useRef(null)
 
+  // Areas state
+  const [projectAreas, setProjectAreas] = useState([])
+  const [areaCodes, setAreaCodes] = useState([])
+  const [areaModal, setAreaModal] = useState(false)
+  const [areaForm, setAreaForm] = useState({ area_code_id: '', responsible_engineer_id: '', planned_budget: '', description: '', target_start_date: '', target_end_date: '' })
+  const [editAreaId, setEditAreaId] = useState(null)
+  const [areaSaving, setAreaSaving] = useState(false)
+
+  // Activity state
+  const [activity, setActivity] = useState([])
+  const [activityLoading, setActivityLoading] = useState(false)
+
   useRealtimeSubscription('project_phases', { column: 'project_id', value: projectId }, fetchAll)
   useRealtimeSubscription('project_members', { column: 'project_id', value: projectId }, fetchAll)
 
@@ -119,7 +131,30 @@ export default function PJDetail({ projectId, setPage }) {
     setSiteUsers(data || [])
   }
 
-  useEffect(() => { fetchAll(); fetchSiteUsers() }, [projectId, currentSiteId])
+  async function fetchAreas() {
+    if (!projectId) return
+    const [paRes, acRes] = await Promise.all([
+      supabase.from('project_areas').select('*, area_code:area_codes(code, name, color, discipline), engineer:profiles!project_areas_responsible_engineer_id_fkey(full_name)').eq('project_id', projectId).order('sort_order'),
+      supabase.from('area_codes').select('*').eq('is_active', true).order('sort_order').order('code'),
+    ])
+    setProjectAreas(paRes.data || [])
+    setAreaCodes(acRes.data || [])
+  }
+
+  async function fetchActivity() {
+    if (!projectId) return
+    setActivityLoading(true)
+    const { data } = await supabase.from('project_activity')
+      .select('*, actor:profiles!project_activity_actor_id_fkey(full_name)')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+      .limit(100)
+    setActivity(data || [])
+    setActivityLoading(false)
+  }
+
+  useEffect(() => { fetchAll(); fetchSiteUsers(); fetchAreas() }, [projectId, currentSiteId])
+  useEffect(() => { if (tab === 'activity') fetchActivity() }, [tab, projectId])
 
   const phasePct = useMemo(() => {
     if (!phases.length) return 0
@@ -432,6 +467,55 @@ export default function PJDetail({ projectId, setPage }) {
     return (parts[0]?.[0] || '').toUpperCase() + (parts[1]?.[0] || '').toUpperCase()
   }
 
+  // Area CRUD
+  function openAddArea() {
+    setEditAreaId(null)
+    setAreaForm({ area_code_id: '', responsible_engineer_id: '', planned_budget: '', description: '', target_start_date: '', target_end_date: '' })
+    setAreaModal(true)
+  }
+  function openEditArea(a) {
+    setEditAreaId(a.id)
+    setAreaForm({
+      area_code_id: a.area_code_id, responsible_engineer_id: a.responsible_engineer_id || '',
+      planned_budget: a.planned_budget || '', description: a.description || '',
+      target_start_date: a.target_start_date || '', target_end_date: a.target_end_date || '',
+    })
+    setAreaModal(true)
+  }
+  async function saveArea() {
+    if (!areaForm.area_code_id) { showToast('Select an area code', 'red'); return }
+    setAreaSaving(true)
+    try {
+      const payload = {
+        project_id: projectId, area_code_id: areaForm.area_code_id,
+        responsible_engineer_id: areaForm.responsible_engineer_id || null,
+        planned_budget: parseFloat(areaForm.planned_budget) || 0,
+        current_budget: parseFloat(areaForm.planned_budget) || 0,
+        description: areaForm.description || null,
+        target_start_date: areaForm.target_start_date || null,
+        target_end_date: areaForm.target_end_date || null,
+        sort_order: projectAreas.length * 10,
+      }
+      if (editAreaId) {
+        const { error } = await supabase.from('project_areas').update(payload).eq('id', editAreaId)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('project_areas').insert(payload)
+        if (error) throw error
+      }
+      showToast(editAreaId ? 'Area updated' : 'Area added', 'green')
+      setAreaModal(false)
+      fetchAreas()
+    } catch (err) { showToast(err.message, 'red') }
+    setAreaSaving(false)
+  }
+  async function removeArea(areaId) {
+    if (!confirm('Remove this area from the project?')) return
+    const { error } = await supabase.from('project_areas').delete().eq('id', areaId)
+    if (error) showToast(error.message, 'red')
+    else { showToast('Area removed', 'green'); fetchAreas() }
+  }
+
   const inp = {
     width: '100%', padding: '8px 12px', borderRadius: '8px', fontSize: '13px',
     border: `1px solid ${THEME.outlineVar}`, background: THEME.surface,
@@ -456,12 +540,13 @@ export default function PJDetail({ projectId, setPage }) {
 
   const TABS = [
     { id: 'overview', label: 'Overview', icon: 'dashboard' },
+    { id: 'areas', label: 'Areas', icon: 'location_city' },
     { id: 'phases', label: 'Phases', icon: 'timeline' },
     { id: 'team', label: 'Team', icon: 'group' },
     { id: 'labels', label: 'Labels', icon: 'label' },
     { id: 'board', label: 'Board', icon: 'view_kanban' },
     { id: 'costs', label: 'Costs', icon: 'payments', disabled: true },
-    { id: 'activity', label: 'Activity', icon: 'forum', disabled: true },
+    { id: 'activity', label: 'Activity', icon: 'forum' },
   ]
 
   return (
@@ -893,14 +978,132 @@ export default function PJDetail({ projectId, setPage }) {
         </>
       )}
 
-      {/* Placeholder tabs */}
-      {(tab === 'costs' || tab === 'activity') && (
+      {/* ── AREAS TAB ────────────────────────────────────────────── */}
+      {tab === 'areas' && (
+        <div>
+          {can('projects.edit') && (
+            <div style={{ marginBottom: '14px' }}>
+              <button onClick={openAddArea} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: `1px dashed ${THEME.outline}`, background: 'transparent', color, cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'inherit' }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add</span> Add Area
+              </button>
+            </div>
+          )}
+          {projectAreas.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px', color: THEME.textLow, fontSize: '14px' }}>No areas assigned. Add area codes to organize work by area.</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px' }}>
+              {projectAreas.map(a => (
+                <div key={a.id} onClick={() => can('projects.edit') && openEditArea(a)} style={{ background: THEME.surface, borderRadius: '14px', border: `1px solid ${THEME.outlineVar}`, overflow: 'hidden', cursor: 'pointer' }}>
+                  <div style={{ height: '5px', background: a.area_code?.color || color }} />
+                  <div style={{ padding: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: (a.area_code?.color || color) + '18', color: a.area_code?.color || color, fontWeight: 800, fontSize: '12px' }}>{a.area_code?.code}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>{a.area_code?.name}</div>
+                        {a.area_code?.discipline && <div style={{ fontSize: '11px', color: THEME.textMed }}>{a.area_code.discipline}</div>}
+                      </div>
+                      {can('projects.edit') && <button onClick={e => { e.stopPropagation(); removeArea(a.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><span className="material-symbols-rounded" style={{ fontSize: '16px', color: THEME.textLow }}>close</span></button>}
+                    </div>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: THEME.textMed }}>
+                      {a.engineer?.full_name && <span><span className="material-symbols-rounded" style={{ fontSize: '14px', verticalAlign: 'middle' }}>person</span> {a.engineer.full_name}</span>}
+                      {a.planned_budget > 0 && <span><span className="material-symbols-rounded" style={{ fontSize: '14px', verticalAlign: 'middle' }}>payments</span> {fmtMoney(a.planned_budget)}</span>}
+                    </div>
+                    {(a.target_start_date || a.target_end_date) && (
+                      <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '6px' }}>
+                        {a.target_start_date || '?'} — {a.target_end_date || '?'}
+                      </div>
+                    )}
+                    {a.percent_complete > 0 && (
+                      <div style={{ marginTop: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: THEME.textMed, marginBottom: '3px' }}><span>Progress</span><span>{a.percent_complete}%</span></div>
+                        <div style={{ height: '4px', borderRadius: '2px', background: THEME.outlineVar }}><div style={{ height: '100%', borderRadius: '2px', background: a.area_code?.color || color, width: `${a.percent_complete}%` }} /></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {areaModal && (
+            <ModalOverlay onClose={() => setAreaModal(false)} dirty={true}>
+              <div style={{ background: THEME.surface, borderRadius: '18px', padding: '24px', width: '480px', maxWidth: '95vw', boxShadow: THEME.shadow3 }} onClick={e => e.stopPropagation()}>
+                <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: THEME.text }}>{editAreaId ? 'Edit Area' : 'Add Area'}</div>
+                <div style={fieldWrap}><label style={lbl}>Area Code *</label>
+                  <select style={inp} value={areaForm.area_code_id} onChange={e => setAreaForm(f => ({ ...f, area_code_id: e.target.value }))}>
+                    <option value="">— Select —</option>
+                    {areaCodes.filter(ac => !projectAreas.some(pa => pa.area_code_id === ac.id) || ac.id === areaForm.area_code_id).map(ac => <option key={ac.id} value={ac.id}>{ac.code} — {ac.name}</option>)}
+                  </select>
+                </div>
+                <div style={fieldWrap}><label style={lbl}>Responsible Engineer</label>
+                  <select style={inp} value={areaForm.responsible_engineer_id} onChange={e => setAreaForm(f => ({ ...f, responsible_engineer_id: e.target.value }))}>
+                    <option value="">— None —</option>
+                    {siteUsers.map(u => <option key={u.id} value={u.id}>{u.full_name || u.username}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={fieldWrap}><label style={lbl}>Planned Budget</label><input type="number" style={inp} value={areaForm.planned_budget} onChange={e => setAreaForm(f => ({ ...f, planned_budget: e.target.value }))} /></div>
+                  <div />
+                  <div style={fieldWrap}><label style={lbl}>Start Date</label><input type="date" style={inp} value={areaForm.target_start_date} onChange={e => setAreaForm(f => ({ ...f, target_start_date: e.target.value }))} /></div>
+                  <div style={fieldWrap}><label style={lbl}>End Date</label><input type="date" style={inp} value={areaForm.target_end_date} onChange={e => setAreaForm(f => ({ ...f, target_end_date: e.target.value }))} /></div>
+                </div>
+                <div style={fieldWrap}><label style={lbl}>Description</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} value={areaForm.description} onChange={e => setAreaForm(f => ({ ...f, description: e.target.value }))} /></div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                  <button onClick={() => setAreaModal(false)} style={{ padding: '8px 16px', borderRadius: '10px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>Cancel</button>
+                  <button onClick={saveArea} disabled={areaSaving} style={{ padding: '8px 16px', borderRadius: '10px', border: 'none', background: color, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 600, opacity: areaSaving ? 0.6 : 1 }}>{areaSaving ? 'Saving...' : 'Save'}</button>
+                </div>
+              </div>
+            </ModalOverlay>
+          )}
+        </div>
+      )}
+
+      {/* ── ACTIVITY TAB ─────────────────────────────────────────── */}
+      {tab === 'activity' && (
+        <div>
+          {activityLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: THEME.textMed }}>Loading...</div>
+          ) : activity.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px', color: THEME.textLow, fontSize: '14px' }}>No activity yet. Actions on this project will appear here automatically.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              {activity.map((a, i) => {
+                const prev = activity[i - 1]
+                const dateStr = new Date(a.created_at).toLocaleDateString()
+                const prevDateStr = prev ? new Date(prev.created_at).toLocaleDateString() : null
+                const showDateHeader = dateStr !== prevDateStr
+                return (
+                  <div key={a.id}>
+                    {showDateHeader && (
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.textLow, padding: '12px 0 6px', borderBottom: `1px solid ${THEME.outlineVar}`, marginTop: i > 0 ? '8px' : '0' }}>{dateStr}</div>
+                    )}
+                    <div style={{ display: 'flex', gap: '10px', padding: '10px 0', borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: color + '18', color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+                        {a.actor?.full_name ? a.actor.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', color: THEME.text }}>
+                          <span style={{ fontWeight: 600 }}>{a.actor?.full_name || 'System'}</span>{' '}
+                          <span style={{ color: THEME.textMed }}>{a.message || a.action_type}</span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '2px' }}>
+                          {new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Costs placeholder */}
+      {tab === 'costs' && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: THEME.textLow }}>
-          <span className="material-symbols-rounded" style={{ fontSize: '48px', display: 'block', marginBottom: '12px', color: THEME.outline }}>
-            {tab === 'costs' ? 'payments' : 'forum'}
-          </span>
-          <div style={{ fontSize: '14px', fontWeight: 600 }}>{tab === 'costs' ? 'Cost Tracking' : 'Activity Feed'}</div>
-          <div style={{ fontSize: '12px', marginTop: '4px' }}>Coming in Phase {tab === 'costs' ? '5' : '3'}</div>
+          <span className="material-symbols-rounded" style={{ fontSize: '48px', display: 'block', marginBottom: '12px', color: THEME.outline }}>payments</span>
+          <div style={{ fontSize: '14px', fontWeight: 600 }}>Cost Tracking</div>
+          <div style={{ fontSize: '12px', marginTop: '4px' }}>Coming soon</div>
         </div>
       )}
 

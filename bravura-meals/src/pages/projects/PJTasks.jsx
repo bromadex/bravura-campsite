@@ -34,7 +34,7 @@ export default function PJTasks({ setPage }) {
     setLoading(true)
     const [pRes, tRes, cRes, clRes] = await Promise.all([
       supabase.from('projects').select('id, name, project_code, status').eq('site_id', currentSiteId).eq('is_archived', false),
-      supabase.from('project_tasks').select('*').eq('is_archived', false),
+      supabase.from('project_tasks').select('*').eq('is_archived', false).eq('assigned_to', profile?.id),
       supabase.from('project_board_columns').select('id, project_id, name, is_done_column'),
       supabase.from('project_task_checklist').select('id, task_id, checked'),
     ])

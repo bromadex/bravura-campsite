@@ -140,7 +140,7 @@ export default function CLDashboard({ setPage }) {
               icon="description"
               iconColor={STATUS_CLR[c.status] || color}
               title={c.contractor?.name || '—'}
-              sub={`${c.contract_number || c.title || '—'} · ${c.start_date || '—'} → ${c.end_date || 'open'}`}
+              sub={`${c.contract_number || c.description || '—'} · ${c.start_date || '—'} → ${c.end_date || 'open'}`}
               right={(c.status || '—').toUpperCase()}
               rightColor={STATUS_CLR[c.status] || color}
               isLast={i === recentContracts.length - 1}

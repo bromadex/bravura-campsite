@@ -74,7 +74,7 @@ export default function CLContractorEmployees({ setPage }) {
     if (!currentSiteId) return
     const [c1, c2] = await Promise.all([
       supabase.from('contractors').select('id, name').eq('is_archived', false).or(`site_id.eq.${currentSiteId},site_id.is.null`).order('name'),
-      supabase.from('contractor_contracts').select('id, contract_number, title').eq('site_id', currentSiteId).order('created_at', { ascending: false }),
+      supabase.from('contractor_contracts').select('id, contract_number, description').eq('site_id', currentSiteId).order('created_at', { ascending: false }),
     ])
     setContractors(c1.data || [])
     setContracts(c2.data || [])
@@ -365,7 +365,7 @@ export default function CLContractorEmployees({ setPage }) {
                   <label style={lbl}>Contract</label>
                   <select style={inp} value={form.contract_id} onChange={e => set('contract_id', e.target.value)}>
                     <option value="">-- None --</option>
-                    {contracts.map(c => <option key={c.id} value={c.id}>{c.contract_number || c.title}</option>)}
+                    {contracts.map(c => <option key={c.id} value={c.id}>{c.contract_number || c.description}</option>)}
                   </select>
                 </div>
                 <div style={fieldWrap}>

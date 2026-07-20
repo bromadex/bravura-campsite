@@ -6,6 +6,7 @@ import { MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
+import { useSite } from '../../contexts/SiteContext'
 
 const PAGE_SIZE = 200
 
@@ -57,8 +58,10 @@ function fmtValue(v) {
 }
 
 export default function AuditLogViewer({ setPage }) {
+  const { currentSiteId } = useSite()
   const [entries,      setEntries]      = useState([])
-  useRealtimeSubscription('audit_log', { column: 'site_id', value: currentSiteId }, fetchLog)
+  const [tick, setTick] = useState(0)
+  useRealtimeSubscription('audit_log', { column: 'site_id', value: currentSiteId }, () => setTick(t => t + 1))
   const [profiles,     setProfiles]     = useState({}) // id -> profile
   const [loading,      setLoading]      = useState(true)
   const [loadingMore,  setLoadingMore]  = useState(false)
@@ -70,7 +73,7 @@ export default function AuditLogViewer({ setPage }) {
   const [toDate,       setToDate]       = useState('')
   const [selected,     setSelected]     = useState(null)
 
-  useEffect(() => { fetchLog(0) }, [tableFilter, actionFilter, actorFilter, fromDate, toDate])
+  useEffect(() => { fetchLog(0) }, [tableFilter, actionFilter, actorFilter, fromDate, toDate, tick])
 
   function buildQuery(offset) {
     let q = supabase.from('audit_log').select('*')

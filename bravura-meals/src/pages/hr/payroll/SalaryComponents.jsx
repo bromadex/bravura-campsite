@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { usePermissions } from '../../../contexts/PermissionsContext'
+import { useSite } from '../../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { Card, Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast } from '../../../components/ui'
 import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
@@ -21,6 +22,7 @@ const toggleLabel = { fontSize: '14px', color: THEME.text, cursor: 'pointer', us
 
 export default function SalaryComponents() {
   const { can } = usePermissions()
+  const { currentSiteId } = useSite()
   const rt = useRealtimeRefresh('salary_components', { column: 'site_id', value: currentSiteId })
 
   const [components, setComponents] = useState([])

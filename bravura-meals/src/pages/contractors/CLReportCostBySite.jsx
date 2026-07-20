@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
+import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 import { exportCsv } from '../../utils/csv'
@@ -16,6 +17,7 @@ const daysActive = (start, end) => { if (!start) return 0; const s = new Date(st
 
 export default function CLReportCostBySite({ setPage }) {
   const { can } = usePermissions()
+  const { currentSiteId } = useSite()
   const rt = useRealtimeRefresh('casual_timesheets', { column: 'site_id', value: currentSiteId })
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)

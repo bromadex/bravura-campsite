@@ -8,7 +8,11 @@ DROP POLICY IF EXISTS proj_insert ON projects;
 DROP POLICY IF EXISTS proj_update ON projects;
 
 CREATE POLICY proj_select ON projects FOR SELECT
-  USING (site_id IN (SELECT COALESCE(ur.site_id, site_id) FROM user_roles ur WHERE ur.user_id = auth.uid()));
+  USING (EXISTS (
+    SELECT 1 FROM user_roles ur
+    WHERE ur.user_id = auth.uid()
+      AND (ur.site_id = projects.site_id OR ur.site_id IS NULL)
+  ));
 
 CREATE POLICY proj_insert ON projects FOR INSERT
   WITH CHECK (EXISTS (

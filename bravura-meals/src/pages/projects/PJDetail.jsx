@@ -90,6 +90,8 @@ export default function PJDetail({ projectId, setPage }) {
   const [boardFilter, setBoardFilter] = useState({ label: '', assignee: '', priority: '' })
   const [checklistInput, setChecklistInput] = useState('')
   const [taskLabelPicker, setTaskLabelPicker] = useState(false)
+  const [taskDeps, setTaskDeps] = useState([])
+  const [depPicker, setDepPicker] = useState(false)
   const dragItem = useRef(null)
   const dragOverCol = useRef(null)
 
@@ -331,7 +333,7 @@ export default function PJDetail({ projectId, setPage }) {
     await fetchBoard()
   }
 
-  function openTaskModal(task) {
+  async function openTaskModal(task) {
     const tl = taskLabels.filter(x => x.task_id === task.id).map(x => x.label_id)
     const cl = taskChecklists.filter(x => x.task_id === task.id)
     setTaskForm({
@@ -341,7 +343,10 @@ export default function PJDetail({ projectId, setPage }) {
     })
     setTaskLabelPicker(false)
     setChecklistInput('')
+    setDepPicker(false)
     setTaskModal(task.id)
+    const { data } = await supabase.from('project_task_dependencies').select('*').or(`task_id.eq.${task.id},depends_on_id.eq.${task.id}`)
+    setTaskDeps(data || [])
   }
 
   async function saveTask() {
@@ -358,6 +363,7 @@ export default function PJDetail({ projectId, setPage }) {
         priority: taskForm.priority, assigned_to: taskForm.assigned_to || null,
         due_date: taskForm.due_date || null, start_date: taskForm.start_date || null,
         estimated_hours: taskForm.estimated_hours || null, actual_hours: taskForm.actual_hours || null,
+        parent_task_id: taskForm.parent_task_id || null, area_id: taskForm.area_id || null,
       }
       if (movingToDone) payload.completed_date = new Date().toISOString()
       if (leavingDone) payload.completed_date = null
@@ -416,6 +422,21 @@ export default function PJDetail({ projectId, setPage }) {
     await supabase.from('project_task_checklist').delete().eq('id', id)
     setTaskForm(f => ({ ...f, _checklist: (f._checklist || []).filter(c => c.id !== id) }))
     await fetchBoard()
+  }
+
+  async function addDependency(depTaskId, type) {
+    const { error } = await supabase.from('project_task_dependencies').insert({
+      task_id: taskForm.id, depends_on_id: depTaskId, dependency_type: type,
+    })
+    if (error) { showToast(error.message, 'red'); return }
+    const { data } = await supabase.from('project_task_dependencies').select('*').or(`task_id.eq.${taskForm.id},depends_on_id.eq.${taskForm.id}`)
+    setTaskDeps(data || [])
+    setDepPicker(false)
+  }
+
+  async function removeDependency(depId) {
+    await supabase.from('project_task_dependencies').delete().eq('id', depId)
+    setTaskDeps(prev => prev.filter(d => d.id !== depId))
   }
 
   // Drag and drop
@@ -876,57 +897,74 @@ export default function PJDetail({ projectId, setPage }) {
 
                     {/* Cards */}
                     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {colTasks.map(task => {
-                        const tLabels = taskLabels.filter(x => x.task_id === task.id)
-                        const tChecklist = taskChecklists.filter(x => x.task_id === task.id)
-                        const checkedCount = tChecklist.filter(c => c.checked).length
-                        const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !task.completed_date
-                        return (
-                          <div key={task.id} draggable={can('projects.edit')} onDragStart={e => handleDragStart(e, task)}
-                            onClick={() => openTaskModal(task)}
-                            style={{
-                              background: THEME.surface, borderRadius: '10px', padding: '10px 12px',
-                              cursor: 'pointer', borderLeft: `4px solid ${PRIORITY_COLORS[task.priority] || '#999'}`,
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.08)', transition: 'box-shadow 0.15s',
-                            }}
-                          >
-                            {/* Label chips */}
-                            {tLabels.length > 0 && (
-                              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                                {tLabels.map(tl => (
-                                  <span key={tl.label_id} style={{
-                                    fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
-                                    background: (tl.label?.color || '#999') + '25', color: tl.label?.color || '#999',
-                                  }}>{tl.label?.name}</span>
-                                ))}
+                      {colTasks.filter(t => !t.parent_task_id).map(task => {
+                        const subtasks = colTasks.filter(t => t.parent_task_id === task.id)
+                        const renderCard = (t, indent) => {
+                          const tLabels = taskLabels.filter(x => x.task_id === t.id)
+                          const tChecklist = taskChecklists.filter(x => x.task_id === t.id)
+                          const checkedCount = tChecklist.filter(c => c.checked).length
+                          const isOverdue = t.due_date && new Date(t.due_date) < new Date() && !t.completed_date
+                          const childCount = boardTasks.filter(bt => bt.parent_task_id === t.id).length
+                          return (
+                            <div key={t.id} draggable={can('projects.edit')} onDragStart={e => handleDragStart(e, t)}
+                              onClick={() => openTaskModal(t)}
+                              style={{
+                                background: THEME.surface, borderRadius: '10px', padding: '10px 12px',
+                                cursor: 'pointer', borderLeft: `4px solid ${PRIORITY_COLORS[t.priority] || '#999'}`,
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.08)', transition: 'box-shadow 0.15s',
+                                marginLeft: indent ? '16px' : '0',
+                              }}
+                            >
+                              {tLabels.length > 0 && (
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                                  {tLabels.map(tl => (
+                                    <span key={tl.label_id} style={{
+                                      fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
+                                      background: (tl.label?.color || '#999') + '25', color: tl.label?.color || '#999',
+                                    }}>{tl.label?.name}</span>
+                                  ))}
+                                </div>
+                              )}
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '6px', lineHeight: 1.3 }}>{t.title}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                {t.due_date && (
+                                  <span style={{ fontSize: '10px', fontWeight: 600, color: isOverdue ? '#C62828' : THEME.textLow, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                    <span className="material-symbols-rounded" style={{ fontSize: '12px' }}>calendar_today</span>
+                                    {t.due_date}
+                                  </span>
+                                )}
+                                {tChecklist.length > 0 && (
+                                  <span style={{ fontSize: '10px', fontWeight: 600, color: checkedCount === tChecklist.length ? '#2E7D32' : THEME.textLow, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                    <span className="material-symbols-rounded" style={{ fontSize: '12px' }}>checklist</span>
+                                    {checkedCount}/{tChecklist.length}
+                                  </span>
+                                )}
+                                {childCount > 0 && (
+                                  <span style={{ fontSize: '10px', fontWeight: 600, color: THEME.textLow, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                    <span className="material-symbols-rounded" style={{ fontSize: '12px' }}>account_tree</span>
+                                    {childCount}
+                                  </span>
+                                )}
+                                {t.is_critical && (
+                                  <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFEBEE', color: '#C62828' }}>CP</span>
+                                )}
+                                <div style={{ flex: 1 }} />
+                                {t.assigned_to && (
+                                  <div style={{
+                                    width: '22px', height: '22px', borderRadius: '50%',
+                                    background: color + '20', color: color,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '9px', fontWeight: 700,
+                                  }}>{getInitials(t.assigned_to)}</div>
+                                )}
                               </div>
-                            )}
-                            {/* Title */}
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '6px', lineHeight: 1.3 }}>{task.title}</div>
-                            {/* Meta row */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                              {task.due_date && (
-                                <span style={{ fontSize: '10px', fontWeight: 600, color: isOverdue ? '#C62828' : THEME.textLow, display: 'flex', alignItems: 'center', gap: '2px' }}>
-                                  <span className="material-symbols-rounded" style={{ fontSize: '12px' }}>calendar_today</span>
-                                  {task.due_date}
-                                </span>
-                              )}
-                              {tChecklist.length > 0 && (
-                                <span style={{ fontSize: '10px', fontWeight: 600, color: checkedCount === tChecklist.length ? '#2E7D32' : THEME.textLow, display: 'flex', alignItems: 'center', gap: '2px' }}>
-                                  <span className="material-symbols-rounded" style={{ fontSize: '12px' }}>checklist</span>
-                                  {checkedCount}/{tChecklist.length}
-                                </span>
-                              )}
-                              <div style={{ flex: 1 }} />
-                              {task.assigned_to && (
-                                <div style={{
-                                  width: '22px', height: '22px', borderRadius: '50%',
-                                  background: color + '20', color: color,
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontSize: '9px', fontWeight: 700,
-                                }}>{getInitials(task.assigned_to)}</div>
-                              )}
                             </div>
+                          )
+                        }
+                        return (
+                          <div key={task.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {renderCard(task, false)}
+                            {subtasks.map(st => renderCard(st, true))}
                           </div>
                         )
                       })}
@@ -1160,6 +1198,73 @@ export default function PJDetail({ projectId, setPage }) {
               <div style={fieldWrap}><label style={lbl}>Actual Hours</label>
                 <input style={inp} type="number" value={taskForm.actual_hours || ''} onChange={e => setTaskForm(f => ({ ...f, actual_hours: e.target.value }))} />
               </div>
+              <div style={fieldWrap}><label style={lbl}>Area</label>
+                <select style={inp} value={taskForm.area_id || ''} onChange={e => setTaskForm(f => ({ ...f, area_id: e.target.value || null }))}>
+                  <option value="">None</option>
+                  {projectAreas.map(pa => <option key={pa.id} value={pa.area_code_id}>{pa.area_code?.code} — {pa.area_code?.name}</option>)}
+                </select>
+              </div>
+              <div style={fieldWrap}><label style={lbl}>Parent Task</label>
+                <select style={inp} value={taskForm.parent_task_id || ''} onChange={e => setTaskForm(f => ({ ...f, parent_task_id: e.target.value || null }))}>
+                  <option value="">None (top-level)</option>
+                  {boardTasks.filter(t => t.id !== taskForm.id && !t.parent_task_id).map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Dependencies */}
+            <div style={fieldWrap}>
+              <label style={lbl}>Dependencies</label>
+              {taskDeps.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '6px' }}>
+                  {taskDeps.map(dep => {
+                    const isBlocking = dep.task_id === taskForm.id
+                    const otherTaskId = isBlocking ? dep.depends_on_id : dep.task_id
+                    const otherTask = boardTasks.find(t => t.id === otherTaskId)
+                    const typeLabel = dep.dependency_type === 'blocks' ? (isBlocking ? 'Blocks' : 'Blocked by') : dep.dependency_type === 'is_blocked_by' ? (isBlocking ? 'Blocked by' : 'Blocks') : 'Related to'
+                    return (
+                      <div key={dep.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 8px', background: THEME.surfaceVar, borderRadius: '6px', fontSize: '12px' }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '14px', color: dep.dependency_type === 'related_to' ? THEME.textLow : '#E65100' }}>
+                          {dep.dependency_type === 'related_to' ? 'link' : 'block'}
+                        </span>
+                        <span style={{ color: THEME.textMed, fontWeight: 600, minWidth: '70px' }}>{typeLabel}</span>
+                        <span style={{ flex: 1, color: THEME.text }}>{otherTask?.title || 'Unknown'}</span>
+                        {can('projects.edit') && (
+                          <button onClick={() => removeDependency(dep.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
+                            <span className="material-symbols-rounded" style={{ fontSize: '14px', color: THEME.textLow }}>close</span>
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {can('projects.edit') && (
+                <>
+                  <button onClick={() => setDepPicker(p => !p)} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px', background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit' }}>+ Add Dependency</button>
+                  {depPicker && (
+                    <div style={{ marginTop: '6px', padding: '8px', background: THEME.surfaceVar, borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                        {['blocks', 'is_blocked_by', 'related_to'].map(dt => (
+                          <span key={dt} style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: (depPicker === dt ? color : THEME.outlineVar), color: depPicker === dt ? '#fff' : THEME.textMed, cursor: 'pointer' }}
+                            onClick={() => setDepPicker(dt)}>{dt === 'blocks' ? 'Blocks' : dt === 'is_blocked_by' ? 'Blocked by' : 'Related to'}</span>
+                        ))}
+                      </div>
+                      {typeof depPicker === 'string' && (
+                        <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          {boardTasks.filter(t => t.id !== taskForm.id && !taskDeps.some(d => (d.task_id === taskForm.id && d.depends_on_id === t.id) || (d.depends_on_id === taskForm.id && d.task_id === t.id))).map(t => (
+                            <div key={t.id} onClick={() => addDependency(t.id, depPicker)} style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', color: THEME.text, background: 'transparent' }}
+                              onMouseEnter={e => e.currentTarget.style.background = THEME.outlineVar}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              {t.title}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Labels */}

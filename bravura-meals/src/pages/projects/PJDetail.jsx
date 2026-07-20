@@ -102,7 +102,7 @@ export default function PJDetail({ projectId, setPage }) {
     const [pRes, phRes, mRes, lRes] = await Promise.all([
       supabase.from('projects').select('*').eq('id', projectId).maybeSingle(),
       supabase.from('project_phases').select('*').eq('project_id', projectId).order('sequence'),
-      supabase.from('project_members').select('*, profile:user_id(email)').eq('project_id', projectId).eq('is_active', true),
+      supabase.from('project_members').select('*').eq('project_id', projectId).eq('is_active', true),
       supabase.from('project_labels').select('*').eq('project_id', projectId).order('name'),
     ])
     if (pRes.error) showToast(pRes.error.message, 'red')
@@ -115,7 +115,7 @@ export default function PJDetail({ projectId, setPage }) {
 
   async function fetchSiteUsers() {
     if (!currentSiteId) return
-    const { data } = await supabase.from('profiles').select('id, email, full_name').order('email')
+    const { data } = await supabase.from('profiles').select('id, username, full_name').order('full_name')
     setSiteUsers(data || [])
   }
 
@@ -420,12 +420,15 @@ export default function PJDetail({ projectId, setPage }) {
     })
   }, [boardTasks, boardFilter, taskLabels])
 
+  function userName(userId) {
+    const u = siteUsers.find(x => x.id === userId)
+    return u?.full_name || u?.username || 'Unknown'
+  }
+
   function getInitials(userId) {
-    const m = members.find(x => x.user_id === userId)
-    if (!m) return '?'
-    const name = m.profile?.full_name || m.profile?.email || ''
-    if (!name) return '?'
-    const parts = name.split(/[\s@]/)
+    const name = userName(userId)
+    if (name === 'Unknown') return '?'
+    const parts = name.split(/\s/)
     return (parts[0]?.[0] || '').toUpperCase() + (parts[1]?.[0] || '').toUpperCase()
   }
 
@@ -656,10 +659,10 @@ export default function PJDetail({ projectId, setPage }) {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '16px', fontWeight: 700,
                       }}>
-                        {(m.profile?.email || '?')[0].toUpperCase()}
+                        {userName(m.user_id)[0].toUpperCase()}
                       </div>
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{m.profile?.full_name || m.profile?.email || 'Unknown'}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{userName(m.user_id)}</div>
                         <div style={{ fontSize: '11px', color: THEME.textLow }}>{m.role}</div>
                       </div>
                     </div>
@@ -733,7 +736,7 @@ export default function PJDetail({ projectId, setPage }) {
             </select>
             <select style={{ ...inp, width: 'auto', padding: '5px 10px', fontSize: '12px' }} value={boardFilter.assignee} onChange={e => setBoardFilter(f => ({ ...f, assignee: e.target.value }))}>
               <option value="">All Assignees</option>
-              {members.map(m => <option key={m.user_id} value={m.user_id}>{m.profile?.full_name || m.profile?.email || 'Unknown'}</option>)}
+              {members.map(m => <option key={m.user_id} value={m.user_id}>{userName(m.user_id)}</option>)}
             </select>
             <select style={{ ...inp, width: 'auto', padding: '5px 10px', fontSize: '12px' }} value={boardFilter.label} onChange={e => setBoardFilter(f => ({ ...f, label: e.target.value }))}>
               <option value="">All Labels</option>
@@ -939,7 +942,7 @@ export default function PJDetail({ projectId, setPage }) {
               <div style={fieldWrap}><label style={lbl}>Assignee</label>
                 <select style={inp} value={taskForm.assigned_to || ''} onChange={e => setTaskForm(f => ({ ...f, assigned_to: e.target.value || null }))}>
                   <option value="">Unassigned</option>
-                  {members.map(m => <option key={m.user_id} value={m.user_id}>{m.profile?.full_name || m.profile?.email || 'Unknown'}</option>)}
+                  {members.map(m => <option key={m.user_id} value={m.user_id}>{userName(m.user_id)}</option>)}
                 </select>
               </div>
               <div style={fieldWrap}><label style={lbl}>Start Date</label>
@@ -1058,7 +1061,7 @@ export default function PJDetail({ projectId, setPage }) {
             <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text, marginBottom: '16px' }}>Add Team Member</div>
             <div style={fieldWrap}><label style={lbl}>User</label><select style={inp} value={memberForm.user_id} onChange={e => setMemberForm(f => ({ ...f, user_id: e.target.value }))}>
               <option value="">-- Select --</option>
-              {siteUsers.map(u => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
+              {siteUsers.map(u => <option key={u.id} value={u.id}>{u.full_name || u.username}</option>)}
             </select></div>
             <div style={fieldWrap}><label style={lbl}>Role</label><select style={inp} value={memberForm.role} onChange={e => setMemberForm(f => ({ ...f, role: e.target.value }))}>
               {MEMBER_ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}

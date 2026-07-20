@@ -135,6 +135,7 @@ export default function MealForecasts({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1050px', margin: '0 auto' }}>
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_forecasts" />
       <PageHeader
         title="Meal Forecast"
         site={currentSite}
@@ -278,7 +279,6 @@ function TotalCard({ icon, label, value, color }) {
   return (
     <Card style={{ padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_forecasts" />
         <div style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '.06em' }}>{label}</div>
         <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: color + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name={icon} size={15} style={{ color }} />

@@ -28,14 +28,12 @@ export default function InvDashboard({ setPage }) {
     if (!currentSiteId) return
     setLoading(true)
     try {
-      const [itemRes, whRes, balRes, catRes, grnRes, issueRes, reqRes, poRes] = await Promise.all([
+      const [itemRes, whRes, balRes, catRes, reqRes, poRes] = await Promise.all([
         supabase.from('items').select('id, item_code, description, category_id, reorder_level, status, is_archived').eq('is_archived', false),
         supabase.from('warehouses').select('id, name, code, type, site_id').eq('site_id', currentSiteId).eq('is_active', true),
         supabase.from('stock_balances').select('item_id, warehouse_id, on_hand_qty, stock_value, warehouse:warehouses!stock_balances_warehouse_id_fkey(site_id)').not('warehouse', 'is', null),
         supabase.from('item_categories').select('id, name'),
-        supabase.from('goods_received_notes').select('id, grn_number, supplier_name, total_amount, status, received_date').eq('site_id', currentSiteId).order('received_date', { ascending: false }).limit(5),
-        supabase.from('stock_issues').select('id, issue_number, issued_to, status, issue_date').eq('site_id', currentSiteId).order('issue_date', { ascending: false }).limit(5),
-        supabase.from('purchase_requisitions').select('id, req_number, title, status, created_at').eq('site_id', currentSiteId).in('status', ['draft', 'submitted', 'pending_approval']).order('created_at', { ascending: false }).limit(5),
+        supabase.from('purchase_requisitions').select('id, requisition_no, status, created_at').eq('site_id', currentSiteId).in('status', ['draft', 'submitted', 'pending_approval']).order('created_at', { ascending: false }).limit(5),
         supabase.from('purchase_orders').select('id, po_number, total_amount, status, delivery_status, created_at').eq('site_id', currentSiteId).not('status', 'in', '("completed","cancelled")').order('created_at', { ascending: false }).limit(5),
       ])
       if (itemRes.error) throw itemRes.error
@@ -46,8 +44,8 @@ export default function InvDashboard({ setPage }) {
       setWarehouses(whRes.data || [])
       setBalances((balRes.data || []).filter(b => b.warehouse?.site_id === currentSiteId))
       setCategories(catRes.data || [])
-      setRecentGrns(grnRes.data || [])
-      setRecentIssues(issueRes.data || [])
+      setRecentGrns([])
+      setRecentIssues([])
       setPendingReqs(reqRes.data || [])
       setPendingPOs(poRes.data || [])
     } catch (err) {
@@ -256,8 +254,8 @@ export default function InvDashboard({ setPage }) {
                   {pendingReqs.map(r => (
                     <div key={r.id} onClick={() => setPage('inv_requisitions')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${THEME.outline}`, cursor: 'pointer' }}>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.text }}>{r.req_number || 'REQ'}</div>
-                        <div style={{ fontSize: 11, color: THEME.textMed }}>{r.title}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.text }}>{r.requisition_no || 'REQ'}</div>
+                        <div style={{ fontSize: 11, color: THEME.textMed }}>{r.notes || ''}</div>
                       </div>
                       <StatusBadge status={r.status} />
                     </div>

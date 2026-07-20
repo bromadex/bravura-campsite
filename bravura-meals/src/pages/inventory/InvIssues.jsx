@@ -35,7 +35,7 @@ export default function InvIssues({ setPage }) {
     try {
       const [movRes, whRes, itemRes, deptRes, empRes] = await Promise.all([
         supabase.from('inventory_movements')
-          .select('*, item:items!inventory_movements_item_id_fkey(item_code, description), warehouse:warehouses!inventory_movements_warehouse_id_fkey(name, site_id), creator:profiles!inventory_movements_created_by_fkey(full_name), employee:employees!inventory_movements_issued_to_employee_id_fkey(first_name, last_name), department:departments!inventory_movements_department_id_fkey(name)')
+          .select('*, item:items!inventory_movements_item_id_fkey(item_code, description), warehouse:warehouses!inventory_movements_warehouse_id_fkey(name, site_id), creator:profiles!inventory_movements_created_by_fkey(full_name), employee:employees!inventory_movements_issued_to_employee_id_fkey(name, employee_number), department:departments!inventory_movements_department_id_fkey(name)')
           .in('movement_type', ['issue', 'return'])
           .not('warehouse', 'is', null)
           .order('created_at', { ascending: false })
@@ -43,7 +43,7 @@ export default function InvIssues({ setPage }) {
         supabase.from('warehouses').select('id, name').eq('site_id', currentSiteId).eq('is_active', true).order('name'),
         supabase.from('items').select('id, item_code, description').eq('is_archived', false).order('description'),
         supabase.from('departments').select('id, name').eq('site_id', currentSiteId).order('name'),
-        supabase.from('employees').select('id, first_name, last_name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('last_name'),
+        supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
       ])
       if (movRes.error) throw movRes.error
       setMovements((movRes.data || []).filter(m => m.warehouse?.site_id === currentSiteId))
@@ -116,7 +116,7 @@ export default function InvIssues({ setPage }) {
     const rows = filtered.map(m => [
       new Date(m.created_at).toLocaleDateString(), m.movement_type, m.item?.item_code || '',
       m.item?.description || '', m.warehouse?.name || '', m.quantity,
-      m.department?.name || '', m.employee ? `${m.employee.first_name} ${m.employee.last_name}` : '',
+      m.department?.name || '', m.employee?.name || '',
       m.notes || '', m.creator?.full_name || '',
     ])
     exportCsv('stock_issues_returns.csv', headers, rows)
@@ -185,7 +185,7 @@ export default function InvIssues({ setPage }) {
                     color: m.quantity < 0 ? THEME.error : '#16a34a',
                   }}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
                   <td style={{ padding: '8px 10px', color: THEME.textMed }}>{m.department?.name || '—'}</td>
-                  <td style={{ padding: '8px 10px', color: THEME.textMed }}>{m.employee ? `${m.employee.first_name} ${m.employee.last_name}` : '—'}</td>
+                  <td style={{ padding: '8px 10px', color: THEME.textMed }}>{m.employee ? m.employee.name : '—'}</td>
                   <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '12px' }}>{m.creator?.full_name || '—'}</td>
                 </tr>
               ))}
@@ -232,7 +232,7 @@ export default function InvIssues({ setPage }) {
               <SectionLabel>Issued To (Employee)</SectionLabel>
               <select value={form.issued_to_employee_id} onChange={e => setForm({ ...form, issued_to_employee_id: e.target.value })} style={inp}>
                 <option value="">— None —</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.employee_number} — {e.first_name} {e.last_name}</option>)}
+                {employees.map(e => <option key={e.id} value={e.id}>{e.employee_number} — {e.name}</option>)}
               </select>
             </div>
           </div>

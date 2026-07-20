@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
-import { Card, Button, Icon, PageHeader, showToast, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import { Card, Button, Icon, PageHeader, showToast, TableWrap, THead, Th, TRow, Td, ModalOverlay } from '../../components/ui'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
@@ -142,10 +142,7 @@ export default function SiteManagement({ setPage }) {
 
       {/* Add/Edit Modal */}
       {editModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.45)',
-        }} onClick={() => setEditModal(null)}>
+        <ModalOverlay onClose={() => setEditModal(null)} dirty={true}>
           <div style={{
             background: THEME.surface, borderRadius: '18px', padding: '24px', width: '440px', maxWidth: '90vw',
             boxShadow: THEME.shadow3,
@@ -186,7 +183,7 @@ export default function SiteManagement({ setPage }) {
               </Button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )

@@ -28,7 +28,8 @@ const STATUS_CLR = {
 
 export default function CLDashboard({ setPage }) {
   const { currentSiteId } = useSite()
-  useRealtimeSubscription('contractors', { column: 'site_id', value: currentSiteId }, load)
+  const [tick, setTick] = useState(0)
+  useRealtimeSubscription('contractors', { column: 'site_id', value: currentSiteId }, () => setTick(t => t + 1))
   const [loading, setLoading] = useState(true)
   const [kpis, setKpis] = useState({
     contractors: 0, contracts: 0, casualsWorking: 0, vehicles: 0,
@@ -76,7 +77,7 @@ export default function CLDashboard({ setPage }) {
     }
     load()
     return () => { cancelled = true }
-  }, [currentSiteId])
+  }, [currentSiteId, tick])
 
   if (loading) {
     return (

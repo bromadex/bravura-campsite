@@ -1,306 +1,965 @@
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                    BRAVURA ERP — PROJECT MODULE (PJ)                        ║
-║                         Roadmap & Implementation Prompts                    ║
+║              Trello/Slack-Style Project Management — Full Roadmap           ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 ═══════════════════════════════════════════════════════════════════════════════
-MODULE OVERVIEW
+MODULE VISION
 ═══════════════════════════════════════════════════════════════════════════════
 
-The Project Module manages construction/mining projects across Bravura sites.
-It tracks project lifecycle from planning through execution to closeout, with
-full cost tracking that aggregates data from existing modules (contractors,
-fleet, inventory, meals, HR/workforce).
+Think Trello boards + Slack channels + cost tracking, built into the ERP.
+
+Every project is a workspace. Inside it:
+  - A KANBAN BOARD of tasks (drag cards between columns)
+  - A DOCUMENT HUB (upload files, photos, drawings, permits)
+  - An ACTIVITY FEED (comments, status changes, mentions — Slack-style)
+  - A TEAM roster with roles
+  - COST TRACKING that auto-aggregates from fuel, fleet, equipment, inventory,
+    contractors, and manual entries
+  - MILESTONES & PHASES with progress bars
+  - LABELS / TAGS for categorization (like Trello labels)
+
+Cross-module: projects don't duplicate data. A fuel issuance, equipment log,
+inventory issue, or contractor timesheet gets tagged with a project_id, and
+costs flow in automatically.
 
 Module code: PJ
 Permission pattern: projects.view / projects.create / projects.edit /
                     projects.delete / projects.approve
 T-code range: PJ01–PJ20
-
-Key differentiator: This is a CROSS-MODULE AGGREGATION layer. Projects don't
-duplicate data — they link to existing records (fleet trips, contractor hours,
-inventory issues, equipment usage) via a project_id FK on those tables.
+Migration range: 0085–0094 (general range)
 
 ═══════════════════════════════════════════════════════════════════════════════
-PHASE 1 — FOUNDATION (Tables + Registry + Dashboard)
+PHASE 1 — FOUNDATION: Projects, Boards & Team
 ═══════════════════════════════════════════════════════════════════════════════
 Migration: 0085_projects_foundation.sql
 
-Tables:
-  projects
-    - id UUID PK
-    - site_id UUID NOT NULL FK sites
-    - project_code TEXT NOT NULL UNIQUE (auto: PJ-001, PJ-002...)
-    - name TEXT NOT NULL
-    - description TEXT
-    - project_type TEXT CHECK ('construction','mining','maintenance','infrastructure','other')
-    - status TEXT CHECK ('planning','active','on_hold','completed','cancelled') DEFAULT 'planning'
-    - priority TEXT CHECK ('low','medium','high','critical') DEFAULT 'medium'
-    - start_date DATE
-    - target_end_date DATE
-    - actual_end_date DATE
-    - budget NUMERIC(14,2)
-    - project_manager UUID FK employees(id)
-    - client TEXT (internal/external client name)
-    - location TEXT
-    - notes TEXT
-    - is_archived BOOLEAN DEFAULT false
-    - archived_at TIMESTAMPTZ
-    - created_at TIMESTAMPTZ DEFAULT now()
-    - created_by UUID FK auth.users
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: projects                                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK DEFAULT gen_random_uuid()                          │
+│ site_id         UUID NOT NULL FK sites                                     │
+│ project_code    TEXT NOT NULL (auto: PJ-001, PJ-002... per site)           │
+│ name            TEXT NOT NULL                                              │
+│ description     TEXT                                                       │
+│ project_type    TEXT CHECK ('construction','mining','maintenance',          │
+│                       'infrastructure','exploration','other')              │
+│ status          TEXT CHECK ('planning','active','on_hold',                 │
+│                       'completed','cancelled') DEFAULT 'planning'          │
+│ priority        TEXT CHECK ('low','medium','high','critical')              │
+│                       DEFAULT 'medium'                                     │
+│ start_date      DATE                                                       │
+│ target_end_date DATE                                                       │
+│ actual_end_date DATE                                                       │
+│ budget          NUMERIC(14,2)                                              │
+│ currency        TEXT DEFAULT 'USD'                                          │
+│ project_manager UUID FK employees(id)                                      │
+│ client          TEXT (internal dept or external client)                     │
+│ location        TEXT (mine name, site area, GPS coords)                     │
+│ cover_color     TEXT DEFAULT '#1B5E20' (board header color)                 │
+│ notes           TEXT                                                        │
+│ is_archived     BOOLEAN DEFAULT false                                      │
+│ archived_at     TIMESTAMPTZ                                                │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│ created_by      UUID FK auth.users                                         │
+│                                                                            │
+│ RLS: _has_permission('projects.view', site_id)                             │
+│ INDEX: (site_id, status), (project_manager)                                │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-  project_phases
-    - id UUID PK
-    - project_id UUID NOT NULL FK projects
-    - name TEXT NOT NULL
-    - description TEXT
-    - sequence INT NOT NULL
-    - status TEXT CHECK ('pending','in_progress','completed','skipped') DEFAULT 'pending'
-    - start_date DATE
-    - end_date DATE
-    - budget_allocation NUMERIC(14,2)
-    - notes TEXT
-    - created_at TIMESTAMPTZ DEFAULT now()
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_phases (milestones / stages)                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ name            TEXT NOT NULL                                              │
+│ description     TEXT                                                       │
+│ sequence        INT NOT NULL                                               │
+│ status          TEXT CHECK ('pending','in_progress','completed',            │
+│                       'skipped') DEFAULT 'pending'                         │
+│ start_date      DATE                                                       │
+│ end_date        DATE                                                       │
+│ budget_allocation NUMERIC(14,2)                                            │
+│ weight          INT DEFAULT 1 (for weighted % complete)                     │
+│ color           TEXT (phase color on timeline)                              │
+│ is_milestone    BOOLEAN DEFAULT false                                      │
+│ notes           TEXT                                                        │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ UNIQUE(project_id, sequence)                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-  project_members
-    - id UUID PK
-    - project_id UUID NOT NULL FK projects
-    - employee_id UUID FK employees
-    - role TEXT NOT NULL (e.g. 'manager','engineer','supervisor','labourer')
-    - assigned_date DATE DEFAULT CURRENT_DATE
-    - removed_date DATE
-    - is_active BOOLEAN DEFAULT true
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_members                                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ user_id         UUID FK auth.users (for system users)                      │
+│ employee_id     UUID FK employees (for employee link)                      │
+│ role            TEXT NOT NULL ('owner','manager','engineer','supervisor',   │
+│                       'foreman','operator','labourer','viewer')            │
+│ can_edit_tasks  BOOLEAN DEFAULT true                                       │
+│ can_add_docs    BOOLEAN DEFAULT true                                       │
+│ can_comment     BOOLEAN DEFAULT true                                       │
+│ assigned_date   DATE DEFAULT CURRENT_DATE                                  │
+│ removed_date    DATE                                                       │
+│ is_active       BOOLEAN DEFAULT true                                       │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ UNIQUE(project_id, user_id)                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-Pages:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_labels (Trello-style colored tags)                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ name            TEXT NOT NULL ('urgent','blocked','design','electrical',    │
+│                       'civil','mechanical','safety','procurement')          │
+│ color           TEXT NOT NULL ('#E53935','#FB8C00','#43A047',...)           │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ UNIQUE(project_id, name)                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PAGES:
+
   PJ01 — ProjectDashboard.jsx
-    - Active projects count, budget vs actual spend, overdue projects
-    - Project status breakdown (DonutGauge)
-    - Top 5 projects by spend (bar chart)
-    - Recent activity feed
+    KPIs: active projects, total budget, total spend, overdue count,
+          tasks due this week, completion rate
+    Charts: status breakdown DonutGauge, budget vs actual per project
+            (horizontal bars), overdue timeline, recent activity feed
+    Quick-create project button
 
   PJ02 — ProjectList.jsx
-    - CRUD for projects (registry)
-    - Filters: status, type, priority, manager
-    - Table with progress indicator (phases completed / total)
-    - Quick actions: change status, assign manager
+    Card grid view (like Trello boards overview):
+      Each card = one project showing:
+        - Cover color stripe at top
+        - Project code + name
+        - Status badge, priority badge
+        - Progress bar (% phases complete)
+        - Budget: $X / $Y spent
+        - Manager avatar + name
+        - Member count icon
+        - Task count: X done / Y total
+        - Last activity timestamp
+    List/table view toggle
+    Filters: status, type, priority, manager, date range
+    Sort: name, created, budget, priority, last activity
+    Quick actions: archive, change status, duplicate
 
-  PJ03 — ProjectDetail.jsx
-    - Single project view with tabs:
-      Tab 1: Overview (KPIs, timeline, budget gauge)
-      Tab 2: Phases (gantt-style timeline or list)
-      Tab 3: Team (project_members)
-      Tab 4: Costs (aggregated from linked modules)
-      Tab 5: Documents (future - link to attachments)
+  PJ03 — ProjectDetail.jsx (THE MAIN WORKSPACE — like opening a Trello board)
+    Header: cover color bar, project name, code, status pill, priority pill,
+            manager, budget gauge, % complete ring
+    6 tabs inside:
+      [Board] [Tasks] [Documents] [Team] [Costs] [Activity]
+
+    See Phase 2+ for tab details.
 
 QuickNav pills:
-  { id: 'pj_dashboard',  label: 'Dashboard',  icon: 'dashboard',     color: '#1B5E20' }
-  { id: 'pj_projects',   label: 'Projects',   icon: 'folder_open',   color: '#2E7D32' }
-  { id: 'pj_tasks',      label: 'Tasks',      icon: 'checklist',     color: '#1565C0' }
-  { id: 'pj_costs',      label: 'Costs',      icon: 'payments',      color: '#E65100' }
-  { id: 'pj_resources',  label: 'Resources',  icon: 'group',         color: '#6A1B9A' }
-  { id: 'pj_reports',    label: 'Reports',    icon: 'bar_chart',     color: '#C62828' }
-  { id: 'pj_settings',   label: 'Settings',   icon: 'settings',      color: '#546E7A' }
+  { id: 'pj_dashboard',  label: 'Dashboard',  icon: 'dashboard',      color: '#1B5E20' }
+  { id: 'pj_projects',   label: 'Projects',   icon: 'folder_open',    color: '#2E7D32' }
+  { id: 'pj_board',      label: 'Board',      icon: 'view_kanban',    color: '#1565C0' }
+  { id: 'pj_tasks',      label: 'My Tasks',   icon: 'checklist',      color: '#0277BD' }
+  { id: 'pj_docs',       label: 'Documents',  icon: 'description',    color: '#6A1B9A' }
+  { id: 'pj_costs',      label: 'Costs',      icon: 'payments',       color: '#E65100' }
+  { id: 'pj_timeline',   label: 'Timeline',   icon: 'timeline',       color: '#00838F' }
+  { id: 'pj_reports',    label: 'Reports',    icon: 'bar_chart',      color: '#C62828' }
+  { id: 'pj_settings',   label: 'Settings',   icon: 'settings',       color: '#546E7A' }
+
 
 ═══════════════════════════════════════════════════════════════════════════════
-PHASE 2 — TASK MANAGEMENT & PROGRESS
+PHASE 2 — KANBAN BOARD & TASK CARDS (Trello-style)
 ═══════════════════════════════════════════════════════════════════════════════
 Migration: 0086_project_tasks.sql
 
-Tables:
-  project_tasks
-    - id UUID PK
-    - project_id UUID NOT NULL FK projects
-    - phase_id UUID FK project_phases
-    - title TEXT NOT NULL
-    - description TEXT
-    - status TEXT CHECK ('todo','in_progress','review','done','blocked') DEFAULT 'todo'
-    - priority TEXT CHECK ('low','medium','high','critical') DEFAULT 'medium'
-    - assigned_to UUID FK employees
-    - due_date DATE
-    - completed_date DATE
-    - estimated_hours NUMERIC(8,2)
-    - actual_hours NUMERIC(8,2)
-    - depends_on UUID FK project_tasks (simple single dependency)
-    - notes TEXT
-    - is_archived BOOLEAN DEFAULT false
-    - created_at TIMESTAMPTZ DEFAULT now()
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_board_columns (customizable per project)                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ name            TEXT NOT NULL                                              │
+│ position        INT NOT NULL                                               │
+│ color           TEXT                                                        │
+│ wip_limit       INT (max cards in column, null = unlimited)                │
+│ is_done_column  BOOLEAN DEFAULT false (marks tasks "complete" when moved)  │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ Default columns created on project init:                                   │
+│   Backlog(0) → To Do(1) → In Progress(2) → Review(3) → Done(4)           │
+│ UNIQUE(project_id, position)                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-  project_task_updates
-    - id UUID PK
-    - task_id UUID NOT NULL FK project_tasks
-    - update_type TEXT CHECK ('comment','status_change','progress','blocker')
-    - content TEXT
-    - old_status TEXT
-    - new_status TEXT
-    - created_by UUID FK auth.users
-    - created_at TIMESTAMPTZ DEFAULT now()
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_tasks (the cards)                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ column_id       UUID NOT NULL FK project_board_columns                     │
+│ phase_id        UUID FK project_phases                                     │
+│ parent_task_id  UUID FK project_tasks (subtasks / checklists)              │
+│ title           TEXT NOT NULL                                              │
+│ description     TEXT (rich text / markdown)                                 │
+│ position        INT NOT NULL (order within column)                         │
+│ priority        TEXT CHECK ('low','medium','high','critical')              │
+│                       DEFAULT 'medium'                                     │
+│ assigned_to     UUID FK employees                                          │
+│ reporter        UUID FK auth.users                                         │
+│ due_date        DATE                                                       │
+│ start_date      DATE                                                       │
+│ completed_date  TIMESTAMPTZ                                                │
+│ estimated_hours NUMERIC(8,2)                                               │
+│ actual_hours    NUMERIC(8,2)                                               │
+│ cover_image_url TEXT (card cover image like Trello)                         │
+│ is_archived     BOOLEAN DEFAULT false                                      │
+│ archived_at     TIMESTAMPTZ                                                │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│ created_by      UUID FK auth.users                                         │
+│                                                                            │
+│ INDEX: (project_id, column_id, position)                                   │
+│ INDEX: (assigned_to, completed_date) — for "My Tasks"                      │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-Pages:
-  PJ04 — ProjectTasks.jsx
-    - Kanban board view (columns: todo, in_progress, review, done, blocked)
-    - List view toggle
-    - Drag-and-drop status changes
-    - Filter by assignee, phase, priority
-    - Quick-add task inline
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_task_labels (junction: task ↔ label)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ task_id         UUID NOT NULL FK project_tasks ON DELETE CASCADE            │
+│ label_id        UUID NOT NULL FK project_labels ON DELETE CASCADE           │
+│ PRIMARY KEY (task_id, label_id)                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-  PJ05 — ProjectProgress.jsx
-    - Gantt-style timeline (phases + tasks)
-    - Phase completion percentages
-    - Critical path highlighting (tasks that are blocking others)
-    - Milestone markers
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_task_checklist (checklist items within a card)               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ task_id         UUID NOT NULL FK project_tasks ON DELETE CASCADE            │
+│ title           TEXT NOT NULL                                              │
+│ checked         BOOLEAN DEFAULT false                                      │
+│ position        INT NOT NULL                                               │
+│ assigned_to     UUID FK employees                                          │
+│ due_date        DATE                                                       │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_task_dependencies                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ task_id         UUID NOT NULL FK project_tasks ON DELETE CASCADE            │
+│ depends_on_id   UUID NOT NULL FK project_tasks ON DELETE CASCADE            │
+│ dependency_type TEXT CHECK ('blocks','is_blocked_by','related_to')          │
+│                       DEFAULT 'blocks'                                     │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ UNIQUE(task_id, depends_on_id)                                             │
+│ CHECK(task_id != depends_on_id)                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PAGES:
+
+  PJ03 — ProjectDetail.jsx → [Board] tab
+    KANBAN BOARD (the flagship view):
+    ┌──────────┬──────────┬──────────┬──────────┬──────────┐
+    │ Backlog  │ To Do    │ Progress │ Review   │ Done     │
+    │          │          │          │          │          │
+    │ ┌──────┐ │ ┌──────┐ │ ┌──────┐ │          │ ┌──────┐ │
+    │ │Card 1│ │ │Card 3│ │ │Card 5│ │          │ │Card 7│ │
+    │ │labels│ │ │ ✓2/5 │ │ │@John │ │          │ │ ✓   │ │
+    │ │due   │ │ │due 3d│ │ │3h    │ │          │ │      │ │
+    │ └──────┘ │ └──────┘ │ └──────┘ │          │ └──────┘ │
+    │ ┌──────┐ │ ┌──────┐ │          │          │          │
+    │ │Card 2│ │ │Card 4│ │          │          │          │
+    │ └──────┘ │ └──────┘ │          │          │          │
+    │          │          │          │          │          │
+    │ + Add   │ + Add   │ + Add   │ + Add    │          │
+    └──────────┴──────────┴──────────┴──────────┴──────────┘
+
+    Each card shows:
+      - Title (bold)
+      - Label color chips (like Trello colored bars at top of card)
+      - Due date (red if overdue, orange if due soon)
+      - Assignee avatar
+      - Checklist progress (✓ 3/5)
+      - Comment count icon
+      - Attachment count icon
+      - Priority indicator (colored left border)
+      - Subtask count
+
+    Card click → opens task detail modal:
+      - Full description (markdown editor)
+      - Checklist items (add/check/uncheck)
+      - Labels picker
+      - Assignee picker (from project members)
+      - Due date picker
+      - Phase selector
+      - Time tracking (estimated vs actual hours)
+      - Attachments section
+      - Dependencies (blocks / blocked by)
+      - Activity/comment thread (see Phase 4)
+      - Move to column dropdown
+      - Archive button
+
+    Board features:
+      - Drag-and-drop cards between columns (updates position + column_id)
+      - Drag to reorder within column
+      - WIP limit warnings (column header turns orange/red)
+      - Quick-add card at bottom of each column (just title, Enter to save)
+      - Add/rename/reorder/delete columns
+      - Filter bar: by label, assignee, due date, priority
+      - Search cards
+
+  PJ04 — ProjectTasks.jsx (cross-project "My Tasks" view)
+    Shows ALL tasks assigned to current user across all projects
+    Grouped by: project → column
+    Filters: due date, priority, project
+    Sort: due date, priority, project, recently updated
+    Quick status change (dropdown per row)
+
+  PJ05 — ProjectTimeline.jsx
+    Gantt-style horizontal bar chart:
+      - Rows = phases, with tasks nested under each
+      - Bars = start_date → due_date (or end_date)
+      - Colors = phase colors or priority colors
+      - Today line (vertical red dashed)
+      - Milestone diamonds
+      - Dependency arrows between tasks
+      - Click bar → open task detail
+      - Drag bar ends to change dates
+    Phase completion % bars on the left
+
 
 ═══════════════════════════════════════════════════════════════════════════════
-PHASE 3 — COST TRACKING & CROSS-MODULE LINKING
+PHASE 3 — ACTIVITY FEED & COMMENTS (Slack-style)
 ═══════════════════════════════════════════════════════════════════════════════
-Migration: 0087_project_costs.sql
+Migration: 0087_project_activity.sql
 
-Schema changes (add project_id to existing tables):
-  ALTER TABLE fleet_trips ADD COLUMN project_id UUID REFERENCES projects(id);
-  ALTER TABLE equipment_usage_log ADD COLUMN project_id UUID REFERENCES projects(id);
-  ALTER TABLE inventory_issues ADD COLUMN project_id UUID REFERENCES projects(id);
-  ALTER TABLE hired_equipment ADD COLUMN project_id UUID REFERENCES projects(id);
-  ALTER TABLE hired_vehicles ADD COLUMN project_id UUID REFERENCES projects(id);
-  ALTER TABLE casual_timesheets ADD COLUMN project_id UUID REFERENCES projects(id);
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_activity (unified feed — like Slack channel history)         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ task_id         UUID FK project_tasks ON DELETE CASCADE (null = project)   │
+│ user_id         UUID NOT NULL FK auth.users                                │
+│ activity_type   TEXT NOT NULL CHECK (                                       │
+│                   'comment',        -- user typed a comment                │
+│                   'status_change',  -- task moved to new column            │
+│                   'task_created',   -- new task added                      │
+│                   'task_completed', -- task moved to done column           │
+│                   'task_assigned',  -- assignee changed                    │
+│                   'member_added',   -- new team member                     │
+│                   'member_removed', -- team member removed                 │
+│                   'doc_uploaded',   -- document added                      │
+│                   'phase_completed',-- phase marked complete               │
+│                   'label_added',    -- label added to task                 │
+│                   'due_date_changed',-- due date modified                  │
+│                   'budget_updated', -- project budget changed              │
+│                   'mention'         -- @mention notification               │
+│                 )                                                           │
+│ content         TEXT (comment text, or auto-generated description)          │
+│ metadata        JSONB (structured data for the event, e.g.                 │
+│                   {"old_column":"To Do","new_column":"In Progress"}         │
+│                   {"old_assignee":"uuid","new_assignee":"uuid"}             │
+│                   {"filename":"plan.pdf","file_size":1024000}              │
+│                   {"mentioned_users":["uuid1","uuid2"]}                    │
+│                 )                                                           │
+│ is_pinned       BOOLEAN DEFAULT false                                      │
+│ edited_at       TIMESTAMPTZ                                                │
+│ is_deleted      BOOLEAN DEFAULT false                                      │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ INDEX: (project_id, created_at DESC)                                       │
+│ INDEX: (task_id, created_at DESC)                                          │
+│ INDEX: (user_id, created_at DESC) — for notification queries               │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-New table:
-  project_cost_entries (for manual/miscellaneous costs not from other modules)
-    - id UUID PK
-    - project_id UUID NOT NULL FK projects
-    - phase_id UUID FK project_phases
-    - cost_category TEXT NOT NULL ('labour','materials','equipment','transport','fuel','other')
-    - description TEXT NOT NULL
-    - amount NUMERIC(14,2) NOT NULL
-    - cost_date DATE NOT NULL
-    - vendor TEXT
-    - reference_number TEXT
-    - approved BOOLEAN DEFAULT false
-    - approved_by UUID FK auth.users
-    - notes TEXT
-    - is_archived BOOLEAN DEFAULT false
-    - created_at TIMESTAMPTZ DEFAULT now()
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_activity_reactions (emoji reactions on comments)             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ activity_id     UUID NOT NULL FK project_activity ON DELETE CASCADE         │
+│ user_id         UUID NOT NULL FK auth.users                                │
+│ emoji           TEXT NOT NULL ('thumbsup','check','eyes','fire',...)        │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ UNIQUE(activity_id, user_id, emoji)                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-RPC: rpc_project_cost_summary(project_id UUID)
-  Returns aggregated costs from all linked modules:
-    - Fleet trips (fuel cost from fleet_trips where project_id = X)
-    - Equipment hours (equipment_usage_log × hourly_rate)
-    - Materials (inventory_issues value where project_id = X)
-    - Hired equipment (hired_equipment daily_rate × days)
-    - Hired vehicles (hired_vehicles daily_rate × days)
-    - Casual labour (casual_timesheets hours × rate where project_id = X)
-    - Manual entries (project_cost_entries)
-  Grouped by cost_category with subtotals.
+TRIGGER: auto-insert project_activity rows on:
+  - project_tasks INSERT → 'task_created'
+  - project_tasks UPDATE column_id → 'status_change'
+  - project_tasks UPDATE assigned_to → 'task_assigned'
+  - project_tasks completed_date set → 'task_completed'
+  - project_members INSERT → 'member_added'
+  - project_documents INSERT → 'doc_uploaded'
+  - project_phases status='completed' → 'phase_completed'
 
-Pages:
-  PJ06 — ProjectCosts.jsx
-    - Budget vs Actual gauge (% spent)
-    - Cost breakdown by category (stacked bar or pie)
-    - Cost trend over time (line chart)
-    - Detailed line items from all sources
-    - Manual cost entry form
-    - Filter by phase, category, date range
-    - Link to source record (click → navigate to fleet trip, inventory issue, etc.)
+PAGES:
+
+  PJ03 → [Activity] tab
+    Slack-style thread:
+    ┌─────────────────────────────────────────────────────────────┐
+    │  Today                                                      │
+    │                                                             │
+    │  👤 John Moyo                              10:34 AM         │
+    │  Moved "Install transformer" from To Do → In Progress       │
+    │                                                             │
+    │  👤 Sarah Ncube                             09:15 AM         │
+    │  We need to order the 11kV cables before Friday.            │
+    │  Can @TendaiM check the procurement status?                 │
+    │  👍2  ✅1                                                    │
+    │    └─ 💬 2 replies                                          │
+    │                                                             │
+    │  👤 System                                   08:00 AM        │
+    │  📎 Sarah uploaded "site_plan_v3.pdf"                        │
+    │                                                             │
+    │  Yesterday                                                  │
+    │  ...                                                        │
+    │                                                             │
+    │  ┌───────────────────────────────────────────┐              │
+    │  │ Type a message... @mention  📎 attach     │              │
+    │  └───────────────────────────────────────────┘              │
+    └─────────────────────────────────────────────────────────────┘
+
+    Features:
+      - Threaded replies (click "X replies" to expand)
+      - @mention project members (autocomplete dropdown)
+      - Emoji reactions (click to add, shows count)
+      - Pin important messages
+      - Edit/delete own comments (soft delete)
+      - Filter: all activity / comments only / system events only
+      - Date grouping headers (Today, Yesterday, July 18, etc.)
+      - Realtime via Supabase subscription
+
+    Task detail modal → also shows its own activity thread
+      (filtered to task_id = this task)
+
+  Notifications (cross-cutting):
+    - @mentions create entries visible in a notification bell
+    - "Assigned to you" creates notification
+    - "Task you're watching completed" creates notification
+    - Future: email digest of project activity
+
 
 ═══════════════════════════════════════════════════════════════════════════════
-PHASE 4 — RESOURCE MANAGEMENT & SCHEDULING
+PHASE 4 — DOCUMENTS & ATTACHMENTS
 ═══════════════════════════════════════════════════════════════════════════════
-Migration: 0088_project_resources.sql
+Migration: 0088_project_documents.sql
 
-Tables:
-  project_resource_allocations
-    - id UUID PK
-    - project_id UUID NOT NULL FK projects
-    - resource_type TEXT CHECK ('employee','equipment','vehicle') NOT NULL
-    - resource_id UUID NOT NULL (polymorphic — employee, hired_equipment, or fleet_asset)
-    - allocation_pct NUMERIC(5,2) DEFAULT 100 (% of time allocated)
-    - start_date DATE NOT NULL
-    - end_date DATE
-    - notes TEXT
-    - created_at TIMESTAMPTZ DEFAULT now()
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_documents                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ task_id         UUID FK project_tasks (null = project-level doc)           │
+│ folder_id       UUID FK project_doc_folders (null = root)                  │
+│ file_name       TEXT NOT NULL                                              │
+│ file_type       TEXT (mime type: 'application/pdf','image/jpeg',...)        │
+│ file_size       BIGINT (bytes)                                             │
+│ storage_path    TEXT NOT NULL (Supabase storage bucket path)                │
+│ thumbnail_path  TEXT (for images/PDFs — auto-generated)                     │
+│ description     TEXT                                                       │
+│ doc_category    TEXT CHECK ('drawing','permit','report','photo',            │
+│                       'contract','specification','correspondence',          │
+│                       'safety','invoice','other') DEFAULT 'other'          │
+│ version         INT DEFAULT 1                                              │
+│ previous_version_id UUID FK project_documents                              │
+│ uploaded_by     UUID NOT NULL FK auth.users                                │
+│ is_archived     BOOLEAN DEFAULT false                                      │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ INDEX: (project_id, doc_category)                                          │
+│ INDEX: (task_id)                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-Pages:
-  PJ07 — ProjectResources.jsx
-    - Resource calendar/matrix (who is on which project, when)
-    - Over-allocation warnings (employee on >100% across projects)
-    - Equipment utilization view
-    - Drag to reassign resources between projects
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_doc_folders (organize documents)                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ parent_id       UUID FK project_doc_folders (nested folders)               │
+│ name            TEXT NOT NULL                                              │
+│ position        INT DEFAULT 0                                              │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ UNIQUE(project_id, parent_id, name)                                        │
+│                                                                            │
+│ Default folders created on project init:                                   │
+│   📁 Drawings & Plans                                                      │
+│   📁 Permits & Approvals                                                   │
+│   📁 Reports                                                               │
+│   📁 Photos & Site Images                                                  │
+│   📁 Contracts & Invoices                                                  │
+│   📁 Safety & Compliance                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Supabase Storage:
+  - Bucket: "project-documents" (created via dashboard/migration)
+  - Path: {site_id}/{project_id}/{folder_path}/{filename}
+  - RLS on storage: user must have projects.view for the site
+  - Max file size: 50MB (configurable in project settings)
+  - Accepted types: pdf, doc, docx, xls, xlsx, jpg, jpeg, png, dwg, dxf, csv
+
+PAGES:
+
+  PJ03 → [Documents] tab
+    File explorer layout:
+    ┌─────────────────────────────────────────────────────────────┐
+    │  📁 Drawings & Plans (4)          🔍 Search files...        │
+    │  📁 Permits & Approvals (2)       [Upload] [New Folder]     │
+    │  📁 Reports (7)                                             │
+    │  📁 Photos & Site Images (23)                               │
+    │  📁 Contracts & Invoices (3)                                │
+    │  📁 Safety & Compliance (1)                                 │
+    │                                                             │
+    │  ─── Current: Drawings & Plans ────────────────────────     │
+    │                                                             │
+    │  📄 site_layout_v3.pdf      2.1 MB   Jul 15   Sarah N.     │
+    │  📄 electrical_schema.dwg   4.7 MB   Jul 12   John M.      │
+    │  🖼 excavation_photo.jpg    1.2 MB   Jul 10   Tendai M.    │
+    │  📄 foundation_plan.pdf     3.4 MB   Jul 08   Sarah N.     │
+    │     └─ v2 (previous: v1 Jul 02)                            │
+    │                                                             │
+    └─────────────────────────────────────────────────────────────┘
+
+    Features:
+      - Drag-and-drop upload (multi-file)
+      - File preview modal (PDF viewer, image viewer)
+      - Version history (upload new version → links to previous)
+      - Download button
+      - Move to folder
+      - Category filter (drawing, permit, photo, etc.)
+      - Grid view (thumbnails) / List view toggle
+      - Sort: name, date, size, uploader
+      - Bulk select + download as zip (future)
+
+    Task card → attachments section:
+      - Shows docs linked to that task
+      - Upload directly to task (auto-linked)
+      - Click to preview
+
 
 ═══════════════════════════════════════════════════════════════════════════════
-PHASE 5 — REPORTING & ANALYTICS
+PHASE 5 — COST TRACKING & CROSS-MODULE LINKING
 ═══════════════════════════════════════════════════════════════════════════════
-Migration: 0089_project_reports_rpcs.sql (RPCs only, no new tables)
+Migration: 0089_project_costs.sql
+
+Schema changes (add project_id FK to existing module tables):
+  ALTER TABLE fleet_trips          ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE equipment_usage_log  ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE hired_equipment      ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE hired_vehicles       ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE casual_timesheets    ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE fuel_transactions    ADD COLUMN project_id UUID REFERENCES projects(id);
+  ALTER TABLE inventory_issues     ADD COLUMN project_id UUID REFERENCES projects(id);
+  -- All nullable — project tagging is optional on every transaction
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_cost_entries (manual / miscellaneous costs)                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ phase_id        UUID FK project_phases                                     │
+│ task_id         UUID FK project_tasks                                      │
+│ cost_category   TEXT NOT NULL CHECK ('labour','materials','equipment',      │
+│                       'transport','fuel','subcontractor','permits',         │
+│                       'safety','accommodation','meals','other')            │
+│ description     TEXT NOT NULL                                              │
+│ quantity        NUMERIC(12,2) DEFAULT 1                                     │
+│ unit_price      NUMERIC(14,2)                                              │
+│ amount          NUMERIC(14,2) NOT NULL                                     │
+│ cost_date       DATE NOT NULL                                              │
+│ vendor          TEXT                                                        │
+│ reference_number TEXT (invoice #, PO #, etc.)                               │
+│ receipt_doc_id  UUID FK project_documents                                   │
+│ approved        BOOLEAN DEFAULT false                                      │
+│ approved_by     UUID FK auth.users                                         │
+│ approved_at     TIMESTAMPTZ                                                │
+│ notes           TEXT                                                        │
+│ is_archived     BOOLEAN DEFAULT false                                      │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│ created_by      UUID FK auth.users                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_budgets (budget breakdown by category)                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ phase_id        UUID FK project_phases                                     │
+│ cost_category   TEXT NOT NULL                                              │
+│ budgeted_amount NUMERIC(14,2) NOT NULL                                     │
+│ notes           TEXT                                                        │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ UNIQUE(project_id, phase_id, cost_category)                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+RPC: rpc_project_cost_summary(p_project_id UUID)
+  RETURNS TABLE (
+    source TEXT,            -- 'fleet','fuel','equipment','hired_vehicles',
+                            -- 'casual_labour','inventory','manual'
+    cost_category TEXT,
+    item_count BIGINT,
+    total_amount NUMERIC
+  )
+  Queries:
+    - fuel_transactions WHERE project_id = X → SUM(total_cost)
+    - fleet_trips WHERE project_id = X → count (cost via fuel link)
+    - equipment_usage_log WHERE project_id = X → SUM(hours × hourly_rate)
+    - hired_equipment WHERE project_id = X → SUM(daily_rate × days_active)
+    - hired_vehicles WHERE project_id = X → SUM(daily_rate × days_active)
+    - casual_timesheets WHERE project_id = X → SUM(hours × rate)
+    - project_cost_entries WHERE project_id = X → SUM(amount)
+
+RPC: rpc_project_budget_vs_actual(p_project_id UUID)
+  RETURNS TABLE (
+    cost_category TEXT,
+    budgeted NUMERIC,
+    actual NUMERIC,
+    variance NUMERIC,
+    variance_pct NUMERIC
+  )
+
+PAGES:
+
+  PJ03 → [Costs] tab
+    Budget overview:
+    ┌─────────────────────────────────────────────────────────────┐
+    │  Budget: $450,000    Spent: $287,340    Remaining: $162,660 │
+    │  ████████████████████░░░░░░░░░  63.9%                      │
+    │                                                             │
+    │  Category        Budget     Actual     Variance             │
+    │  ─────────────────────────────────────────────              │
+    │  Labour          $120,000   $98,450    +$21,550  ✅         │
+    │  Materials       $180,000   $142,300   +$37,700  ✅         │
+    │  Equipment       $80,000    $31,590    +$48,410  ✅         │
+    │  Fuel            $30,000    $12,500    +$17,500  ✅         │
+    │  Subcontractor   $40,000    $45,000    -$5,000   ⚠️         │
+    │                                                             │
+    │  Source breakdown:                                          │
+    │  🔗 12 fuel transactions ($12,500)         → Fuel Module    │
+    │  🔗 45 equipment hours ($8,200)            → CL Module     │
+    │  🔗 8 casual timesheets ($15,300)          → CL Module     │
+    │  🔗 3 fleet trips                          → Fleet Module  │
+    │  📝 23 manual entries ($251,340)                            │
+    │                                                             │
+    │  [Add Manual Cost]  [Set Budget]  [Export CSV]              │
+    └─────────────────────────────────────────────────────────────┘
+
+    Cost trend chart: monthly stacked bar (by category)
+    Click any linked item → navigates to source module page
+
+  UI changes in OTHER modules (add "Project" dropdown):
+    - FuelIssuance.jsx → project_id dropdown on issuance form
+    - CLEquipmentUsage.jsx → project_id dropdown on usage form
+    - CLTimesheets.jsx → project_id dropdown on timesheet form
+    - CLHiredEquipment.jsx → project_id on equipment registration
+    - CLHiredVehicles.jsx → project_id on vehicle registration
+    - fleet_trips form → project_id dropdown
+    - Inventory issues form → project_id dropdown
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 6 — RESOURCE MANAGEMENT & ALLOCATION
+═══════════════════════════════════════════════════════════════════════════════
+Migration: 0090_project_resources.sql
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_resource_allocations                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ resource_type   TEXT NOT NULL CHECK ('employee','equipment','vehicle')      │
+│ resource_id     UUID NOT NULL (employee.id, hired_equipment.id,            │
+│                       or fleet_assets.id)                                  │
+│ allocation_pct  NUMERIC(5,2) DEFAULT 100                                   │
+│ start_date      DATE NOT NULL                                              │
+│ end_date        DATE                                                       │
+│ role_on_project TEXT                                                        │
+│ notes           TEXT                                                        │
+│ is_active       BOOLEAN DEFAULT true                                       │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_time_entries (actual time logged by team members)            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ project_id      UUID NOT NULL FK projects ON DELETE CASCADE                │
+│ task_id         UUID FK project_tasks                                      │
+│ user_id         UUID NOT NULL FK auth.users                                │
+│ work_date       DATE NOT NULL                                              │
+│ hours           NUMERIC(6,2) NOT NULL CHECK (hours > 0 AND hours <= 24)    │
+│ description     TEXT                                                        │
+│ billable        BOOLEAN DEFAULT true                                       │
+│ approved        BOOLEAN DEFAULT false                                      │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│                                                                            │
+│ UNIQUE(project_id, user_id, work_date, task_id)                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PAGES:
+
+  PJ03 → [Team] tab (enhanced)
+    Team roster with roles + allocation %
+    Resource calendar (week/month grid):
+      Rows = team members, columns = days
+      Cells show allocation % per project (color-coded)
+      Over-allocation warnings (>100% across projects = red)
+    Time log: team members log hours against tasks
+    Timesheet summary table with approval workflow
+
+  PJ06 — ProjectResources.jsx (cross-project resource view)
+    All employees/equipment across all projects
+    Heatmap: who is over/under-allocated
+    Drag to reassign
+    Equipment utilization bars
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 7 — REPORTING & ANALYTICS
+═══════════════════════════════════════════════════════════════════════════════
+Migration: 0091_project_reports_rpcs.sql (RPCs only)
 
 RPCs:
-  rpc_project_portfolio_summary(site_id UUID)
-    - All projects: status, budget, actual spend, variance, % complete
-  rpc_project_resource_utilization(site_id UUID, date_from DATE, date_to DATE)
-    - Resource usage across projects
+  rpc_project_portfolio_summary(p_site_id UUID)
+    → all projects: name, status, budget, spent, variance, % complete,
+      days remaining, task stats (done/total), risk level
 
-Pages:
-  PJ08 — ProjectReports.jsx
-    - Portfolio overview (all projects side by side)
-    - Budget variance report
-    - Resource utilization report
-    - Timeline adherence (planned vs actual dates)
-    - Cost per project per month trend
-    - CSV export for all reports
+  rpc_project_resource_utilization(p_site_id UUID, p_from DATE, p_to DATE)
+    → per employee: projects assigned, total hours, allocation %
+
+  rpc_project_cost_by_month(p_project_id UUID)
+    → monthly cost breakdown for trend charts
+
+PAGES:
+
+  PJ07 — ProjectReports.jsx
+    Report 1: Portfolio Overview
+      All projects side-by-side: status, budget, spend, timeline, health
+      RAG status (Red/Amber/Green) per project
+      CSV export
+
+    Report 2: Budget Variance
+      Per project: budgeted vs actual by category
+      Variance % with traffic lights
+      Forecast completion cost (burn rate × remaining time)
+
+    Report 3: Resource Utilization
+      Heatmap of employee hours across projects
+      Equipment hours by project
+      Over-allocation flags
+
+    Report 4: Timeline Adherence
+      Planned vs actual dates per phase/milestone
+      Slippage analysis (days late per phase)
+
+    Report 5: Task Velocity
+      Tasks completed per week (burndown/burnup chart)
+      Average cycle time (how long cards stay in each column)
+      Throughput by assignee
+
+    Report 6: Cost per Project per Month
+      Stacked area chart
+      Trend lines
+      Forecast
+
+  PJ08 — ProjectAnalytics.jsx (visual dashboard)
+    Portfolio health at a glance:
+      - Project health DonutGauge (on track / at risk / delayed)
+      - Budget utilization across all projects
+      - Task burndown chart (selected project)
+      - Resource allocation heatmap
+      - Top 5 cost drivers
+      - Upcoming milestones list
+
 
 ═══════════════════════════════════════════════════════════════════════════════
-PHASE 6 — APPROVALS & WORKFLOWS (FUTURE)
+PHASE 8 — TEMPLATES, APPROVALS & WORKFLOWS
+═══════════════════════════════════════════════════════════════════════════════
+Migration: 0092_project_templates.sql
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE: project_templates                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ id              UUID PK                                                    │
+│ site_id         UUID NOT NULL FK sites                                     │
+│ name            TEXT NOT NULL                                              │
+│ description     TEXT                                                       │
+│ project_type    TEXT                                                        │
+│ template_data   JSONB NOT NULL                                             │
+│   {                                                                        │
+│     "phases": [{"name":"Planning","sequence":1}, ...],                      │
+│     "columns": [{"name":"Backlog","position":0}, ...],                     │
+│     "labels": [{"name":"Safety","color":"#E53935"}, ...],                  │
+│     "folders": ["Drawings","Permits","Reports"],                           │
+│     "default_tasks": [                                                     │
+│       {"title":"Site survey","column":"To Do","phase":"Planning"},          │
+│       {"title":"Risk assessment","column":"To Do","phase":"Planning"},      │
+│       ...                                                                  │
+│     ],                                                                     │
+│     "budget_categories": ["labour","materials","equipment","fuel"]          │
+│   }                                                                        │
+│ is_active       BOOLEAN DEFAULT true                                       │
+│ created_at      TIMESTAMPTZ DEFAULT now()                                  │
+│ created_by      UUID FK auth.users                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Built-in templates:
+  - "Construction Project" (phases: Planning → Foundation → Structure →
+    Electrical → Finishing → Handover)
+  - "Mining Exploration" (phases: Prospecting → Drilling → Sampling →
+    Analysis → Reporting)
+  - "Maintenance Shutdown" (phases: Planning → Isolation → Execution →
+    Testing → Recommission)
+  - "Infrastructure Upgrade" (phases: Assessment → Design → Procurement →
+    Installation → Commissioning)
+  - "Blank Project" (no phases, default columns only)
+
+Approval workflows:
+  - Project creation: requires projects.approve if budget > threshold
+  - Budget change requests: log in project_activity, require approval
+  - Phase gate: can't start next phase until current phase is approved
+  - Cost entry approval: for manual costs above threshold
+  - All approvals logged as project_activity events
+
+PAGES:
+
+  PJ09 — ProjectSettings.jsx
+    - Template management (create from existing project / edit templates)
+    - Default board columns configuration
+    - Default labels
+    - Default document folders
+    - Budget threshold for approval workflow
+    - Notification preferences
+    - Archive/restore projects
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 9 — NOTIFICATIONS & INTEGRATIONS (FUTURE)
 ═══════════════════════════════════════════════════════════════════════════════
 
-  - Project creation approval workflow
-  - Budget change requests (when actual > budget by threshold)
-  - Phase gate approvals (can't move to next phase without sign-off)
-  - Cost approval thresholds per role
+Notifications:
+  - In-app notification bell (unread count badge)
+  - @mention notifications
+  - Task assigned/due/overdue notifications
+  - Budget threshold warnings (80%, 90%, 100%)
+  - Phase completed notifications
+  - Daily/weekly project digest email (future)
+
+Supabase Realtime:
+  - Board: live card moves across columns (multi-user)
+  - Activity feed: new comments appear in real-time
+  - Document uploads: appear instantly for all viewers
+  - Task changes: reflected on all open boards
+
+Mobile considerations:
+  - Card swipe to change column (simplified kanban)
+  - Quick photo upload (site photos from phone camera)
+  - Offline task viewing (PWA cache)
+
 
 ═══════════════════════════════════════════════════════════════════════════════
 IMPLEMENTATION NOTES
 ═══════════════════════════════════════════════════════════════════════════════
 
 1. Module registration:
-   - Add to permissions table: projects.view/create/edit/delete/approve
-   - Add MODULE_COLORS.projects in utils/permissions.js
-   - Add projectsNav to navigation config
-   - Add PROJECT_PILLS to QuickNav.jsx
-   - Add module tile to HomeLauncher.jsx
-   - Register routes in App.jsx
+   - permissions table: projects.view / projects.create / projects.edit /
+     projects.delete / projects.approve
+   - MODULE_COLORS.projects = '#1B5E20' in utils/permissions.js
+   - projectsNav in navigation config
+   - PROJECT_PILLS in QuickNav.jsx
+   - Module tile on HomeLauncher.jsx (icon: 'engineering', color: '#1B5E20')
+   - Register all PJ routes in App.jsx
 
-2. Cross-module linking strategy:
-   - Adding project_id to existing tables is OPTIONAL on those tables
-   - When creating a fleet trip, equipment usage, inventory issue, etc.,
-     the user gets a "Project" dropdown (only shows active projects)
-   - The project cost RPC aggregates by querying WHERE project_id = X
-   - This means NO data duplication — single source of truth
+2. Cross-module project tagging:
+   - Adding project_id to existing tables is NULLABLE (optional tagging)
+   - Other module forms get a "Project" dropdown showing active projects
+   - The dropdown only shows if projects.view permission is granted
+   - If no project selected, transaction works as before (no project link)
+   - This is backward-compatible — no existing functionality breaks
 
 3. Project codes:
-   - Auto-generated: PJ-001, PJ-002, etc. (per site)
-   - Stored in module_settings table (like employee numbers BRA-xxx)
+   - Auto-generated per site: PJ-001, PJ-002, etc.
+   - Counter stored in module_settings table (like BRA-xxx for employees)
+   - Display format: {site_prefix}-PJ-{number}
 
-4. Dashboard connects to contractor module:
-   - Equipment usage linked via project_id on equipment_usage_log
-   - Hired vehicles linked via project_id on hired_vehicles
-   - Casual timesheets linked via project_id on casual_timesheets
-   - This gives instant project costing without manual entry
+4. Supabase Storage setup:
+   - Bucket: "project-documents" (public: false)
+   - RLS policy: user must have projects.view for the project's site_id
+   - Upload limit: 50MB per file
+   - Folder structure: {site_id}/{project_id}/{folder_name}/{filename}
 
-5. Migration numbering: 0085–0089 (general range, not HR)
+5. Board drag-and-drop:
+   - Use HTML5 Drag and Drop API (no external library needed)
+   - On drop: update task.column_id + task.position
+   - Reorder: update position of all cards in affected columns
+   - Optimistic UI: move card immediately, revert on error
+   - Debounce position updates (batch saves)
+
+6. Activity feed auto-generation:
+   - PostgreSQL triggers on project_tasks, project_members, project_documents
+   - Triggers insert into project_activity with metadata JSONB
+   - This means activity is recorded even for direct DB changes
+   - Comments are user-initiated (INSERT via app)
+
+7. Migration numbering: 0085–0094 (general range)
+
+8. T-code assignments:
+   PJ01 — ProjectDashboard
+   PJ02 — ProjectList (project cards/grid)
+   PJ03 — ProjectDetail (board + tabs workspace)
+   PJ04 — ProjectTasks (my tasks, cross-project)
+   PJ05 — ProjectTimeline (Gantt)
+   PJ06 — ProjectResources (cross-project allocation)
+   PJ07 — ProjectReports
+   PJ08 — ProjectAnalytics
+   PJ09 — ProjectSettings
+
+9. Key UX patterns:
+   - Opening a project = opening a workspace (full-width, immersive)
+   - Board is the default tab (most-used view)
+   - Card modals overlay the board (don't navigate away)
+   - Activity feed is always accessible (like Slack sidebar)
+   - Costs tab pulls live data — no manual sync needed
+   - Search works across tasks, comments, and documents
+
+10. Performance considerations:
+    - Board: load only active column cards (lazy-load archived)
+    - Activity feed: paginate (load 50, infinite scroll)
+    - Documents: thumbnail generation on upload (Supabase Edge Function)
+    - Cost summary: server-side RPC (don't aggregate client-side)
+    - Task count/stats: denormalized on project row via trigger
+
 
 ═══════════════════════════════════════════════════════════════════════════════
 PRIORITY ORDER
 ═══════════════════════════════════════════════════════════════════════════════
 
-Phase 1 → Phase 3 → Phase 2 → Phase 5 → Phase 4 → Phase 6
+Phase 1 → Phase 2 → Phase 3 → Phase 5 → Phase 4 → Phase 6 → Phase 7 → Phase 8 → Phase 9
 
-Rationale: Foundation first, then cost tracking (highest business value —
-knowing what projects cost), then tasks (operational), then reports, then
-resource management (complex), then workflows (nice-to-have).
+Rationale:
+  1. Foundation (projects + team) — nothing works without this
+  2. Kanban board + tasks — this IS the product, the daily driver
+  3. Activity feed + comments — makes it collaborative (Slack feel)
+  4. Cost tracking — highest business value (cross-module aggregation)
+  5. Documents — essential for construction/mining (permits, drawings)
+  6. Resource management — scheduling and allocation
+  7. Reports — analytics and management visibility
+  8. Templates + workflows — operational efficiency
+  9. Notifications + mobile — polish and reach
+
 
 ═══════════════════════════════════════════════════════════════════════════════
 STATUS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Phase 1: NOT STARTED
-Phase 2: NOT STARTED
-Phase 3: NOT STARTED
-Phase 4: NOT STARTED
-Phase 5: NOT STARTED
-Phase 6: FUTURE
+Phase 1: NOT STARTED — Foundation (projects, phases, members, labels)
+Phase 2: NOT STARTED — Kanban board & task cards
+Phase 3: NOT STARTED — Activity feed & comments
+Phase 4: NOT STARTED — Documents & attachments
+Phase 5: NOT STARTED — Cost tracking & cross-module linking
+Phase 6: NOT STARTED — Resource management
+Phase 7: NOT STARTED — Reporting & analytics
+Phase 8: NOT STARTED — Templates & workflows
+Phase 9: FUTURE     — Notifications & integrations

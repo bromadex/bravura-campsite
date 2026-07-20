@@ -214,6 +214,9 @@ export default function QuickStartGuide() {
             <>Click into any project for its workspace (<Code>PJ03</Code>) — phases, team members, labels and progress tracking all in one place.</>,
             <>Phases break each project into sequenced milestones with budget allocation, dates and weighted progress.</>,
             <>Team members are assigned with roles (manager, contributor, viewer) and granular permissions for tasks, docs and comments.</>,
+            <>The Board tab inside each project is a Trello-style kanban — drag cards between columns (Backlog → To Do → In Progress → Review → Done).</>,
+            <>My Tasks (<Code>PJ04</Code>) shows all your tasks across every project in one place, with priority and due-date filters.</>,
+            <>Timeline (<Code>PJ05</Code>) gives a Gantt-style view of phases and tasks across projects.</>,
           ]} />
         </Section>
       )}

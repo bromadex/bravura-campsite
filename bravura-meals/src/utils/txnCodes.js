@@ -135,6 +135,8 @@ export const TXN_CODES = [
   { code: 'PJ01', path: '/projects/pj_dashboard', label: 'Project Dashboard',  module: 'projects' },
   { code: 'PJ02', path: '/projects/pj_projects',  label: 'Project List',       module: 'projects' },
   { code: 'PJ03', path: '/projects/pj_detail',    label: 'Project Detail',     module: 'projects' },
+  { code: 'PJ04', path: '/projects/pj_tasks',     label: 'My Tasks',           module: 'projects' },
+  { code: 'PJ05', path: '/projects/pj_timeline',  label: 'Project Timeline',   module: 'projects' },
 
   // ── Admin (AD) ────────────────────────────────────────────────────────────
   { code: 'AD01', path: '/admin/admin_dashboard',   label: 'Admin Dashboard',      module: 'admin' },

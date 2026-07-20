@@ -288,6 +288,8 @@ export function projectsNav(role, can) {
   return [
     { id: 'pj_dashboard', label: 'Dashboard',  section: 'Overview',  icon: 'dashboard' },
     { id: 'pj_projects',  label: 'Projects',   section: 'Projects',  icon: 'folder_open' },
+    { id: 'pj_tasks',     label: 'My Tasks',   section: 'Projects',  icon: 'task_alt' },
+    { id: 'pj_timeline',  label: 'Timeline',   section: 'Projects',  icon: 'timeline' },
   ]
 }
 

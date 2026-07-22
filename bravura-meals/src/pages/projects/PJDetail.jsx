@@ -107,6 +107,16 @@ export default function PJDetail({ projectId, setPage }) {
   const [activity, setActivity] = useState([])
   const [activityLoading, setActivityLoading] = useState(false)
 
+  // Schedule/CPM state
+  const [baselines, setBaselines] = useState([])
+  const [baselineModal, setBaselineModal] = useState(false)
+  const [baselineName, setBaselineName] = useState('')
+  const [baselineSaving, setBaselineSaving] = useState(false)
+  const [cpmResult, setCpmResult] = useState(null)
+  const [cpmLoading, setCpmLoading] = useState(false)
+  const [selectedBaseline, setSelectedBaseline] = useState(null)
+  const [baselineSnapshots, setBaselineSnapshots] = useState([])
+
   useRealtimeSubscription('project_phases', { column: 'project_id', value: projectId }, fetchAll)
   useRealtimeSubscription('project_members', { column: 'project_id', value: projectId }, fetchAll)
 
@@ -155,8 +165,60 @@ export default function PJDetail({ projectId, setPage }) {
     setActivityLoading(false)
   }
 
+  async function fetchBaselines() {
+    if (!projectId) return
+    const { data } = await supabase.from('project_baselines').select('*').eq('project_id', projectId).order('created_at', { ascending: false })
+    setBaselines(data || [])
+  }
+
+  async function saveBaseline() {
+    if (!baselineName.trim()) { showToast('Name is required', 'red'); return }
+    setBaselineSaving(true)
+    try {
+      const { data, error } = await supabase.rpc('rpc_save_baseline', { p_project_id: projectId, p_name: baselineName.trim() })
+      if (error) throw error
+      showToast('Baseline saved', 'green')
+      setBaselineModal(false)
+      setBaselineName('')
+      fetchBaselines()
+    } catch (err) { showToast(err.message, 'red') }
+    setBaselineSaving(false)
+  }
+
+  async function runCpm() {
+    setCpmLoading(true)
+    try {
+      const { data, error } = await supabase.rpc('rpc_calculate_cpm', { p_project_id: projectId })
+      if (error) throw error
+      setCpmResult(data)
+      showToast(`CPM complete — ${data.critical_path?.length || 0} critical tasks, ${data.project_duration || 0} day duration`, 'green')
+      await fetchBoard()
+    } catch (err) { showToast(err.message, 'red') }
+    setCpmLoading(false)
+  }
+
+  async function viewBaseline(bl) {
+    setSelectedBaseline(bl)
+    const { data } = await supabase.from('baseline_task_snapshots').select('*').eq('baseline_id', bl.id).order('task_id')
+    setBaselineSnapshots(data || [])
+  }
+
+  function generateWbs(task) {
+    const area = projectAreas.find(pa => pa.area_code_id === task.area_id)
+    const areaCode = area?.area_code?.code || 'GEN'
+    const siblings = boardTasks.filter(t => t.area_id === task.area_id && !t.parent_task_id && t.id !== task.id)
+    if (task.parent_task_id) {
+      const parent = boardTasks.find(t => t.id === task.parent_task_id)
+      const parentWbs = parent?.wbs_code || areaCode
+      const childSiblings = boardTasks.filter(t => t.parent_task_id === task.parent_task_id && t.id !== task.id)
+      return `${parentWbs}.${String(childSiblings.length + 1).padStart(2, '0')}`
+    }
+    return `${areaCode}-${String(siblings.length + 1).padStart(3, '0')}`
+  }
+
   useEffect(() => { fetchAll(); fetchSiteUsers(); fetchAreas() }, [projectId, currentSiteId])
   useEffect(() => { if (tab === 'activity') fetchActivity() }, [tab, projectId])
+  useEffect(() => { if (tab === 'schedule') { fetchBaselines(); fetchBoard() } }, [tab, projectId])
 
   const phasePct = useMemo(() => {
     if (!phases.length) return 0
@@ -364,6 +426,11 @@ export default function PJDetail({ projectId, setPage }) {
         due_date: taskForm.due_date || null, start_date: taskForm.start_date || null,
         estimated_hours: taskForm.estimated_hours || null, actual_hours: taskForm.actual_hours || null,
         parent_task_id: taskForm.parent_task_id || null, area_id: taskForm.area_id || null,
+        wbs_code: taskForm.wbs_code || generateWbs(taskForm),
+        actual_start: taskForm.actual_start || null, actual_end: taskForm.actual_end || null,
+        planned_duration: taskForm.planned_duration ? parseInt(taskForm.planned_duration) : null,
+        percent_complete: taskForm.percent_complete ? parseInt(taskForm.percent_complete) : 0,
+        is_milestone: !!taskForm.is_milestone,
       }
       if (movingToDone) payload.completed_date = new Date().toISOString()
       if (leavingDone) payload.completed_date = null
@@ -566,6 +633,7 @@ export default function PJDetail({ projectId, setPage }) {
     { id: 'team', label: 'Team', icon: 'group' },
     { id: 'labels', label: 'Labels', icon: 'label' },
     { id: 'board', label: 'Board', icon: 'view_kanban' },
+    { id: 'schedule', label: 'Schedule', icon: 'event_note' },
     { id: 'costs', label: 'Costs', icon: 'payments', disabled: true },
     { id: 'activity', label: 'Activity', icon: 'forum' },
   ]
@@ -1136,6 +1204,165 @@ export default function PJDetail({ projectId, setPage }) {
         </div>
       )}
 
+      {/* ── SCHEDULE TAB ──────────────────────────────────────── */}
+      {tab === 'schedule' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+            <SectionTitle title="Schedule & CPM" subtitle="Critical path analysis and baselines" />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {can('projects.edit') && (
+                <button onClick={runCpm} disabled={cpmLoading} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+                  background: '#1565C0', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  opacity: cpmLoading ? 0.6 : 1,
+                }}>
+                  <span className="material-symbols-rounded" style={{ fontSize: '16px', animation: cpmLoading ? 'spin 1s linear infinite' : 'none' }}>{cpmLoading ? 'progress_activity' : 'calculate'}</span>
+                  {cpmLoading ? 'Calculating...' : 'Run CPM'}
+                </button>
+              )}
+              {can('projects.edit') && (
+                <button onClick={() => { setBaselineName(`Baseline ${baselines.length + 1}`); setBaselineModal(true) }} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+                  background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                  <span className="material-symbols-rounded" style={{ fontSize: '16px' }}>save</span>
+                  Save Baseline
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* CPM Results */}
+          {cpmResult && (
+            <DashCard style={{ marginBottom: '16px' }}>
+              <SectionTitle title="CPM Results" subtitle={`Project duration: ${cpmResult.project_duration || 0} days · ${cpmResult.critical_path?.length || 0} critical tasks`} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+                <KpiCard label="Duration" value={`${cpmResult.project_duration || 0}d`} icon="schedule" accent="#1565C0" />
+                <KpiCard label="Critical Tasks" value={cpmResult.critical_path?.length || 0} icon="warning" accent="#C62828" />
+                <KpiCard label="Total Tasks" value={cpmResult.tasks?.length || 0} icon="task" accent={color} />
+              </div>
+              {cpmResult.tasks?.length > 0 && (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
+                        {['Task', 'WBS', 'ES', 'EF', 'LS', 'LF', 'Float', 'Critical'].map(h => (
+                          <th key={h} style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700, color: THEME.textMed, whiteSpace: 'nowrap' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cpmResult.tasks.sort((a, b) => (a.es || 0) - (b.es || 0)).map(t => {
+                        const task = boardTasks.find(bt => bt.id === t.task_id)
+                        return (
+                          <tr key={t.task_id} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: t.is_critical ? '#FFF8E1' : 'transparent' }}>
+                            <td style={{ padding: '6px 8px', color: THEME.text, fontWeight: t.is_critical ? 600 : 400, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task?.title || t.task_id}</td>
+                            <td style={{ padding: '6px 8px', color: THEME.textLow, fontFamily: 'monospace', fontSize: '11px' }}>{task?.wbs_code || '—'}</td>
+                            <td style={{ padding: '6px 8px', color: THEME.textMed }}>{t.es ?? '—'}</td>
+                            <td style={{ padding: '6px 8px', color: THEME.textMed }}>{t.ef ?? '—'}</td>
+                            <td style={{ padding: '6px 8px', color: THEME.textMed }}>{t.ls ?? '—'}</td>
+                            <td style={{ padding: '6px 8px', color: THEME.textMed }}>{t.lf ?? '—'}</td>
+                            <td style={{ padding: '6px 8px', fontWeight: 600, color: t.total_float === 0 ? '#C62828' : THEME.text }}>{t.total_float ?? '—'}</td>
+                            <td style={{ padding: '6px 8px' }}>{t.is_critical ? <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#FFEBEE', color: '#C62828' }}>YES</span> : '—'}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </DashCard>
+          )}
+
+          {/* Baselines */}
+          <DashCard>
+            <SectionTitle title="Baselines" subtitle={`${baselines.length} saved`} />
+            {baselines.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: THEME.textLow, fontSize: '13px' }}>No baselines saved yet. Save a baseline to snapshot the current schedule.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {baselines.map(bl => (
+                  <div key={bl.id} onClick={() => viewBaseline(bl)} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 14px', borderRadius: '10px', cursor: 'pointer',
+                    background: selectedBaseline?.id === bl.id ? color + '12' : THEME.surfaceVar,
+                    border: selectedBaseline?.id === bl.id ? `1px solid ${color}40` : `1px solid transparent`,
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{bl.name}</div>
+                      <div style={{ fontSize: '11px', color: THEME.textLow }}>{new Date(bl.created_at).toLocaleDateString()} · {bl.task_count || '?'} tasks</div>
+                    </div>
+                    <span className="material-symbols-rounded" style={{ fontSize: '18px', color: THEME.textLow }}>chevron_right</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Baseline snapshots detail */}
+            {selectedBaseline && baselineSnapshots.length > 0 && (
+              <div style={{ marginTop: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '8px' }}>
+                  {selectedBaseline.name} — Task Snapshots
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
+                        {['Task', 'Planned Start', 'Planned End', 'Duration', '% Complete'].map(h => (
+                          <th key={h} style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700, color: THEME.textMed }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {baselineSnapshots.map(snap => {
+                        const task = boardTasks.find(t => t.id === snap.task_id)
+                        const startDrift = task?.start_date && snap.planned_start ? daysBetween(snap.planned_start, task.start_date) : null
+                        return (
+                          <tr key={snap.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                            <td style={{ padding: '6px 8px', color: THEME.text }}>{task?.title || snap.task_id}</td>
+                            <td style={{ padding: '6px 8px', color: THEME.textMed }}>{snap.planned_start || '—'}</td>
+                            <td style={{ padding: '6px 8px', color: THEME.textMed }}>{snap.planned_end || '—'}</td>
+                            <td style={{ padding: '6px 8px', color: THEME.textMed }}>{snap.planned_duration || '—'}d</td>
+                            <td style={{ padding: '6px 8px', color: THEME.textMed }}>{snap.percent_complete || 0}%
+                              {startDrift != null && startDrift !== 0 && (
+                                <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 600, color: startDrift > 0 ? '#C62828' : '#2E7D32' }}>
+                                  {startDrift > 0 ? `+${startDrift}d late` : `${Math.abs(startDrift)}d early`}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </DashCard>
+
+          {/* Baseline save modal */}
+          {baselineModal && (
+            <ModalOverlay onClose={() => setBaselineModal(false)} dirty={true}>
+              <div style={{ background: THEME.surface, borderRadius: '18px', width: '400px', maxWidth: '95vw', boxShadow: THEME.shadow3, padding: '24px' }}>
+                <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text, marginBottom: '16px' }}>Save Baseline</div>
+                <div style={fieldWrap}><label style={lbl}>Baseline Name</label>
+                  <input style={inp} value={baselineName} onChange={e => setBaselineName(e.target.value)} placeholder="e.g. Baseline 1 — Original Plan" />
+                </div>
+                <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '12px' }}>
+                  This will snapshot the current schedule (start/end dates, durations, % complete) for all tasks in this project.
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <button onClick={() => setBaselineModal(false)} style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                  <button onClick={saveBaseline} disabled={baselineSaving} style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: baselineSaving ? 0.6 : 1 }}>{baselineSaving ? 'Saving...' : 'Save'}</button>
+                </div>
+              </div>
+            </ModalOverlay>
+          )}
+        </div>
+      )}
+
       {/* Costs placeholder */}
       {tab === 'costs' && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: THEME.textLow }}>
@@ -1210,6 +1437,41 @@ export default function PJDetail({ projectId, setPage }) {
                   {boardTasks.filter(t => t.id !== taskForm.id && !t.parent_task_id).map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
                 </select>
               </div>
+            </div>
+
+            {/* Schedule fields */}
+            <div style={{ padding: '10px 12px', background: THEME.surfaceVar, borderRadius: '10px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.textMed, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>event_note</span>Schedule
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+                <div style={fieldWrap}><label style={lbl}>Actual Start</label>
+                  <input style={inp} type="date" value={taskForm.actual_start || ''} onChange={e => setTaskForm(f => ({ ...f, actual_start: e.target.value }))} />
+                </div>
+                <div style={fieldWrap}><label style={lbl}>Actual End</label>
+                  <input style={inp} type="date" value={taskForm.actual_end || ''} onChange={e => setTaskForm(f => ({ ...f, actual_end: e.target.value }))} />
+                </div>
+                <div style={fieldWrap}><label style={lbl}>Planned Duration (days)</label>
+                  <input style={inp} type="number" value={taskForm.planned_duration || ''} onChange={e => setTaskForm(f => ({ ...f, planned_duration: e.target.value }))} />
+                </div>
+                <div style={fieldWrap}><label style={lbl}>% Complete</label>
+                  <input style={inp} type="number" min="0" max="100" value={taskForm.percent_complete || ''} onChange={e => setTaskForm(f => ({ ...f, percent_complete: e.target.value }))} />
+                </div>
+                <div style={fieldWrap}><label style={lbl}>WBS Code</label>
+                  <input style={inp} value={taskForm.wbs_code || ''} onChange={e => setTaskForm(f => ({ ...f, wbs_code: e.target.value }))} placeholder="Auto-generated" />
+                </div>
+                <div style={{ ...fieldWrap, display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '20px' }}>
+                  <input type="checkbox" checked={!!taskForm.is_milestone} onChange={e => setTaskForm(f => ({ ...f, is_milestone: e.target.checked }))} style={{ width: '16px', height: '16px', accentColor: color }} />
+                  <label style={{ fontSize: '12px', color: THEME.text }}>Milestone</label>
+                </div>
+              </div>
+              {taskForm.total_float != null && (
+                <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>
+                  <span>Total Float: <strong style={{ color: taskForm.is_critical ? '#C62828' : THEME.text }}>{taskForm.total_float}d</strong></span>
+                  <span>Free Float: <strong>{taskForm.free_float || 0}d</strong></span>
+                  {taskForm.is_critical && <span style={{ fontWeight: 700, color: '#C62828' }}>CRITICAL PATH</span>}
+                </div>
+              )}
             </div>
 
             {/* Dependencies */}

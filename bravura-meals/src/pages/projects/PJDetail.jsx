@@ -107,6 +107,22 @@ export default function PJDetail({ projectId, setPage }) {
   const [activity, setActivity] = useState([])
   const [activityLoading, setActivityLoading] = useState(false)
 
+  // Cost/EVM state
+  const [costItems, setCostItems] = useState([])
+  const [changeOrders, setChangeOrders] = useState([])
+  const [progressData, setProgressData] = useState([])
+  const [evmResult, setEvmResult] = useState(null)
+  const [evmLoading, setEvmLoading] = useState(false)
+  const [costModal, setCostModal] = useState(false)
+  const [editCostId, setEditCostId] = useState(null)
+  const [costForm, setCostForm] = useState({ cbs_code: '', description: '', cost_type: 'direct', category: 'materials', budgeted_cost: '', committed_cost: '', actual_cost: '', estimate_to_complete: '' })
+  const [costSaving, setCostSaving] = useState(false)
+  const [coModal, setCoModal] = useState(false)
+  const [editCoId, setEditCoId] = useState(null)
+  const [coForm, setCoForm] = useState({ change_order_number: '', title: '', description: '', status: 'draft', impact_type: 'cost', cost_impact: '', schedule_impact_days: '', notes: '' })
+  const [coSaving, setCoSaving] = useState(false)
+  const [costTab, setCostTab] = useState('evm')
+
   // Schedule/CPM state
   const [baselines, setBaselines] = useState([])
   const [baselineModal, setBaselineModal] = useState(false)
@@ -165,6 +181,93 @@ export default function PJDetail({ projectId, setPage }) {
     setActivityLoading(false)
   }
 
+  async function fetchCostData() {
+    if (!projectId) return
+    const [ciRes, coRes, prRes] = await Promise.all([
+      supabase.from('project_cost_items').select('*').eq('project_id', projectId).eq('is_archived', false).order('cbs_code'),
+      supabase.from('project_change_orders').select('*, requester:profiles!project_change_orders_requested_by_fkey(full_name)').eq('project_id', projectId).eq('is_archived', false).order('created_at', { ascending: false }),
+      supabase.from('project_progress').select('*').eq('project_id', projectId).order('reporting_date', { ascending: false }).limit(24),
+    ])
+    setCostItems(ciRes.data || [])
+    setChangeOrders(coRes.data || [])
+    setProgressData(prRes.data || [])
+  }
+
+  async function runEvm() {
+    setEvmLoading(true)
+    try {
+      const { data, error } = await supabase.rpc('rpc_calculate_evm', { p_project_id: projectId })
+      if (error) throw error
+      setEvmResult(data)
+      showToast('EVM calculated', 'green')
+    } catch (err) { showToast(err.message, 'red') }
+    setEvmLoading(false)
+  }
+
+  async function saveCostItem() {
+    if (!costForm.cbs_code.trim() || !costForm.description.trim()) { showToast('CBS code and description required', 'red'); return }
+    setCostSaving(true)
+    try {
+      const payload = {
+        project_id: projectId, cbs_code: costForm.cbs_code.trim().toUpperCase(),
+        description: costForm.description.trim(), cost_type: costForm.cost_type, category: costForm.category,
+        budgeted_cost: parseFloat(costForm.budgeted_cost) || 0,
+        committed_cost: parseFloat(costForm.committed_cost) || 0,
+        actual_cost: parseFloat(costForm.actual_cost) || 0,
+        estimate_to_complete: parseFloat(costForm.estimate_to_complete) || 0,
+        estimate_at_completion: (parseFloat(costForm.actual_cost) || 0) + (parseFloat(costForm.estimate_to_complete) || 0),
+      }
+      if (editCostId) {
+        const { error } = await supabase.from('project_cost_items').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editCostId)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('project_cost_items').insert(payload)
+        if (error) throw error
+      }
+      showToast(editCostId ? 'Cost item updated' : 'Cost item added', 'green')
+      setCostModal(false)
+      fetchCostData()
+    } catch (err) { showToast(err.message, 'red') }
+    setCostSaving(false)
+  }
+
+  async function archiveCostItem(id) {
+    if (!confirm('Archive this cost item?')) return
+    await supabase.from('project_cost_items').update({ is_archived: true }).eq('id', id)
+    showToast('Cost item archived', 'green')
+    fetchCostData()
+  }
+
+  async function saveChangeOrder() {
+    if (!coForm.title.trim() || !coForm.change_order_number.trim()) { showToast('CO number and title required', 'red'); return }
+    setCoSaving(true)
+    try {
+      const payload = {
+        project_id: projectId, change_order_number: coForm.change_order_number.trim().toUpperCase(),
+        title: coForm.title.trim(), description: coForm.description || null,
+        status: coForm.status, impact_type: coForm.impact_type,
+        cost_impact: parseFloat(coForm.cost_impact) || 0,
+        schedule_impact_days: parseInt(coForm.schedule_impact_days) || 0,
+        notes: coForm.notes || null,
+        requested_by: editCoId ? undefined : profile?.id,
+        requested_date: editCoId ? undefined : new Date().toISOString().slice(0, 10),
+        approved_by: coForm.status === 'approved' ? profile?.id : null,
+        approved_date: coForm.status === 'approved' ? new Date().toISOString().slice(0, 10) : null,
+      }
+      if (editCoId) {
+        const { error } = await supabase.from('project_change_orders').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editCoId)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('project_change_orders').insert(payload)
+        if (error) throw error
+      }
+      showToast(editCoId ? 'Change order updated' : 'Change order created', 'green')
+      setCoModal(false)
+      fetchCostData()
+    } catch (err) { showToast(err.message, 'red') }
+    setCoSaving(false)
+  }
+
   async function fetchBaselines() {
     if (!projectId) return
     const { data } = await supabase.from('project_baselines').select('*').eq('project_id', projectId).order('created_at', { ascending: false })
@@ -219,6 +322,7 @@ export default function PJDetail({ projectId, setPage }) {
   useEffect(() => { fetchAll(); fetchSiteUsers(); fetchAreas() }, [projectId, currentSiteId])
   useEffect(() => { if (tab === 'activity') fetchActivity() }, [tab, projectId])
   useEffect(() => { if (tab === 'schedule') { fetchBaselines(); fetchBoard() } }, [tab, projectId])
+  useEffect(() => { if (tab === 'costs') { fetchCostData(); runEvm() } }, [tab, projectId])
 
   const phasePct = useMemo(() => {
     if (!phases.length) return 0
@@ -634,7 +738,7 @@ export default function PJDetail({ projectId, setPage }) {
     { id: 'labels', label: 'Labels', icon: 'label' },
     { id: 'board', label: 'Board', icon: 'view_kanban' },
     { id: 'schedule', label: 'Schedule', icon: 'event_note' },
-    { id: 'costs', label: 'Costs', icon: 'payments', disabled: true },
+    { id: 'costs', label: 'Costs & EVM', icon: 'payments' },
     { id: 'activity', label: 'Activity', icon: 'forum' },
   ]
 
@@ -1363,12 +1467,360 @@ export default function PJDetail({ projectId, setPage }) {
         </div>
       )}
 
-      {/* Costs placeholder */}
+      {/* ── COSTS & EVM TAB ──────────────────────────────────── */}
       {tab === 'costs' && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: THEME.textLow }}>
-          <span className="material-symbols-rounded" style={{ fontSize: '48px', display: 'block', marginBottom: '12px', color: THEME.outline }}>payments</span>
-          <div style={{ fontSize: '14px', fontWeight: 600 }}>Cost Tracking</div>
-          <div style={{ fontSize: '12px', marginTop: '4px' }}>Coming soon</div>
+        <div>
+          {/* Sub-tabs */}
+          <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
+            {[{ id: 'evm', label: 'EVM Dashboard', icon: 'analytics' }, { id: 'breakdown', label: 'Cost Breakdown', icon: 'account_tree' }, { id: 'changes', label: 'Change Orders', icon: 'swap_horiz' }].map(t => (
+              <button key={t.id} onClick={() => setCostTab(t.id)} style={{
+                display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px',
+                fontSize: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                background: costTab === t.id ? color : THEME.surfaceVar, color: costTab === t.id ? '#fff' : THEME.textMed,
+              }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>{t.icon}</span>{t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* EVM Dashboard */}
+          {costTab === 'evm' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <SectionTitle title="Earned Value Management" subtitle="Project performance metrics" />
+                {can('projects.edit') && (
+                  <button onClick={runEvm} disabled={evmLoading} style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                    fontSize: '13px', fontWeight: 600, background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    opacity: evmLoading ? 0.6 : 1,
+                  }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: '16px', animation: evmLoading ? 'spin 1s linear infinite' : 'none' }}>{evmLoading ? 'progress_activity' : 'calculate'}</span>
+                    {evmLoading ? 'Calculating...' : 'Recalculate'}
+                  </button>
+                )}
+              </div>
+
+              {evmResult ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+                    <KpiCard label="BAC (Budget)" value={fmtMoney(evmResult.bac)} icon="account_balance" accent={color} />
+                    <KpiCard label="BCWS (PV)" value={fmtMoney(evmResult.bcws)} icon="schedule" accent="#1565C0" />
+                    <KpiCard label="BCWP (EV)" value={fmtMoney(evmResult.bcwp)} icon="trending_up" accent="#2E7D32" />
+                    <KpiCard label="ACWP (AC)" value={fmtMoney(evmResult.acwp)} icon="payments" accent="#E65100" />
+                  </div>
+
+                  {/* Performance indices */}
+                  <DashCard style={{ marginBottom: '16px' }}>
+                    <SectionTitle title="Performance Indices" />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                      {[
+                        { label: 'SPI (Schedule)', value: evmResult.spi, good: evmResult.spi >= 1, desc: evmResult.spi >= 1 ? 'Ahead of schedule' : 'Behind schedule' },
+                        { label: 'CPI (Cost)', value: evmResult.cpi, good: evmResult.cpi >= 1, desc: evmResult.cpi >= 1 ? 'Under budget' : 'Over budget' },
+                        { label: 'TCPI', value: evmResult.tcpi, good: evmResult.tcpi <= 1, desc: evmResult.tcpi <= 1 ? 'Achievable target' : 'Challenging target' },
+                      ].map(idx => (
+                        <div key={idx.label} style={{ padding: '14px', borderRadius: '10px', background: THEME.surfaceVar }}>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', marginBottom: '6px' }}>{idx.label}</div>
+                          <div style={{ fontSize: '28px', fontWeight: 800, color: idx.value == null ? THEME.textLow : idx.good ? '#2E7D32' : '#C62828', marginBottom: '2px' }}>
+                            {idx.value != null ? idx.value.toFixed(2) : '—'}
+                          </div>
+                          <div style={{ fontSize: '11px', color: THEME.textMed }}>{idx.value != null ? idx.desc : 'No data'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </DashCard>
+
+                  {/* Variances & forecasts */}
+                  <DashCard style={{ marginBottom: '16px' }}>
+                    <SectionTitle title="Variances & Forecasts" />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+                      {[
+                        { label: 'Schedule Variance (SV)', value: evmResult.sv, fmt: fmtMoney },
+                        { label: 'Cost Variance (CV)', value: evmResult.cv, fmt: fmtMoney },
+                        { label: 'EAC (Estimate at Completion)', value: evmResult.eac, fmt: fmtMoney },
+                        { label: 'ETC (Estimate to Complete)', value: evmResult.etc, fmt: fmtMoney },
+                        { label: 'VAC (Variance at Completion)', value: evmResult.vac, fmt: fmtMoney },
+                        { label: 'Planned %', value: evmResult.percent_planned, fmt: v => `${v}%` },
+                        { label: 'Actual %', value: evmResult.percent_actual, fmt: v => `${v}%` },
+                      ].map(item => (
+                        <div key={item.label} style={{ padding: '10px 14px', borderRadius: '8px', background: THEME.surfaceVar }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', marginBottom: '4px' }}>{item.label}</div>
+                          <div style={{ fontSize: '16px', fontWeight: 700, color: item.value < 0 ? '#C62828' : item.value > 0 ? '#2E7D32' : THEME.text }}>
+                            {item.value != null ? item.fmt(item.value) : '—'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </DashCard>
+
+                  {/* S-curve (text-based since no chart lib) */}
+                  {evmResult.percent_planned != null && (
+                    <DashCard>
+                      <SectionTitle title="Progress Overview" />
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
+                          <span>Planned Progress</span><span>{evmResult.percent_planned}%</span>
+                        </div>
+                        <div style={{ height: '8px', borderRadius: '4px', background: THEME.outlineVar }}>
+                          <div style={{ height: '100%', borderRadius: '4px', background: '#1565C0', width: `${Math.min(100, evmResult.percent_planned)}%`, transition: 'width 0.3s' }} />
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
+                          <span>Actual Progress</span><span>{evmResult.percent_actual}%</span>
+                        </div>
+                        <div style={{ height: '8px', borderRadius: '4px', background: THEME.outlineVar }}>
+                          <div style={{ height: '100%', borderRadius: '4px', background: '#2E7D32', width: `${Math.min(100, evmResult.percent_actual)}%`, transition: 'width 0.3s' }} />
+                        </div>
+                      </div>
+                      {evmResult.bac > 0 && (
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
+                            <span>Cost Spent</span><span>{Math.round((evmResult.acwp || 0) / evmResult.bac * 100)}% of budget</span>
+                          </div>
+                          <div style={{ height: '8px', borderRadius: '4px', background: THEME.outlineVar }}>
+                            <div style={{ height: '100%', borderRadius: '4px', background: evmResult.acwp > evmResult.bac ? '#C62828' : '#E65100', width: `${Math.min(100, (evmResult.acwp || 0) / evmResult.bac * 100)}%`, transition: 'width 0.3s' }} />
+                          </div>
+                        </div>
+                      )}
+                    </DashCard>
+                  )}
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '48px', color: THEME.textLow, fontSize: '13px' }}>
+                  Click "Recalculate" to compute EVM metrics. Add cost items or set a project budget first.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Cost Breakdown */}
+          {costTab === 'breakdown' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <SectionTitle title="Cost Breakdown Structure" subtitle={`${costItems.length} items · ${fmtMoney(costItems.reduce((s, c) => s + (c.budgeted_cost || 0), 0))} budgeted`} />
+                {can('projects.edit') && (
+                  <button onClick={() => {
+                    setEditCostId(null)
+                    setCostForm({ cbs_code: '', description: '', cost_type: 'direct', category: 'materials', budgeted_cost: '', committed_cost: '', actual_cost: '', estimate_to_complete: '' })
+                    setCostModal(true)
+                  }} style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                    fontSize: '13px', fontWeight: 600, background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: '16px' }}>add</span>Add Cost Item
+                  </button>
+                )}
+              </div>
+
+              {costItems.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px', color: THEME.textLow, fontSize: '13px' }}>No cost items yet. Add items to build the cost breakdown structure.</div>
+              ) : (
+                <>
+                  {/* Summary by category */}
+                  <DashCard style={{ marginBottom: '14px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                      {['labour', 'materials', 'equipment', 'subcontract', 'other'].map(cat => {
+                        const items = costItems.filter(c => c.category === cat)
+                        const total = items.reduce((s, c) => s + (c.budgeted_cost || 0), 0)
+                        const actual = items.reduce((s, c) => s + (c.actual_cost || 0), 0)
+                        if (items.length === 0) return null
+                        return (
+                          <div key={cat} style={{ padding: '10px', borderRadius: '8px', background: THEME.surfaceVar }}>
+                            <div style={{ fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', marginBottom: '4px' }}>{cat}</div>
+                            <div style={{ fontSize: '14px', fontWeight: 700, color: THEME.text }}>{fmtMoney(total)}</div>
+                            <div style={{ fontSize: '11px', color: actual > total ? '#C62828' : THEME.textMed }}>Actual: {fmtMoney(actual)}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </DashCard>
+
+                  {/* Cost items table */}
+                  <DashCard style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
+                          {['CBS Code', 'Description', 'Type', 'Category', 'Budget', 'Committed', 'Actual', 'ETC', 'EAC', ''].map(h => (
+                            <th key={h} style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700, color: THEME.textMed, whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {costItems.map(ci => {
+                          const overBudget = ci.actual_cost > ci.budgeted_cost
+                          return (
+                            <tr key={ci.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: can('projects.edit') ? 'pointer' : 'default' }}
+                              onClick={() => {
+                                if (!can('projects.edit')) return
+                                setEditCostId(ci.id)
+                                setCostForm({ cbs_code: ci.cbs_code, description: ci.description, cost_type: ci.cost_type, category: ci.category || 'other', budgeted_cost: ci.budgeted_cost || '', committed_cost: ci.committed_cost || '', actual_cost: ci.actual_cost || '', estimate_to_complete: ci.estimate_to_complete || '' })
+                                setCostModal(true)
+                              }}>
+                              <td style={{ padding: '6px 8px', fontFamily: 'monospace', color, fontWeight: 700 }}>{ci.cbs_code}</td>
+                              <td style={{ padding: '6px 8px', color: THEME.text, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ci.description}</td>
+                              <td style={{ padding: '6px 8px', color: THEME.textMed, textTransform: 'capitalize' }}>{ci.cost_type}</td>
+                              <td style={{ padding: '6px 8px', color: THEME.textMed, textTransform: 'capitalize' }}>{ci.category || '—'}</td>
+                              <td style={{ padding: '6px 8px', color: THEME.text, fontWeight: 600 }}>{fmtMoney(ci.budgeted_cost)}</td>
+                              <td style={{ padding: '6px 8px', color: THEME.textMed }}>{fmtMoney(ci.committed_cost)}</td>
+                              <td style={{ padding: '6px 8px', color: overBudget ? '#C62828' : THEME.text, fontWeight: overBudget ? 700 : 400 }}>{fmtMoney(ci.actual_cost)}</td>
+                              <td style={{ padding: '6px 8px', color: THEME.textMed }}>{fmtMoney(ci.estimate_to_complete)}</td>
+                              <td style={{ padding: '6px 8px', color: THEME.text, fontWeight: 600 }}>{fmtMoney(ci.estimate_at_completion)}</td>
+                              <td style={{ padding: '6px 8px' }}>
+                                {can('projects.edit') && (
+                                  <button onClick={e => { e.stopPropagation(); archiveCostItem(ci.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
+                                    <span className="material-symbols-rounded" style={{ fontSize: '14px', color: THEME.textLow }}>archive</span>
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                        <tr style={{ borderTop: `2px solid ${THEME.outlineVar}`, fontWeight: 700 }}>
+                          <td colSpan={4} style={{ padding: '8px', color: THEME.text }}>TOTAL</td>
+                          <td style={{ padding: '6px 8px', color: THEME.text }}>{fmtMoney(costItems.reduce((s, c) => s + (c.budgeted_cost || 0), 0))}</td>
+                          <td style={{ padding: '6px 8px', color: THEME.textMed }}>{fmtMoney(costItems.reduce((s, c) => s + (c.committed_cost || 0), 0))}</td>
+                          <td style={{ padding: '6px 8px', color: THEME.text }}>{fmtMoney(costItems.reduce((s, c) => s + (c.actual_cost || 0), 0))}</td>
+                          <td style={{ padding: '6px 8px', color: THEME.textMed }}>{fmtMoney(costItems.reduce((s, c) => s + (c.estimate_to_complete || 0), 0))}</td>
+                          <td style={{ padding: '6px 8px', color: THEME.text }}>{fmtMoney(costItems.reduce((s, c) => s + (c.estimate_at_completion || 0), 0))}</td>
+                          <td />
+                        </tr>
+                      </tbody>
+                    </table>
+                  </DashCard>
+                </>
+              )}
+
+              {/* Cost item modal */}
+              {costModal && (
+                <ModalOverlay onClose={() => setCostModal(false)} dirty={true}>
+                  <div style={{ background: THEME.surface, borderRadius: '18px', width: '520px', maxWidth: '95vw', boxShadow: THEME.shadow3, padding: '24px' }} onClick={e => e.stopPropagation()}>
+                    <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text, marginBottom: '16px' }}>{editCostId ? 'Edit Cost Item' : 'Add Cost Item'}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+                      <div style={fieldWrap}><label style={lbl}>CBS Code *</label><input style={{ ...inp, textTransform: 'uppercase' }} value={costForm.cbs_code} onChange={e => setCostForm(f => ({ ...f, cbs_code: e.target.value }))} placeholder="01.01.01" /></div>
+                      <div style={fieldWrap}><label style={lbl}>Category</label>
+                        <select style={inp} value={costForm.category} onChange={e => setCostForm(f => ({ ...f, category: e.target.value }))}>
+                          {['labour', 'materials', 'equipment', 'subcontract', 'other'].map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div style={fieldWrap}><label style={lbl}>Description *</label><input style={inp} value={costForm.description} onChange={e => setCostForm(f => ({ ...f, description: e.target.value }))} /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+                      <div style={fieldWrap}><label style={lbl}>Cost Type</label>
+                        <select style={inp} value={costForm.cost_type} onChange={e => setCostForm(f => ({ ...f, cost_type: e.target.value }))}>
+                          {['direct', 'indirect', 'contingency', 'management_reserve'].map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+                        </select>
+                      </div>
+                      <div style={fieldWrap}><label style={lbl}>Budgeted Cost</label><input type="number" style={inp} value={costForm.budgeted_cost} onChange={e => setCostForm(f => ({ ...f, budgeted_cost: e.target.value }))} /></div>
+                      <div style={fieldWrap}><label style={lbl}>Committed Cost</label><input type="number" style={inp} value={costForm.committed_cost} onChange={e => setCostForm(f => ({ ...f, committed_cost: e.target.value }))} /></div>
+                      <div style={fieldWrap}><label style={lbl}>Actual Cost</label><input type="number" style={inp} value={costForm.actual_cost} onChange={e => setCostForm(f => ({ ...f, actual_cost: e.target.value }))} /></div>
+                      <div style={fieldWrap}><label style={lbl}>Estimate to Complete</label><input type="number" style={inp} value={costForm.estimate_to_complete} onChange={e => setCostForm(f => ({ ...f, estimate_to_complete: e.target.value }))} /></div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                      <button onClick={() => setCostModal(false)} style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                      <button onClick={saveCostItem} disabled={costSaving} style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: costSaving ? 0.6 : 1 }}>{costSaving ? 'Saving...' : 'Save'}</button>
+                    </div>
+                  </div>
+                </ModalOverlay>
+              )}
+            </div>
+          )}
+
+          {/* Change Orders */}
+          {costTab === 'changes' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <SectionTitle title="Change Orders" subtitle={`${changeOrders.length} orders · ${fmtMoney(changeOrders.filter(c => c.status === 'approved').reduce((s, c) => s + (c.cost_impact || 0), 0))} approved impact`} />
+                {can('projects.edit') && (
+                  <button onClick={() => {
+                    setEditCoId(null)
+                    setCoForm({ change_order_number: `CO-${String(changeOrders.length + 1).padStart(3, '0')}`, title: '', description: '', status: 'draft', impact_type: 'cost', cost_impact: '', schedule_impact_days: '', notes: '' })
+                    setCoModal(true)
+                  }} style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
+                    fontSize: '13px', fontWeight: 600, background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: '16px' }}>add</span>New Change Order
+                  </button>
+                )}
+              </div>
+
+              {changeOrders.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px', color: THEME.textLow, fontSize: '13px' }}>No change orders yet.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {changeOrders.map(co => {
+                    const statusColors = {
+                      draft: { bg: THEME.statusNeutralBg, text: THEME.statusNeutralText },
+                      submitted: { bg: '#FFF3E0', text: '#E65100' },
+                      under_review: { bg: '#E3F2FD', text: '#1565C0' },
+                      approved: { bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
+                      rejected: { bg: THEME.statusErrorBg, text: THEME.statusErrorText },
+                      implemented: { bg: '#E8F5E9', text: '#1B5E20' },
+                    }
+                    const sc = statusColors[co.status] || statusColors.draft
+                    return (
+                      <DashCard key={co.id} style={{ padding: '14px 18px', cursor: can('projects.edit') ? 'pointer' : 'default' }}
+                        onClick={() => {
+                          if (!can('projects.edit')) return
+                          setEditCoId(co.id)
+                          setCoForm({ change_order_number: co.change_order_number, title: co.title, description: co.description || '', status: co.status, impact_type: co.impact_type || 'cost', cost_impact: co.cost_impact || '', schedule_impact_days: co.schedule_impact_days || '', notes: co.notes || '' })
+                          setCoModal(true)
+                        }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 700, color }}>{co.change_order_number}</span>
+                              <span style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>{co.title}</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: THEME.textMed }}>
+                              {co.cost_impact !== 0 && <span style={{ color: co.cost_impact > 0 ? '#C62828' : '#2E7D32', fontWeight: 600 }}>{co.cost_impact > 0 ? '+' : ''}{fmtMoney(co.cost_impact)}</span>}
+                              {co.schedule_impact_days !== 0 && <span style={{ color: co.schedule_impact_days > 0 ? '#C62828' : '#2E7D32', fontWeight: 600 }}>{co.schedule_impact_days > 0 ? '+' : ''}{co.schedule_impact_days}d</span>}
+                              {co.requester?.full_name && <span>by {co.requester.full_name}</span>}
+                              {co.requested_date && <span>{co.requested_date}</span>}
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: sc.bg, color: sc.text, whiteSpace: 'nowrap' }}>{co.status.replace(/_/g, ' ')}</span>
+                        </div>
+                      </DashCard>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Change order modal */}
+              {coModal && (
+                <ModalOverlay onClose={() => setCoModal(false)} dirty={true}>
+                  <div style={{ background: THEME.surface, borderRadius: '18px', width: '520px', maxWidth: '95vw', boxShadow: THEME.shadow3, padding: '24px' }} onClick={e => e.stopPropagation()}>
+                    <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text, marginBottom: '16px' }}>{editCoId ? 'Edit Change Order' : 'New Change Order'}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+                      <div style={fieldWrap}><label style={lbl}>CO Number *</label><input style={{ ...inp, textTransform: 'uppercase' }} value={coForm.change_order_number} onChange={e => setCoForm(f => ({ ...f, change_order_number: e.target.value }))} /></div>
+                      <div style={fieldWrap}><label style={lbl}>Status</label>
+                        <select style={inp} value={coForm.status} onChange={e => setCoForm(f => ({ ...f, status: e.target.value }))}>
+                          {['draft', 'submitted', 'under_review', 'approved', 'rejected', 'implemented'].map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div style={fieldWrap}><label style={lbl}>Title *</label><input style={inp} value={coForm.title} onChange={e => setCoForm(f => ({ ...f, title: e.target.value }))} /></div>
+                    <div style={fieldWrap}><label style={lbl}>Description</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} value={coForm.description} onChange={e => setCoForm(f => ({ ...f, description: e.target.value }))} /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0 12px' }}>
+                      <div style={fieldWrap}><label style={lbl}>Impact Type</label>
+                        <select style={inp} value={coForm.impact_type} onChange={e => setCoForm(f => ({ ...f, impact_type: e.target.value }))}>
+                          {['cost', 'schedule', 'scope', 'cost_and_schedule'].map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+                        </select>
+                      </div>
+                      <div style={fieldWrap}><label style={lbl}>Cost Impact ($)</label><input type="number" style={inp} value={coForm.cost_impact} onChange={e => setCoForm(f => ({ ...f, cost_impact: e.target.value }))} /></div>
+                      <div style={fieldWrap}><label style={lbl}>Schedule Impact (days)</label><input type="number" style={inp} value={coForm.schedule_impact_days} onChange={e => setCoForm(f => ({ ...f, schedule_impact_days: e.target.value }))} /></div>
+                    </div>
+                    <div style={fieldWrap}><label style={lbl}>Notes</label><textarea style={{ ...inp, resize: 'vertical' }} rows={2} value={coForm.notes} onChange={e => setCoForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                      <button onClick={() => setCoModal(false)} style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                      <button onClick={saveChangeOrder} disabled={coSaving} style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: coSaving ? 0.6 : 1 }}>{coSaving ? 'Saving...' : 'Save'}</button>
+                    </div>
+                  </div>
+                </ModalOverlay>
+              )}
+            </div>
+          )}
         </div>
       )}
 

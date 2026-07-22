@@ -190,6 +190,7 @@ const PJTasks     = lazy(() => import('./pages/projects/PJTasks'))
 const PJTimeline  = lazy(() => import('./pages/projects/PJTimeline'))
 const PJAreas     = lazy(() => import('./pages/projects/PJAreas'))
 const PJDocuments = lazy(() => import('./pages/projects/PJDocuments'))
+const PJTransmittals = lazy(() => import('./pages/projects/PJTransmittals'))
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
@@ -487,6 +488,7 @@ function getProjectsPage(page, can, setPage) {
     case 'pj_projects':  return <PJList setPage={setPage} />
     case 'pj_areas':     return <PJAreas setPage={setPage} />
     case 'pj_documents': return <PJDocuments setPage={setPage} />
+    case 'pj_transmittals': return <PJTransmittals setPage={setPage} />
     case 'pj_tasks':     return <PJTasks setPage={setPage} />
     case 'pj_timeline':  return <PJTimeline setPage={setPage} />
     default:             return <PJDashboard setPage={setPage} />

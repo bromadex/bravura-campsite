@@ -139,6 +139,7 @@ export const TXN_CODES = [
   { code: 'PJ05', path: '/projects/pj_timeline',  label: 'Project Timeline',   module: 'projects' },
   { code: 'PJ06', path: '/projects/pj_areas',      label: 'Area Codes',         module: 'projects' },
   { code: 'PJ07', path: '/projects/pj_documents',  label: 'Document Register',  module: 'projects' },
+  { code: 'PJ08', path: '/projects/pj_transmittals', label: 'Transmittals',      module: 'projects' },
 
   // ── Admin (AD) ────────────────────────────────────────────────────────────
   { code: 'AD01', path: '/admin/admin_dashboard',   label: 'Admin Dashboard',      module: 'admin' },

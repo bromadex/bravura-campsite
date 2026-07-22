@@ -217,6 +217,12 @@ export default function QuickStartGuide() {
             <>The Board tab inside each project is a Trello-style kanban — drag cards between columns (Backlog → To Do → In Progress → Review → Done).</>,
             <>My Tasks (<Code>PJ04</Code>) shows all your tasks across every project in one place, with priority and due-date filters.</>,
             <>Timeline (<Code>PJ05</Code>) gives a Gantt-style view of phases and tasks across projects.</>,
+            <>Area Codes (<Code>PJ06</Code>) organise work by location or discipline — each project can reference one or more area codes.</>,
+            <>Documents (<Code>PJ07</Code>) is the document register — upload, version-control, and run formal review cycles with multi-reviewer approval workflows.</>,
+            <>Transmittals (<Code>PJ08</Code>) package documents for formal distribution — auto-numbered TX-NNNN, with status tracking (Draft → Sent → Received → Acknowledged).</>,
+            <>The Schedule tab inside each project workspace runs Critical Path Method (CPM) analysis, manages baselines, and auto-generates WBS codes.</>,
+            <>Costs &amp; EVM tracks cost breakdown (CBS items by category), Earned Value Management (SPI, CPI, SV, CV, EAC, ETC, VAC, TCPI), and S-curve charts.</>,
+            <>Change Orders log scope/cost/schedule changes with a full status workflow (Draft → Submitted → Under Review → Approved → Rejected → Implemented).</>,
           ]} />
         </Section>
       )}

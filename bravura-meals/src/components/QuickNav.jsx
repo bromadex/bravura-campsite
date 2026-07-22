@@ -103,6 +103,7 @@ export const CONTRACTOR_PILLS = [
   { id: 'cl_equipment',  label: 'Equipment',   icon: 'construction',    color: '#455A64' },
   { id: 'cl_equipment_usage', label: 'Usage Log', icon: 'timer',          color: '#37474F' },
   { id: 'cl_casual_payroll', label: 'Payroll', icon: 'payments',        color: '#AD1457' },
+  { id: 'cl_cost_dashboard', label: 'Cost Dashboard', icon: 'analytics',  color: '#7C4DFF' },
   { id: 'cl_reports',    label: 'Reports',     icon: 'bar_chart',       color: '#C62828' },
   { id: 'cl_settings',   label: 'Settings',    icon: 'settings',        color: '#546E7A' },
 ]
@@ -115,6 +116,8 @@ export const PROJECT_PILLS = [
   { id: 'pj_transmittals', label: 'Transmittals', icon: 'send',            color: '#4527A0' },
   { id: 'pj_tasks',       label: 'My Tasks',     icon: 'task_alt',        color: '#1565C0' },
   { id: 'pj_timeline',    label: 'Timeline',     icon: 'timeline',        color: '#6A1B9A' },
+  { id: 'pj_costs',       label: 'Costs & EVM', icon: 'payments',        color: '#AD1457' },
+  { id: 'pj_changes',     label: 'Change Orders', icon: 'swap_horiz',    color: '#00838F' },
 ]
 
 export const ADMIN_PILLS = [

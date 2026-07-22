@@ -6,6 +6,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const REASON_LABELS = {
   count_mismatch:     'Count Mismatch',
@@ -19,6 +20,7 @@ export default function Flags({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
   const canResolve = can('meals.approve')
+  const rt = useRealtimeRefresh('flags')
 
   const [flags, setFlags] = useState([])
   const [loading, setLoading] = useState(true)
@@ -27,7 +29,7 @@ export default function Flags({ setPage }) {
   const [resolving, setResolving] = useState(false)
   const [filter, setFilter] = useState('open')
 
-  useEffect(() => { if (currentSiteId) fetchFlags() }, [filter, currentSiteId])
+  useEffect(() => { if (currentSiteId) fetchFlags() }, [filter, currentSiteId, rt])
 
   async function fetchFlags() {
     setLoading(true)
@@ -94,6 +96,7 @@ export default function Flags({ setPage }) {
 
   return (
     <div>
+      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_flags" />
       <PageHeader
         title="Flags & Queries"
         site={currentSite}
@@ -223,7 +226,6 @@ export default function Flags({ setPage }) {
 
               {/* Raised by */}
               <div style={{ fontSize: '12px', color: THEME.textLow, marginBottom: '14px' }}>
-      <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_flags" />
                 Raised by <strong style={{ color: THEME.textMed }}>{selected.raised_by_profile?.full_name || selected.raised_by_profile?.username}</strong>
                 {' on '}{new Date(selected.raised_at).toLocaleString()}
               </div>

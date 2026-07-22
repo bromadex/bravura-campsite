@@ -1552,9 +1552,88 @@ export default function PJDetail({ projectId, setPage }) {
                     </div>
                   </DashCard>
 
-                  {/* S-curve (text-based since no chart lib) */}
+                  {/* S-Curve Chart */}
+                  {(() => {
+                    const pts = [...progressData].sort((a, b) => a.reporting_date.localeCompare(b.reporting_date))
+                    if (pts.length < 2 && !evmResult.percent_planned) return null
+                    const W = 560, H = 220, padL = 55, padR = 16, padT = 20, padB = 32
+                    const aW = W - padL - padR, aH = H - padT - padB
+                    const series = pts.length >= 2
+                      ? [
+                          { key: 'bcws', label: 'PV (Planned)', color: '#1565C0', vals: pts.map(p => Number(p.bcws || 0)) },
+                          { key: 'bcwp', label: 'EV (Earned)', color: '#2E7D32', vals: pts.map(p => Number(p.bcwp || 0)) },
+                          { key: 'acwp', label: 'AC (Actual)', color: '#E65100', vals: pts.map(p => Number(p.acwp || 0)) },
+                        ]
+                      : []
+                    const allVals = series.flatMap(s => s.vals)
+                    const maxV = Math.max(...allVals, evmResult.bac || 1, 1)
+                    const n = pts.length
+                    const xp = i => padL + (n > 1 ? (i / (n - 1)) * aW : aW / 2)
+                    const yp = v => padT + aH - (v / maxV) * aH
+                    const makePath = vals => {
+                      let d = `M ${xp(0)} ${yp(vals[0])}`
+                      for (let i = 1; i < vals.length; i++) {
+                        const mx = (xp(i - 1) + xp(i)) / 2
+                        d += ` C ${mx} ${yp(vals[i - 1])}, ${mx} ${yp(vals[i])}, ${xp(i)} ${yp(vals[i])}`
+                      }
+                      return d
+                    }
+                    const fmtK = v => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v.toFixed(0)
+                    const labels = pts.map(p => { const d = new Date(p.reporting_date); return `${d.toLocaleString('default', { month: 'short' })} ${d.getDate()}` })
+                    return (
+                      <DashCard>
+                        <SectionTitle title="S-Curve" subtitle="Planned Value vs Earned Value vs Actual Cost over time" />
+                        {series.length > 0 ? (
+                          <>
+                            <div style={{ overflowX: 'auto' }}>
+                              <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: '400px', display: 'block' }}>
+                                {[0.25, 0.5, 0.75, 1].map(f => (
+                                  <g key={f}>
+                                    <line x1={padL} x2={W - padR} y1={yp(f * maxV)} y2={yp(f * maxV)} stroke={THEME.outlineVar} strokeWidth="0.5" strokeDasharray="3 3" />
+                                    <text x={padL - 6} y={yp(f * maxV) + 3} textAnchor="end" fontSize="8.5" fill={THEME.textLow} fontFamily="inherit">{fmtK(f * maxV)}</text>
+                                  </g>
+                                ))}
+                                <line x1={padL} x2={W - padR} y1={padT + aH} y2={padT + aH} stroke={THEME.outlineVar} strokeWidth="1" />
+                                {evmResult.bac > 0 && (
+                                  <g>
+                                    <line x1={padL} x2={W - padR} y1={yp(evmResult.bac)} y2={yp(evmResult.bac)} stroke="#9E9E9E" strokeWidth="1" strokeDasharray="6 3" />
+                                    <text x={W - padR + 2} y={yp(evmResult.bac) + 3} fontSize="8" fill="#9E9E9E" fontFamily="inherit">BAC</text>
+                                  </g>
+                                )}
+                                {series.map(s => (
+                                  <path key={s.key} d={makePath(s.vals)} fill="none" stroke={s.color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                                ))}
+                                {series.map(s => s.vals.map((v, i) => (
+                                  <circle key={`${s.key}-${i}`} cx={xp(i)} cy={yp(v)} r="2.5" fill={s.color} opacity="0.5" />
+                                )))}
+                                {labels.map((l, i) => (
+                                  (n <= 12 || i % Math.ceil(n / 10) === 0) ? (
+                                    <text key={i} x={xp(i)} y={padT + aH + 14} textAnchor="middle" fontSize="8" fill={THEME.textLow} fontFamily="inherit">{l}</text>
+                                  ) : null
+                                ))}
+                              </svg>
+                            </div>
+                            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '8px' }}>
+                              {series.map(s => (
+                                <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: THEME.textMed }}>
+                                  <div style={{ width: '16px', height: '3px', borderRadius: '2px', background: s.color }} />
+                                  {s.label}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: '24px', color: THEME.textLow, fontSize: '12px' }}>
+                            Add progress snapshots to see the S-curve. Record periodic BCWS/BCWP/ACWP data in the progress measurement table.
+                          </div>
+                        )}
+                      </DashCard>
+                    )
+                  })()}
+
+                  {/* Progress bars */}
                   {evmResult.percent_planned != null && (
-                    <DashCard>
+                    <DashCard style={{ marginTop: '16px' }}>
                       <SectionTitle title="Progress Overview" />
                       <div style={{ marginBottom: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>

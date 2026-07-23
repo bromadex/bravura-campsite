@@ -67,6 +67,7 @@ export default function PJDetail({ projectId, setPage }) {
   const [memberForm, setMemberForm] = useState({ user_id: '', role: 'viewer' })
   const [memberSaving, setMemberSaving] = useState(false)
   const [siteUsers, setSiteUsers] = useState([])
+  const [siteEmployees, setSiteEmployees] = useState([])
 
   // Label form
   const [labelModal, setLabelModal] = useState(false)
@@ -155,8 +156,12 @@ export default function PJDetail({ projectId, setPage }) {
 
   async function fetchSiteUsers() {
     if (!currentSiteId) return
-    const { data } = await supabase.from('profiles').select('id, username, full_name').order('full_name')
-    setSiteUsers(data || [])
+    const [profRes, empRes] = await Promise.all([
+      supabase.from('profiles').select('id, username, full_name').order('full_name'),
+      supabase.from('employees').select('id, name, employee_number, position_title').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
+    ])
+    setSiteUsers(profRes.data || [])
+    setSiteEmployees(empRes.data || [])
   }
 
   async function fetchAreas() {
@@ -649,7 +654,13 @@ export default function PJDetail({ projectId, setPage }) {
 
   function userName(userId) {
     const u = siteUsers.find(x => x.id === userId)
-    return u?.full_name || u?.username || 'Unknown'
+    if (u) return u.full_name || u.username || 'Unknown'
+    const e = siteEmployees.find(x => x.id === userId)
+    return e?.name || 'Unknown'
+  }
+
+  function isEmployee(userId) {
+    return siteEmployees.some(x => x.id === userId)
   }
 
   function getInitials(userId) {
@@ -1014,6 +1025,7 @@ export default function PJDetail({ projectId, setPage }) {
             </select>
             <select style={{ ...inp, width: 'auto', padding: '5px 10px', fontSize: '12px' }} value={boardFilter.assignee} onChange={e => setBoardFilter(f => ({ ...f, assignee: e.target.value }))}>
               <option value="">All Assignees</option>
+              {siteEmployees.filter(e => boardTasks.some(t => t.assigned_to === e.id)).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               {members.map(m => <option key={m.user_id} value={m.user_id}>{userName(m.user_id)}</option>)}
             </select>
             <select style={{ ...inp, width: 'auto', padding: '5px 10px', fontSize: '12px' }} value={boardFilter.label} onChange={e => setBoardFilter(f => ({ ...f, label: e.target.value }))}>
@@ -1122,12 +1134,16 @@ export default function PJDetail({ projectId, setPage }) {
                                 )}
                                 <div style={{ flex: 1 }} />
                                 {t.assigned_to && (
-                                  <div style={{
-                                    width: '22px', height: '22px', borderRadius: '50%',
-                                    background: color + '20', color: color,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '9px', fontWeight: 700,
-                                  }}>{getInitials(t.assigned_to)}</div>
+                                  <div
+                                    title={userName(t.assigned_to)}
+                                    onClick={isEmployee(t.assigned_to) ? (e) => { e.stopPropagation(); setPage('wf_employee_detail', t.assigned_to) } : undefined}
+                                    style={{
+                                      width: '22px', height: '22px', borderRadius: '50%',
+                                      background: color + '20', color: color,
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      fontSize: '9px', fontWeight: 700,
+                                      cursor: isEmployee(t.assigned_to) ? 'pointer' : 'default',
+                                    }}>{getInitials(t.assigned_to)}</div>
                                 )}
                               </div>
                             </div>
@@ -1941,7 +1957,12 @@ export default function PJDetail({ projectId, setPage }) {
               <div style={fieldWrap}><label style={lbl}>Assignee</label>
                 <select style={inp} value={taskForm.assigned_to || ''} onChange={e => setTaskForm(f => ({ ...f, assigned_to: e.target.value || null }))}>
                   <option value="">Unassigned</option>
-                  {members.map(m => <option key={m.user_id} value={m.user_id}>{userName(m.user_id)}</option>)}
+                  {siteEmployees.length > 0 && <optgroup label="Employees">
+                    {siteEmployees.map(e => <option key={e.id} value={e.id}>{e.name}{e.position_title ? ` — ${e.position_title}` : ''}</option>)}
+                  </optgroup>}
+                  {members.length > 0 && <optgroup label="Project Members">
+                    {members.map(m => <option key={m.user_id} value={m.user_id}>{userName(m.user_id)}</option>)}
+                  </optgroup>}
                 </select>
               </div>
               <div style={fieldWrap}><label style={lbl}>Start Date</label>

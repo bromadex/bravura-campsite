@@ -1556,7 +1556,7 @@ export default function PJDetail({ projectId, setPage }) {
       {tab === 'schedule' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-            <SectionTitle title="Schedule & CPM" subtitle="Critical path analysis and baselines" />
+            <SectionTitle title="Schedule & Gantt" subtitle="Interactive timeline, critical path analysis and baselines" />
             <div style={{ display: 'flex', gap: '8px' }}>
               {can('projects.edit') && (
                 <button onClick={runCpm} disabled={cpmLoading} style={{
@@ -1581,6 +1581,238 @@ export default function PJDetail({ projectId, setPage }) {
               )}
             </div>
           </div>
+
+          {/* ── Interactive Gantt Chart ──────────────────────────── */}
+          {(() => {
+            const tasks = [...boardTasks]
+              .filter(t => t.start_date || t.end_date)
+              .sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999') || a.position - b.position)
+            if (tasks.length === 0) return (
+              <DashCard style={{ marginBottom: '16px' }}>
+                <SectionTitle title="Gantt Chart" subtitle="Add start/end dates to tasks to see the timeline" />
+                <div style={{ textAlign: 'center', padding: '32px', color: THEME.textLow, fontSize: '13px' }}>
+                  <span className="material-symbols-rounded" style={{ fontSize: '48px', display: 'block', marginBottom: '8px', opacity: 0.3 }}>view_timeline</span>
+                  No tasks with dates yet. Set start and end dates on tasks to generate the Gantt chart.
+                </div>
+              </DashCard>
+            )
+
+            const allDates = tasks.flatMap(t => [t.start_date, t.end_date].filter(Boolean))
+            const minDate = new Date(allDates.reduce((a, b) => a < b ? a : b))
+            const maxDate = new Date(allDates.reduce((a, b) => a > b ? a : b))
+            minDate.setDate(minDate.getDate() - 3)
+            maxDate.setDate(maxDate.getDate() + 7)
+            const totalDays = Math.max(1, Math.ceil((maxDate - minDate) / 86400000))
+            const today = new Date().toISOString().slice(0, 10)
+            const todayPos = Math.ceil((new Date(today) - minDate) / 86400000)
+
+            const months = []
+            const d = new Date(minDate)
+            d.setDate(1)
+            while (d <= maxDate) {
+              const mStart = Math.max(0, Math.ceil((d - minDate) / 86400000))
+              const nextM = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+              const mEnd = Math.min(totalDays, Math.ceil((nextM - minDate) / 86400000))
+              months.push({ label: d.toLocaleString('default', { month: 'short', year: '2-digit' }), start: mStart, end: mEnd })
+              d.setMonth(d.getMonth() + 1)
+            }
+
+            const weeks = []
+            const wk = new Date(minDate)
+            wk.setDate(wk.getDate() - wk.getDay() + 1)
+            while (wk <= maxDate) {
+              const ws = Math.max(0, Math.ceil((wk - minDate) / 86400000))
+              weeks.push({ day: ws, label: `${wk.getDate()}` })
+              wk.setDate(wk.getDate() + 7)
+            }
+
+            const ROW_H = 32, HEADER_H = 44, LABEL_W = 220
+            const chartH = tasks.length * ROW_H + HEADER_H
+            const ganttBarColor = (t) => {
+              const isCritical = cpmResult?.tasks?.find(ct => ct.task_id === t.id)?.is_critical
+              if (isCritical) return '#C62828'
+              if (t.status === 'done') return '#2E7D32'
+              if (t.status === 'in_progress') return '#1565C0'
+              if (t.percent_complete >= 100) return '#2E7D32'
+              const overdue = t.end_date && t.end_date < today && (t.percent_complete || 0) < 100
+              if (overdue) return '#E65100'
+              return color
+            }
+
+            return (
+              <DashCard style={{ marginBottom: '16px', padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 16px 0' }}>
+                  <SectionTitle title="Gantt Chart" subtitle={`${tasks.length} tasks · ${totalDays} day span`} />
+                </div>
+                <div style={{ display: 'flex', borderTop: `1px solid ${THEME.outlineVar}`, overflow: 'hidden' }}>
+                  {/* Left: task labels */}
+                  <div style={{ minWidth: LABEL_W, maxWidth: LABEL_W, borderRight: `1px solid ${THEME.outlineVar}`, flexShrink: 0 }}>
+                    <div style={{ height: HEADER_H, display: 'flex', alignItems: 'flex-end', padding: '0 10px 6px', fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', borderBottom: `1px solid ${THEME.outlineVar}` }}>Task</div>
+                    {tasks.map((t, i) => (
+                      <div key={t.id} style={{
+                        height: ROW_H, display: 'flex', alignItems: 'center', padding: '0 10px', gap: '6px',
+                        borderBottom: `1px solid ${THEME.outlineVar}08`,
+                        background: i % 2 === 0 ? 'transparent' : THEME.surfaceVar + '40',
+                      }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: ganttBarColor(t), flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{t.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Right: gantt bars */}
+                  <div style={{ flex: 1, overflowX: 'auto', position: 'relative' }}>
+                    <div style={{ minWidth: Math.max(totalDays * 4, 600), position: 'relative' }}>
+                      {/* Month headers */}
+                      <div style={{ height: 22, display: 'flex', borderBottom: `1px solid ${THEME.outlineVar}40` }}>
+                        {months.map((m, i) => (
+                          <div key={i} style={{
+                            position: 'absolute', left: `${(m.start / totalDays) * 100}%`, width: `${((m.end - m.start) / totalDays) * 100}%`,
+                            height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '10px', fontWeight: 700, color: THEME.textMed, borderRight: `1px solid ${THEME.outlineVar}30`,
+                          }}>{m.label}</div>
+                        ))}
+                      </div>
+                      {/* Week markers */}
+                      <div style={{ height: 22, display: 'flex', borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                        {weeks.map((w, i) => (
+                          <div key={i} style={{
+                            position: 'absolute', left: `${(w.day / totalDays) * 100}%`, width: `${(7 / totalDays) * 100}%`,
+                            height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '9px', color: THEME.textLow, borderRight: `1px solid ${THEME.outlineVar}20`,
+                          }}>{w.label}</div>
+                        ))}
+                      </div>
+                      {/* Today line */}
+                      {todayPos >= 0 && todayPos <= totalDays && (
+                        <div style={{
+                          position: 'absolute', left: `${(todayPos / totalDays) * 100}%`, top: 0, bottom: 0,
+                          width: '2px', background: '#F44336', zIndex: 5, pointerEvents: 'none',
+                        }}>
+                          <div style={{ position: 'absolute', top: 0, left: '-10px', background: '#F44336', color: '#fff', fontSize: '8px', fontWeight: 700, padding: '1px 4px', borderRadius: '0 0 3px 3px', whiteSpace: 'nowrap' }}>Today</div>
+                        </div>
+                      )}
+                      {/* Task bars */}
+                      {tasks.map((t, i) => {
+                        const start = t.start_date ? new Date(t.start_date) : null
+                        const end = t.end_date ? new Date(t.end_date) : start
+                        if (!start) return null
+                        const barStart = Math.ceil((start - minDate) / 86400000)
+                        const barDur = Math.max(1, Math.ceil(((end || start) - start) / 86400000))
+                        const pct = t.percent_complete || 0
+                        const isCrit = cpmResult?.tasks?.find(ct => ct.task_id === t.id)?.is_critical
+                        const overdue = t.end_date && t.end_date < today && pct < 100
+                        const barColor = ganttBarColor(t)
+                        return (
+                          <div key={t.id} className="gantt-row" style={{
+                            position: 'relative', height: ROW_H, display: 'flex', alignItems: 'center',
+                            background: i % 2 === 0 ? 'transparent' : THEME.surfaceVar + '40',
+                            borderBottom: `1px solid ${THEME.outlineVar}08`,
+                          }}>
+                            {/* Background grid lines for weeks */}
+                            {weeks.map((w, wi) => (
+                              <div key={wi} style={{ position: 'absolute', left: `${(w.day / totalDays) * 100}%`, top: 0, bottom: 0, width: '1px', background: THEME.outlineVar + '15' }} />
+                            ))}
+                            {/* Bar container with tooltip */}
+                            <div style={{
+                              position: 'absolute',
+                              left: `${(barStart / totalDays) * 100}%`,
+                              width: `${(barDur / totalDays) * 100}%`,
+                              height: 20, minWidth: '4px',
+                            }}>
+                              {/* Full bar background */}
+                              <div style={{
+                                position: 'absolute', inset: 0, borderRadius: '4px',
+                                background: barColor + '30',
+                                border: `1px solid ${barColor}60`,
+                                cursor: 'pointer',
+                                transition: 'transform 0.15s, box-shadow 0.15s',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'scaleY(1.3)'
+                                e.currentTarget.style.boxShadow = `0 2px 8px ${barColor}40`
+                                e.currentTarget.style.zIndex = '10'
+                                const tip = e.currentTarget.querySelector('.gantt-tip')
+                                if (tip) tip.style.display = 'block'
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'scaleY(1)'
+                                e.currentTarget.style.boxShadow = 'none'
+                                e.currentTarget.style.zIndex = '1'
+                                const tip = e.currentTarget.querySelector('.gantt-tip')
+                                if (tip) tip.style.display = 'none'
+                              }}
+                              >
+                                {/* Progress fill */}
+                                <div style={{
+                                  position: 'absolute', left: 0, top: 0, bottom: 0,
+                                  width: `${Math.min(100, pct)}%`, borderRadius: '3px',
+                                  background: barColor, opacity: 0.85,
+                                }} />
+                                {/* Percent label on bar */}
+                                {barDur > 3 && (
+                                  <span style={{
+                                    position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+                                    fontSize: '9px', fontWeight: 700, color: pct > 50 ? '#fff' : barColor,
+                                    whiteSpace: 'nowrap', pointerEvents: 'none', textShadow: pct > 50 ? '0 0 2px rgba(0,0,0,0.3)' : 'none',
+                                  }}>{pct}%</span>
+                                )}
+                                {/* Critical path marker */}
+                                {isCrit && (
+                                  <span style={{
+                                    position: 'absolute', right: -8, top: -4, fontSize: '10px', color: '#C62828',
+                                  }}>⚑</span>
+                                )}
+                                {/* Tooltip */}
+                                <div className="gantt-tip" style={{
+                                  display: 'none', position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+                                  marginBottom: '6px', background: '#1a1a2e', color: '#fff', borderRadius: '8px',
+                                  padding: '10px 14px', fontSize: '11px', lineHeight: '1.5', whiteSpace: 'nowrap',
+                                  zIndex: 50, boxShadow: '0 4px 16px rgba(0,0,0,0.3)', pointerEvents: 'none',
+                                  minWidth: '180px',
+                                }}>
+                                  <div style={{ fontWeight: 700, fontSize: '12px', marginBottom: '4px', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 10px' }}>
+                                    <span style={{ color: '#aaa' }}>Start:</span><span>{t.start_date || '—'}</span>
+                                    <span style={{ color: '#aaa' }}>End:</span><span>{t.end_date || '—'}</span>
+                                    <span style={{ color: '#aaa' }}>Duration:</span><span>{t.duration_days || barDur}d</span>
+                                    <span style={{ color: '#aaa' }}>Progress:</span><span style={{ color: pct >= 100 ? '#66BB6A' : pct > 0 ? '#42A5F5' : '#aaa' }}>{pct}%</span>
+                                    {t.assigned_to && <><span style={{ color: '#aaa' }}>Assigned:</span><span>{userName(t.assigned_to)}</span></>}
+                                    <span style={{ color: '#aaa' }}>Status:</span>
+                                    <span style={{ color: overdue ? '#FF8A65' : t.status === 'done' ? '#66BB6A' : '#42A5F5' }}>
+                                      {overdue ? 'Overdue' : t.status === 'done' ? 'Complete' : t.status === 'in_progress' ? 'In Progress' : 'Not Started'}
+                                    </span>
+                                    {isCrit && <><span style={{ color: '#aaa' }}>Path:</span><span style={{ color: '#EF5350' }}>Critical</span></>}
+                                  </div>
+                                  <div style={{ position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%) rotate(45deg)', width: '8px', height: '8px', background: '#1a1a2e' }} />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+                {/* Legend */}
+                <div style={{ display: 'flex', gap: '14px', padding: '10px 16px', borderTop: `1px solid ${THEME.outlineVar}`, flexWrap: 'wrap' }}>
+                  {[
+                    { c: color, l: 'On Track' }, { c: '#1565C0', l: 'In Progress' }, { c: '#2E7D32', l: 'Complete' },
+                    { c: '#E65100', l: 'Overdue' }, { c: '#C62828', l: 'Critical Path' },
+                  ].map(x => (
+                    <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', color: THEME.textMed }}>
+                      <div style={{ width: '14px', height: '8px', borderRadius: '2px', background: x.c + '30', border: `1px solid ${x.c}60` }}>
+                        <div style={{ width: '60%', height: '100%', background: x.c, borderRadius: '1px', opacity: 0.85 }} />
+                      </div>
+                      {x.l}
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', color: THEME.textMed }}>
+                    <div style={{ width: '2px', height: '10px', background: '#F44336' }} /> Today
+                  </div>
+                </div>
+              </DashCard>
+            )
+          })()}
 
           {/* CPM Results */}
           {cpmResult && (

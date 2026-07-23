@@ -89,6 +89,7 @@ export default function PJDetail({ projectId, setPage }) {
   const [addColName, setAddColName] = useState('')
   const [showAddCol, setShowAddCol] = useState(false)
   const [boardFilter, setBoardFilter] = useState({ label: '', assignee: '', priority: '' })
+  const [quickProgress, setQuickProgress] = useState(null)
   const [boardView, setBoardView] = useState('table')
   const [checklistInput, setChecklistInput] = useState('')
   const [taskLabelPicker, setTaskLabelPicker] = useState(false)
@@ -564,6 +565,24 @@ export default function PJDetail({ projectId, setPage }) {
     } finally {
       setTaskSaving(false)
     }
+  }
+
+  async function quickUpdateProgress(taskId, percent, actualStart, actualEnd) {
+    const pct = Math.min(100, Math.max(0, parseInt(percent) || 0))
+    const payload = { percent_complete: pct }
+    if (actualStart) payload.actual_start = actualStart
+    if (actualEnd) payload.actual_end = actualEnd
+    if (pct === 100 && !actualEnd) payload.actual_end = new Date().toISOString().slice(0, 10)
+    if (pct > 0 && !actualStart) payload.actual_start = new Date().toISOString().slice(0, 10)
+    const doneCol = boardColumns.find(c => c.is_done_column)
+    const inProgCol = boardColumns.find(c => !c.is_done_column && c.name?.toLowerCase().includes('progress'))
+    if (pct === 100 && doneCol) { payload.column_id = doneCol.id; payload.status = 'done'; payload.completed_date = new Date().toISOString() }
+    else if (pct > 0 && inProgCol) { payload.column_id = inProgCol.id; payload.status = 'in_progress' }
+    const { error } = await supabase.from('project_tasks').update(payload).eq('id', taskId)
+    if (error) { showToast(error.message, 'red'); return }
+    showToast(`Progress updated to ${pct}%`, 'green')
+    setQuickProgress(null)
+    await fetchBoard()
   }
 
   async function archiveTask() {
@@ -1727,6 +1746,8 @@ export default function PJDetail({ projectId, setPage }) {
                                 cursor: 'pointer',
                                 transition: 'transform 0.15s, box-shadow 0.15s',
                               }}
+                              onClick={() => setQuickProgress({ id: t.id, title: t.title, percent: pct, actual_start: t.actual_start || '', actual_end: t.actual_end || '', start_date: t.start_date, end_date: t.end_date, assigned_to: t.assigned_to })}
+                              onDoubleClick={() => openTaskModal(t)}
                               onMouseEnter={e => {
                                 e.currentTarget.style.transform = 'scaleY(1.3)'
                                 e.currentTarget.style.boxShadow = `0 2px 8px ${barColor}40`
@@ -1783,6 +1804,7 @@ export default function PJDetail({ projectId, setPage }) {
                                     </span>
                                     {isCrit && <><span style={{ color: '#aaa' }}>Path:</span><span style={{ color: '#EF5350' }}>Critical</span></>}
                                   </div>
+                                  <div style={{ borderTop: '1px solid #333', marginTop: '6px', paddingTop: '4px', fontSize: '9px', color: '#888' }}>Click: update progress · Double-click: full edit</div>
                                   <div style={{ position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%) rotate(45deg)', width: '8px', height: '8px', background: '#1a1a2e' }} />
                                 </div>
                               </div>
@@ -1813,6 +1835,187 @@ export default function PJDetail({ projectId, setPage }) {
               </DashCard>
             )
           })()}
+
+          {/* Quick Progress Update Modal */}
+          {quickProgress && (
+            <ModalOverlay onClose={() => setQuickProgress(null)} dirty={true}>
+              <div style={{ background: THEME.surface, borderRadius: '18px', width: '440px', maxWidth: '95vw', boxShadow: THEME.shadow3, padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <span className="material-symbols-rounded" style={{ fontSize: '22px', color }}>update</span>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: THEME.text }}>Update Progress</div>
+                    <div style={{ fontSize: '12px', color: THEME.textMed, maxWidth: '340px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quickProgress.title}</div>
+                  </div>
+                </div>
+                {quickProgress.assigned_to && (
+                  <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '12px' }}>
+                    <span style={{ color: THEME.textLow }}>Assigned to:</span> {userName(quickProgress.assigned_to)}
+                  </div>
+                )}
+                <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '14px', display: 'flex', gap: '16px' }}>
+                  <span><span style={{ color: THEME.textLow }}>Plan:</span> {quickProgress.start_date || '—'} → {quickProgress.end_date || '—'}</span>
+                </div>
+                {/* Progress slider */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed }}>% Complete</label>
+                    <span style={{ fontSize: '24px', fontWeight: 800, color: quickProgress.percent >= 100 ? '#2E7D32' : quickProgress.percent > 0 ? color : THEME.textLow }}>{quickProgress.percent}%</span>
+                  </div>
+                  <input type="range" min="0" max="100" step="5" value={quickProgress.percent}
+                    onChange={e => setQuickProgress(p => ({ ...p, percent: parseInt(e.target.value) }))}
+                    style={{ width: '100%', accentColor: color, height: '8px' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                    {[0, 25, 50, 75, 100].map(v => (
+                      <button key={v} onClick={() => setQuickProgress(p => ({ ...p, percent: v }))} style={{
+                        padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                        background: quickProgress.percent === v ? color : THEME.surfaceVar, color: quickProgress.percent === v ? '#fff' : THEME.textMed,
+                      }}>{v}%</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Actual dates */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: THEME.textLow, display: 'block', marginBottom: '4px' }}>Actual Start</label>
+                    <input type="date" value={quickProgress.actual_start} onChange={e => setQuickProgress(p => ({ ...p, actual_start: e.target.value }))}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '8px', border: `1px solid ${THEME.outlineVar}`, fontSize: '12px', fontFamily: 'inherit', background: THEME.surfaceVar, color: THEME.text, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: THEME.textLow, display: 'block', marginBottom: '4px' }}>Actual Finish</label>
+                    <input type="date" value={quickProgress.actual_end} onChange={e => setQuickProgress(p => ({ ...p, actual_end: e.target.value }))}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '8px', border: `1px solid ${THEME.outlineVar}`, fontSize: '12px', fontFamily: 'inherit', background: THEME.surfaceVar, color: THEME.text, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+                {/* Progress bar preview */}
+                <div style={{ height: '6px', borderRadius: '3px', background: THEME.outlineVar, marginBottom: '16px' }}>
+                  <div style={{ height: '100%', borderRadius: '3px', background: quickProgress.percent >= 100 ? '#2E7D32' : color, width: `${quickProgress.percent}%`, transition: 'width 0.2s' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <button onClick={() => openTaskModal(boardTasks.find(t => t.id === quickProgress.id))} style={{
+                    padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                    background: 'transparent', color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                  }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>edit</span>Full Edit
+                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => setQuickProgress(null)} style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                    <button onClick={() => quickUpdateProgress(quickProgress.id, quickProgress.percent, quickProgress.actual_start, quickProgress.actual_end)} style={{
+                      padding: '8px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                      background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    }}>Save</button>
+                  </div>
+                </div>
+              </div>
+            </ModalOverlay>
+          )}
+
+          {/* ── Delayed Tasks ────────────────────────────────────── */}
+          {(() => {
+            const today = new Date().toISOString().slice(0, 10)
+            const delayed = boardTasks
+              .filter(t => t.end_date && t.end_date < today && (t.percent_complete || 0) < 100 && !t.is_archived)
+              .sort((a, b) => (a.end_date || '').localeCompare(b.end_date || ''))
+            if (delayed.length === 0) return null
+            return (
+              <DashCard style={{ marginBottom: '16px' }}>
+                <SectionTitle title="Delayed Tasks" subtitle={`${delayed.length} task${delayed.length !== 1 ? 's' : ''} behind schedule`} />
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
+                        {['Task', 'Planned End', 'Days Late', '% Done', 'Assigned', 'Action'].map(h => (
+                          <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: THEME.textMed, whiteSpace: 'nowrap' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {delayed.map(t => {
+                        const daysLate = daysBetween(t.end_date, today)
+                        const pct = t.percent_complete || 0
+                        return (
+                          <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                            <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 500, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</td>
+                            <td style={{ padding: '8px 10px', color: '#C62828', fontWeight: 600, whiteSpace: 'nowrap' }}>{t.end_date}</td>
+                            <td style={{ padding: '8px 10px' }}>
+                              <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 700, background: daysLate > 14 ? '#FFEBEE' : '#FFF3E0', color: daysLate > 14 ? '#C62828' : '#E65100' }}>
+                                {daysLate}d late
+                              </span>
+                            </td>
+                            <td style={{ padding: '8px 10px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ width: '50px', height: '5px', borderRadius: '3px', background: THEME.outlineVar }}>
+                                  <div style={{ height: '100%', borderRadius: '3px', background: '#E65100', width: `${pct}%` }} />
+                                </div>
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>{pct}%</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '11px', whiteSpace: 'nowrap' }}>{t.assigned_to ? userName(t.assigned_to) : '—'}</td>
+                            <td style={{ padding: '8px 10px' }}>
+                              <button onClick={() => setQuickProgress({ id: t.id, title: t.title, percent: pct, actual_start: t.actual_start || '', actual_end: t.actual_end || '', start_date: t.start_date, end_date: t.end_date, assigned_to: t.assigned_to })} style={{
+                                padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+                                background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                                display: 'flex', alignItems: 'center', gap: '3px',
+                              }}>
+                                <span className="material-symbols-rounded" style={{ fontSize: '12px' }}>update</span>Update
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </DashCard>
+            )
+          })()}
+
+          {/* ── Progress Tracker ─────────────────────────────────── */}
+          {boardTasks.filter(t => t.start_date || t.end_date).length > 0 && (
+            <DashCard style={{ marginBottom: '16px' }}>
+              <SectionTitle title="Quick Progress Update" subtitle="Click a task to update its progress" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '320px', overflowY: 'auto' }}>
+                {[...boardTasks]
+                  .filter(t => (t.percent_complete || 0) < 100 && !t.is_archived)
+                  .sort((a, b) => (a.end_date || '9999').localeCompare(b.end_date || '9999'))
+                  .map(t => {
+                    const pct = t.percent_complete || 0
+                    const today = new Date().toISOString().slice(0, 10)
+                    const overdue = t.end_date && t.end_date < today
+                    return (
+                      <div key={t.id} onClick={() => setQuickProgress({ id: t.id, title: t.title, percent: pct, actual_start: t.actual_start || '', actual_end: t.actual_end || '', start_date: t.start_date, end_date: t.end_date, assigned_to: t.assigned_to })} style={{
+                        display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '10px',
+                        cursor: 'pointer', background: THEME.surfaceVar,
+                        border: overdue ? '1px solid #FFCDD2' : `1px solid transparent`,
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = THEME.outlineVar + '60'}
+                      onMouseLeave={e => e.currentTarget.style.background = THEME.surfaceVar}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '12px', fontWeight: 500, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+                          <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '2px' }}>
+                            {t.end_date ? `Due: ${t.end_date}` : 'No due date'}
+                            {t.assigned_to ? ` · ${userName(t.assigned_to)}` : ''}
+                            {overdue && <span style={{ color: '#C62828', fontWeight: 600, marginLeft: '6px' }}>OVERDUE</span>}
+                          </div>
+                        </div>
+                        <div style={{ width: '80px', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          <div style={{ flex: 1, height: '5px', borderRadius: '3px', background: THEME.outlineVar }}>
+                            <div style={{ height: '100%', borderRadius: '3px', background: overdue ? '#E65100' : color, width: `${pct}%` }} />
+                          </div>
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '30px', textAlign: 'right' }}>{pct}%</span>
+                        </div>
+                        <span className="material-symbols-rounded" style={{ fontSize: '16px', color: THEME.textLow }}>edit</span>
+                      </div>
+                    )
+                  })}
+              </div>
+            </DashCard>
+          )}
 
           {/* CPM Results */}
           {cpmResult && (

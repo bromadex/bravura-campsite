@@ -89,6 +89,7 @@ export default function PJDetail({ projectId, setPage }) {
   const [addColName, setAddColName] = useState('')
   const [showAddCol, setShowAddCol] = useState(false)
   const [boardFilter, setBoardFilter] = useState({ label: '', assignee: '', priority: '' })
+  const [boardView, setBoardView] = useState('table')
   const [checklistInput, setChecklistInput] = useState('')
   const [taskLabelPicker, setTaskLabelPicker] = useState(false)
   const [taskDeps, setTaskDeps] = useState([])
@@ -469,7 +470,7 @@ export default function PJDetail({ projectId, setPage }) {
     setBoardLoading(false)
   }, [projectId])
 
-  useEffect(() => { if (tab === 'board') fetchBoard() }, [tab, fetchBoard])
+  useEffect(() => { if (tab === 'board' || tab === 'overview') fetchBoard() }, [tab, fetchBoard])
 
   // ── Board CRUD ──────────────────────────────────────────────────────────
   async function quickAddTask(colId) {
@@ -571,6 +572,107 @@ export default function PJDetail({ projectId, setPage }) {
     showToast('Task archived', 'green')
     setTaskModal(null)
     await fetchBoard()
+  }
+
+  async function archiveProject() {
+    if (!confirm('Archive this project? It will be hidden from the project list.')) return
+    await supabase.from('projects').update({ is_archived: true, archived_at: new Date().toISOString() }).eq('id', projectId)
+    showToast('Project archived', 'green')
+    setPage('pj_projects')
+  }
+
+  function exportMSProjectXML() {
+    const tasks = [...boardTasks].sort((a, b) => a.position - b.position)
+    const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const fmtDate = d => d ? new Date(d).toISOString().replace('Z', '') : ''
+    const fmtDur = days => `PT${(days || 1) * 8}H0M0S`
+
+    let xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n`
+    xml += `<Project xmlns="http://schemas.microsoft.com/project">\n`
+    xml += `  <Name>${esc(project.name)}</Name>\n`
+    xml += `  <StartDate>${fmtDate(project.start_date)}</StartDate>\n`
+    xml += `  <FinishDate>${fmtDate(project.target_end_date)}</FinishDate>\n`
+    xml += `  <CalendarUID>1</CalendarUID>\n`
+    xml += `  <Calendars>\n`
+    xml += `    <Calendar><UID>1</UID><Name>Standard</Name><IsBaseCalendar>1</IsBaseCalendar></Calendar>\n`
+    xml += `  </Calendars>\n`
+    xml += `  <Tasks>\n`
+
+    const assignees = new Map()
+    tasks.forEach((t, i) => {
+      const uid = i + 1
+      const col = boardColumns.find(c => c.id === t.column_id)
+      const pctDone = t.percent_complete || 0
+      xml += `    <Task>\n`
+      xml += `      <UID>${uid}</UID>\n`
+      xml += `      <ID>${uid}</ID>\n`
+      xml += `      <Name>${esc(t.title)}</Name>\n`
+      xml += `      <Active>1</Active>\n`
+      xml += `      <IsNull>0</IsNull>\n`
+      if (t.wbs_code) xml += `      <WBS>${esc(t.wbs_code)}</WBS>\n`
+      xml += `      <Start>${fmtDate(t.start_date || t.actual_start)}</Start>\n`
+      xml += `      <Finish>${fmtDate(t.due_date || t.actual_end)}</Finish>\n`
+      xml += `      <Duration>${fmtDur(t.planned_duration)}</Duration>\n`
+      xml += `      <PercentComplete>${pctDone}</PercentComplete>\n`
+      if (t.actual_start) xml += `      <ActualStart>${fmtDate(t.actual_start)}</ActualStart>\n`
+      if (t.actual_end) xml += `      <ActualFinish>${fmtDate(t.actual_end)}</ActualFinish>\n`
+      if (t.is_milestone) xml += `      <Milestone>1</Milestone>\n`
+      if (t.is_critical) xml += `      <Critical>1</Critical>\n`
+      if (t.priority) {
+        const pMap = { low: 100, medium: 500, high: 700, critical: 900 }
+        xml += `      <Priority>${pMap[t.priority] || 500}</Priority>\n`
+      }
+      if (t.notes) xml += `      <Notes>${esc(t.notes)}</Notes>\n`
+      xml += `    </Task>\n`
+      if (t.assigned_to && !assignees.has(t.assigned_to)) {
+        assignees.set(t.assigned_to, assignees.size + 1)
+      }
+    })
+    xml += `  </Tasks>\n`
+
+    xml += `  <Resources>\n`
+    assignees.forEach((rUid, aId) => {
+      xml += `    <Resource><UID>${rUid}</UID><ID>${rUid}</ID><Name>${esc(userName(aId))}</Name></Resource>\n`
+    })
+    xml += `  </Resources>\n`
+
+    xml += `  <Assignments>\n`
+    tasks.forEach((t, i) => {
+      if (t.assigned_to && assignees.has(t.assigned_to)) {
+        xml += `    <Assignment><UID>${i + 1}</UID><TaskUID>${i + 1}</TaskUID><ResourceUID>${assignees.get(t.assigned_to)}</ResourceUID></Assignment>\n`
+      }
+    })
+    xml += `  </Assignments>\n`
+    xml += `</Project>`
+
+    const blob = new Blob([xml], { type: 'application/xml' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${project.project_code || 'project'}_${project.name?.replace(/\s+/g, '_') || 'export'}.xml`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast('MS Project XML exported', 'green')
+  }
+
+  function exportCSV() {
+    const tasks = [...boardTasks].sort((a, b) => a.position - b.position)
+    const col = id => boardColumns.find(c => c.id === id)?.name || ''
+    const headers = ['#', 'Task', 'Status', 'Duration (days)', 'Start', 'Finish', 'Actual Start', 'Actual Finish', '% Complete', 'Assigned To', 'Priority', 'WBS']
+    const rows = tasks.map((t, i) => [
+      i + 1, `"${(t.title || '').replace(/"/g, '""')}"`, col(t.column_id),
+      t.planned_duration || '', t.start_date || '', t.due_date || '',
+      t.actual_start || '', t.actual_end || '', t.percent_complete || 0,
+      `"${userName(t.assigned_to)}"`, t.priority || '', t.wbs_code || ''
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${project.project_code || 'project'}_tasks.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function addChecklistItem() {
@@ -775,7 +877,17 @@ export default function PJDetail({ projectId, setPage }) {
               {project.location && <span style={{ fontSize: '11px', color: THEME.textLow }}>· {project.location}</span>}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {can('projects.delete') && (
+              <button onClick={archiveProject} title="Archive project" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
+                background: '#FFEBEE', color: '#C62828', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>archive</span>
+                Archive
+              </button>
+            )}
             {/* Progress ring */}
             <div style={{ textAlign: 'center' }}>
               <svg width="56" height="56" viewBox="0 0 56 56">
@@ -815,16 +927,23 @@ export default function PJDetail({ projectId, setPage }) {
       </div>
 
       {/* ── OVERVIEW TAB ───────────────────────────────────────────── */}
-      {tab === 'overview' && (
+      {tab === 'overview' && (() => {
+        const totalTasks = boardTasks.length
+        const doneTasks = boardTasks.filter(t => t.percent_complete === 100 || boardColumns.find(c => c.id === t.column_id)?.is_done_column).length
+        const inProgressTasks = boardTasks.filter(t => (t.percent_complete || 0) > 0 && (t.percent_complete || 0) < 100 && !boardColumns.find(c => c.id === t.column_id)?.is_done_column).length
+        const overdueTasks = boardTasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && !t.completed_date).length
+        const avgPct = totalTasks > 0 ? Math.round(boardTasks.reduce((s, t) => s + (t.percent_complete || 0), 0) / totalTasks) : 0
+        return (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-            <KpiCard label="Phases" value={phases.length} icon="timeline" accent={color} />
-            <KpiCard label="Completed" value={phases.filter(p => p.status === 'completed').length} icon="task_alt" accent="#2E7D32" />
-            <KpiCard label="Team" value={members.length} icon="group" accent="#1565C0" />
-            <KpiCard label="Labels" value={labels.length} icon="label" accent="#6A1B9A" />
-            <KpiCard label="Days Elapsed" value={daysElapsed} icon="schedule" accent="#E65100" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+            <KpiCard label="Total Tasks" value={totalTasks} icon="task" accent={color} />
+            <KpiCard label="Completed" value={doneTasks} icon="task_alt" accent="#2E7D32" />
+            <KpiCard label="In Progress" value={inProgressTasks} icon="pending" accent="#1565C0" />
+            <KpiCard label="Overdue" value={overdueTasks} icon="warning" accent={overdueTasks > 0 ? '#C62828' : '#999'} />
+            <KpiCard label="Avg Progress" value={`${avgPct}%`} icon="speed" accent="#E65100" />
+            <KpiCard label="Days Elapsed" value={daysElapsed} icon="schedule" accent="#00838F" />
             {daysRemaining !== null && (
-              <KpiCard label="Days Left" value={Math.max(0, daysRemaining)} icon="timer" accent={daysRemaining < 0 ? '#C62828' : '#00838F'} />
+              <KpiCard label="Days Left" value={Math.max(0, daysRemaining)} icon="timer" accent={daysRemaining < 0 ? '#C62828' : '#6A1B9A'} />
             )}
           </div>
 
@@ -834,6 +953,14 @@ export default function PJDetail({ projectId, setPage }) {
               <div style={{ fontSize: '13px', color: THEME.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{project.description}</div>
             </DashCard>
           )}
+
+          {/* Overall progress bar */}
+          <DashCard style={{ marginBottom: '16px' }}>
+            <SectionTitle title="Overall Progress" subtitle={`${doneTasks}/${totalTasks} tasks complete`} />
+            <div style={{ height: '10px', borderRadius: '5px', background: THEME.outlineVar, overflow: 'hidden', marginBottom: '8px' }}>
+              <div style={{ height: '100%', width: `${avgPct}%`, background: avgPct >= 100 ? '#2E7D32' : color, borderRadius: '5px', transition: 'width 0.3s' }} />
+            </div>
+          </DashCard>
 
           {/* Phase progress bars */}
           {phases.length > 0 && (
@@ -849,19 +976,29 @@ export default function PJDetail({ projectId, setPage }) {
             </DashCard>
           )}
 
-          {/* Labels */}
-          {labels.length > 0 && (
-            <DashCard>
-              <SectionTitle title="Labels" />
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {labels.map(l => (
-                  <span key={l.id} style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: l.color + '20', color: l.color }}>{l.name}</span>
+          {/* Assignee summary */}
+          {(() => {
+            const assigneeMap = new Map()
+            boardTasks.forEach(t => {
+              if (!t.assigned_to) return
+              if (!assigneeMap.has(t.assigned_to)) assigneeMap.set(t.assigned_to, { total: 0, done: 0 })
+              const a = assigneeMap.get(t.assigned_to)
+              a.total++
+              if (t.percent_complete === 100 || boardColumns.find(c => c.id === t.column_id)?.is_done_column) a.done++
+            })
+            if (assigneeMap.size === 0) return null
+            return (
+              <DashCard>
+                <SectionTitle title="By Assignee" />
+                {[...assigneeMap.entries()].map(([aId, a]) => (
+                  <ProgressRow key={aId} label={userName(aId)} value={`${a.done}/${a.total}`} pct={Math.round(a.done / a.total * 100)} color={color} />
                 ))}
-              </div>
-            </DashCard>
-          )}
+              </DashCard>
+            )
+          })()}
         </>
-      )}
+        )
+      })()}
 
       {/* ── PHASES TAB ─────────────────────────────────────────────── */}
       {tab === 'phases' && (
@@ -1016,31 +1153,122 @@ export default function PJDetail({ projectId, setPage }) {
       {/* ── BOARD TAB ──────────────────────────────────────────────── */}
       {tab === 'board' && (
         <>
-          {/* Filter bar */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed }}>Filter:</span>
-            <select style={{ ...inp, width: 'auto', padding: '5px 10px', fontSize: '12px' }} value={boardFilter.priority} onChange={e => setBoardFilter(f => ({ ...f, priority: e.target.value }))}>
-              <option value="">All Priorities</option>
-              {PRIORITIES.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
-            </select>
-            <select style={{ ...inp, width: 'auto', padding: '5px 10px', fontSize: '12px' }} value={boardFilter.assignee} onChange={e => setBoardFilter(f => ({ ...f, assignee: e.target.value }))}>
-              <option value="">All Assignees</option>
-              {siteEmployees.filter(e => boardTasks.some(t => t.assigned_to === e.id)).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-              {members.map(m => <option key={m.user_id} value={m.user_id}>{userName(m.user_id)}</option>)}
-            </select>
-            <select style={{ ...inp, width: 'auto', padding: '5px 10px', fontSize: '12px' }} value={boardFilter.label} onChange={e => setBoardFilter(f => ({ ...f, label: e.target.value }))}>
-              <option value="">All Labels</option>
-              {labels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-            {(boardFilter.priority || boardFilter.assignee || boardFilter.label) && (
-              <button onClick={() => setBoardFilter({ label: '', assignee: '', priority: '' })} style={{ background: 'none', border: 'none', color: THEME.textLow, cursor: 'pointer', fontSize: '11px', fontFamily: 'inherit' }}>Clear</button>
-            )}
+          {/* Toolbar */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* View toggle */}
+              <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${THEME.outlineVar}` }}>
+                {[{ id: 'table', icon: 'table_rows', tip: 'Table' }, { id: 'board', icon: 'view_kanban', tip: 'Board' }].map(v => (
+                  <button key={v.id} title={v.tip} onClick={() => setBoardView(v.id)} style={{
+                    display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', fontSize: '12px', fontWeight: 600,
+                    background: boardView === v.id ? color : 'transparent', color: boardView === v.id ? '#fff' : THEME.textMed,
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: '15px' }}>{v.icon}</span>
+                    {v.tip}
+                  </button>
+                ))}
+              </div>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed }}>Filter:</span>
+              <select style={{ ...inp, width: 'auto', padding: '5px 10px', fontSize: '12px' }} value={boardFilter.priority} onChange={e => setBoardFilter(f => ({ ...f, priority: e.target.value }))}>
+                <option value="">All Priorities</option>
+                {PRIORITIES.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+              </select>
+              <select style={{ ...inp, width: 'auto', padding: '5px 10px', fontSize: '12px' }} value={boardFilter.assignee} onChange={e => setBoardFilter(f => ({ ...f, assignee: e.target.value }))}>
+                <option value="">All Assignees</option>
+                {siteEmployees.filter(e => boardTasks.some(t => t.assigned_to === e.id)).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                {members.map(m => <option key={m.user_id} value={m.user_id}>{userName(m.user_id)}</option>)}
+              </select>
+              {(boardFilter.priority || boardFilter.assignee || boardFilter.label) && (
+                <button onClick={() => setBoardFilter({ label: '', assignee: '', priority: '' })} style={{ background: 'none', border: 'none', color: THEME.textLow, cursor: 'pointer', fontSize: '11px', fontFamily: 'inherit' }}>Clear</button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button onClick={exportCSV} style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', borderRadius: '8px',
+                fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed,
+                border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>download</span>CSV
+              </button>
+              <button onClick={exportMSProjectXML} style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', borderRadius: '8px',
+                fontSize: '11px', fontWeight: 600, background: '#1B5E20', color: '#fff',
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>file_download</span>MS Project
+              </button>
+            </div>
           </div>
 
           {boardLoading ? (
             <div style={{ textAlign: 'center', padding: '60px', color: THEME.textLow }}>
               <span className="material-symbols-rounded" style={{ fontSize: '32px', animation: 'spin 1s linear infinite' }}>progress_activity</span>
             </div>
+          ) : boardView === 'table' ? (
+            <DashCard>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
+                      {['#', 'Task Description', 'Status', 'Duration', 'Start', 'Finish', 'Actual Start', 'Actual Finish', '% Complete', 'Responsible Person'].map(h => (
+                        <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: THEME.textMed, whiteSpace: 'nowrap', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTasks.sort((a, b) => a.position - b.position).map((t, i) => {
+                      const col = boardColumns.find(c => c.id === t.column_id)
+                      const colName = col?.name || '—'
+                      const isOverdue = t.due_date && new Date(t.due_date) < new Date() && !t.completed_date
+                      const pct = t.percent_complete || 0
+                      const statusColor = col?.is_done_column ? '#2E7D32' : pct > 0 ? '#1565C0' : isOverdue ? '#C62828' : THEME.textLow
+                      return (
+                        <tr key={t.id} onClick={() => openTaskModal(t)} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', background: col?.is_done_column ? '#F1F8E9' : isOverdue ? '#FFF8E1' : 'transparent' }}>
+                          <td style={{ padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px' }}>{i + 1}</td>
+                          <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 600, maxWidth: '300px' }}>{t.title}</td>
+                          <td style={{ padding: '8px 10px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: statusColor + '18', color: statusColor, whiteSpace: 'nowrap' }}>{colName}</span>
+                          </td>
+                          <td style={{ padding: '8px 10px', color: THEME.textMed, textAlign: 'center' }}>{t.planned_duration ? `${t.planned_duration}d` : '—'}</td>
+                          <td style={{ padding: '8px 10px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{t.start_date || '—'}</td>
+                          <td style={{ padding: '8px 10px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{t.due_date || '—'}</td>
+                          <td style={{ padding: '8px 10px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{t.actual_start || '—'}</td>
+                          <td style={{ padding: '8px 10px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{t.actual_end || '—'}</td>
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '80px' }}>
+                              <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: THEME.outlineVar, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? '#2E7D32' : pct >= 50 ? '#1565C0' : '#FF9800', borderRadius: '3px' }} />
+                              </div>
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: pct >= 100 ? '#2E7D32' : THEME.text, minWidth: '30px' }}>{pct}%</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                            {t.assigned_to ? (
+                              <span onClick={isEmployee(t.assigned_to) ? (e) => { e.stopPropagation(); setPage('wf_employee_detail', t.assigned_to) } : undefined}
+                                style={{ fontSize: '12px', fontWeight: 600, color: isEmployee(t.assigned_to) ? color : THEME.text, cursor: isEmployee(t.assigned_to) ? 'pointer' : 'default', textDecoration: isEmployee(t.assigned_to) ? 'underline' : 'none' }}>
+                                {userName(t.assigned_to)}
+                              </span>
+                            ) : <span style={{ color: THEME.textLow }}>—</span>}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: `2px solid ${THEME.outlineVar}`, fontWeight: 700 }}>
+                      <td colSpan={3} style={{ padding: '8px 10px', color: THEME.text, fontSize: '12px' }}>Total: {filteredTasks.length} tasks</td>
+                      <td style={{ padding: '8px 10px', color: THEME.textMed, textAlign: 'center', fontSize: '12px' }}>{filteredTasks.reduce((s, t) => s + (t.planned_duration || 0), 0)}d</td>
+                      <td colSpan={4} />
+                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: color }}>{filteredTasks.length > 0 ? Math.round(filteredTasks.reduce((s, t) => s + (t.percent_complete || 0), 0) / filteredTasks.length) : 0}%</span>
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </DashCard>
           ) : (
             <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '16px', minHeight: '400px', alignItems: 'flex-start' }}>
               {boardColumns.map(col => {

@@ -381,7 +381,7 @@ export default function PJAreas({ setPage }) {
                             </td>
                             <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
                               {t.assigned_to ? (
-                                <span onClick={() => setPage('wf_employee_detail', t.assigned_to)}
+                                <span onClick={() => setPage('wf_employee_detail:' + t.assigned_to)}
                                   style={{ fontSize: '12px', fontWeight: 600, color, cursor: 'pointer', textDecoration: 'underline' }}>
                                   {empName(t.assigned_to)}
                                 </span>

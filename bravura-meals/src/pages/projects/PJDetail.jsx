@@ -44,7 +44,7 @@ function daysBetween(a, b) {
   return Math.max(0, Math.round((new Date(b || new Date()) - new Date(a)) / 86400000))
 }
 
-export default function PJDetail({ projectId, setPage }) {
+export default function PJDetail({ projectId, setPage, initialTab, initialTaskId }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const { profile } = useAuth()
@@ -54,7 +54,7 @@ export default function PJDetail({ projectId, setPage }) {
   const [members, setMembers] = useState([])
   const [labels, setLabels] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = useState(initialTab || 'overview')
 
   // Phase form
   const [phaseModal, setPhaseModal] = useState(false)
@@ -472,6 +472,14 @@ export default function PJDetail({ projectId, setPage }) {
   }, [projectId])
 
   useEffect(() => { if (tab === 'board' || tab === 'overview') fetchBoard() }, [tab, fetchBoard])
+
+  const initialTaskOpened = useRef(false)
+  useEffect(() => {
+    if (initialTaskId && !initialTaskOpened.current && boardTasks.length > 0) {
+      const task = boardTasks.find(t => t.id === initialTaskId)
+      if (task) { initialTaskOpened.current = true; openTaskModal(task) }
+    }
+  }, [initialTaskId, boardTasks])
 
   // ── Board CRUD ──────────────────────────────────────────────────────────
   async function quickAddTask(colId) {
@@ -1264,7 +1272,7 @@ export default function PJDetail({ projectId, setPage }) {
                           </td>
                           <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
                             {t.assigned_to ? (
-                              <span onClick={isEmployee(t.assigned_to) ? (e) => { e.stopPropagation(); setPage('wf_employee_detail', t.assigned_to) } : undefined}
+                              <span onClick={isEmployee(t.assigned_to) ? (e) => { e.stopPropagation(); setPage('wf_employee_detail:' + t.assigned_to) } : undefined}
                                 style={{ fontSize: '12px', fontWeight: 600, color: isEmployee(t.assigned_to) ? color : THEME.text, cursor: isEmployee(t.assigned_to) ? 'pointer' : 'default', textDecoration: isEmployee(t.assigned_to) ? 'underline' : 'none' }}>
                                 {userName(t.assigned_to)}
                               </span>
@@ -1383,7 +1391,7 @@ export default function PJDetail({ projectId, setPage }) {
                                 {t.assigned_to && (
                                   <div
                                     title={userName(t.assigned_to)}
-                                    onClick={isEmployee(t.assigned_to) ? (e) => { e.stopPropagation(); setPage('wf_employee_detail', t.assigned_to) } : undefined}
+                                    onClick={isEmployee(t.assigned_to) ? (e) => { e.stopPropagation(); setPage('wf_employee_detail:' + t.assigned_to) } : undefined}
                                     style={{
                                       width: '22px', height: '22px', borderRadius: '50%',
                                       background: color + '20', color: color,

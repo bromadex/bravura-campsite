@@ -62,7 +62,7 @@ export default function PJTimeline({ setPage }) {
       if (projPhases.length === 0) {
         projTasks.forEach(t => {
           if (t.start_date || t.due_date) {
-            result.push({ type: 'task', label: t.title, start: t.start_date, end: t.due_date, color: PRIORITY_COLORS[t.priority] || '#999', projectId: proj.id, done: !!t.completed_date })
+            result.push({ type: 'task', label: t.title, start: t.start_date, end: t.due_date, color: PRIORITY_COLORS[t.priority] || '#999', projectId: proj.id, taskId: t.id, done: !!t.completed_date })
           }
         })
       } else {
@@ -78,12 +78,12 @@ export default function PJTimeline({ setPage }) {
             })
           }
           phaseTasks.filter(t => t.start_date || t.due_date).forEach(t => {
-            result.push({ type: 'task', label: t.title, start: t.start_date, end: t.due_date, color: PRIORITY_COLORS[t.priority] || '#999', projectId: proj.id, done: !!t.completed_date })
+            result.push({ type: 'task', label: t.title, start: t.start_date, end: t.due_date, color: PRIORITY_COLORS[t.priority] || '#999', projectId: proj.id, taskId: t.id, done: !!t.completed_date })
           })
         })
         // Unphased tasks
         projTasks.filter(t => !t.phase_id && (t.start_date || t.due_date)).forEach(t => {
-          result.push({ type: 'task', label: t.title, start: t.start_date, end: t.due_date, color: PRIORITY_COLORS[t.priority] || '#999', projectId: proj.id, done: !!t.completed_date })
+          result.push({ type: 'task', label: t.title, start: t.start_date, end: t.due_date, color: PRIORITY_COLORS[t.priority] || '#999', projectId: proj.id, taskId: t.id, done: !!t.completed_date })
         })
       }
     })
@@ -183,7 +183,7 @@ export default function PJTimeline({ setPage }) {
                 const isPhase = row.type === 'phase'
 
                 return (
-                  <g key={i} style={{ cursor: 'pointer' }} onClick={() => setPage('pj_detail_' + row.projectId)}>
+                  <g key={i} style={{ cursor: 'pointer' }} onClick={() => setPage('pj_detail_' + row.projectId + (row.taskId ? ':board:' + row.taskId : ''))}>
                     {/* Alternating row bg */}
                     {i % 2 === 0 && <rect x={0} y={y - 4} width={LABEL_W + CHART_W + 20} height={ROW_H} fill={THEME.surfaceVar} rx={0} opacity={0.4} />}
 

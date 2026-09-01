@@ -226,7 +226,7 @@ export default function PJTasks({ setPage }) {
                 const statusColor = isDone ? '#2E7D32' : pct > 0 ? '#1565C0' : isOverdue ? '#C62828' : THEME.textLow
                 const proj = projMap[t.project_id]
                 return (
-                  <tr key={t.id} onClick={() => setPage('pj_detail_' + t.project_id)}
+                  <tr key={t.id} onClick={() => setPage('pj_detail_' + t.project_id + ':board:' + t.id)}
                     style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', background: isDone ? '#F1F8E9' : isOverdue ? '#FFF8E1' : 'transparent' }}>
                     <td style={{ padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px' }}>{i + 1}</td>
                     <td style={{ padding: '8px 10px', color: color, fontWeight: 600, fontSize: '11px', whiteSpace: 'nowrap' }}>{proj?.project_code || '—'}</td>
@@ -247,7 +247,7 @@ export default function PJTasks({ setPage }) {
                     </td>
                     <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
                       {t.assigned_to ? (
-                        <span onClick={e => { e.stopPropagation(); setPage('wf_employee_detail', t.assigned_to) }}
+                        <span onClick={e => { e.stopPropagation(); setPage('wf_employee_detail:' + t.assigned_to) }}
                           style={{ fontSize: '12px', fontWeight: 600, color: color, cursor: 'pointer', textDecoration: 'underline' }}>
                           {empMap[t.assigned_to] || 'Unknown'}
                         </span>

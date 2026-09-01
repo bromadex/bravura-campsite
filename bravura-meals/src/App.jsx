@@ -482,8 +482,9 @@ function getInventoryPage(page, can, setPage) {
 function getProjectsPage(page, can, setPage) {
   if (!can('projects.view')) return null
   if (page && page.startsWith('pj_detail_')) {
-    const projectId = page.replace('pj_detail_', '')
-    return <PJDetail setPage={setPage} projectId={projectId} />
+    const rest = page.replace('pj_detail_', '')
+    const [projectId, initialTab, initialTaskId] = rest.split(':')
+    return <PJDetail setPage={setPage} projectId={projectId} initialTab={initialTab || undefined} initialTaskId={initialTaskId || undefined} />
   }
   switch (page) {
     case 'pj_dashboard': return <PJDashboard setPage={setPage} />

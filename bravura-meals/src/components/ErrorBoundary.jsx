@@ -4,7 +4,7 @@ import { THEME } from '../utils/permissions'
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { error: null }
+    this.state = { error: null, retryCount: 0 }
   }
 
   static getDerivedStateFromError(error) {
@@ -20,12 +20,6 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error, info) {
     console.error('[ErrorBoundary]', error, info.componentStack)
 
-    // Stale-deploy recovery: when Vercel ships a new build, the old JS
-    // chunks referenced by the cached index.html get purged from the CDN.
-    // The next lazy import then fails with "Failed to fetch dynamically
-    // imported module". Force a full reload so the browser fetches the
-    // fresh index.html + new chunk hashes. Guarded to reload at most once
-    // per session so a genuinely broken chunk can't cause a reload loop.
     const msg = String(error?.message || '')
     const isChunkFailure =
       /dynamically imported module/i.test(msg) ||
@@ -35,6 +29,11 @@ export default class ErrorBoundary extends Component {
     if (isChunkFailure && !sessionStorage.getItem('bravura_reload_attempted')) {
       sessionStorage.setItem('bravura_reload_attempted', '1')
       window.location.reload()
+      return
+    }
+
+    if (this.props.level === 'page' && this.state.retryCount < 1) {
+      this.setState(s => ({ error: null, retryCount: s.retryCount + 1 }))
     }
   }
 

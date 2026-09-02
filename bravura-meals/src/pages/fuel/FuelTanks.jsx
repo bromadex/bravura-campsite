@@ -814,7 +814,7 @@ export default function FuelTanks({ setPage }) {
 
 function TankCardGrid({ tanks, tankBalance, canEdit, onOpen, onEdit, onStatus, onDecommission, onDelete }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '14px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '16px' }}>
       {tanks.map(tank => (
         <TankCard
           key={tank.id}
@@ -884,8 +884,8 @@ function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommis
           fuelName={ftName}
           fuelColor={ftColor !== FUEL_CLR ? ftColor : undefined}
           isLow={isLow}
-          width={240}
-          height={120}
+          width={280}
+          height={150}
           showLabel={true}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'baseline' }}>
@@ -923,6 +923,17 @@ function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommis
           <Icon name="location_on" size={12} /> {tank.location_description}
         </div>
       )}
+
+      {/* View details hint */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+        padding: '8px 0 2px', fontSize: '12px', fontWeight: 500, color: FUEL_CLR,
+        borderTop: `1px solid ${THEME.outlineVar}`, marginTop: 'auto',
+      }}>
+        <Icon name="visibility" size={14} style={{ color: FUEL_CLR }} />
+        View Tank Details
+        <Icon name="chevron_right" size={16} style={{ color: FUEL_CLR }} />
+      </div>
 
       {/* Actions */}
       {canEdit && !isDecom && (

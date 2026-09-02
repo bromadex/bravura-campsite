@@ -79,6 +79,7 @@ export default function FleetVehicles({ setPage }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [tab, setTab] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [viewMode, setViewMode] = useState('grid')
   const [error, setError] = useState('')
 
   const vehicleTypeId = useMemo(() => {
@@ -480,16 +481,30 @@ export default function FleetVehicles({ setPage }) {
           <div style={{ fontSize: '20px', fontWeight: 500, color: THEME.text }}>Vehicles</div>
           <div style={{ fontSize: '12px', color: THEME.textMed }}>{filtered.length} vehicle{filtered.length !== 1 ? 's' : ''}</div>
         </div>
-        {can('fleet.create') && (
-          <button onClick={openAdd} style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
-            background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add</span>
-            Add Vehicle
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '4px', background: THEME.surfaceVar, borderRadius: '8px', padding: '2px' }}>
+            {[['grid', 'grid_view'], ['kanban', 'view_kanban']].map(([mode, icon]) => (
+              <button key={mode} onClick={() => setViewMode(mode)} style={{
+                padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                background: viewMode === mode ? THEME.surface : 'transparent',
+                boxShadow: viewMode === mode ? THEME.shadow1 : 'none',
+                display: 'flex', alignItems: 'center', fontFamily: 'inherit',
+              }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '18px', color: viewMode === mode ? color : THEME.textLow }}>{icon}</span>
+              </button>
+            ))}
+          </div>
+          {can('fleet.create') && (
+            <button onClick={openAdd} style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+              background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add</span>
+              Add Vehicle
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
@@ -515,6 +530,50 @@ export default function FleetVehicles({ setPage }) {
           <div style={{ fontSize: '14px' }}>No vehicles found</div>
           <div style={{ fontSize: '12px', marginTop: '4px' }}>Try adjusting filters or add a new vehicle</div>
         </div>
+      ) : viewMode === 'kanban' ? (
+        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
+          {Object.entries(STATUS_MAP).map(([status, cfg]) => {
+            const items = filtered.filter(v => v.status === status)
+            return (
+              <div key={status} style={{ minWidth: '260px', flex: '1 0 260px', maxWidth: '320px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '0 4px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: cfg.text, flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{cfg.label}</span>
+                  <span style={{ fontSize: '11px', color: THEME.textLow, marginLeft: 'auto' }}>{items.length}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: THEME.surfaceVar, borderRadius: '12px', padding: '8px', minHeight: '100px' }}>
+                  {items.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: THEME.textLow, padding: '20px', textAlign: 'center' }}>No vehicles</div>
+                  ) : items.map(v => (
+                    <div key={v.id} onClick={() => can('fleet.edit') ? openEdit(v) : null} style={{
+                      background: THEME.surface, borderRadius: '10px', padding: '12px',
+                      border: `1px solid ${THEME.outlineVar}`, cursor: can('fleet.edit') ? 'pointer' : 'default',
+                      transition: 'box-shadow .12s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.boxShadow = THEME.shadow2}
+                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <FleetAssetIcon typeName={v.fleet_asset_types?.name || 'Vehicle'} size={36} color={color} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {v.registration || v.description || v.asset_number}
+                          </div>
+                          <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '1px' }}>
+                            {[v.make, v.model].filter(Boolean).join(' ') || v.asset_number}
+                          </div>
+                        </div>
+                      </div>
+                      {v.departments?.name && (
+                        <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '6px' }}>{v.departments.name}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px' }}>
           {filtered.map(v => {
@@ -537,7 +596,7 @@ export default function FleetVehicles({ setPage }) {
                 onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                  <FleetAssetIcon typeName={v.fleet_asset_types?.name || 'Vehicle'} color={color} />
+                  <FleetAssetIcon typeName={v.fleet_asset_types?.name || 'Vehicle'} size={56} color={color} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {v.registration || v.description || v.asset_number}
@@ -560,9 +619,16 @@ export default function FleetVehicles({ setPage }) {
                   </div>
                   <StatusBadge status={v.status} />
                 </div>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '12px', color: THEME.textMed, flexWrap: 'wrap' }}>
-                  {v.departments?.name && <span>{v.departments.name}</span>}
-                  {v.current_odometer_km != null && <span>{formatOdo(v.current_odometer_km)}</span>}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                  {v.departments?.name && (
+                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: THEME.surfaceVar, color: THEME.textMed }}>{v.departments.name}</span>
+                  )}
+                  {v.current_odometer_km != null && (
+                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: THEME.surfaceVar, color: THEME.textMed }}>{formatOdo(v.current_odometer_km)}</span>
+                  )}
+                  {v.fuel_type && (
+                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: THEME.surfaceVar, color: THEME.textMed }}>{v.fuel_type}</span>
+                  )}
                 </div>
                 {expiries.some(f => {
                   const st = expiryStatus(v[f.key])
@@ -572,6 +638,12 @@ export default function FleetVehicles({ setPage }) {
                     {expiries.map(f => (
                       <ExpiryChip key={f.key} label={f.label} dateStr={v[f.key]} />
                     ))}
+                  </div>
+                )}
+                {v.assigned_project && (
+                  <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${THEME.outlineVar}` }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: '12px', verticalAlign: 'middle', marginRight: '4px' }}>folder</span>
+                    {v.assigned_project}
                   </div>
                 )}
               </div>

@@ -77,6 +77,7 @@ export default function FleetDashboard({ setPage }) {
   const [statusFilter, setStatusFilter] = useState(null)
   const [detailAsset, setDetailAsset] = useState(null)
   const [overConsumers, setOverConsumers] = useState([])
+  const [costData, setCostData] = useState({ byAsset: [], byType: [], monthlyTrend: [], totalCost: 0 })
   const OVER_PCT_THRESHOLD = 20  // configurable later via fleet_settings
 
   const openWorkOrders = useMemo(() =>
@@ -132,6 +133,66 @@ export default function FleetDashboard({ setPage }) {
       if (!cancelled) setOverConsumers(results)
     }
     load()
+    return () => { cancelled = true }
+  }, [currentSiteId])
+
+  useEffect(() => {
+    if (!currentSiteId) return
+    let cancelled = false
+    async function loadCosts() {
+      const sixMonthsAgo = new Date()
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+      const since = sixMonthsAgo.toISOString().slice(0, 10)
+
+      const { data } = await supabase
+        .from('fleet_maintenance')
+        .select('asset_id, maintenance_type, actual_cost, service_date, fleet_assets(asset_number, description)')
+        .eq('site_id', currentSiteId)
+        .gte('service_date', since)
+        .not('actual_cost', 'is', null)
+
+      if (cancelled || !data) return
+
+      const assetMap = {}
+      let total = 0
+      for (const r of data) {
+        const cost = Number(r.actual_cost) || 0
+        total += cost
+        const key = r.asset_id
+        if (!assetMap[key]) assetMap[key] = { id: key, label: r.fleet_assets?.asset_number || 'Unknown', desc: r.fleet_assets?.description || '', cost: 0 }
+        assetMap[key].cost += cost
+      }
+      const byAsset = Object.values(assetMap).sort((a, b) => b.cost - a.cost).slice(0, 8)
+
+      const typeMap = {}
+      for (const r of data) {
+        const cost = Number(r.actual_cost) || 0
+        const type = r.maintenance_type || 'Other'
+        if (!typeMap[type]) typeMap[type] = { type, cost: 0, count: 0 }
+        typeMap[type].cost += cost
+        typeMap[type].count++
+      }
+      const byType = Object.values(typeMap).sort((a, b) => b.cost - a.cost)
+
+      const monthMap = {}
+      for (let i = 0; i < 6; i++) {
+        const d = new Date()
+        d.setMonth(d.getMonth() - i)
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        monthMap[key] = { month: key, cost: 0, count: 0 }
+      }
+      for (const r of data) {
+        const key = (r.service_date || '').slice(0, 7)
+        if (monthMap[key]) {
+          monthMap[key].cost += Number(r.actual_cost) || 0
+          monthMap[key].count++
+        }
+      }
+      const monthlyTrend = Object.values(monthMap).sort((a, b) => a.month.localeCompare(b.month))
+
+      setCostData({ byAsset, byType, monthlyTrend, totalCost: total })
+    }
+    loadCosts()
     return () => { cancelled = true }
   }, [currentSiteId])
 
@@ -431,6 +492,90 @@ export default function FleetDashboard({ setPage }) {
               />
             )
           })}
+        </Section>
+      )}
+
+      {/* Cost Analysis */}
+      {costData.totalCost > 0 && (
+        <Section title="Cost Analysis" sub="Maintenance spend summary (last 6 months)" style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: color + '10', borderRadius: '10px', borderLeft: `3px solid ${color}` }}>
+            <Icon name="payments" size={28} style={{ color }} />
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.textMed, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Maintenance Spend</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: THEME.text, fontVariantNumeric: 'tabular-nums' }}>
+                ${costData.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {costData.byAsset.length > 0 && (
+        <Section title="Cost by Vehicle" sub="Top vehicles by maintenance spend (6 months)" style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {costData.byAsset.map(a => {
+              const maxCost = costData.byAsset[0]?.cost || 1
+              const pct = (a.cost / maxCost) * 100
+              return (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '100px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {a.label}
+                  </div>
+                  <div style={{ flex: 1, height: '24px', background: THEME.surfaceVar, borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: color + 'CC', borderRadius: '6px', transition: 'width .4s ease' }} />
+                  </div>
+                  <div style={{ width: '80px', flexShrink: 0, fontSize: '12px', fontWeight: 600, color: THEME.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    ${a.cost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Section>
+      )}
+
+      {costData.byType.length > 0 && (
+        <Section title="Cost by Type" sub="Maintenance spend by category" style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+            {costData.byType.map((t, i) => {
+              const typeColors = ['#1565C0', '#2E7D32', '#E65100', '#7B1FA2', '#C62828', '#00838F', '#4E342E', '#37474F']
+              const tc = typeColors[i % typeColors.length]
+              return (
+                <div key={t.type} style={{ background: tc + '10', borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${tc}` }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: tc, textTransform: 'capitalize', marginBottom: '4px' }}>
+                    {t.type.replace(/_/g, ' ')}
+                  </div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.text, fontVariantNumeric: 'tabular-nums' }}>
+                    ${t.cost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </div>
+                  <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '2px' }}>
+                    {t.count} service{t.count !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Section>
+      )}
+
+      {costData.monthlyTrend.some(m => m.cost > 0) && (
+        <Section title="Monthly Trend" sub="Maintenance spend over 6 months" style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '140px', padding: '0 4px' }}>
+            {costData.monthlyTrend.map(m => {
+              const maxCost = Math.max(...costData.monthlyTrend.map(x => x.cost)) || 1
+              const h = Math.max(4, (m.cost / maxCost) * 120)
+              const monthLabel = new Date(m.month + '-01').toLocaleDateString(undefined, { month: 'short' })
+              return (
+                <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: THEME.text, fontVariantNumeric: 'tabular-nums' }}>
+                    {m.cost > 0 ? `$${(m.cost / 1000).toFixed(1)}k` : ''}
+                  </div>
+                  <div style={{ width: '100%', maxWidth: '48px', height: `${h}px`, background: color, borderRadius: '4px 4px 0 0', transition: 'height .4s ease' }} />
+                  <div style={{ fontSize: '10px', color: THEME.textLow }}>{monthLabel}</div>
+                </div>
+              )
+            })}
+          </div>
         </Section>
       )}
 

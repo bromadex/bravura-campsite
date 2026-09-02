@@ -8,6 +8,7 @@ import {
   PageHeader, Card, Button, Modal, ConfirmModal, Icon, SectionLabel,
   showToast, fmtDate, TableWrap, THead, Th, TRow, Td,
 } from '../../components/ui'
+import FuelTankVisual from '../../components/FuelTankVisual'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -104,26 +105,26 @@ export default function TankDetail() {
             )}
           </div>
 
-          {/* Level */}
-          <div style={{ flex: '2 1 380px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
-              <span style={{ fontSize: '34px', fontWeight: 600, color: levelClr, letterSpacing: '-0.01em' }}>
-                {pct.toFixed(0)}%
+          {/* Level — tank visual */}
+          <div style={{ flex: '2 1 380px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <FuelTankVisual
+              percentage={pct}
+              capacity={capacity}
+              currentLevel={balance}
+              fuelName={ftName}
+              fuelColor={ftColor !== FUEL_CLR ? ftColor : undefined}
+              isLow={pct <= (Number(tank.min_threshold_percent) || 20)}
+              width={340}
+              height={170}
+              showLabel={true}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '340px', alignItems: 'baseline', marginTop: '4px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: levelClr }}>
+                {balance.toFixed(1).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} L
               </span>
-              <span style={{ fontSize: '14px', color: THEME.textMed }}>
-                <strong style={{ color: THEME.text }}>{balance.toFixed(1)} L</strong>
-                {' '}of {capacity.toLocaleString()} L
+              <span style={{ fontSize: '12px', color: THEME.textLow }}>
+                of {capacity.toLocaleString()} L · threshold {Number(tank.min_threshold_percent) || 20}%
               </span>
-            </div>
-            <div style={{ height: '14px', borderRadius: '999px', background: THEME.surfaceVar, overflow: 'hidden', position: 'relative' }}>
-              <div style={{ height: '100%', width: `${pct}%`, background: levelClr, transition: 'width .25s' }} />
-              <div style={{
-                position: 'absolute', top: 0, bottom: 0,
-                left: `${Number(tank.min_threshold_percent) || 20}%`, width: '2px', background: THEME.outline,
-              }} />
-            </div>
-            <div style={{ marginTop: '6px', fontSize: '11px', color: THEME.textLow }}>
-              Threshold marker at {Number(tank.min_threshold_percent) || 20}%
             </div>
           </div>
         </div>

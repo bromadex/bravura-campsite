@@ -11,6 +11,7 @@ import {
   showToast, TableWrap, THead, Th, TRow, Td, fmtDate,
 } from '../../components/ui'
 import FuelQuickNav from './FuelQuickNav'
+import FuelTankVisual from '../../components/FuelTankVisual'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -874,26 +875,26 @@ function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommis
         </span>
       </div>
 
-      {/* Level bar */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
-          <span style={{ fontSize: '22px', fontWeight: 600, color: levelClr, letterSpacing: '-0.01em' }}>
-            {pct.toFixed(0)}%
+      {/* Tank visual */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+        <FuelTankVisual
+          percentage={pct}
+          capacity={capacity}
+          currentLevel={balance}
+          fuelName={ftName}
+          fuelColor={ftColor !== FUEL_CLR ? ftColor : undefined}
+          isLow={isLow}
+          width={240}
+          height={120}
+          showLabel={true}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'baseline' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: levelClr }}>
+            {balance.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} L
           </span>
-          <span style={{ fontSize: '12px', color: THEME.textMed }}>
-            {balance.toFixed(0)} / {capacity.toLocaleString()} L
+          <span style={{ fontSize: '11px', color: THEME.textLow }}>
+            of {capacity.toLocaleString()} L
           </span>
-        </div>
-        <div style={{ height: '10px', borderRadius: '999px', background: THEME.surfaceVar, overflow: 'hidden', position: 'relative' }}>
-          <div style={{
-            height: '100%', width: `${pct}%`,
-            background: levelClr, transition: 'width .25s',
-          }} />
-          {/* Threshold marker */}
-          <div style={{
-            position: 'absolute', top: 0, bottom: 0,
-            left: `${minPct}%`, width: '2px', background: THEME.outline,
-          }} />
         </div>
       </div>
 

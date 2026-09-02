@@ -814,7 +814,7 @@ export default function FuelTanks({ setPage }) {
 
 function TankCardGrid({ tanks, tankBalance, canEdit, onOpen, onEdit, onStatus, onDecommission, onDelete }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '16px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '16px' }}>
       {tanks.map(tank => (
         <TankCard
           key={tank.id}
@@ -884,8 +884,8 @@ function TankCard({ tank, balance, canEdit, onOpen, onEdit, onStatus, onDecommis
           fuelName={ftName}
           fuelColor={ftColor !== FUEL_CLR ? ftColor : undefined}
           isLow={isLow}
-          width={280}
-          height={150}
+          width={240}
+          height={130}
           showLabel={true}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'baseline' }}>

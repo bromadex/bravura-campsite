@@ -56,14 +56,14 @@ export default function FuelTankVisual({
   const lowColors = { fill: '#E53935', surface: '#EF5350', highlight: '#EF9A9A' }
   const c = isLow ? lowColors : colors
 
-  const VB_W = 280
-  const VB_H = 150
+  const VB_W = 340
+  const VB_H = 180
   const BODY_X = 30
   const BODY_Y = 20
-  const BODY_W = 220
-  const BODY_H = 80
-  const BODY_RX = 40
-  const BODY_RY = 40
+  const BODY_W = 270
+  const BODY_H = 100
+  const BODY_RX = 50
+  const BODY_RY = 50
 
   const liquidH = (displayPct / 100) * BODY_H
   const liquidY = BODY_Y + BODY_H - liquidH
@@ -174,24 +174,24 @@ export default function FuelTankVisual({
       <ellipse cx={BODY_X + BODY_W - BODY_RX} cy={BODY_Y + BODY_H / 2} rx={3} ry={BODY_RY - 4} fill="none" stroke="#9EA6AE" strokeWidth="0.8" opacity="0.3" />
 
       {/* Top fittings — manhole */}
-      <rect x={125} y={12} width={30} height={10} rx={3} fill="#9EA6AE" stroke="#7A828A" strokeWidth="1" />
-      <circle cx={140} cy={12} r={4} fill="#B0B8C1" stroke="#7A828A" strokeWidth="1" />
+      <rect x={BODY_X + BODY_W / 2 - 15} y={12} width={30} height={10} rx={3} fill="#9EA6AE" stroke="#7A828A" strokeWidth="1" />
+      <circle cx={BODY_X + BODY_W / 2} cy={12} r={4} fill="#B0B8C1" stroke="#7A828A" strokeWidth="1" />
 
       {/* Vent pipe */}
-      <rect x={180} y={8} width={6} height={14} rx={1} fill="#9EA6AE" stroke="#7A828A" strokeWidth="0.8" />
-      <rect x={178} y={6} width={10} height={3} rx={1.5} fill="#A8B0B8" stroke="#7A828A" strokeWidth="0.8" />
+      <rect x={BODY_X + BODY_W * 0.6} y={8} width={6} height={14} rx={1} fill="#9EA6AE" stroke="#7A828A" strokeWidth="0.8" />
+      <rect x={BODY_X + BODY_W * 0.6 - 2} y={6} width={10} height={3} rx={1.5} fill="#A8B0B8" stroke="#7A828A" strokeWidth="0.8" />
 
       {/* Fill pipe */}
-      <rect x={90} y={10} width={8} height={12} rx={1} fill="#9EA6AE" stroke="#7A828A" strokeWidth="0.8" />
+      <rect x={BODY_X + BODY_W * 0.25} y={10} width={8} height={12} rx={1} fill="#9EA6AE" stroke="#7A828A" strokeWidth="0.8" />
 
       {/* Legs/supports */}
       <g>
         {/* Left support */}
-        <path d="M 65 100 L 55 130 L 75 130 Z" fill="#7A828A" stroke="#6A727A" strokeWidth="1" />
-        <rect x={52} y={128} width={26} height={5} rx={1} fill="#6A727A" />
+        <path d={`M ${BODY_X + BODY_W * 0.15} ${BODY_Y + BODY_H} L ${BODY_X + BODY_W * 0.15 - 10} ${BODY_Y + BODY_H + 30} L ${BODY_X + BODY_W * 0.15 + 10} ${BODY_Y + BODY_H + 30} Z`} fill="#7A828A" stroke="#6A727A" strokeWidth="1" />
+        <rect x={BODY_X + BODY_W * 0.15 - 13} y={BODY_Y + BODY_H + 28} width={26} height={5} rx={1} fill="#6A727A" />
         {/* Right support */}
-        <path d="M 215 100 L 205 130 L 225 130 Z" fill="#7A828A" stroke="#6A727A" strokeWidth="1" />
-        <rect x={202} y={128} width={26} height={5} rx={1} fill="#6A727A" />
+        <path d={`M ${BODY_X + BODY_W * 0.7} ${BODY_Y + BODY_H} L ${BODY_X + BODY_W * 0.7 - 10} ${BODY_Y + BODY_H + 30} L ${BODY_X + BODY_W * 0.7 + 10} ${BODY_Y + BODY_H + 30} Z`} fill="#7A828A" stroke="#6A727A" strokeWidth="1" />
+        <rect x={BODY_X + BODY_W * 0.7 - 13} y={BODY_Y + BODY_H + 28} width={26} height={5} rx={1} fill="#6A727A" />
       </g>
 
       {/* Sight glass / gauge */}

@@ -10,7 +10,7 @@ const FuelContext = createContext(null)
 const VEHICLE_CATEGORIES = ['vehicle']
 const EQUIPMENT_CATEGORIES = ['heavy_equipment', 'generator', 'pump', 'other']
 
-const defaultFrom = () => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+const defaultFrom = () => new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10)
 const defaultTo   = () => new Date().toISOString().slice(0, 10)
 
 export function FuelProvider({ children }) {

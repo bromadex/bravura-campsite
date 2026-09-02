@@ -4,6 +4,7 @@ import { StatusBadge, ModalOverlay } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
+import FleetAssetIcon from '../../components/FleetAssetIcon'
 
 const color = MODULE_COLORS.fleet
 
@@ -536,13 +537,7 @@ export default function FleetVehicles({ setPage }) {
                 onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                  <div style={{
-                    width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
-                    background: color + '18',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <span className="material-symbols-rounded" style={{ fontSize: '22px', color }}>directions_car</span>
-                  </div>
+                  <FleetAssetIcon typeName={v.fleet_asset_types?.name || 'Vehicle'} color={color} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '15px', fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {v.registration || v.description || v.asset_number}

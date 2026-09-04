@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { useSite } from '../../../contexts/SiteContext'
@@ -12,7 +12,9 @@ const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 export default function LeaveCalendar() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
-  useRealtimeSubscription('leave_requests', { column: 'site_id', value: currentSiteId }, load)
+  const [reloadKey, setReloadKey] = useState(0)
+  const onRealtime = useCallback(() => setReloadKey(k => k + 1), [])
+  useRealtimeSubscription('leave_requests', { column: 'site_id', value: currentSiteId }, onRealtime)
 
   const now = new Date()
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })   // m: 0-11
@@ -47,7 +49,7 @@ export default function LeaveCalendar() {
     }
     load()
     return () => { cancelled = true }
-  }, [currentSiteId, monthStart, monthEnd])
+  }, [currentSiteId, monthStart, monthEnd, reloadKey])
 
   const filtered = useMemo(() =>
     rows.filter(r => deptFilter === 'all' || r.employee?.department_id === deptFilter),

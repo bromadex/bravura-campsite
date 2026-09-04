@@ -186,42 +186,17 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
       <ellipse cx={CX} cy={DRUM_Y + DRUM_H} rx={DRUM_W / 2 - 2} ry={4}
         fill="none" stroke="#0B1D5E" strokeWidth="1" opacity="0.5" />
 
-      {/* Level glass (sight tube) */}
-      {(() => {
-        const gx = DRUM_X + DRUM_W + 8
-        const gy = BODY_TOP + 6
-        const gh = BODY_H - 12
-        const glassClip = `glass-clip-${uid()}`
-        const fillH = (displayPct / 100) * gh
-        return (
-          <g>
-            <defs>
-              <clipPath id={glassClip}>
-                <rect x={gx} y={gy} width={6} height={gh} rx={3} />
-              </clipPath>
-            </defs>
-            {/* Glass tube */}
-            <rect x={gx} y={gy} width={6} height={gh} rx={3}
-              fill="white" fillOpacity="0.15" stroke="#8A9099" strokeWidth="1" />
-            {/* Liquid in glass */}
-            {displayPct > 0 && (
-              <rect x={gx} y={gy + gh - fillH} width={6} height={fillH} rx={3}
-                fill={c.fill} opacity="0.8" clipPath={`url(#${glassClip})`} />
-            )}
-            {/* Fittings — top and bottom brackets */}
-            <rect x={gx - 2} y={gy - 2} width={10} height={4} rx={1}
-              fill="#888" stroke="#666" strokeWidth="0.5" />
-            <rect x={gx - 2} y={gy + gh - 2} width={10} height={4} rx={1}
-              fill="#888" stroke="#666" strokeWidth="0.5" />
-            {/* Tick marks */}
-            <line x1={gx + 7} y1={gy} x2={gx + 11} y2={gy} stroke="#999" strokeWidth="0.8" />
-            <line x1={gx + 7} y1={gy + gh * 0.25} x2={gx + 10} y2={gy + gh * 0.25} stroke="#999" strokeWidth="0.6" />
-            <line x1={gx + 7} y1={gy + gh * 0.5} x2={gx + 11} y2={gy + gh * 0.5} stroke="#999" strokeWidth="0.8" />
-            <line x1={gx + 7} y1={gy + gh * 0.75} x2={gx + 10} y2={gy + gh * 0.75} stroke="#999" strokeWidth="0.6" />
-            <line x1={gx + 7} y1={gy + gh} x2={gx + 11} y2={gy + gh} stroke="#999" strokeWidth="0.8" />
-          </g>
-        )
-      })()}
+      {/* Level glass — same style as main tank */}
+      <rect x={DRUM_X + DRUM_W + 4} y={BODY_TOP + 8} width={8} height={BODY_H - 16} rx={4}
+        fill="#E0E4E8" stroke="#8A9099" strokeWidth="1" />
+      {displayPct > 0 && (
+        <rect
+          x={DRUM_X + DRUM_W + 5}
+          y={BODY_TOP + 8 + (BODY_H - 16) * (1 - displayPct / 100)}
+          width={6} height={(BODY_H - 16) * (displayPct / 100)}
+          rx={3} fill={c.fill} opacity="0.7"
+        />
+      )}
 
       {/* Percentage label */}
       {showLabel && (

@@ -52,39 +52,50 @@ function uid() { return Math.random().toString(36).slice(2, 8) }
 
 function DrumTank({ displayPct, c, showLabel, width, height }) {
   const VB_W = 200
-  const VB_H = 280
-  const CX = 100
-  const DRUM_W = 120
-  const DRUM_H = 180
-  const DRUM_X = CX - DRUM_W / 2
-  const DRUM_Y = 40
-  const DRUM_RX = 20
-  const ELLIPSE_RY = 14
+  const VB_H = 300
+  const CX = 95
+  const W = 110
+  const H = 220
+  const X = CX - W / 2
+  const Y = 30
+  const EY = 16
 
-  const BODY_TOP = DRUM_Y + ELLIPSE_RY - 2
-  const BODY_H = DRUM_H - ELLIPSE_RY + 2
-  const liquidH = (displayPct / 100) * BODY_H
-  const liquidY = DRUM_Y + DRUM_H - liquidH
+  const bodyTop = Y + EY
+  const bodyH = H - EY
+  const liquidH = (displayPct / 100) * bodyH
+  const liquidY = Y + H - liquidH
 
-  const clipId = `drum-clip-${uid()}`
-  const gradId = `drum-grad-${uid()}`
-  const bodyGradId = `drum-body-${uid()}`
+  const clipId = `drum-${uid()}`
+  const gradId = `drum-g-${uid()}`
+  const bodyId = `drum-b-${uid()}`
+  const shineId = `drum-s-${uid()}`
+
+  const starPts = (cx, cy, r, ir) => Array.from({ length: 5 }, (_, i) => {
+    const ao = (i * 72 - 90) * Math.PI / 180
+    const ai = ((i * 72) + 36 - 90) * Math.PI / 180
+    return `${cx + r * Math.cos(ao)},${cy + r * Math.sin(ao)} ${cx + ir * Math.cos(ai)},${cy + ir * Math.sin(ai)}`
+  }).join(' ')
 
   return (
     <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width={width} height={height} style={{ display: 'block' }}>
       <defs>
         <clipPath id={clipId}>
-          <rect x={DRUM_X} y={BODY_TOP} width={DRUM_W} height={BODY_H} rx={2} />
+          <rect x={X} y={bodyTop} width={W} height={bodyH} />
         </clipPath>
-        <linearGradient id={bodyGradId} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#0B1D5E" />
-          <stop offset="12%" stopColor="#102878" />
-          <stop offset="30%" stopColor="#1A3A9A" />
-          <stop offset="45%" stopColor="#2248B0" />
-          <stop offset="55%" stopColor="#2248B0" />
-          <stop offset="70%" stopColor="#1A3A9A" />
-          <stop offset="88%" stopColor="#102878" />
-          <stop offset="100%" stopColor="#0B1D5E" />
+        <linearGradient id={bodyId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#0A1A52" />
+          <stop offset="15%" stopColor="#1435A0" />
+          <stop offset="35%" stopColor="#1E50C8" />
+          <stop offset="50%" stopColor="#2260D8" />
+          <stop offset="65%" stopColor="#1E50C8" />
+          <stop offset="85%" stopColor="#1435A0" />
+          <stop offset="100%" stopColor="#0A1A52" />
+        </linearGradient>
+        <linearGradient id={shineId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="white" stopOpacity="0" />
+          <stop offset="25%" stopColor="white" stopOpacity="0.12" />
+          <stop offset="40%" stopColor="white" stopOpacity="0" />
+          <stop offset="100%" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={c.highlight} stopOpacity="0.9" />
@@ -93,114 +104,91 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
         </linearGradient>
       </defs>
 
-      {/* Drum body */}
-      <rect x={DRUM_X} y={DRUM_Y + ELLIPSE_RY - 2} width={DRUM_W} height={DRUM_H - ELLIPSE_RY + 2} rx={2}
-        fill={`url(#${bodyGradId})`} stroke="#0B1D5E" strokeWidth="2" />
+      {/* ── Drum body: two straight sides + bottom ellipse ── */}
+      <rect x={X} y={bodyTop} width={W} height={bodyH}
+        fill={`url(#${bodyId})`} />
+      <ellipse cx={CX} cy={Y + H} rx={W / 2} ry={EY}
+        fill={`url(#${bodyId})`} stroke="#081545" strokeWidth="1.5" />
 
-      {/* Top face — 3D ellipse lid */}
-      <ellipse cx={CX} cy={DRUM_Y + ELLIPSE_RY} rx={DRUM_W / 2} ry={ELLIPSE_RY}
-        fill={`url(#${bodyGradId})`} stroke="#0B1D5E" strokeWidth="2" />
-      <ellipse cx={CX} cy={DRUM_Y + ELLIPSE_RY} rx={DRUM_W / 2 - 4} ry={ELLIPSE_RY - 3}
-        fill="#1A3A9A" stroke="#0F2570" strokeWidth="0.8" opacity="0.5" />
-      <ellipse cx={CX} cy={DRUM_Y + ELLIPSE_RY} rx={DRUM_W / 2 - 12} ry={ELLIPSE_RY - 6}
-        fill="#2248B0" opacity="0.3" />
+      {/* ── Top lid ellipse ── */}
+      <ellipse cx={CX} cy={bodyTop} rx={W / 2} ry={EY}
+        fill="#1A3DA8" stroke="#081545" strokeWidth="2" />
+      <ellipse cx={CX} cy={bodyTop} rx={W / 2 - 6} ry={EY - 4}
+        fill="#2050C0" opacity="0.4" />
 
-      {/* Rolling hoops / chime bands */}
-      <rect x={DRUM_X - 1} y={BODY_TOP + 4} width={DRUM_W + 2} height={5} rx={1}
-        fill="none" stroke="#0F2570" strokeWidth="1.8" />
-      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H * 0.5} width={DRUM_W + 2} height={5} rx={1}
-        fill="none" stroke="#0F2570" strokeWidth="1.8" />
-      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H - 15} width={DRUM_W + 2} height={5} rx={1}
-        fill="none" stroke="#0F2570" strokeWidth="1.8" />
+      {/* Cylindrical shine overlay */}
+      <rect x={X} y={bodyTop} width={W} height={bodyH}
+        fill={`url(#${shineId})`} />
 
-      {/* Vertical highlight streak */}
-      <rect x={DRUM_X + 15} y={BODY_TOP + 4} width={8} height={BODY_H - 8} rx={4}
-        fill="white" opacity="0.08" />
-      <rect x={DRUM_X + 26} y={BODY_TOP + 4} width={3} height={BODY_H - 8} rx={1.5}
-        fill="white" opacity="0.05" />
+      {/* ── Rolling hoops (3 bands like a real Delo barrel) ── */}
+      {[0.04, 0.48, 0.92].map((p, i) => (
+        <rect key={i} x={X - 1} y={bodyTop + bodyH * p} width={W + 2} height={4} rx={1}
+          fill="none" stroke="#0E2680" strokeWidth="2" />
+      ))}
 
-      {/* Caltex logo — star in circle */}
+      {/* ── Branding: Caltex star (left), Delo text (right) ── */}
       {(() => {
-        const logoY = BODY_TOP + 50
-        const r = 22
-        const starR = 20
-        const starInner = 8
-        const pts = Array.from({ length: 5 }, (_, i) => {
-          const aOuter = (i * 72 - 90) * Math.PI / 180
-          const aInner = ((i * 72) + 36 - 90) * Math.PI / 180
-          return `${CX + starR * Math.cos(aOuter)},${logoY + starR * Math.sin(aOuter)} ${CX + starInner * Math.cos(aInner)},${logoY + starInner * Math.sin(aInner)}`
-        }).join(' ')
+        const logoX = CX - 20
+        const logoY = bodyTop + bodyH * 0.38
         return (
-          <g opacity="0.4">
-            <circle cx={CX} cy={logoY} r={r} fill="white" />
-            <polygon points={pts} fill="#0B1D5E" />
+          <g opacity="0.5">
+            <circle cx={logoX} cy={logoY} r={14} fill="white" />
+            <polygon points={starPts(logoX, logoY, 13, 5.5)} fill="#0A1A52" />
+            <text x={logoX} y={logoY + 24} textAnchor="middle"
+              fontSize="7" fontWeight="800" fontFamily="Arial, sans-serif"
+              fill="white" letterSpacing="1.5">CALTEX</text>
           </g>
         )
       })()}
-      <text x={CX} y={BODY_TOP + 84} textAnchor="middle"
-        fontSize="14" fontWeight="800" fontFamily="Arial, sans-serif"
-        fill="white" opacity="0.4" letterSpacing="3">
-        CALTEX
+      <text x={CX + 14} y={bodyTop + bodyH * 0.45} textAnchor="middle"
+        fontSize="28" fontWeight="900" fontFamily="Arial, sans-serif"
+        fill="white" opacity="0.5" letterSpacing="1">
+        Delo
       </text>
 
-      {/* Liquid fill */}
+      {/* ── Liquid fill ── */}
       {displayPct > 0.5 && (
         <g clipPath={`url(#${clipId})`}>
-          <rect x={DRUM_X} y={liquidY} width={DRUM_W} height={liquidH + 2}
-            fill={`url(#${gradId})`} opacity="0.85" />
+          <rect x={X} y={liquidY} width={W} height={liquidH + 2}
+            fill={`url(#${gradId})`} opacity="0.8" />
           {displayPct > 3 && displayPct < 97 && (
             <path
-              d={`M ${DRUM_X} ${liquidY}
-                  Q ${DRUM_X + DRUM_W * 0.25} ${liquidY - 2}
-                    ${DRUM_X + DRUM_W * 0.5} ${liquidY}
-                  Q ${DRUM_X + DRUM_W * 0.75} ${liquidY + 2}
-                    ${DRUM_X + DRUM_W} ${liquidY}
-                  L ${DRUM_X + DRUM_W} ${liquidY + 4}
-                  L ${DRUM_X} ${liquidY + 4} Z`}
+              d={`M ${X} ${liquidY}
+                  Q ${X + W * 0.25} ${liquidY - 2} ${X + W * 0.5} ${liquidY}
+                  Q ${X + W * 0.75} ${liquidY + 2} ${X + W} ${liquidY}
+                  L ${X + W} ${liquidY + 4} L ${X} ${liquidY + 4} Z`}
               fill={c.surface} opacity="0.4"
             >
               <animateTransform attributeName="transform" type="translate"
                 values="0,0; 4,-1; 0,0; -4,1; 0,0" dur="3s" repeatCount="indefinite" />
             </path>
           )}
-          {displayPct > 5 && displayPct < 95 && (
-            <rect x={DRUM_X + 10} y={liquidY} width={DRUM_W - 20} height={2}
-              rx={1} fill="white" opacity="0.15" />
-          )}
         </g>
       )}
 
-      {/* Re-stroke drum over liquid */}
-      <rect x={DRUM_X} y={BODY_TOP} width={DRUM_W} height={BODY_H} rx={2}
-        fill="none" stroke="#0B1D5E" strokeWidth="2" />
+      {/* ── Re-stroke sides + hoops over liquid ── */}
+      <line x1={X} y1={bodyTop} x2={X} y2={Y + H} stroke="#081545" strokeWidth="2" />
+      <line x1={X + W} y1={bodyTop} x2={X + W} y2={Y + H} stroke="#081545" strokeWidth="2" />
+      {[0.04, 0.48, 0.92].map((p, i) => (
+        <rect key={i} x={X - 1} y={bodyTop + bodyH * p} width={W + 2} height={4} rx={1}
+          fill="none" stroke="#0E268080" strokeWidth="1.5" />
+      ))}
 
-      {/* Re-stroke hoops over liquid */}
-      <rect x={DRUM_X - 1} y={BODY_TOP + 4} width={DRUM_W + 2} height={5} rx={1}
-        fill="none" stroke="#0F257080" strokeWidth="1.2" />
-      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H * 0.5} width={DRUM_W + 2} height={5} rx={1}
-        fill="none" stroke="#0F257080" strokeWidth="1.2" />
-      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H - 15} width={DRUM_W + 2} height={5} rx={1}
-        fill="none" stroke="#0F257080" strokeWidth="1.2" />
-
-      {/* Bottom ellipse hint */}
-      <ellipse cx={CX} cy={DRUM_Y + DRUM_H} rx={DRUM_W / 2 - 2} ry={4}
-        fill="none" stroke="#0B1D5E" strokeWidth="1" opacity="0.5" />
-
-      {/* Level glass — same style as main tank */}
-      <rect x={DRUM_X + DRUM_W + 4} y={BODY_TOP + 8} width={8} height={BODY_H - 16} rx={4}
+      {/* ── Level glass (same style as main tank) ── */}
+      <rect x={X + W + 5} y={bodyTop + 8} width={8} height={bodyH - 16} rx={4}
         fill="#E0E4E8" stroke="#8A9099" strokeWidth="1" />
       {displayPct > 0 && (
         <rect
-          x={DRUM_X + DRUM_W + 5}
-          y={BODY_TOP + 8 + (BODY_H - 16) * (1 - displayPct / 100)}
-          width={6} height={(BODY_H - 16) * (displayPct / 100)}
+          x={X + W + 6}
+          y={bodyTop + 8 + (bodyH - 16) * (1 - displayPct / 100)}
+          width={6} height={(bodyH - 16) * (displayPct / 100)}
           rx={3} fill={c.fill} opacity="0.7"
         />
       )}
 
-      {/* Percentage label */}
+      {/* ── Percentage label ── */}
       {showLabel && (
-        <text x={CX} y={DRUM_Y + DRUM_H / 2 + 6}
+        <text x={CX} y={bodyTop + bodyH * 0.7}
           textAnchor="middle" fontSize="22" fontWeight="700" fontFamily="inherit"
           fill={displayPct > 40 ? '#FFFFFF' : THEME.text}
           opacity={displayPct > 40 ? 0.95 : 0.8}

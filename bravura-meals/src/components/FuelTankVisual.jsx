@@ -95,17 +95,11 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
       <rect x={DRUM_X} y={DRUM_Y} width={DRUM_W} height={DRUM_H} rx={4}
         fill={`url(#${bodyGradId})`} stroke="#0B1D5E" strokeWidth="2" />
 
-      {/* Top lid — silver ellipse */}
-      <ellipse cx={CX} cy={DRUM_Y} rx={DRUM_W / 2} ry={ELLIPSE_RY}
-        fill="#C8CDD2" stroke="#888" strokeWidth="1.5" />
-      <ellipse cx={CX} cy={DRUM_Y} rx={DRUM_W / 2 - 6} ry={ELLIPSE_RY - 3}
-        fill="none" stroke="#B0B5BA" strokeWidth="0.6" opacity="0.5" />
-
-      {/* Bung holes on lid */}
-      <circle cx={CX - 20} cy={DRUM_Y - 2} r={5} fill="#A8AEB3" stroke="#777" strokeWidth="1" />
-      <circle cx={CX - 20} cy={DRUM_Y - 2} r={2} fill="#888" />
-      <circle cx={CX + 20} cy={DRUM_Y - 2} r={4} fill="#A8AEB3" stroke="#777" strokeWidth="1" />
-      <circle cx={CX + 20} cy={DRUM_Y - 2} r={1.5} fill="#888" />
+      {/* Top lid — flat blue with rolled rim */}
+      <ellipse cx={CX} cy={DRUM_Y} rx={DRUM_W / 2 + 2} ry={ELLIPSE_RY}
+        fill="#162E7A" stroke="#0B1D5E" strokeWidth="2" />
+      <ellipse cx={CX} cy={DRUM_Y} rx={DRUM_W / 2 - 8} ry={ELLIPSE_RY - 4}
+        fill="#1A3A9A" stroke="#0F2570" strokeWidth="0.8" opacity="0.6" />
 
       {/* Rolling hoops / chime bands */}
       <rect x={DRUM_X - 1} y={DRUM_Y + 10} width={DRUM_W + 2} height={6} rx={1}

@@ -1,10 +1,11 @@
 import { Component } from 'react'
 import { THEME } from '../utils/permissions'
+import { supabase } from '../supabaseClient'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { error: null, retryCount: 0 }
+    this.state = { error: null, retryCount: 0, reported: false, reporting: false }
   }
 
   static getDerivedStateFromError(error) {
@@ -12,13 +13,12 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidMount() {
-    // Clear the one-shot reload guard on any healthy mount so a later
-    // chunk failure can still recover.
     if (this.state.error === null) sessionStorage.removeItem('bravura_reload_attempted')
   }
 
   componentDidCatch(error, info) {
     console.error('[ErrorBoundary]', error, info.componentStack)
+    this._componentStack = info.componentStack
 
     const msg = String(error?.message || '')
     const isChunkFailure =
@@ -37,10 +37,44 @@ export default class ErrorBoundary extends Component {
     }
   }
 
+  async alertAdmin() {
+    this.setState({ reporting: true })
+    const { error } = this.state
+    const pageUrl = window.location.href
+    const errorMsg = error?.message || 'Unknown error'
+    const stack = (this._componentStack || '').trim().split('\n').slice(0, 5).join('\n')
+
+    const body = [
+      `Page: ${pageUrl}`,
+      `Error: ${errorMsg}`,
+      stack ? `\nComponent stack:\n${stack}` : '',
+      `\nBrowser: ${navigator.userAgent}`,
+      `Time: ${new Date().toISOString()}`,
+    ].filter(Boolean).join('\n')
+
+    const { error: dbErr } = await supabase.from('feedback_submissions').insert({
+      module: null,
+      kind: 'bug',
+      title: `[Auto] Page crash: ${errorMsg.slice(0, 80)}`,
+      body,
+      submitter_id: null,
+    })
+
+    if (dbErr) {
+      this.setState({ reporting: false })
+      try { await navigator.clipboard.writeText(`Bug report — ${pageUrl}\n\n${body}`) } catch {}
+      alert('Could not submit automatically. The error details have been copied to your clipboard — please paste them to the system admin.')
+      return
+    }
+
+    try { await navigator.clipboard.writeText(pageUrl) } catch {}
+    this.setState({ reported: true, reporting: false })
+  }
+
   render() {
     if (!this.state.error) return this.props.children
 
-    const { error } = this.state
+    const { error, reported, reporting } = this.state
     const isPage = this.props.level === 'page'
 
     return (
@@ -71,16 +105,41 @@ export default class ErrorBoundary extends Component {
             {error.message}
           </div>
         )}
-        <button
-          onClick={() => isPage ? this.setState({ error: null }) : window.location.reload()}
-          style={{
-            marginTop: '20px', padding: '9px 20px', borderRadius: '6px', border: 'none',
-            background: THEME.primary, color: '#fff', fontSize: '13px', fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          {isPage ? 'Try again' : 'Refresh page'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+          <button
+            onClick={() => isPage ? this.setState({ error: null, reported: false }) : window.location.reload()}
+            style={{
+              padding: '9px 20px', borderRadius: '6px', border: 'none',
+              background: THEME.primary, color: '#fff', fontSize: '13px', fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            {isPage ? 'Try again' : 'Refresh page'}
+          </button>
+          <button
+            onClick={() => this.alertAdmin()}
+            disabled={reported || reporting}
+            style={{
+              padding: '9px 20px', borderRadius: '6px', fontSize: '13px', fontWeight: 600,
+              cursor: reported || reporting ? 'default' : 'pointer',
+              border: `1.5px solid ${reported ? THEME.success : THEME.error}`,
+              background: reported ? THEME.success + '14' : 'transparent',
+              color: reported ? THEME.success : THEME.error,
+              display: 'flex', alignItems: 'center', gap: '6px',
+              opacity: reporting ? 0.6 : 1,
+            }}
+          >
+            <span className="material-symbols-rounded" style={{ fontSize: '16px' }}>
+              {reported ? 'check_circle' : 'flag'}
+            </span>
+            {reporting ? 'Sending...' : reported ? 'Admin alerted — link copied' : 'Alert Admin'}
+          </button>
+        </div>
+        {reported && (
+          <div style={{ fontSize: '11px', color: THEME.success, marginTop: '10px', maxWidth: '400px' }}>
+            Error report submitted to the feedback board. The page link has been copied to your clipboard.
+          </div>
+        )}
       </div>
     )
   }

@@ -206,18 +206,6 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
       <ellipse cx={CX} cy={DRUM_Y + DRUM_H} rx={DRUM_W / 2 - 2} ry={4}
         fill="none" stroke="#0B1D5E" strokeWidth="1" opacity="0.5" />
 
-      {/* Side gauge strip */}
-      <rect x={DRUM_X + DRUM_W + 6} y={DRUM_Y + 8} width={6} height={DRUM_H - 16} rx={3}
-        fill="#E0E4E8" stroke="#8A9099" strokeWidth="1" />
-      {displayPct > 0 && (
-        <rect
-          x={DRUM_X + DRUM_W + 7}
-          y={DRUM_Y + 8 + (DRUM_H - 16) * (1 - displayPct / 100)}
-          width={4} height={(DRUM_H - 16) * (displayPct / 100)}
-          rx={2} fill={c.fill} opacity="0.7"
-        />
-      )}
-
       {/* Percentage label */}
       {showLabel && (
         <text x={CX} y={DRUM_Y + DRUM_H / 2 + 6}

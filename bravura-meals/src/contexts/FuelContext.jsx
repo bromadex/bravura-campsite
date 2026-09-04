@@ -492,7 +492,12 @@ export function FuelProvider({ children }) {
       .single()
     if (error) throw error
 
-    // Tank level is updated by dip readings only — no optimistic adjustment
+    // Optimistically update level for issuance-tracked tanks (DB trigger does the real update)
+    const tank = tanks.find(t => t.id === data.tank_id)
+    if (tank?.level_tracking_method === 'issuance' && data.transaction_type === 'issuance') {
+      const newLevel = Math.max(0, Number(tank.current_level_litres) - Number(data.litres))
+      setTanks(prev => prev.map(t => t.id === data.tank_id ? { ...t, current_level_litres: newLevel } : t))
+    }
 
     setTransactions(prev => [row, ...prev])
     return row

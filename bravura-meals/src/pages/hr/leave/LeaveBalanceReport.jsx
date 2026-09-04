@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { useSite } from '../../../contexts/SiteContext'
@@ -16,7 +16,9 @@ const selStyle = {
 export default function LeaveBalanceReport() {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
-  useRealtimeSubscription('leave_allocations', { column: 'site_id', value: currentSiteId }, load)
+  const [reloadKey, setReloadKey] = useState(0)
+  const onRealtime = useCallback(() => setReloadKey(k => k + 1), [])
+  useRealtimeSubscription('leave_allocations', { column: 'site_id', value: currentSiteId }, onRealtime)
 
   const thisYear = new Date().getFullYear()
   const [year, setYear] = useState(thisYear)
@@ -40,7 +42,7 @@ export default function LeaveBalanceReport() {
     }
     load()
     return () => { cancelled = true }
-  }, [currentSiteId, year])
+  }, [currentSiteId, year, reloadKey])
 
   const departments = useMemo(() => {
     const m = new Map()

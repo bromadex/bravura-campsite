@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -42,7 +42,9 @@ function Section({ icon, title, open, onToggle, children }) {
 export default function EmployeeForm({ setPage, employeeId }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
-  useRealtimeSubscription('employees', { column: 'site_id', value: currentSiteId }, load)
+  const [reloadKey, setReloadKey] = useState(0)
+  const onRealtime = useCallback(() => setReloadKey(k => k + 1), [])
+  useRealtimeSubscription('employees', { column: 'site_id', value: currentSiteId }, onRealtime)
   const isEdit = !!employeeId
 
   const [form, setForm] = useState(EMPTY)
@@ -126,7 +128,7 @@ export default function EmployeeForm({ setPage, employeeId }) {
     }
     load()
     return () => { cancelled = true }
-  }, [currentSiteId, employeeId, isEdit, setPage])
+  }, [currentSiteId, employeeId, isEdit, setPage, reloadKey])
 
   const set = (k, v) => {
     setForm(f => {

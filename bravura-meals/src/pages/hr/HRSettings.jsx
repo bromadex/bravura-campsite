@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
@@ -44,7 +44,9 @@ export default function HRSettings({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
-  useRealtimeSubscription('module_settings', { column: 'site_id', value: currentSiteId }, load)
+  const [reloadKey, setReloadKey] = useState(0)
+  const onRealtime = useCallback(() => setReloadKey(k => k + 1), [])
+  useRealtimeSubscription('module_settings', { column: 'site_id', value: currentSiteId }, onRealtime)
 
   const [form, setForm] = useState(DEFAULTS)
   const [employmentTypes, setEmploymentTypes] = useState([])
@@ -76,7 +78,7 @@ export default function HRSettings({ setPage }) {
     }
     load()
     return () => { cancelled = true }
-  }, [currentSiteId])
+  }, [currentSiteId, reloadKey])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 

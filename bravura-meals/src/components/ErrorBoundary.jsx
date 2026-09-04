@@ -52,12 +52,15 @@ export default class ErrorBoundary extends Component {
       `Time: ${new Date().toISOString()}`,
     ].filter(Boolean).join('\n')
 
+    const { data: { session } } = await supabase.auth.getSession()
+    const userId = session?.user?.id || null
+
     const { error: dbErr } = await supabase.from('feedback_submissions').insert({
       module: null,
       kind: 'bug',
       title: `[Auto] Page crash: ${errorMsg.slice(0, 80)}`,
       body,
-      submitter_id: null,
+      submitter_id: userId,
     })
 
     if (dbErr) {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -19,7 +19,9 @@ const inputStyle = {
 export default function Designations({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
-  useRealtimeSubscription('designations', { column: 'site_id', value: currentSiteId }, load)
+  const [reloadKey, setReloadKey] = useState(0)
+  const onRealtime = useCallback(() => setReloadKey(k => k + 1), [])
+  useRealtimeSubscription('designations', { column: 'site_id', value: currentSiteId }, onRealtime)
 
   const [rows, setRows] = useState([])
   const [departments, setDepartments] = useState([])
@@ -55,7 +57,7 @@ export default function Designations({ setPage }) {
     }
     load()
     return () => { cancelled = true }
-  }, [currentSiteId])
+  }, [currentSiteId, reloadKey])
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -99,7 +101,6 @@ export default function Designations({ setPage }) {
     if (error) { showToast(error.message, 'red'); return }
     showToast(editing ? 'Designation updated' : 'Designation added', 'green')
     setModalOpen(false)
-    // refresh
     const { data } = await supabase.from('designations')
       .select('*, department:departments(id, name)')
       .eq('site_id', currentSiteId).order('name')

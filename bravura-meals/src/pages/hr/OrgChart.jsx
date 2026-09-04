@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -59,7 +59,9 @@ function Node({ emp, childrenMap, depth }) {
 export default function OrgChart({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
-  useRealtimeSubscription('employees', { column: 'site_id', value: currentSiteId }, load)
+  const [reloadKey, setReloadKey] = useState(0)
+  const onRealtime = useCallback(() => setReloadKey(k => k + 1), [])
+  useRealtimeSubscription('employees', { column: 'site_id', value: currentSiteId }, onRealtime)
 
   const [employees, setEmployees] = useState([])
   const [departments, setDepartments] = useState([])
@@ -86,7 +88,7 @@ export default function OrgChart({ setPage }) {
     }
     load()
     return () => { cancelled = true }
-  }, [currentSiteId])
+  }, [currentSiteId, reloadKey])
 
   const filtered = useMemo(() =>
     employees.filter(e => deptFilter === 'all' || e.department_id === deptFilter),
@@ -98,7 +100,6 @@ export default function OrgChart({ setPage }) {
     const cm = {}
     const rs = []
     for (const e of filtered) {
-      // A node is a root if it has no manager, or its manager is outside the filter.
       if (!e.manager_id || !ids.has(e.manager_id)) rs.push(e)
       else {
         if (!cm[e.manager_id]) cm[e.manager_id] = []

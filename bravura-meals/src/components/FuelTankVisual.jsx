@@ -75,13 +75,14 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
           <rect x={DRUM_X} y={DRUM_Y} width={DRUM_W} height={DRUM_H} rx={4} />
         </clipPath>
         <linearGradient id={bodyGradId} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#1A1A2E" />
-          <stop offset="15%" stopColor="#2A2A3E" />
-          <stop offset="35%" stopColor="#3A3A4E" />
-          <stop offset="50%" stopColor="#454558" />
-          <stop offset="65%" stopColor="#3A3A4E" />
-          <stop offset="85%" stopColor="#2A2A3E" />
-          <stop offset="100%" stopColor="#1A1A2E" />
+          <stop offset="0%" stopColor="#0B1D5E" />
+          <stop offset="12%" stopColor="#102878" />
+          <stop offset="30%" stopColor="#1A3A9A" />
+          <stop offset="45%" stopColor="#2248B0" />
+          <stop offset="55%" stopColor="#2248B0" />
+          <stop offset="70%" stopColor="#1A3A9A" />
+          <stop offset="88%" stopColor="#102878" />
+          <stop offset="100%" stopColor="#0B1D5E" />
         </linearGradient>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={c.highlight} stopOpacity="0.9" />
@@ -92,7 +93,7 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
 
       {/* Drum body */}
       <rect x={DRUM_X} y={DRUM_Y} width={DRUM_W} height={DRUM_H} rx={4}
-        fill={`url(#${bodyGradId})`} stroke="#555" strokeWidth="2" />
+        fill={`url(#${bodyGradId})`} stroke="#0B1D5E" strokeWidth="2" />
 
       {/* Top lid — silver ellipse */}
       <ellipse cx={CX} cy={DRUM_Y} rx={DRUM_W / 2} ry={ELLIPSE_RY}
@@ -108,17 +109,41 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
 
       {/* Rolling hoops / chime bands */}
       <rect x={DRUM_X - 1} y={DRUM_Y + 10} width={DRUM_W + 2} height={6} rx={1}
-        fill="none" stroke="#666" strokeWidth="1.8" />
+        fill="none" stroke="#0F2570" strokeWidth="1.8" />
       <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H * 0.48} width={DRUM_W + 2} height={6} rx={1}
-        fill="none" stroke="#666" strokeWidth="1.8" />
+        fill="none" stroke="#0F2570" strokeWidth="1.8" />
       <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H - 16} width={DRUM_W + 2} height={6} rx={1}
-        fill="none" stroke="#666" strokeWidth="1.8" />
+        fill="none" stroke="#0F2570" strokeWidth="1.8" />
 
       {/* Vertical highlight streak */}
       <rect x={DRUM_X + 15} y={DRUM_Y + 4} width={8} height={DRUM_H - 8} rx={4}
-        fill="white" opacity="0.06" />
+        fill="white" opacity="0.08" />
       <rect x={DRUM_X + 26} y={DRUM_Y + 4} width={3} height={DRUM_H - 8} rx={1.5}
-        fill="white" opacity="0.04" />
+        fill="white" opacity="0.05" />
+
+      {/* Caltex logo — star in circle */}
+      {(() => {
+        const logoY = DRUM_Y + 68
+        const r = 22
+        const starR = 20
+        const starInner = 8
+        const pts = Array.from({ length: 5 }, (_, i) => {
+          const aOuter = (i * 72 - 90) * Math.PI / 180
+          const aInner = ((i * 72) + 36 - 90) * Math.PI / 180
+          return `${CX + starR * Math.cos(aOuter)},${logoY + starR * Math.sin(aOuter)} ${CX + starInner * Math.cos(aInner)},${logoY + starInner * Math.sin(aInner)}`
+        }).join(' ')
+        return (
+          <g opacity="0.4">
+            <circle cx={CX} cy={logoY} r={r} fill="white" />
+            <polygon points={pts} fill="#0B1D5E" />
+          </g>
+        )
+      })()}
+      <text x={CX} y={DRUM_Y + 102} textAnchor="middle"
+        fontSize="14" fontWeight="800" fontFamily="Arial, sans-serif"
+        fill="white" opacity="0.4" letterSpacing="3">
+        CALTEX
+      </text>
 
       {/* Liquid fill */}
       {displayPct > 0.5 && (
@@ -149,19 +174,19 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
 
       {/* Re-stroke drum over liquid */}
       <rect x={DRUM_X} y={DRUM_Y} width={DRUM_W} height={DRUM_H} rx={4}
-        fill="none" stroke="#555" strokeWidth="2" />
+        fill="none" stroke="#0B1D5E" strokeWidth="2" />
 
       {/* Re-stroke hoops over liquid */}
       <rect x={DRUM_X - 1} y={DRUM_Y + 10} width={DRUM_W + 2} height={6} rx={1}
-        fill="none" stroke="#55555580" strokeWidth="1.2" />
+        fill="none" stroke="#0F257080" strokeWidth="1.2" />
       <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H * 0.48} width={DRUM_W + 2} height={6} rx={1}
-        fill="none" stroke="#55555580" strokeWidth="1.2" />
+        fill="none" stroke="#0F257080" strokeWidth="1.2" />
       <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H - 16} width={DRUM_W + 2} height={6} rx={1}
-        fill="none" stroke="#55555580" strokeWidth="1.2" />
+        fill="none" stroke="#0F257080" strokeWidth="1.2" />
 
       {/* Bottom ellipse hint */}
       <ellipse cx={CX} cy={DRUM_Y + DRUM_H} rx={DRUM_W / 2 - 2} ry={4}
-        fill="none" stroke="#444" strokeWidth="1" opacity="0.4" />
+        fill="none" stroke="#0B1D5E" strokeWidth="1" opacity="0.5" />
 
       {/* Side gauge strip */}
       <rect x={DRUM_X + DRUM_W + 6} y={DRUM_Y + 8} width={6} height={DRUM_H - 16} rx={3}

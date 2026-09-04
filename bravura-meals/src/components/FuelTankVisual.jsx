@@ -51,153 +51,47 @@ function useColors(fuelColor, fuelName, isLow) {
 function uid() { return Math.random().toString(36).slice(2, 8) }
 
 function DrumTank({ displayPct, c, showLabel, width, height }) {
-  const VB_W = 200
-  const VB_H = 300
-  const CX = 95
-  const W = 110
-  const H = 220
-  const X = CX - W / 2
-  const Y = 30
-  const EY = 16
-
-  const bodyTop = Y + EY
-  const bodyH = H - EY
-  const liquidH = (displayPct / 100) * bodyH
-  const liquidY = Y + H - liquidH
-
-  const clipId = `drum-${uid()}`
-  const gradId = `drum-g-${uid()}`
-  const bodyId = `drum-b-${uid()}`
-  const shineId = `drum-s-${uid()}`
-
-  const starPts = (cx, cy, r, ir) => Array.from({ length: 5 }, (_, i) => {
-    const ao = (i * 72 - 90) * Math.PI / 180
-    const ai = ((i * 72) + 36 - 90) * Math.PI / 180
-    return `${cx + r * Math.cos(ao)},${cy + r * Math.sin(ao)} ${cx + ir * Math.cos(ai)},${cy + ir * Math.sin(ai)}`
-  }).join(' ')
+  const imgH = height || 180
+  const imgW = Math.round(imgH * 0.6)
+  const gaugeH = imgH - 24
+  const fillH = (displayPct / 100) * gaugeH
 
   return (
-    <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width={width} height={height} style={{ display: 'block' }}>
-      <defs>
-        <clipPath id={clipId}>
-          <rect x={X} y={bodyTop} width={W} height={bodyH} />
-        </clipPath>
-        <linearGradient id={bodyId} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#0A1A52" />
-          <stop offset="15%" stopColor="#1435A0" />
-          <stop offset="35%" stopColor="#1E50C8" />
-          <stop offset="50%" stopColor="#2260D8" />
-          <stop offset="65%" stopColor="#1E50C8" />
-          <stop offset="85%" stopColor="#1435A0" />
-          <stop offset="100%" stopColor="#0A1A52" />
-        </linearGradient>
-        <linearGradient id={shineId} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="white" stopOpacity="0" />
-          <stop offset="25%" stopColor="white" stopOpacity="0.12" />
-          <stop offset="40%" stopColor="white" stopOpacity="0" />
-          <stop offset="100%" stopColor="white" stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={c.highlight} stopOpacity="0.9" />
-          <stop offset="40%" stopColor={c.fill} stopOpacity="0.85" />
-          <stop offset="100%" stopColor={c.fill} stopOpacity="0.95" />
-        </linearGradient>
-      </defs>
-
-      {/* ── Drum body: two straight sides + bottom ellipse ── */}
-      <rect x={X} y={bodyTop} width={W} height={bodyH}
-        fill={`url(#${bodyId})`} />
-      <ellipse cx={CX} cy={Y + H} rx={W / 2} ry={EY}
-        fill={`url(#${bodyId})`} stroke="#081545" strokeWidth="1.5" />
-
-      {/* ── Top lid ellipse ── */}
-      <ellipse cx={CX} cy={bodyTop} rx={W / 2} ry={EY}
-        fill="#1A3DA8" stroke="#081545" strokeWidth="2" />
-      <ellipse cx={CX} cy={bodyTop} rx={W / 2 - 6} ry={EY - 4}
-        fill="#2050C0" opacity="0.4" />
-
-      {/* Cylindrical shine overlay */}
-      <rect x={X} y={bodyTop} width={W} height={bodyH}
-        fill={`url(#${shineId})`} />
-
-      {/* ── Rolling hoops (3 bands like a real Delo barrel) ── */}
-      {[0.04, 0.48, 0.92].map((p, i) => (
-        <rect key={i} x={X - 1} y={bodyTop + bodyH * p} width={W + 2} height={4} rx={1}
-          fill="none" stroke="#0E2680" strokeWidth="2" />
-      ))}
-
-      {/* ── Branding: Caltex star (left), Delo text (right) ── */}
-      {(() => {
-        const logoX = CX - 20
-        const logoY = bodyTop + bodyH * 0.38
-        return (
-          <g opacity="0.5">
-            <circle cx={logoX} cy={logoY} r={14} fill="white" />
-            <polygon points={starPts(logoX, logoY, 13, 5.5)} fill="#0A1A52" />
-            <text x={logoX} y={logoY + 24} textAnchor="middle"
-              fontSize="7" fontWeight="800" fontFamily="Arial, sans-serif"
-              fill="white" letterSpacing="1.5">CALTEX</text>
-          </g>
-        )
-      })()}
-      <text x={CX + 14} y={bodyTop + bodyH * 0.45} textAnchor="middle"
-        fontSize="28" fontWeight="900" fontFamily="Arial, sans-serif"
-        fill="white" opacity="0.5" letterSpacing="1">
-        Delo
-      </text>
-
-      {/* ── Liquid fill ── */}
-      {displayPct > 0.5 && (
-        <g clipPath={`url(#${clipId})`}>
-          <rect x={X} y={liquidY} width={W} height={liquidH + 2}
-            fill={`url(#${gradId})`} opacity="0.8" />
-          {displayPct > 3 && displayPct < 97 && (
-            <path
-              d={`M ${X} ${liquidY}
-                  Q ${X + W * 0.25} ${liquidY - 2} ${X + W * 0.5} ${liquidY}
-                  Q ${X + W * 0.75} ${liquidY + 2} ${X + W} ${liquidY}
-                  L ${X + W} ${liquidY + 4} L ${X} ${liquidY + 4} Z`}
-              fill={c.surface} opacity="0.4"
-            >
-              <animateTransform attributeName="transform" type="translate"
-                values="0,0; 4,-1; 0,0; -4,1; 0,0" dur="3s" repeatCount="indefinite" />
-            </path>
-          )}
-        </g>
-      )}
-
-      {/* ── Re-stroke sides + hoops over liquid ── */}
-      <line x1={X} y1={bodyTop} x2={X} y2={Y + H} stroke="#081545" strokeWidth="2" />
-      <line x1={X + W} y1={bodyTop} x2={X + W} y2={Y + H} stroke="#081545" strokeWidth="2" />
-      {[0.04, 0.48, 0.92].map((p, i) => (
-        <rect key={i} x={X - 1} y={bodyTop + bodyH * p} width={W + 2} height={4} rx={1}
-          fill="none" stroke="#0E268080" strokeWidth="1.5" />
-      ))}
-
-      {/* ── Level glass (same style as main tank) ── */}
-      <rect x={X + W + 5} y={bodyTop + 8} width={8} height={bodyH - 16} rx={4}
-        fill="#E0E4E8" stroke="#8A9099" strokeWidth="1" />
-      {displayPct > 0 && (
-        <rect
-          x={X + W + 6}
-          y={bodyTop + 8 + (bodyH - 16) * (1 - displayPct / 100)}
-          width={6} height={(bodyH - 16) * (displayPct / 100)}
-          rx={3} fill={c.fill} opacity="0.7"
+    <div style={{ display: 'inline-flex', alignItems: 'flex-end', gap: '6px' }}>
+      {/* Delo barrel image + percentage overlay */}
+      <div style={{ position: 'relative', width: imgW, height: imgH }}>
+        <img
+          src="/assets/delo-barrel.png"
+          alt="Delo fuel drum"
+          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
         />
-      )}
+        {showLabel && (
+          <div style={{
+            position: 'absolute', bottom: '18%', left: 0, right: 0,
+            textAlign: 'center', fontSize: `${Math.max(14, imgH * 0.12)}px`,
+            fontWeight: 700, color: '#fff',
+            textShadow: '0 1px 4px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.4)',
+            pointerEvents: 'none',
+          }}>
+            {Math.round(displayPct)}%
+          </div>
+        )}
+      </div>
 
-      {/* ── Percentage label ── */}
-      {showLabel && (
-        <text x={CX} y={bodyTop + bodyH * 0.7}
-          textAnchor="middle" fontSize="22" fontWeight="700" fontFamily="inherit"
-          fill={displayPct > 40 ? '#FFFFFF' : THEME.text}
-          opacity={displayPct > 40 ? 0.95 : 0.8}
-          style={{ textShadow: displayPct > 40 ? '0 1px 3px rgba(0,0,0,0.5)' : 'none' }}
-        >
-          {Math.round(displayPct)}%
-        </text>
-      )}
-    </svg>
+      {/* Level glass — same style as main tank */}
+      <svg width="14" height={imgH} style={{ display: 'block' }}>
+        <rect x="3" y="12" width="8" height={gaugeH} rx="4"
+          fill="#E0E4E8" stroke="#8A9099" strokeWidth="1" />
+        {displayPct > 0 && (
+          <rect
+            x="4"
+            y={12 + gaugeH - fillH}
+            width="6" height={fillH}
+            rx="3" fill={c.fill} opacity="0.7"
+          />
+        )}
+      </svg>
+    </div>
   )
 }
 

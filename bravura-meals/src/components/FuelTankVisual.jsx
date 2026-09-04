@@ -61,8 +61,7 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
   const DRUM_RX = 20
   const ELLIPSE_RY = 14
 
-  const bodyH = DRUM_H - 14
-  const liquidH = (displayPct / 100) * bodyH
+  const liquidH = (displayPct / 100) * DRUM_H
   const liquidY = DRUM_Y + DRUM_H - liquidH
 
   const clipId = `drum-clip-${uid()}`
@@ -73,7 +72,7 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
     <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width={width} height={height} style={{ display: 'block' }}>
       <defs>
         <clipPath id={clipId}>
-          <rect x={DRUM_X} y={DRUM_Y + 14} width={DRUM_W} height={DRUM_H - 14} rx={2} />
+          <rect x={DRUM_X} y={DRUM_Y} width={DRUM_W} height={DRUM_H} rx={2} />
         </clipPath>
         <linearGradient id={bodyGradId} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#0B1D5E" />
@@ -93,50 +92,32 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
       </defs>
 
       {/* Drum body */}
-      <rect x={DRUM_X} y={DRUM_Y + 14} width={DRUM_W} height={DRUM_H - 14} rx={2}
+      <rect x={DRUM_X} y={DRUM_Y} width={DRUM_W} height={DRUM_H} rx={2}
         fill={`url(#${bodyGradId})`} stroke="#0B1D5E" strokeWidth="2" />
 
-      {/* Top crimped rim — wider rolled edge */}
-      {(() => {
-        const rimW = DRUM_W + 6
-        const rimX = CX - rimW / 2
-        const rimH = 6
-        const rimY = DRUM_Y
-        return (
-          <g>
-            {/* Rim band */}
-            <rect x={rimX} y={rimY} width={rimW} height={rimH} rx={3}
-              fill="#1A3A9A" stroke="#0B1D5E" strokeWidth="1.5" />
-            {/* Highlight on rim */}
-            <rect x={rimX + 8} y={rimY + 1} width={rimW - 16} height={2} rx={1}
-              fill="white" opacity="0.12" />
-            {/* Taper section below rim */}
-            <path d={`M ${rimX} ${rimY + rimH}
-                      L ${DRUM_X} ${DRUM_Y + 14}
-                      L ${DRUM_X + DRUM_W} ${DRUM_Y + 14}
-                      L ${rimX + rimW} ${rimY + rimH} Z`}
-              fill={`url(#${bodyGradId})`} stroke="#0B1D5E" strokeWidth="1" />
-            {/* Top face ellipse */}
-            <ellipse cx={CX} cy={rimY} rx={rimW / 2} ry={ELLIPSE_RY - 2}
-              fill="#162E7A" stroke="#0B1D5E" strokeWidth="1.5" />
-            <ellipse cx={CX} cy={rimY} rx={rimW / 2 - 10} ry={ELLIPSE_RY - 6}
-              fill="#1A3A9A" opacity="0.4" />
-          </g>
-        )
-      })()}
+      {/* Top rolled rim lip */}
+      <rect x={DRUM_X - 3} y={DRUM_Y - 2} width={DRUM_W + 6} height={5} rx={2.5}
+        fill="#1A3A9A" stroke="#0B1D5E" strokeWidth="1.5" />
+      <rect x={DRUM_X + 6} y={DRUM_Y - 1} width={DRUM_W - 12} height={2} rx={1}
+        fill="white" opacity="0.12" />
+      {/* Top face */}
+      <ellipse cx={CX} cy={DRUM_Y} rx={DRUM_W / 2 + 3} ry={ELLIPSE_RY}
+        fill="#162E7A" stroke="#0B1D5E" strokeWidth="1.5" />
+      <ellipse cx={CX} cy={DRUM_Y} rx={DRUM_W / 2 - 10} ry={ELLIPSE_RY - 5}
+        fill="#1A3A9A" opacity="0.3" />
 
       {/* Rolling hoops / chime bands */}
-      <rect x={DRUM_X - 1} y={DRUM_Y + 22} width={DRUM_W + 2} height={6} rx={1}
+      <rect x={DRUM_X - 1} y={DRUM_Y + 10} width={DRUM_W + 2} height={5} rx={1}
         fill="none" stroke="#0F2570" strokeWidth="1.8" />
-      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H * 0.5} width={DRUM_W + 2} height={6} rx={1}
+      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H * 0.5} width={DRUM_W + 2} height={5} rx={1}
         fill="none" stroke="#0F2570" strokeWidth="1.8" />
-      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H - 16} width={DRUM_W + 2} height={6} rx={1}
+      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H - 15} width={DRUM_W + 2} height={5} rx={1}
         fill="none" stroke="#0F2570" strokeWidth="1.8" />
 
       {/* Vertical highlight streak */}
-      <rect x={DRUM_X + 15} y={DRUM_Y + 16} width={8} height={bodyH - 4} rx={4}
+      <rect x={DRUM_X + 15} y={DRUM_Y + 4} width={8} height={DRUM_H - 8} rx={4}
         fill="white" opacity="0.08" />
-      <rect x={DRUM_X + 26} y={DRUM_Y + 16} width={3} height={bodyH - 4} rx={1.5}
+      <rect x={DRUM_X + 26} y={DRUM_Y + 4} width={3} height={DRUM_H - 8} rx={1.5}
         fill="white" opacity="0.05" />
 
       {/* Caltex logo — star in circle */}
@@ -191,15 +172,15 @@ function DrumTank({ displayPct, c, showLabel, width, height }) {
       )}
 
       {/* Re-stroke drum over liquid */}
-      <rect x={DRUM_X} y={DRUM_Y + 14} width={DRUM_W} height={DRUM_H - 14} rx={2}
+      <rect x={DRUM_X} y={DRUM_Y} width={DRUM_W} height={DRUM_H} rx={2}
         fill="none" stroke="#0B1D5E" strokeWidth="2" />
 
       {/* Re-stroke hoops over liquid */}
-      <rect x={DRUM_X - 1} y={DRUM_Y + 22} width={DRUM_W + 2} height={6} rx={1}
+      <rect x={DRUM_X - 1} y={DRUM_Y + 10} width={DRUM_W + 2} height={5} rx={1}
         fill="none" stroke="#0F257080" strokeWidth="1.2" />
-      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H * 0.5} width={DRUM_W + 2} height={6} rx={1}
+      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H * 0.5} width={DRUM_W + 2} height={5} rx={1}
         fill="none" stroke="#0F257080" strokeWidth="1.2" />
-      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H - 16} width={DRUM_W + 2} height={6} rx={1}
+      <rect x={DRUM_X - 1} y={DRUM_Y + DRUM_H - 15} width={DRUM_W + 2} height={5} rx={1}
         fill="none" stroke="#0F257080" strokeWidth="1.2" />
 
       {/* Bottom ellipse hint */}

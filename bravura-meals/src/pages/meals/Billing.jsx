@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
-import { Card, Button, StatCard, showToast, fmtDate, today, MONTHS, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import { Card, Button, StatCard, showToast, fmtDate, today, MONTHS, PageHeader, TableWrap, THead, Th, TRow, Td, Icon } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 
 export default function Billing({ setPage }) {
@@ -18,6 +19,7 @@ export default function Billing({ setPage }) {
 
   // Auto-load on tab/date/site change
   useEffect(() => { if (currentSiteId) loadBilling() }, [tab, dailyDate, rangeStart, rangeEnd, month, year, currentSiteId, useCurrentPricing])
+  const { can } = usePermissions()
 
   async function loadBilling() {
     setLoading(true)
@@ -131,6 +133,13 @@ export default function Billing({ setPage }) {
       setLoading(false)
     }
   }
+
+  if (!can('meals.approve')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires Meals Approve permission.
+    </div>
+  )
 
   return (
     <div>

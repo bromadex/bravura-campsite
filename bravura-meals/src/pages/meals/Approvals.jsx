@@ -6,6 +6,7 @@ import { THEME } from '../../utils/permissions'
 import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
+import { usePermissions } from '../../contexts/PermissionsContext'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 
 export default function Approvals({ setPage }) {
@@ -28,6 +29,7 @@ export default function Approvals({ setPage }) {
   }, [currentSiteId])
   useAutoRefresh(() => { if (currentSiteId) fetchSubmissions() })
   useRealtimeSubscription('daily_submissions', { column: 'site_id', value: currentSiteId }, () => { if (currentSiteId) fetchSubmissions() })
+  const { can } = usePermissions()
 
   async function fetchSubmissions() {
     setLoading(true)
@@ -141,6 +143,13 @@ export default function Approvals({ setPage }) {
     logsArr.forEach(log => { if(log.had_breakfast)b++; if(log.had_lunch)l++; if(log.had_supper)s++ })
     return { b, l, s, t: b+l+s }
   }
+
+  if (!can('meals.approve')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires Meals Approve permission.
+    </div>
+  )
 
   return (
     <div>

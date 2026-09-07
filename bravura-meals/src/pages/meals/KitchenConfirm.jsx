@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, StatusBadge, Icon, SectionLabel, showToast, today, fmtDate, PageHeader } from '../../components/ui'
+import { usePermissions } from '../../contexts/PermissionsContext'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
@@ -33,6 +34,7 @@ export default function KitchenConfirm({ setPage }) {
   // not just the date.
   useEffect(() => { if (currentSiteId) loadDate(date) }, [date, currentSiteId])
   useRealtimeSubscription('daily_submissions', { column: 'site_id', value: currentSiteId }, () => { if (currentSiteId) loadDate(date) })
+  const { can } = usePermissions()
 
   async function loadDate(d) {
     setLoading(true)
@@ -115,6 +117,13 @@ export default function KitchenConfirm({ setPage }) {
     setFlagMsg('')
     loadDate(date)
   }
+
+  if (!can('meals.edit')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires Meals Edit permission.
+    </div>
+  )
 
   return (
     <div style={{ maxWidth: '600px' }}>

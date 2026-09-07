@@ -5,6 +5,7 @@ import { Card, Button, Modal, Icon, SectionLabel, fmtDate, PageHeader, TableWrap
 import { MODULE_COLORS } from '../../utils/permissions'
 import { exportCsv } from '../../utils/csv'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
+import { usePermissions } from '../../contexts/PermissionsContext'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 import { useSite } from '../../contexts/SiteContext'
 
@@ -62,6 +63,7 @@ export default function AuditLogViewer({ setPage }) {
   const [entries,      setEntries]      = useState([])
   const [tick, setTick] = useState(0)
   useRealtimeSubscription('audit_log', { column: 'site_id', value: currentSiteId }, () => setTick(t => t + 1))
+  const { can } = usePermissions()
   const [profiles,     setProfiles]     = useState({}) // id -> profile
   const [loading,      setLoading]      = useState(true)
   const [loadingMore,  setLoadingMore]  = useState(false)
@@ -121,6 +123,13 @@ export default function AuditLogViewer({ setPage }) {
     Object.values(profiles).sort((a, b) =>
       (a.full_name || a.username || '').localeCompare(b.full_name || b.username || '')
     ), [profiles])
+
+  if (!can('admin.view')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires Admin View permission.
+    </div>
+  )
 
   function handleExport() {
     if (entries.length === 0) { showToast('Nothing to export', 'red'); return }

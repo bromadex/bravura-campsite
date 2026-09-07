@@ -4,9 +4,11 @@ import { Button, fmtDate, today, showToast, PageHeader } from '../../components/
 import { DashCard, KpiCard, SectionTitle, DonutGauge } from '../../components/dash'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
+import { usePermissions } from '../../contexts/PermissionsContext'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { PrintHeader, ReportTable } from './reports/_shared'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
+import { Icon } from '../../components/ui'
 
 export default function RangeReport({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
@@ -28,6 +30,7 @@ export default function RangeReport({ setPage }) {
 
   useEffect(() => { if (currentSiteId) load() }, [start, end, employees, currentSiteId])
   useAutoRefresh(() => { if (currentSiteId) load() })
+  const { can } = usePermissions()
 
   async function load() {
     if (!start || !end) return
@@ -61,6 +64,13 @@ export default function RangeReport({ setPage }) {
   const totB = rows.reduce((a,r) => a+r.b, 0)
   const totL = rows.reduce((a,r) => a+r.l, 0)
   const totS = rows.reduce((a,r) => a+r.s, 0)
+
+  if (!can('meals.view')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires Meals View permission.
+    </div>
+  )
 
   return (
     <div className="print-page">

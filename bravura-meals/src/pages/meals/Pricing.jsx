@@ -4,12 +4,14 @@ import { useAuth } from '../../auth/AuthContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Icon, SectionLabel, showToast, fmtDate, PageHeader } from '../../components/ui'
+import { usePermissions } from '../../contexts/PermissionsContext'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 export default function Pricing({ setPage }) {
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
   const rt = useRealtimeRefresh('meal_prices', { column: 'site_id', value: currentSiteId })
+  const { can } = usePermissions()
   const [prices,  setPrices]  = useState([])
   const [loading, setLoading] = useState(true)
   const [form,    setForm]    = useState({ effective_date: '', breakfast_usd: '', lunch_usd: '', supper_usd: '', notes: '' })
@@ -128,6 +130,13 @@ export default function Pricing({ setPage }) {
   }
 
   const current = prices[0]
+
+  if (!can('meals.approve')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires Meals Approve permission.
+    </div>
+  )
 
   return (
     <div style={{ maxWidth: '720px' }}>

@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, PageHeader } from '../../components/ui'
+import { usePermissions } from '../../contexts/PermissionsContext'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 // Deliberately simple, per the actual requirement: each site can have one
@@ -12,6 +13,7 @@ import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 export default function MealProviders({ setPage }) {
   const { currentSiteId, currentSite } = useSite()
   useRealtimeSubscription('meal_providers', { column: 'site_id', value: currentSiteId }, fetchProviders)
+  const { can } = usePermissions()
 
   const [providers, setProviders] = useState([])
   const [loading,   setLoading]   = useState(true)
@@ -85,6 +87,13 @@ export default function MealProviders({ setPage }) {
   }
 
   const activeProviders = providers.filter(p => p.is_active)
+
+  if (!can('meals.approve')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires Meals Approve permission.
+    </div>
+  )
 
   return (
     <div>

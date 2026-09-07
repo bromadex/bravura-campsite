@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { Card, Button, showToast, PageHeader, Icon } from '../../components/ui'
 import { THEME } from '../../utils/permissions'
 import { useSite } from '../../contexts/SiteContext'
+import { usePermissions } from '../../contexts/PermissionsContext'
 import QuickNav, { MEALS_PILLS } from '../../components/QuickNav'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
@@ -14,6 +15,7 @@ const MEAL_MAPPING_META = [
 export default function Settings({ setPage }) {
   const { currentSiteId } = useSite()
   const rt = useRealtimeRefresh('meals_finance_mapping', { column: 'site_id', value: currentSiteId })
+  const { can } = usePermissions()
   const [cfg,     setCfg]     = useState({ company_name: '', site_name: '', supervisor_name: '', provider_name: '' })
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
@@ -79,6 +81,13 @@ export default function Settings({ setPage }) {
     { key: 'supervisor_name', label: 'Supervisor Name',             placeholder: 'e.g. Eng. C. Katsande' },
     { key: 'provider_name',   label: 'Food Provider',               placeholder: 'e.g. Catering Company' },
   ]
+
+  if (!can('meals.approve')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires Meals Approve permission.
+    </div>
+  )
 
   return (
     <div style={{ maxWidth: '540px' }}>

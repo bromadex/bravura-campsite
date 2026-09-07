@@ -21,6 +21,7 @@ const ALL_MODULES = [
   { id: 'contractors', label: 'Contractors',          icon: 'handshake',            color: MODULE_COLORS.contractors, access: moduleAccess.contractors },
   { id: 'inventory',  label: 'Inventory',            icon: 'inventory_2',          color: MODULE_COLORS.inventory,  access: moduleAccess.inventory  },
   { id: 'projects',   label: 'Projects',              icon: 'engineering',          color: MODULE_COLORS.projects,   access: moduleAccess.projects   },
+  { id: 'dept',          label: 'Departments',          icon: 'domain',               color: MODULE_COLORS.dept,         access: moduleAccess.dept         },
   { id: 'admin',        label: 'Administration',       icon: 'admin_panel_settings', color: MODULE_COLORS.admin,        access: moduleAccess.admin        },
   { id: 'procurement', label: 'Procurement',          icon: 'storefront',           color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
   { id: 'feedback',    label: 'Feedback',             icon: 'forum',                color: MODULE_COLORS.feedback,    access: moduleAccess.feedback    },

@@ -171,6 +171,15 @@ export const TXN_CODES = [
   { code: 'IN14', path: '/inventory/inv_requisitions', label: 'Purchase Requisitions', module: 'inventory' },
   { code: 'IN15', path: '/inventory/inv_purchase_orders', label: 'Purchase Orders',   module: 'inventory' },
 
+  // ── Department Workspaces (DW) ──────────────────────────────────────────────
+  { code: 'DW01', path: '/dept/dept_dashboard',  label: 'Dept Dashboard',     module: 'dept' },
+  { code: 'DW02', path: '/dept/dept_projects',   label: 'Dept Projects',      module: 'dept' },
+  { code: 'DW03', path: '/dept/dept_board',      label: 'Project Board',      module: 'dept' },
+  { code: 'DW04', path: '/dept/dept_grid',       label: 'Project Grid',       module: 'dept' },
+  { code: 'DW05', path: '/dept/dept_calendar',   label: 'Project Calendar',   module: 'dept' },
+  { code: 'DW06', path: '/dept/dept_charts',     label: 'Project Charts',     module: 'dept' },
+  { code: 'DW07', path: '/dept/dept_settings',   label: 'Dept Settings',      module: 'dept' },
+
   // ── Procurement (PR) / Feedback (FB) ──────────────────────────────────────
   { code: 'PR01', path: '/procurement/proc_dashboard', label: 'Procurement Dashboard', module: 'procurement' },
   { code: 'PR02', path: '/procurement/proc_suppliers', label: 'Suppliers',             module: 'procurement' },

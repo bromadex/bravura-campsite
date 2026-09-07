@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
@@ -194,6 +194,15 @@ const PJTransmittals = lazy(() => import('./pages/projects/PJTransmittals'))
 const PJCosts    = lazy(() => import('./pages/projects/PJCosts'))
 const PJChanges  = lazy(() => import('./pages/projects/PJChanges'))
 
+// ── Department Workspaces ────────────────────────────────────────────────────
+const DeptDashboard       = lazy(() => import('./pages/dept/DeptDashboard'))
+const DeptProjects        = lazy(() => import('./pages/dept/DeptProjects'))
+const DeptProjectBoard    = lazy(() => import('./pages/dept/DeptProjectBoard'))
+const DeptProjectGrid     = lazy(() => import('./pages/dept/DeptProjectGrid'))
+const DeptProjectCalendar = lazy(() => import('./pages/dept/DeptProjectCalendar'))
+const DeptProjectCharts   = lazy(() => import('./pages/dept/DeptProjectCharts'))
+const DeptSettings        = lazy(() => import('./pages/dept/DeptSettings'))
+
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
 const QuickStartGuide          = lazy(() => import('./pages/feedback/QuickStartGuide'))
@@ -243,6 +252,7 @@ const MODULE_META = {
   inventory:   { label: 'Inventory Management',  icon: 'inventory_2',      navFn: inventoryNav    },
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
   projects:    { label: 'Project Management',    icon: 'engineering',      navFn: projectsNav     },
+  dept:        { label: 'Department Workspaces', icon: 'domain',           navFn: deptNav         },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
 
@@ -500,6 +510,32 @@ function getProjectsPage(page, can, setPage) {
   }
 }
 
+function getDeptPage(page, can, setPage) {
+  if (!can('dept.view')) return null
+  if (page && page.startsWith('dept_board:')) {
+    const projectId = page.replace('dept_board:', '')
+    return <DeptProjectBoard setPage={setPage} projectId={projectId} />
+  }
+  if (page && page.startsWith('dept_grid:')) {
+    const projectId = page.replace('dept_grid:', '')
+    return <DeptProjectGrid setPage={setPage} projectId={projectId} />
+  }
+  if (page && page.startsWith('dept_calendar:')) {
+    const projectId = page.replace('dept_calendar:', '')
+    return <DeptProjectCalendar setPage={setPage} projectId={projectId} />
+  }
+  if (page && page.startsWith('dept_charts:')) {
+    const projectId = page.replace('dept_charts:', '')
+    return <DeptProjectCharts setPage={setPage} projectId={projectId} />
+  }
+  switch (page) {
+    case 'dept_dashboard': return <DeptDashboard setPage={setPage} />
+    case 'dept_projects':  return <DeptProjects setPage={setPage} />
+    case 'dept_settings':  return can('dept.edit') ? <DeptSettings setPage={setPage} /> : null
+    default:               return <DeptDashboard setPage={setPage} />
+  }
+}
+
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
@@ -520,6 +556,7 @@ const DEFAULT_PAGE = {
   inventory:   'inv_dashboard',
   procurement: 'proc_dashboard',
   projects:    'pj_dashboard',
+  dept:        'dept_dashboard',
   feedback:    'feedback_board',
 }
 
@@ -556,6 +593,7 @@ function ModuleShell() {
   if (moduleId === 'inventory')   content = getInventoryPage(currentPage, can, setPage)
   if (moduleId === 'procurement') content = getProcurementPage(currentPage, can, setPage)
   if (moduleId === 'projects')  content = getProjectsPage(currentPage, can, setPage)
+  if (moduleId === 'dept')      content = getDeptPage(currentPage, can, setPage)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 
   const AccessDenied = (

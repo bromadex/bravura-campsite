@@ -88,6 +88,7 @@ export const MODULE_COLORS = {
   contractors: '#0D7377',  // deep teal    – external workforce/contracts
   inventory:   '#B45309',  // amber-brown  – warehouses/stock
   projects:    '#1B5E20',  // deep green   – project management
+  dept:        '#1565C0',  // blue         – department workspaces
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -128,6 +129,7 @@ export const moduleAccess = {
   // organisation reports bugs, gaps, and suggestions during the build phase.
   inventory: (role, can) => can ? can('inventory.view') : false,
   projects:  (role, can) => can ? can('projects.view') : false,
+  dept:      (role, can) => can ? can('dept.view') : false,
   feedback:  r => !!r,
 }
 
@@ -318,6 +320,14 @@ export function fleetNav(role, can) {
     { id: 'fleet_contractors', label: 'Contractor Equipment', section: 'Registry', icon: 'handshake' },
     { id: 'fleet_reports',     label: 'Reports',         section: 'Reports',      icon: 'bar_chart' },
     { id: 'fleet_settings',    label: 'Settings',        section: 'Admin',        icon: 'settings' },
+  ]
+}
+
+export function deptNav(role, can) {
+  return [
+    { id: 'dept_dashboard', label: 'Dashboard',       section: 'Overview',   icon: 'dashboard' },
+    { id: 'dept_projects',  label: 'Projects',        section: 'Projects',   icon: 'folder_open' },
+    { id: 'dept_settings',  label: 'Settings',        section: 'Admin',      icon: 'settings' },
   ]
 }
 

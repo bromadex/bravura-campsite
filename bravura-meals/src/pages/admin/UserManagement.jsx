@@ -235,13 +235,13 @@ export default function UserManagement({ setPage }) {
       ) : (
         <TableWrap>
           <THead color={MODULE_COLOR}>
-            {['User','Roles & Site Access','Actions'].map(h => (
+            {['User','Linked Employee','Roles & Site Access','Actions'].map(h => (
               <Th key={h}>{h}</Th>
             ))}
           </THead>
           <tbody>
             {filteredProfiles.length === 0 ? (
-              <tr><td colSpan={3} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No matching users</td></tr>
+              <tr><td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No matching users</td></tr>
             ) : filteredProfiles.map(p => {
               const assignments = rolesByUser[p.id] || []
               return (
@@ -270,6 +270,21 @@ export default function UserManagement({ setPage }) {
                         <div style={{ fontSize: '11px', color: THEME.textLow }}>@{p.username}</div>
                       </div>
                     </div>
+                  </Td>
+                  <Td>
+                    {p.employee ? (
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.text }}>{p.employee.name}</div>
+                        <div style={{ fontSize: '11px', color: THEME.textLow }}>{p.employee.employee_number} · {p.employee.position_title || '—'}</div>
+                      </div>
+                    ) : (
+                      <span style={{
+                        padding: '2px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
+                        background: THEME.statusWarningBg, color: THEME.statusWarningText,
+                      }}>
+                        Not linked
+                      </span>
+                    )}
                   </Td>
                   <Td>
                     {assignments.length === 0 ? (

@@ -27,8 +27,8 @@ export default function DeptProjectBoard({ setPage, projectId }) {
     setLoading(true)
     const [projRes, taskRes, empRes] = await Promise.all([
       supabase.from('dept_projects').select('*, department:departments(id, name, color, icon, custom_buckets)').eq('id', projectId).maybeSingle(),
-      supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, first_name, last_name)').eq('project_id', projectId).eq('is_archived', false).order('sort_order'),
-      supabase.from('employees').select('id, first_name, last_name').eq('site_id', currentSiteId).eq('status', 'active').order('first_name'),
+      supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, name)').eq('project_id', projectId).eq('is_archived', false).order('sort_order'),
+      supabase.from('employees').select('id, name').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
     ])
     setProject(projRes.data)
     setTasks(taskRes.data || [])
@@ -121,7 +121,7 @@ export default function DeptProjectBoard({ setPage, projectId }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: (PRIORITY_CLR[t.priority] || '#78909C') + '18', color: PRIORITY_CLR[t.priority], fontWeight: 600 }}>{t.priority}</span>
                       {t.due_date && <span style={{ fontSize: '10px', color: THEME.textLow }}>{t.due_date}</span>}
-                      {t.assignee && <span style={{ fontSize: '10px', color: THEME.textMed }}>{t.assignee.first_name} {t.assignee.last_name?.[0]}.</span>}
+                      {t.assignee && <span style={{ fontSize: '10px', color: THEME.textMed }}>{t.assignee.name}</span>}
                       {t.checklist?.length > 0 && (
                         <span style={{ fontSize: '10px', color: THEME.textLow }}>
                           ✓ {t.checklist.filter(c => c.done).length}/{t.checklist.length}
@@ -178,7 +178,7 @@ export default function DeptProjectBoard({ setPage, projectId }) {
               </select>
               <select value={editTask.assigned_to || ''} onChange={e => setEditTask({ ...editTask, assigned_to: e.target.value || null })} style={inp}>
                 <option value="">Unassigned</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
+                {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
               <input type="date" value={editTask.start_date || ''} onChange={e => setEditTask({ ...editTask, start_date: e.target.value || null })} style={inp} placeholder="Start date" />
               <input type="date" value={editTask.due_date || ''} onChange={e => setEditTask({ ...editTask, due_date: e.target.value || null })} style={inp} placeholder="Due date" />

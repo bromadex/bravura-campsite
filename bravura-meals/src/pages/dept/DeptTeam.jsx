@@ -27,8 +27,8 @@ export default function DeptTeam({ setPage }) {
     setLoading(true)
     const [deptRes, memRes, empRes, taskRes] = await Promise.all([
       supabase.from('departments').select('*').eq('site_id', currentSiteId).eq('is_archived', false),
-      supabase.from('department_members').select('*, employee:employees(id, first_name, last_name, employee_number, designation, status), department:departments(id, name, color, icon, site_id)').order('created_at'),
-      supabase.from('employees').select('id, first_name, last_name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('first_name'),
+      supabase.from('department_members').select('*, employee:employees(id, name, employee_number, position_title, status), department:departments(id, name, color, icon, site_id)').order('created_at'),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
       supabase.from('dept_tasks').select('assigned_to, status, project:dept_projects!inner(site_id)').eq('project.site_id', currentSiteId).eq('is_archived', false),
     ])
 
@@ -103,7 +103,7 @@ export default function DeptTeam({ setPage }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
             <select value={addForm.employee_id} onChange={e => setAddForm({ ...addForm, employee_id: e.target.value })} style={inp}>
               <option value="">Select employee…</option>
-              {availableEmployees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name} ({e.employee_number || '—'})</option>)}
+              {availableEmployees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.employee_number || '—'})</option>)}
             </select>
             <select value={addForm.department_id} onChange={e => setAddForm({ ...addForm, department_id: e.target.value })} style={inp}>
               <option value="">Department…</option>
@@ -136,7 +136,7 @@ export default function DeptTeam({ setPage }) {
                     <Icon name="person" size={18} style={{ color: ROLE_CLR[m.role] || color }} />
                   </div>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {m.employee?.first_name} {m.employee?.last_name?.[0]}.
+                    {m.employee?.name}
                   </div>
                   <div style={{ fontSize: '10px', color: THEME.textLow }}>{tc.total} tasks · {pct}% done</div>
                   {tc.overdue > 0 && <div style={{ fontSize: '10px', color: '#E53935', fontWeight: 600 }}>{tc.overdue} overdue</div>}
@@ -168,7 +168,7 @@ export default function DeptTeam({ setPage }) {
                 return (
                   <tr key={m.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                     <td style={{ padding: '10px 14px', color: THEME.text, fontWeight: 500 }}>
-                      {m.employee ? `${m.employee.first_name} ${m.employee.last_name}` : '—'}
+                      {m.employee ? m.employee.name : '—'}
                     </td>
                     <td style={{ padding: '10px 14px', color: THEME.textLow }}>{m.employee?.employee_number || '—'}</td>
                     <td style={{ padding: '10px 14px', color: m.department?.color || color }}>{m.department?.name || '—'}</td>

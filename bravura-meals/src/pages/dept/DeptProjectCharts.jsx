@@ -66,7 +66,7 @@ export default function DeptProjectCharts({ setPage, projectId }) {
     setLoading(true)
     const [projRes, taskRes] = await Promise.all([
       supabase.from('dept_projects').select('*, department:departments(id, name, color, icon)').eq('id', projectId).maybeSingle(),
-      supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, first_name, last_name)').eq('project_id', projectId).eq('is_archived', false),
+      supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, name)').eq('project_id', projectId).eq('is_archived', false),
     ])
     setProject(projRes.data)
     setTasks(taskRes.data || [])
@@ -83,7 +83,7 @@ export default function DeptProjectCharts({ setPage, projectId }) {
     const memberMap = {}
     tasks.forEach(t => {
       if (t.assignee) {
-        const name = `${t.assignee.first_name} ${t.assignee.last_name?.[0] || ''}.`
+        const name = t.assignee.name
         memberMap[name] = (memberMap[name] || 0) + 1
       }
     })

@@ -20,7 +20,7 @@ export default function DeptCostTracker({ setPage }) {
     setLoading(true)
     const [projRes, taskRes] = await Promise.all([
       supabase.from('dept_projects').select('*, department:departments(id, name, color)').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
-      supabase.from('dept_tasks').select('id, project_id, estimated_cost, actual_cost, status, title, assigned_to, assignee:employees!dept_tasks_assigned_to_fkey(first_name, last_name)').eq('is_archived', false),
+      supabase.from('dept_tasks').select('id, project_id, estimated_cost, actual_cost, status, title, assigned_to, assignee:employees!dept_tasks_assigned_to_fkey(name)').eq('is_archived', false),
     ])
     setProjects(projRes.data || [])
     setTasks(taskRes.data || [])
@@ -103,7 +103,7 @@ export default function DeptCostTracker({ setPage }) {
                   return (
                     <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                       <td style={{ padding: '8px 12px', color: THEME.text }}>{t.title}</td>
-                      <td style={{ padding: '8px 12px', color: THEME.textMed }}>{t.assignee ? `${t.assignee.first_name} ${t.assignee.last_name}` : '—'}</td>
+                      <td style={{ padding: '8px 12px', color: THEME.textMed }}>{t.assignee ? t.assignee.name : '—'}</td>
                       <td style={{ padding: '8px 12px', color: THEME.text }}>{fmt$(est)}</td>
                       <td style={{ padding: '8px 12px', color: THEME.text }}>{fmt$(act)}</td>
                       <td style={{ padding: '8px 12px', color: variance > 0 ? '#E53935' : variance < 0 ? '#2E7D32' : THEME.textLow, fontWeight: 600 }}>

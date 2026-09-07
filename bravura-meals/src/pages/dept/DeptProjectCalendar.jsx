@@ -25,7 +25,7 @@ export default function DeptProjectCalendar({ setPage, projectId }) {
     setLoading(true)
     const [projRes, taskRes] = await Promise.all([
       supabase.from('dept_projects').select('*, department:departments(id, name, color, icon)').eq('id', projectId).maybeSingle(),
-      supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, first_name, last_name)').eq('project_id', projectId).eq('is_archived', false),
+      supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, name)').eq('project_id', projectId).eq('is_archived', false),
     ])
     setProject(projRes.data)
     setTasks(taskRes.data || [])

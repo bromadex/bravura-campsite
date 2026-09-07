@@ -24,8 +24,8 @@ export default function DeptProjectGrid({ setPage, projectId }) {
     setLoading(true)
     const [projRes, taskRes, empRes] = await Promise.all([
       supabase.from('dept_projects').select('*, department:departments(id, name, color, icon)').eq('id', projectId).maybeSingle(),
-      supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, first_name, last_name)').eq('project_id', projectId).eq('is_archived', false).order('sort_order'),
-      supabase.from('employees').select('id, first_name, last_name').eq('site_id', currentSiteId).eq('status', 'active'),
+      supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, name)').eq('project_id', projectId).eq('is_archived', false).order('sort_order'),
+      supabase.from('employees').select('id, name').eq('site_id', currentSiteId).eq('status', 'active'),
     ])
     setProject(projRes.data)
     setTasks(taskRes.data || [])
@@ -105,10 +105,10 @@ export default function DeptProjectGrid({ setPage, projectId }) {
                   {can('dept.edit') ? (
                     <select value={t.assigned_to || ''} onChange={e => inlineUpdate(t.id, 'assigned_to', e.target.value)} style={sel}>
                       <option value="">—</option>
-                      {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
+                      {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                     </select>
                   ) : (
-                    <span style={{ color: THEME.textMed }}>{t.assignee ? `${t.assignee.first_name} ${t.assignee.last_name}` : '—'}</span>
+                    <span style={{ color: THEME.textMed }}>{t.assignee ? t.assignee.name : '—'}</span>
                   )}
                 </td>
                 <td style={{ padding: '8px 12px', color: THEME.textLow }}>{t.start_date || '—'}</td>

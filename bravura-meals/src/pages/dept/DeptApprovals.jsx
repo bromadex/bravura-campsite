@@ -22,7 +22,7 @@ export default function DeptApprovals({ setPage }) {
     setLoading(true)
     const query = supabase
       .from('dept_tasks')
-      .select('*, project:dept_projects!inner(id, name, site_id, department_id, department:departments(id, name, color)), assignee:employees!dept_tasks_assigned_to_fkey(first_name, last_name)')
+      .select('*, project:dept_projects!inner(id, name, site_id, department_id, department:departments(id, name, color)), assignee:employees!dept_tasks_assigned_to_fkey(name)')
       .eq('project.site_id', currentSiteId)
       .eq('is_archived', false)
       .eq('status', 'completed')
@@ -91,7 +91,7 @@ export default function DeptApprovals({ setPage }) {
                   <div style={{ fontSize: '12px', color: THEME.textLow, display: 'flex', gap: '10px', marginTop: '4px', flexWrap: 'wrap' }}>
                     <span style={{ color: dc }}>{t.project?.department?.name}</span>
                     <span>{t.project?.name}</span>
-                    {t.assignee && <span>→ {t.assignee.first_name} {t.assignee.last_name}</span>}
+                    {t.assignee && <span>→ {t.assignee.name}</span>}
                     <span style={{ color: PRIORITY_CLR[t.priority], fontWeight: 600 }}>{t.priority}</span>
                   </div>
                   {t.approved && t.approved_at && (

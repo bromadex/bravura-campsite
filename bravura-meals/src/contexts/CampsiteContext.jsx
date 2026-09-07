@@ -37,7 +37,7 @@ export function CampsiteProvider({ children }) {
         // leave was invisible to both, independent of anything else fixed
         // in this same pass.
         supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').in('status', ['active','on_leave','long_leave']).eq('site_id', currentSiteId).order('name'),
-        supabase.from('contractors').select('*').eq('status','Active').order('name'),
+        supabase.from('contractors').select('*').eq('site_id', currentSiteId).eq('status','Active').order('name'),
         supabase.from('camp_visitors').select('*').eq('site_id', currentSiteId).order('created_at', { ascending: false }),
         supabase.from('camp_supply_balance').select('*').eq('site_id', currentSiteId),
       ])

@@ -73,6 +73,7 @@ export default function CLCompanies({ setPage }) {
     const { data, error: err } = await supabase
       .from('contractors')
       .select('*')
+      .eq('site_id', currentSiteId)
       .eq('is_archived', false)
       .order('name', { ascending: true })
     if (!err) {

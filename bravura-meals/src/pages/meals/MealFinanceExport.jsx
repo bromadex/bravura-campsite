@@ -82,7 +82,7 @@ export default function MealFinanceExport({ setPage }) {
 
     const [{ data: employees }, { data: contractors }, { data: priceRow }] = await Promise.all([
       supabase.from('employees').select('id, contractor_id').eq('site_id', currentSiteId).eq('status', 'active'),
-      supabase.from('contractors').select('id, name'),
+      supabase.from('contractors').select('id, name').eq('site_id', currentSiteId),
       supabase.from('meal_prices').select('*').eq('site_id', currentSiteId).lte('effective_date', to).order('effective_date', { ascending: false }).limit(1),
     ])
     const price = priceRow?.[0] || null

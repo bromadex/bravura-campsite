@@ -71,7 +71,7 @@ export default function EmployeeForm({ setPage, employeeId }) {
         supabase.from('departments').select('id, name').or(`site_id.eq.${currentSiteId},site_id.is.null`).eq('is_archived', false).order('name'),
         supabase.from('designations').select('id, name, department_id').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
         supabase.from('employment_types').select('id, name').eq('is_archived', false).order('name'),
-        supabase.from('contractors').select('id, name').eq('status', 'Active').order('name'),
+        supabase.from('contractors').select('id, name').eq('site_id', currentSiteId).eq('status', 'Active').order('name'),
         supabase.from('employees').select('id, name').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
         supabase.from('module_settings').select('key, value').eq('site_id', currentSiteId).eq('module', 'hr'),
       ])

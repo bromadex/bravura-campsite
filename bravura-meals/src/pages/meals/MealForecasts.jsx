@@ -47,7 +47,7 @@ export default function MealForecasts({ setPage }) {
     if (!currentSiteId) return
     setLoading(true)
     const [{ data: cs }, { data: fs }, { data: sub }] = await Promise.all([
-      supabase.from('contractors').select('id, name').order('name'),
+      supabase.from('contractors').select('id, name').eq('site_id', currentSiteId).order('name'),
       supabase.from('meal_forecasts').select('*').eq('site_id', currentSiteId).eq('forecast_date', date),
       supabase.from('daily_submissions').select('id, status, kitchen_count_b, kitchen_count_l, kitchen_count_s').eq('site_id', currentSiteId).eq('date', date).maybeSingle(),
     ])

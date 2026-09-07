@@ -72,6 +72,7 @@ export default function DailyEntry({ setPage }) {
     supabase
       .from('contractors')
       .select('*')
+      .eq('site_id', currentSiteId)
       .order('name')
       .then(({ data }) => setContractors(data || []))
   }, [currentSiteId, rt])

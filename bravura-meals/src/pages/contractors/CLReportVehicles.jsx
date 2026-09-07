@@ -27,7 +27,7 @@ export default function CLReportVehicles({ setPage }) {
 
   useEffect(() => {
     supabase.from('contractors').select('id,name').eq('is_archived', false).or(`site_id.eq.${currentSiteId},site_id.is.null`).order('name')
-      .then(({ data }) => setContractors(data || [rt]))
+      .then(({ data }) => setContractors(data || []))
   }, [currentSiteId])
 
   useEffect(() => {

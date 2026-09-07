@@ -86,6 +86,7 @@ export default function CLContracts({ setPage }) {
         supabase
           .from('contractors')
           .select('id, name, short_code')
+          .eq('site_id', currentSiteId)
           .eq('is_archived', false)
           .order('name'),
       ])

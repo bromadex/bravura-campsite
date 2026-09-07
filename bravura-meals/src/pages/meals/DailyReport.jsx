@@ -30,7 +30,7 @@ export default function DailyReport({ setPage }) {
     if (!currentSiteId) return
     supabase.from('employees').select('*, contractor:contractors(id,name,short_code)').eq('status','active').eq('site_id', currentSiteId).order('name')
       .then(({ data }) => setEmployees(data || []))
-    supabase.from('contractors').select('*').then(({ data }) => setContractors(data || []))
+    supabase.from('contractors').select('*').eq('site_id', currentSiteId).then(({ data }) => setContractors(data || []))
   }, [currentSiteId])
 
   useEffect(() => { if (currentSiteId) load() }, [date, employees, currentSiteId])

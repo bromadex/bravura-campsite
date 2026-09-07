@@ -65,7 +65,7 @@ export default function Dashboard({ setPage }) {
       supabase.from('daily_submissions').select('id,date,status').eq('site_id', currentSiteId).order('date',{ascending:false}).limit(7),
       supabase.from('daily_submissions').select('id').eq('site_id', currentSiteId),
       supabase.from('meal_providers').select('*').eq('site_id', currentSiteId).eq('is_active', true).order('name'),
-      supabase.from('contractors').select('*').order('name'),
+      supabase.from('contractors').select('*').eq('site_id', currentSiteId).order('name'),
     ])
 
     const todayLogs   = todayLogsRes.data  || []

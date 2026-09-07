@@ -7,7 +7,7 @@ import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, initi
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
-const MODULE_COLOR = '#5C6BC0' // matches MODULE_COLORS.admin in permissions.js
+const MODULE_COLOR = '#5C6BC0'
 
 export default function UserManagement({ setPage }) {
   const { can } = usePermissions()
@@ -19,6 +19,7 @@ export default function UserManagement({ setPage }) {
   const [roles,      setRoles]      = useState([])
   const [sites,      setSites]      = useState([])
   const [userRoles,  setUserRoles]  = useState([])
+  const [employees,  setEmployees]  = useState([])
   const [loading,    setLoading]    = useState(true)
 
   const [search,     setSearch]     = useState('')
@@ -31,19 +32,21 @@ export default function UserManagement({ setPage }) {
   const [revokeTarget, setRevokeTarget] = useState(null) // the user_roles row being revoked
   const [deactivateTarget, setDeactivateTarget] = useState(null) // profile pending full deactivation
   const [suspendBusy, setSuspendBusy] = useState(false)
+  const [linkingEmployee, setLinkingEmployee] = useState(false)
 
   useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
     setLoading(true)
-    const [pRes, rRes, sRes, urRes] = await Promise.all([
-      // '*' includes is_suspended + suspended_at
-      supabase.from('profiles').select('*').order('username'),
+    const [pRes, rRes, sRes, urRes, eRes] = await Promise.all([
+      supabase.from('profiles').select('*, employee:employees(id, name, employee_number, position_title)').order('username'),
       supabase.from('roles').select('*').order('name'),
       supabase.from('sites').select('*').eq('is_active', true).order('name'),
       supabase.from('user_roles').select('*, role:roles(id,name), site:sites(id,name,code)'),
+      supabase.from('employees').select('id, name, employee_number, position_title').eq('status', 'active').order('name'),
     ])
     setProfiles(pRes.data || [])
+    setEmployees(eRes.data || [])
     // Keep the open Manage modal in sync (e.g. after suspend/reactivate)
     setManageTarget(prev => prev ? ((pRes.data || []).find(p => p.id === prev.id) || prev) : prev)
     setRoles(rRes.data || [])
@@ -127,6 +130,23 @@ export default function UserManagement({ setPage }) {
     fetchAll()
   }
 
+  const linkedEmployeeIds = useMemo(() => new Set(profiles.map(p => p.employee_id).filter(Boolean)), [profiles])
+  const unlinkedEmployees = useMemo(() => employees.filter(e => !linkedEmployeeIds.has(e.id)), [employees, linkedEmployeeIds])
+
+  async function linkEmployee(profileId, employeeId) {
+    setLinkingEmployee(true)
+    try {
+      const { error } = await supabase.from('profiles').update({ employee_id: employeeId || null }).eq('id', profileId)
+      if (error) throw error
+      showToast(employeeId ? 'Employee linked' : 'Employee unlinked', 'green')
+      await fetchAll()
+    } catch (err) {
+      showToast(err.message, 'red')
+    } finally {
+      setLinkingEmployee(false)
+    }
+  }
+
   async function setSuspended(userId, suspend) {
     setSuspendBusy(true)
     try {
@@ -176,6 +196,7 @@ export default function UserManagement({ setPage }) {
   return (
     <div>
       <PageHeader title={<>Users & Roles <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '6px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{profiles.length}</span></>} />
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_users" />
 
       {/* Note on creating brand-new accounts */}
       <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: '10px', background: THEME.statusTertiaryBg }}>
@@ -227,7 +248,6 @@ export default function UserManagement({ setPage }) {
                 <TRow key={p.id}>
                   <Td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', opacity: p.is_suspended ? 0.55 : 1 }}>
-      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_users" />
                       <div style={{
                         width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -343,6 +363,46 @@ export default function UserManagement({ setPage }) {
         <div style={{ marginTop: '10px', fontSize: '11px', color: THEME.textLow }}>
           "All Sites" means this role's permissions apply everywhere, including any site created in the future.
         </div>
+
+        {canEdit && manageTarget && (
+          <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: `1px solid ${THEME.outline}` }}>
+            <SectionLabel>Linked Employee</SectionLabel>
+            {manageTarget.employee ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 12px', borderRadius: '10px', background: THEME.surfaceVar, marginBottom: '8px',
+              }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{manageTarget.employee.name}</div>
+                  <div style={{ fontSize: '11px', color: THEME.textLow }}>
+                    {manageTarget.employee.employee_number} · {manageTarget.employee.position_title || 'No position'}
+                  </div>
+                </div>
+                <Button size="sm" onClick={() => linkEmployee(manageTarget.id, null)} disabled={linkingEmployee}
+                  style={{ fontSize: '11px', background: THEME.statusErrorBg, color: THEME.statusErrorText, border: 'none' }}>
+                  Unlink
+                </Button>
+              </div>
+            ) : (
+              <div style={{ marginBottom: '8px' }}>
+                <select
+                  onChange={e => { if (e.target.value) linkEmployee(manageTarget.id, e.target.value) }}
+                  disabled={linkingEmployee}
+                  value=""
+                  style={{ width: '100%', padding: '9px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', outline: 'none', background: THEME.surface, color: THEME.text }}
+                >
+                  <option value="">— Select employee to link —</option>
+                  {unlinkedEmployees.map(e => (
+                    <option key={e.id} value={e.id}>{e.name} ({e.employee_number})</option>
+                  ))}
+                </select>
+                <div style={{ marginTop: '6px', fontSize: '11px', color: THEME.textLow }}>
+                  Link this user account to an employee record to connect their profile with HR data.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {can('users.edit') && manageTarget && manageTarget.id !== myProfile?.id && (
           <div style={{ marginTop: '22px', paddingTop: '14px', borderTop: `1px solid ${THEME.outline}` }}>

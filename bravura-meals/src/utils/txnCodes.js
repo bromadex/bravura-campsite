@@ -153,6 +153,7 @@ export const TXN_CODES = [
   { code: 'AD07', path: '/admin/admin_permissions', label: 'Permissions Catalogue', module: 'admin' },
   { code: 'AD08', path: '/admin/admin_audit',       label: 'Audit Log',            module: 'admin' },
   { code: 'AD09', path: '/admin/admin_preferences', label: 'My Preferences',       module: 'admin' },
+  { code: 'AD10', path: '/admin/admin_employee_links', label: 'Employee Links',    module: 'admin' },
 
   // ── Inventory (IN) ──────────────────────────────────────────────────────
   { code: 'IN01', path: '/inventory/inv_dashboard',   label: 'Inventory Dashboard',  module: 'inventory' },

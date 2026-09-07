@@ -124,6 +124,7 @@ export const ADMIN_PILLS = [
   { id: 'admin_dashboard',   label: 'Dashboard',    icon: 'dashboard',         color: '#5C6BC0' },
   { id: 'admin_users',       label: 'Users',        icon: 'manage_accounts',   color: '#1565C0' },
   { id: 'admin_roles',       label: 'Roles',        icon: 'shield_person',     color: '#2E7D32' },
+  { id: 'admin_employee_links', label: 'Employee Links', icon: 'badge', color: '#00695C' },
   { id: 'admin_permissions', label: 'Permissions',  icon: 'verified_user',     color: '#00838F' },
   { id: 'admin_sites',       label: 'Sites',        icon: 'location_city',     color: '#E65100' },
   { id: 'admin_invitations', label: 'Invitations',  icon: 'mail',              color: '#6A1B9A' },

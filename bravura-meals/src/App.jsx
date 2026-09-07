@@ -85,6 +85,7 @@ const SiteManagement     = lazy(() => import('./pages/admin/SiteManagement'))
 const PendingInvitations = lazy(() => import('./pages/admin/PendingInvitations'))
 const SystemSettings     = lazy(() => import('./pages/admin/SystemSettings'))
 const PermissionsCatalogue = lazy(() => import('./pages/admin/PermissionsCatalogue'))
+const EmployeeLinks        = lazy(() => import('./pages/admin/EmployeeLinks'))
 const UserPreferences      = lazy(() => import('./pages/admin/UserPreferences'))
 
 // ── Fleet pages ───────────────────────────────────────────────────────────────
@@ -378,6 +379,7 @@ function getAdminPage(page, can, setPage) {
     case 'admin_invitations': return can('users.view') ? <PendingInvitations setPage={setPage} /> : null
     case 'admin_settings':    return can('users.view') ? <SystemSettings setPage={setPage} /> : null
     case 'admin_permissions': return can('users.view') ? <PermissionsCatalogue setPage={setPage} /> : null
+    case 'admin_employee_links': return can('users.view') ? <EmployeeLinks setPage={setPage} /> : null
     case 'admin_audit':       return can('users.view') ? <AuditLogViewer setPage={setPage} /> : null
     case 'admin_preferences': return <UserPreferences setPage={setPage} />
     default:                  return can('users.view') ? <AdminDashboard setPage={setPage} /> : null

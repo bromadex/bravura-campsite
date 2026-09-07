@@ -240,7 +240,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
 
   async function archiveCostItem(id) {
     if (!confirm('Archive this cost item?')) return
-    await supabase.from('project_cost_items').update({ is_archived: true }).eq('id', id)
+    const { error } = await supabase.from('project_cost_items').update({ is_archived: true }).eq('id', id)
+    if (error) { showToast(error.message, 'red'); return }
     showToast('Cost item archived', 'green')
     fetchCostData()
   }
@@ -413,7 +414,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   }
   async function removeMember(id) {
     if (!confirm('Remove this member?')) return
-    await supabase.from('project_members').update({ is_active: false, removed_date: new Date().toISOString().slice(0, 10) }).eq('id', id)
+    const { error } = await supabase.from('project_members').update({ is_active: false, removed_date: new Date().toISOString().slice(0, 10) }).eq('id', id)
+    if (error) { showToast(error.message, 'red'); return }
     showToast('Member removed', 'green')
     await fetchAll()
   }
@@ -509,7 +511,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   async function renameColumn(colId) {
     const name = editColText.trim()
     if (!name) { setEditColName(null); return }
-    await supabase.from('project_board_columns').update({ name }).eq('id', colId)
+    const { error } = await supabase.from('project_board_columns').update({ name }).eq('id', colId)
+    if (error) { showToast(error.message, 'red'); return }
     setEditColName(null)
     await fetchBoard()
   }
@@ -595,7 +598,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
 
   async function archiveTask() {
     if (!confirm('Archive this task?')) return
-    await supabase.from('project_tasks').update({ is_archived: true, archived_at: new Date().toISOString() }).eq('id', taskForm.id)
+    const { error } = await supabase.from('project_tasks').update({ is_archived: true, archived_at: new Date().toISOString() }).eq('id', taskForm.id)
+    if (error) { showToast(error.message, 'red'); return }
     showToast('Task archived', 'green')
     setTaskModal(null)
     await fetchBoard()
@@ -603,7 +607,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
 
   async function archiveProject() {
     if (!confirm('Archive this project? It will be hidden from the project list.')) return
-    await supabase.from('projects').update({ is_archived: true, archived_at: new Date().toISOString() }).eq('id', projectId)
+    const { error } = await supabase.from('projects').update({ is_archived: true, archived_at: new Date().toISOString() }).eq('id', projectId)
+    if (error) { showToast(error.message, 'red'); return }
     showToast('Project archived', 'green')
     setPage('pj_projects')
   }
@@ -716,7 +721,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   }
 
   async function toggleChecklistItem(item) {
-    await supabase.from('project_task_checklist').update({ checked: !item.checked }).eq('id', item.id)
+    const { error } = await supabase.from('project_task_checklist').update({ checked: !item.checked }).eq('id', item.id)
+    if (error) { showToast(error.message, 'red'); return }
     setTaskForm(f => ({
       ...f, _checklist: (f._checklist || []).map(c => c.id === item.id ? { ...c, checked: !c.checked } : c)
     }))
@@ -724,7 +730,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   }
 
   async function deleteChecklistItem(id) {
-    await supabase.from('project_task_checklist').delete().eq('id', id)
+    const { error } = await supabase.from('project_task_checklist').delete().eq('id', id)
+    if (error) { showToast(error.message, 'red'); return }
     setTaskForm(f => ({ ...f, _checklist: (f._checklist || []).filter(c => c.id !== id) }))
     await fetchBoard()
   }
@@ -740,7 +747,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   }
 
   async function removeDependency(depId) {
-    await supabase.from('project_task_dependencies').delete().eq('id', depId)
+    const { error } = await supabase.from('project_task_dependencies').delete().eq('id', depId)
+    if (error) { showToast(error.message, 'red'); return }
     setTaskDeps(prev => prev.filter(d => d.id !== depId))
   }
 
@@ -764,7 +772,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
     const updates = { column_id: colId, position: maxPos + 1 }
     if (col?.is_done_column && !task.completed_date) updates.completed_date = new Date().toISOString()
     if (!col?.is_done_column && task.completed_date) updates.completed_date = null
-    await supabase.from('project_tasks').update(updates).eq('id', task.id)
+    const { error } = await supabase.from('project_tasks').update(updates).eq('id', task.id)
+    if (error) { showToast(error.message, 'red'); return }
     await fetchBoard()
   }
 

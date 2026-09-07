@@ -34,7 +34,7 @@ export default function CLReportCostBySite({ setPage }) {
       if (sitesRes.error) { showToast(sitesRes.error.message, 'red'); setLoading(false); return }
 
       const siteMap = {}
-      ;(sitesRes.data || [rt]).forEach(s => { siteMap[s.id] = { name: s.name, labour: 0, vehicle: 0, equipment: 0 } })
+      ;(sitesRes.data || []).forEach(s => { siteMap[s.id] = { name: s.name, labour: 0, vehicle: 0, equipment: 0 } })
 
       ;(tsRes.data || []).forEach(t => {
         if (siteMap[t.site_id]) siteMap[t.site_id].labour += Number(t.total_cost || 0)

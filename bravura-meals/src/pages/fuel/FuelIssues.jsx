@@ -24,7 +24,7 @@ const ASSET_TYPES = ['vehicle', 'equipment', 'other']
 export default function FuelIssues({ setPage }) {
   const { can } = usePermissions()
   const { currentSite, currentSiteId } = useSite()
-  const { tanks, issues, updateTransaction, softDeleteTransaction, loading } = useFuel()
+  const { tanks, issues, updateTransaction, softDeleteTransaction, loading, refresh } = useFuel()
 
   const canIssue     = can('fuel.create')
   const canEdit      = can('fuel.edit')
@@ -67,7 +67,7 @@ export default function FuelIssues({ setPage }) {
     if (error) { showToast(error.message, 'red'); return }
     showToast(query ? 'Query raised' : 'Issuance acknowledged', 'green')
     setAckTarget(null); setAckNote('')
-    setTimeout(() => window.location.reload(), 350)
+    refresh()
   }
 
   if (!canView) return null

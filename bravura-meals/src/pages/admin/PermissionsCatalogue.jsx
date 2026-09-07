@@ -64,6 +64,7 @@ export default function PermissionsCatalogue({ setPage }) {
   return (
     <div>
       <PageHeader title="Permissions Catalogue" />
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_permissions" />
 
       {/* KPI */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -141,7 +142,6 @@ export default function PermissionsCatalogue({ setPage }) {
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '8px 4px', borderBottom: `1px solid ${THEME.outlineVar}`,
                     }}>
-      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_permissions" />
                       <span style={{ fontSize: '13px', fontWeight: 500, color: THEME.text, fontFamily: 'monospace' }}>
                         {p.code}
                       </span>

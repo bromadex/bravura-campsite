@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, Fragment } from 'react'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -442,9 +442,8 @@ export default function VehicleConsumption() {
                   ? { label: 'No km data', bg: THEME.surfaceVar, color: THEME.textLow }
                   : { label: 'Normal', bg: THEME.statusSuccessBg, color: THEME.statusSuccessText }
                 return (
-                  <>
+                  <Fragment key={row.assetId}>
                     <tr
-                      key={row.assetId}
                       onClick={() => setExpanded(isExpanded ? null : row.assetId)}
                       style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', background: isExpanded ? COLOR + '08' : 'transparent' }}
                       onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = THEME.surfaceVar }}
@@ -514,7 +513,7 @@ export default function VehicleConsumption() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 )
               })}
             </tbody>

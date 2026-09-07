@@ -150,6 +150,7 @@ export default function ExitManagement({ setPage }) {
   return (
     <div style={{ padding: '0 24px 40px' }}>
       <PageHeader title="Exit Management" accent={ACCENT} />
+      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_exit" />
 
       {canEdit && (
         <div style={{ marginBottom: 16 }}>
@@ -187,7 +188,6 @@ export default function ExitManagement({ setPage }) {
       {addModal && (
         <Modal dirty={true} title="New Exit Record" onClose={() => setAddModal(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_exit" />
             <div>
               <SectionLabel>Employee</SectionLabel>
               <select style={selectStyle} value={form.employee_id} onChange={e => setForm(p => ({ ...p, employee_id: e.target.value }))}>

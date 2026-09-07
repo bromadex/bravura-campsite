@@ -128,6 +128,7 @@ export default function Transfers({ setPage }) {
     <div>
       <PageHeader title="Site Reassignment" site={currentSite}
         actions={can('hr.edit') && <Button icon="swap_horiz" onClick={() => { setForm(EMPTY); setModal(true) }}>New Reassignment</Button>} />
+      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_transfers" />
 
       {loading ? <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>Loading…</div> : (
         <TableWrap>
@@ -153,7 +154,6 @@ export default function Transfers({ setPage }) {
                   <Td align="right">
                     {t.status === 'pending' && (
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-      <QuickNav pills={HR_PILLS} setPage={setPage} current="wf_transfers" />
                         {can('hr.approve') && <Button icon="check" onClick={() => complete(t)}>Complete</Button>}
                         {can('hr.edit') && <Button variant="outlined" onClick={() => cancel(t)}>Cancel</Button>}
                       </div>

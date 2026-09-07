@@ -405,9 +405,9 @@ export default function FuelIssuance({ setPage }) {
 
   // Licence expiry helpers
   function licenceStatus(op) {
-    if (!op.licence_expiry_date) return null
+    if (!op.licence_expiry) return null
     const today = new Date().toISOString().slice(0, 10)
-    const diff  = Math.floor((new Date(op.licence_expiry_date) - new Date(today)) / 86400000)
+    const diff  = Math.floor((new Date(op.licence_expiry) - new Date(today)) / 86400000)
     if (diff < 0)  return { label: 'EXPIRED',  color: THEME.error,   days: diff }
     if (diff <= 30) return { label: `${diff}d`,  color: THEME.warning, days: diff }
     return null
@@ -1458,7 +1458,7 @@ export default function FuelIssuance({ setPage }) {
                 <InfoPanel icon={ls.days < 0 ? 'dangerous' : 'warning'} color={ls.color}>
                   {ls.days < 0
                     ? `Licence EXPIRED ${Math.abs(ls.days)} day${Math.abs(ls.days) !== 1 ? 's' : ''} ago. Operator may not be authorised.`
-                    : `Licence expires in ${ls.days} day${ls.days !== 1 ? 's' : ''} (${op.licence_expiry_date}).`
+                    : `Licence expires in ${ls.days} day${ls.days !== 1 ? 's' : ''} (${op.licence_expiry}).`
                   }
                 </InfoPanel>
               )

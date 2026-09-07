@@ -433,7 +433,7 @@ function TransactionsTab({ txns }) {
                   <div style={{ fontSize: '13px', color: THEME.text }}>{asset}</div>
                   {assetSub && <div style={{ fontSize: '11px', color: THEME.textLow }}>{assetSub}</div>}
                 </Td>
-                <Td style={{ fontSize: '12px', color: THEME.textMed }}>{t.operator_id ? '—' : '—'}</Td>
+                <Td style={{ fontSize: '12px', color: THEME.textMed }}>{t.operator_name || (t.operator_id ? 'Operator' : '—')}</Td>
                 <Td align="right" style={{ color: THEME.textMed }}>
                   {t.tank_level_before != null ? Number(t.tank_level_before).toFixed(1) : '—'}
                 </Td>

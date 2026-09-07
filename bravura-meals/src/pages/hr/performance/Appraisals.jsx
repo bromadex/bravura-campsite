@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, Fragment } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { usePermissions } from '../../../contexts/PermissionsContext'
 import { useSite } from '../../../contexts/SiteContext'
@@ -187,7 +187,7 @@ export default function Appraisals() {
               {cycles.map(c => {
                 const meta = CYCLE_STATUS_META[c.status] || CYCLE_STATUS_META.open
                 return (
-                  <React.Fragment key={c.id}>
+                  <Fragment key={c.id}>
                     <TRow onClick={() => toggleCycle(c.id)} style={{ cursor: 'pointer' }}>
                       <Td>{c.name}</Td>
                       <Td>{fmtDate(c.period_start)}</Td>
@@ -232,7 +232,7 @@ export default function Appraisals() {
                         )}
                       </td></tr>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 )
               })}
             </tbody>

@@ -35,7 +35,7 @@ export default function PermissionsCatalogue({ setPage }) {
     async function fetch() {
       setLoading(true)
       const { data } = await supabase.from('permissions').select('*').order('code')
-      setPermissions(data || [rt])
+      setPermissions(data || [])
       setLoading(false)
     }
     fetch()

@@ -73,8 +73,6 @@ export default function TrainingPrograms() {
   const [editEnroll, setEditEnroll] = useState(null)
   const [enrollForm, setEnrollForm] = useState({ status: 'enrolled', score: '' })
 
-  if (!can('hr.view')) return <Denied />
-
   const canEdit = can('hr.edit')
   const canCreate = can('hr.create')
 
@@ -187,6 +185,8 @@ export default function TrainingPrograms() {
 
   const enrolledIds = useMemo(() => new Set(enrollments.map(e => e.employee_id)), [enrollments])
   const availableEmps = useMemo(() => employees.filter(e => !enrolledIds.has(e.id)), [employees, enrolledIds])
+
+  if (!can('hr.view')) return <Denied />
 
   return (
     <div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../../utils/permissions'
 import { useSite } from '../../../contexts/SiteContext'
@@ -15,9 +15,11 @@ const inputStyle = {
 }
 
 export default function LeaveTypes() {
-  const { currentSite } = useSite()
+  const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
-  useRealtimeSubscription('leave_types', { column: 'site_id', value: currentSiteId }, load)
+  const [reloadKey, setReloadKey] = useState(0)
+  const onRealtime = useCallback(() => setReloadKey(k => k + 1), [])
+  useRealtimeSubscription('leave_types', { column: 'site_id', value: currentSiteId }, onRealtime)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
@@ -27,14 +29,18 @@ export default function LeaveTypes() {
 
   const canEdit = can('hr.edit')
 
-  async function load() {
-    setLoading(true)
-    const { data, error } = await supabase.from('leave_types').select('*').order('name')
-    if (error) { console.error(error); showToast('Failed to load leave types', 'red') }
-    setRows(data || [])
-    setLoading(false)
-  }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    if (!currentSiteId) return
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      const { data, error } = await supabase.from('leave_types').select('*').eq('site_id', currentSiteId).order('name')
+      if (error) { console.error(error); showToast('Failed to load leave types', 'red') }
+      if (!cancelled) { setRows(data || []); setLoading(false) }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [currentSiteId, reloadKey])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   function openAdd() { setEditing(null); setForm(EMPTY); setModal(true) }
@@ -62,21 +68,23 @@ export default function LeaveTypes() {
       advance_notice_days: Number(form.advance_notice_days) || 0,
     }
     const q = editing
-      ? supabase.from('leave_types').update(payload).eq('id', editing.id)
-      : supabase.from('leave_types').insert(payload)
+      ? supabase.from('leave_types').update(payload).eq('id', editing.id).eq('site_id', currentSiteId)
+      : supabase.from('leave_types').insert({ ...payload, site_id: currentSiteId })
     const { error } = await q
     setSaving(false)
     if (error) { showToast(error.message, 'red'); return }
     showToast(editing ? 'Leave type updated' : 'Leave type added', 'green')
-    setModal(false); load()
+    setModal(false)
+    setReloadKey(k => k + 1)
   }
 
   async function archiveType() {
     if (!editing) return
     if (!window.confirm(`Archive "${editing.name}"? It will stop appearing on new requests.`)) return
-    const { error } = await supabase.from('leave_types').update({ is_active: false }).eq('id', editing.id)
+    const { error } = await supabase.from('leave_types').update({ is_active: false }).eq('id', editing.id).eq('site_id', currentSiteId)
     if (error) { showToast(error.message, 'red'); return }
-    showToast('Leave type archived', 'green'); setModal(false); load()
+    showToast('Leave type archived', 'green'); setModal(false)
+    setReloadKey(k => k + 1)
   }
 
   if (!can('hr.view')) return (

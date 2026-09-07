@@ -30,19 +30,19 @@ export default function CostAllocation() {
   const { currentSiteId } = useSite()
   const rt = useRealtimeRefresh('fuel_transactions', { column: 'site_id', value: currentSiteId })
 
-  if (!can('fuel.view')) return (
-    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
-      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
-      Access denied
-    </div>
-  )
-
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = today.slice(0, 8) + '01'
   const [from, setFrom] = useState(firstOfMonth)
   const [to, setTo]     = useState(today)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
+
+  if (!can('fuel.view')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied
+    </div>
+  )
 
   const run = useCallback(async () => {
     setLoading(true)

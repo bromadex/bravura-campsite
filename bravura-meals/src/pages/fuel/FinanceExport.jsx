@@ -80,13 +80,6 @@ export default function FinanceExport() {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
 
-  if (!can('fuel.reports.export') && !can('fuel.edit')) return (
-    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
-      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
-      Access denied — requires fuel reports export permission.
-    </div>
-  )
-
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = today.slice(0, 8) + '01'
 
@@ -169,6 +162,13 @@ export default function FinanceExport() {
   }), [journal])
 
   const balanced = Math.abs(totals.debit - totals.credit) < 0.005
+
+  if (!can('fuel.reports.export') && !can('fuel.edit')) return (
+    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
+      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
+      Access denied — requires fuel reports export permission.
+    </div>
+  )
 
   const missingCodes = mappingsLoaded
     ? ['fuel_stock', 'fuel_expense', 'accounts_payable'].filter(t => !mappings[t]?.account_code)

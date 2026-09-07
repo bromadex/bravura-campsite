@@ -49,8 +49,6 @@ export default function SkillsMatrix() {
   const [cellForm, setCellForm] = useState({ proficiency_level: 'Beginner', acquired_date: '', certified_by: '', notes: '' })
   const [saving, setSaving] = useState(false)
 
-  if (!can('hr.view')) return <Denied />
-
   const canEdit = can('hr.edit')
 
   const loadData = useCallback(async () => {
@@ -95,6 +93,8 @@ export default function SkillsMatrix() {
     empSkills.forEach(es => m.set(`${es.employee_id}_${es.skill_id}`, es))
     return m
   }, [empSkills])
+
+  if (!can('hr.view')) return <Denied />
 
   const openCell = (emp, skill) => {
     if (!canEdit) return

@@ -179,6 +179,8 @@ export const TXN_CODES = [
   { code: 'DW05', path: '/dept/dept_calendar',   label: 'Project Calendar',   module: 'dept' },
   { code: 'DW06', path: '/dept/dept_charts',     label: 'Project Charts',     module: 'dept' },
   { code: 'DW07', path: '/dept/dept_settings',   label: 'Dept Settings',      module: 'dept' },
+  { code: 'DW08', path: '/dept/dept_documents',  label: 'Dept Documents',     module: 'dept' },
+  { code: 'DW09', path: '/dept/dept_team',       label: 'Dept Team',          module: 'dept' },
 
   // ── Procurement (PR) / Feedback (FB) ──────────────────────────────────────
   { code: 'PR01', path: '/procurement/proc_dashboard', label: 'Procurement Dashboard', module: 'procurement' },

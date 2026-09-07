@@ -325,9 +325,11 @@ export function fleetNav(role, can) {
 
 export function deptNav(role, can) {
   return [
-    { id: 'dept_dashboard', label: 'Dashboard',       section: 'Overview',   icon: 'dashboard' },
-    { id: 'dept_projects',  label: 'Projects',        section: 'Projects',   icon: 'folder_open' },
-    { id: 'dept_settings',  label: 'Settings',        section: 'Admin',      icon: 'settings' },
+    { id: 'dept_dashboard',  label: 'Dashboard',       section: 'Overview',   icon: 'dashboard' },
+    { id: 'dept_projects',   label: 'Projects',        section: 'Projects',   icon: 'folder_open' },
+    { id: 'dept_documents',  label: 'Documents',       section: 'Resources',  icon: 'description' },
+    { id: 'dept_team',       label: 'Team',            section: 'Resources',  icon: 'group' },
+    { id: 'dept_settings',   label: 'Settings',        section: 'Admin',      icon: 'settings' },
   ]
 }
 

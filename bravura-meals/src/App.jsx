@@ -202,6 +202,8 @@ const DeptProjectGrid     = lazy(() => import('./pages/dept/DeptProjectGrid'))
 const DeptProjectCalendar = lazy(() => import('./pages/dept/DeptProjectCalendar'))
 const DeptProjectCharts   = lazy(() => import('./pages/dept/DeptProjectCharts'))
 const DeptSettings        = lazy(() => import('./pages/dept/DeptSettings'))
+const DeptDocuments       = lazy(() => import('./pages/dept/DeptDocuments'))
+const DeptTeam            = lazy(() => import('./pages/dept/DeptTeam'))
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
@@ -531,6 +533,8 @@ function getDeptPage(page, can, setPage) {
   switch (page) {
     case 'dept_dashboard': return <DeptDashboard setPage={setPage} />
     case 'dept_projects':  return <DeptProjects setPage={setPage} />
+    case 'dept_documents': return <DeptDocuments setPage={setPage} />
+    case 'dept_team':      return <DeptTeam setPage={setPage} />
     case 'dept_settings':  return can('dept.edit') ? <DeptSettings setPage={setPage} /> : null
     default:               return <DeptDashboard setPage={setPage} />
   }

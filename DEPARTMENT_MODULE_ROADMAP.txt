@@ -1,0 +1,150 @@
+DEPARTMENT MODULE ROADMAP
+=========================
+Bravura ERP — Department Workspaces
+(Starting as "Electrical Department", evolving to per-department modules)
+
+Concept: A single generic module that renders differently based on the
+logged-in user's department. URL: /dept, title adapts dynamically —
+"Electrical Department", "Accounting Department", etc.
+
+
+PHASE 1 — FOUNDATION (Week 1-2)
+--------------------------------
+Tables (migration):
+  - departments (id, site_id, name, code, icon, color)
+  - department_members (id, employee_id, department_id, role: member/lead/manager)
+  - dept_projects (id, department_id, site_id, name, status, priority, start_date,
+    due_date, description, created_by, is_archived)
+  - dept_tasks (id, project_id, title, bucket, assigned_to, status, priority,
+    start_date, due_date, labels text[], checklist jsonb, notes, sort_order, is_archived)
+
+RLS: _has_permission('dept.view', site_id) + department membership check
+Permissions: dept.view / dept.create / dept.edit / dept.delete / dept.approve
+T-codes: registered in txnCodes.js
+Seed: Electrical department for Kamativi site
+Hook: useDepartment() — resolves user's department from department_members
+HomeLauncher: single "dept" entry, label = user's department name
+
+
+PHASE 2 — CORE VIEWS (Week 3-4)
+---------------------------------
+DeptDashboard
+  - KPI cards: active projects, my tasks, overdue count, completed this month
+  - Recent activity feed
+  - Quick-add task
+
+DeptProjects
+  - List/card view of department projects
+  - Create/edit project with status, priority, dates, description
+  - Archive (soft-delete) projects
+
+DeptProjectBoard (Kanban)
+  - Columns: Initiating → Planning → Executing → Monitoring & Controlling → Closing
+  - Drag-and-drop tasks between columns
+  - Task cards show: title, assignee, priority badge, due date, checklist progress
+  - Quick-add task per column
+
+DeptProjectGrid (Table)
+  - Columns: task, assigned to, start, due, bucket, status, priority, labels
+  - Sortable, filterable
+  - Inline editing for status, priority, assignee
+  - Bulk actions (assign, change status)
+
+
+PHASE 3 — CALENDAR & CHARTS (Week 5)
+--------------------------------------
+DeptProjectCalendar
+  - Month and week views
+  - Tasks rendered as date-range bars (not just dots)
+  - Unscheduled tasks sidebar
+  - Click to open/edit task
+
+DeptProjectCharts (Analytics)
+  - Status donut (Not Started / In Progress / Late / Completed)
+  - Priority bar chart (Urgent / Important / Medium / Low), color-coded by status
+  - Bucket distribution bar chart
+  - Member workload bar chart (tasks per person, by status)
+  - Filterable by project, date range
+
+
+PHASE 4 — DOCUMENTS & TEAM (Week 6)
+-------------------------------------
+Table (migration):
+  - dept_documents (id, department_id, project_id nullable, name, storage_path,
+    uploaded_by, category, created_at, is_archived)
+
+DeptDocuments
+  - File browser grouped by project or category (SOP, Drawing, Report, Correspondence)
+  - Upload, rename, archive documents
+  - Link documents to specific tasks
+
+DeptTeam
+  - Department roster with roles (member/lead/manager)
+  - Workload overview per member
+  - Add/remove members (department lead+ permission)
+
+
+PHASE 5 — CROSS-MODULE INTEGRATION (Week 7-8)
+-----------------------------------------------
+  - Link dept_tasks to procurement POs (procurement module)
+  - Link dept_tasks to fleet assets (fleet module)
+  - Link dept_tasks to fuel records (fuel module)
+  - Budget/cost tracking per project from linked financial data
+  - Overdue task notifications (in-app)
+  - Approval workflows for department leads (task sign-off, budget approval)
+  - Planner data import tool (CSV upload to bulk-create tasks)
+
+
+PHASE 6 — MULTI-DEPARTMENT ROLLOUT (Week 9-10)
+------------------------------------------------
+  - Admin page: create/manage departments, assign icons and colors
+  - Department switcher dropdown for users in multiple departments
+  - Per-department configurable:
+      * Buckets (columns) — Electrical uses project phases, Accounting uses month-end stages
+      * Labels — Electrical: Switchgear/Cabling/Fuel Tanks; Accounting: Audit/Reconciliation
+      * Document categories
+  - Dynamic module branding (icon, color, name) per department
+  - Template projects (repeatable project structures per department)
+
+
+DATA MODEL NOTES
+-----------------
+  - dept_projects and dept_tasks are SEPARATE tables from the existing projects
+    module (projects, project_tasks). The existing Projects module remains for
+    cross-department, site-wide projects. Department projects are lighter-weight
+    and department-scoped.
+  - HR module provides the employee → department link via department_members.
+  - All tables site-scoped via site_id (direct or via department join).
+  - Soft-delete only (is_archived flag, never hard delete).
+  - Audit trail via existing audit_events pattern.
+
+
+PLANNER FEATURE MAPPING
+-------------------------
+Planner Feature          → Bravura Equivalent
+Grid view                → DeptProjectGrid
+Board view               → DeptProjectBoard
+Calendar view            → DeptProjectCalendar
+Charts view              → DeptProjectCharts
+Buckets                  → Configurable columns per department
+Labels                   → text[] on dept_tasks, configured per department
+Assignments              → assigned_to → employees (real HR records)
+Checklists               → jsonb checklist on dept_tasks
+Priority (Urgent/Imp/Med/Low) → priority enum on dept_tasks
+Status (Not Started/In Progress/Late/Completed) → status enum + overdue calc
+My Day / My Tasks        → DeptDashboard filtered to current user
+Members chart            → DeptProjectCharts member workload + DeptTeam
+Files tab                → DeptDocuments
+
+ADVANTAGES OVER MICROSOFT PLANNER
+-----------------------------------
+1. Site-scoped — Kamativi electrical sees only their projects, not Selous
+2. Tied to real HR employee records, not email addresses
+3. Approval workflows built in
+4. Cost tracking linked to procurement, fleet, fuel modules
+5. Full audit trail on every action
+6. Department-configurable buckets, labels, categories
+7. Overdue notifications within the ERP
+8. Budget visibility from real financial data
+9. Works offline-ready with the same Supabase realtime sync
+10. Single login — no separate Microsoft licence needed

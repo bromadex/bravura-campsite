@@ -6,6 +6,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useFuel } from '../../contexts/FuelContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
+import { useAuth } from '../../auth/AuthContext'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -112,7 +113,7 @@ function NewReconciliationForm({ tanks, currentSiteId, profileId, onSaved, onCan
           setReconNo('RC-0001')
         }
       })
-  }, [tankId, currentSiteId, rt])
+  }, [tankId, currentSiteId])
 
   const calculate = async () => {
     if (!tankId || !periodStart || !periodEnd) return
@@ -460,7 +461,8 @@ export default function Reconciliation() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const rt = useRealtimeRefresh('fuel_reconciliations', { column: 'site_id', value: currentSiteId })
-  const { tanks: allTanks, profile } = useFuel()
+  const { tanks: allTanks } = useFuel()
+  const { profile } = useAuth()
   // Dip-variance reconciliation only makes sense for tanks that are actually
   // dipped — drums/containers on an issuance running balance have no dips.
   const tanks = useMemo(() => allTanks.filter(t => t.level_tracking_method !== 'issuance'), [allTanks])

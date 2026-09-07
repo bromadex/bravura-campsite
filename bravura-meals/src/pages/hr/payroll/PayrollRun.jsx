@@ -137,7 +137,7 @@ export default function PayrollRun() {
       if (compErr) throw compErr
 
       // Fetch attendance for absence count
-      const { data: attendance, error: attErr } = await supabase.from('attendance_logs').select('employee_id, status')
+      const { data: attendance, error: attErr } = await supabase.from('attendance_logs').select('employee_id, is_absent')
         .eq('site_id', currentSiteId)
         .gte('date', startOfMonth)
         .lte('date', endOfMonth)
@@ -145,7 +145,7 @@ export default function PayrollRun() {
 
       const absenceMap = {}
       ;(attendance || []).forEach(a => {
-        if (a.status === 'absent') {
+        if (a.is_absent) {
           absenceMap[a.employee_id] = (absenceMap[a.employee_id] || 0) + 1
         }
       })

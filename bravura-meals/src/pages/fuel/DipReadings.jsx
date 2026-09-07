@@ -79,7 +79,7 @@ function TankCalibrationPanel({ tank, onClose }) {
     setRows(data || [])
   }, [tank.id])
 
-  useEffect(() => { load() }, [load, rt])
+  useEffect(() => { load() }, [load])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })

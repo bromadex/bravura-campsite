@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useFuel } from '../../contexts/FuelContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
+import { useAuth } from '../../auth/AuthContext'
 
 const COLOR = MODULE_COLORS.fuel
 
@@ -85,7 +86,7 @@ function DispatchModal({ bowsers, currentSiteId, profileId, onClose, onSaved }) 
       const b = bowsers.find(b => b.id === bowserId)
       if (b?.current_level_litres != null) setLitresAtDispatch(String(b.current_level_litres))
     }
-  }, [currentSiteId, rt])
+  }, [currentSiteId])
 
   useEffect(() => {
     const b = bowsers.find(b => b.id === bowserId)
@@ -284,7 +285,8 @@ export default function BowserDispatches() {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const rt = useRealtimeRefresh('bowser_dispatches', { column: 'site_id', value: currentSiteId })
-  const { tanks, profile, employees: fuelEmployees } = useFuel()
+  const { tanks, employees: fuelEmployees } = useFuel()
+  const { profile } = useAuth()
 
   const bowsers = tanks.filter(t => t.tank_type === 'bowser')
 

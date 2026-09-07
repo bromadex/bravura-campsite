@@ -283,7 +283,7 @@ function SuccessScreen({ result, onIssueAnother, onViewLedger, siteName, tankNam
 
 // ── Main form ─────────────────────────────────────────────────────────────────
 
-const BLANK = {
+const mkBlank = () => ({
   transaction_date: new Date().toISOString().slice(0, 10),
   tank_id:          '',
   pump_id:          '',
@@ -294,15 +294,13 @@ const BLANK = {
   use_meter:        true,
   meter_start:      '',
   meter_end:        '',
-  odometer_km:      '',    // vehicle odometer at fill time — required for vehicles
+  odometer_km:      '',
   litres_manual:    '',
   docket_number:    '',
   notes:            '',
-  // Manual/emergency authorisation — captured when there is no linked
-  // approved fuel request. Approvers acknowledge these post-hoc.
   authorised_by_name:   '',
   authorisation_reason: '',
-}
+})
 
 export default function FuelIssuance({ setPage }) {
   const { can }        = usePermissions()
@@ -312,7 +310,7 @@ export default function FuelIssuance({ setPage }) {
     transactions, addTransaction, updatePump, refresh: refreshFuel,
   } = useFuel()
 
-  const [form,          setFormState]   = useState(BLANK)
+  const [form,          setFormState]   = useState(mkBlank)
   const [saving,        setSaving]      = useState(false)
   const [result,        setResult]      = useState(null)
   const [resultMeta,    setResultMeta]  = useState(null)
@@ -995,7 +993,7 @@ export default function FuelIssuance({ setPage }) {
         pumpName={resultMeta?.pumpName}
         assetLabel={resultMeta?.assetLabel}
         operatorName={resultMeta?.operatorName}
-        onIssueAnother={() => { setResult(null); setResultMeta(null); setLinkedRequest(null); setFormState(BLANK) }}
+        onIssueAnother={() => { setResult(null); setResultMeta(null); setLinkedRequest(null); setFormState(mkBlank()) }}
         onViewLedger={() => setPage('fuel_transactions')}
       />
     )
@@ -1284,7 +1282,7 @@ export default function FuelIssuance({ setPage }) {
               {linkedRequest && (
                 <button
                   type="button"
-                  onClick={() => { setLinkedRequest(null); setFormState(BLANK) }}
+                  onClick={() => { setLinkedRequest(null); setFormState(mkBlank()) }}
                   title="Clear request link"
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: '4px' }}
                 >

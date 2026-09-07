@@ -172,6 +172,7 @@ export default function RoleManagement({ setPage }) {
   return (
     <div>
       <PageHeader title="Role Management" />
+      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_roles" />
 
       {canEdit && (
         <div style={{ marginBottom: '16px' }}>
@@ -252,7 +253,6 @@ export default function RoleManagement({ setPage }) {
                   const allSelected = perms.every(p => editModal.permIds.has(p.id))
                   return (
                   <div key={mod} style={{ marginBottom: '12px' }}>
-      <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_roles" />
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color, letterSpacing: '0.5px' }}>{mod}</div>
                       <button type="button" onClick={() => toggleModule(perms, allSelected)} style={{

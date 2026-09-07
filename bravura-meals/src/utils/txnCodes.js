@@ -181,6 +181,11 @@ export const TXN_CODES = [
   { code: 'DW07', path: '/dept/dept_settings',   label: 'Dept Settings',      module: 'dept' },
   { code: 'DW08', path: '/dept/dept_documents',  label: 'Dept Documents',     module: 'dept' },
   { code: 'DW09', path: '/dept/dept_team',       label: 'Dept Team',          module: 'dept' },
+  { code: 'DW10', path: '/dept/dept_costs',      label: 'Dept Cost Tracker',  module: 'dept' },
+  { code: 'DW11', path: '/dept/dept_approvals',   label: 'Task Approvals',     module: 'dept' },
+  { code: 'DW12', path: '/dept/dept_import',      label: 'Import Tasks',       module: 'dept' },
+  { code: 'DW13', path: '/dept/dept_notifications', label: 'Overdue Tasks',    module: 'dept' },
+  { code: 'DW14', path: '/dept/dept_templates',   label: 'Project Templates',  module: 'dept' },
 
   // ── Procurement (PR) / Feedback (FB) ──────────────────────────────────────
   { code: 'PR01', path: '/procurement/proc_dashboard', label: 'Procurement Dashboard', module: 'procurement' },

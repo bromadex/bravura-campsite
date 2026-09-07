@@ -6,7 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { Icon } from '../../components/ui'
 
 const color = MODULE_COLORS.dept || '#1565C0'
-const BUCKETS = ['Initiating', 'Planning', 'Executing', 'Monitoring & Controlling', 'Closing']
+const DEFAULT_BUCKETS = ['Initiating', 'Planning', 'Executing', 'Monitoring & Controlling', 'Closing']
 const BUCKET_CLR = { Initiating: '#7C4DFF', Planning: '#1E88E5', Executing: '#2E7D32', 'Monitoring & Controlling': '#D97706', Closing: '#0277BD' }
 const PRIORITY_CLR = { urgent: '#E53935', important: '#D97706', medium: '#1E88E5', low: '#78909C' }
 
@@ -26,7 +26,7 @@ export default function DeptProjectBoard({ setPage, projectId }) {
     if (!projectId || !currentSiteId) return
     setLoading(true)
     const [projRes, taskRes, empRes] = await Promise.all([
-      supabase.from('dept_projects').select('*, department:departments(id, name, color, icon)').eq('id', projectId).maybeSingle(),
+      supabase.from('dept_projects').select('*, department:departments(id, name, color, icon, custom_buckets)').eq('id', projectId).maybeSingle(),
       supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, first_name, last_name)').eq('project_id', projectId).eq('is_archived', false).order('sort_order'),
       supabase.from('employees').select('id, first_name, last_name').eq('site_id', currentSiteId).eq('status', 'active').order('first_name'),
     ])
@@ -66,6 +66,7 @@ export default function DeptProjectBoard({ setPage, projectId }) {
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>Loading…</div>
   if (!project) return <div style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>Project not found.</div>
+  const buckets = (project.department?.custom_buckets?.length ? project.department.custom_buckets : DEFAULT_BUCKETS)
 
   const dc = project.department?.color || color
 
@@ -95,7 +96,7 @@ export default function DeptProjectBoard({ setPage, projectId }) {
 
       {/* Kanban columns */}
       <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '16px', minHeight: '400px' }}>
-        {BUCKETS.map(bucket => {
+        {buckets.map(bucket => {
           const bucketTasks = tasks.filter(t => t.bucket === bucket)
           return (
             <div key={bucket}
@@ -167,7 +168,7 @@ export default function DeptProjectBoard({ setPage, projectId }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input value={editTask.title} onChange={e => setEditTask({ ...editTask, title: e.target.value })} style={inp} />
               <select value={editTask.bucket} onChange={e => setEditTask({ ...editTask, bucket: e.target.value })} style={inp}>
-                {BUCKETS.map(b => <option key={b} value={b}>{b}</option>)}
+                {buckets.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
               <select value={editTask.status} onChange={e => setEditTask({ ...editTask, status: e.target.value })} style={inp}>
                 {['not_started', 'in_progress', 'late', 'completed'].map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}

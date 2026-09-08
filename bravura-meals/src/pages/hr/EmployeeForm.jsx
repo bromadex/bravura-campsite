@@ -9,7 +9,7 @@ import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 const ACCENT = MODULE_COLORS.workforce
 
 const EMPTY = {
-  name: '', date_of_birth: '', gender: '', national_id: '', passport_number: '',
+  name: '', date_of_birth: '', national_id: '', passport_number: '',
   phone: '', email: '',
   employee_number: '', start_date: new Date().toISOString().slice(0, 10),
   department_id: '', designation_id: '', employment_type_id: '', manager_id: '',
@@ -93,7 +93,7 @@ export default function EmployeeForm({ setPage, employeeId }) {
         if (error || !emp) { showToast('Employee not found', 'red'); setPage('wf_employees'); return }
         if (!cancelled) {
           setForm({
-            name: emp.name || '', date_of_birth: emp.date_of_birth || '', gender: emp.gender || '',
+            name: emp.name || '', date_of_birth: emp.date_of_birth || '',
             national_id: emp.national_id || '', passport_number: emp.passport_number || '',
             phone: emp.phone || '', email: emp.email || '',
             employee_number: emp.employee_number || '',
@@ -162,7 +162,6 @@ export default function EmployeeForm({ setPage, employeeId }) {
       const payload = {
         name: form.name.trim(),
         date_of_birth: form.date_of_birth || null,
-        gender: form.gender || null,
         national_id: form.national_id.trim() || null,
         passport_number: form.passport_number.trim() || null,
         phone: form.phone.trim() || null,
@@ -251,12 +250,6 @@ export default function EmployeeForm({ setPage, employeeId }) {
           <div>
             <SectionLabel>Date of Birth</SectionLabel>
             <input style={inputStyle} type="date" value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)} />
-          </div>
-          <div>
-            <SectionLabel>Gender</SectionLabel>
-            <select style={inputStyle} value={form.gender} onChange={e => set('gender', e.target.value)}>
-              <option value="">—</option><option>Male</option><option>Female</option><option>Other</option>
-            </select>
           </div>
           <div>
             <SectionLabel>National ID</SectionLabel>

@@ -197,6 +197,10 @@ export default function FleetVehicles({ setPage }) {
         salvage_value: form.salvage_value ? Number(form.salvage_value) : null,
         department_id: form.department_id || null,
         fuel_type_id: form.fuel_type_id || null,
+        purchase_date: form.purchase_date || null,
+        licence_expiry: form.licence_expiry || null,
+        insurance_expiry: form.insurance_expiry || null,
+        roadworthy_expiry: form.roadworthy_expiry || null,
       }
       if (editId) {
         await updateAsset(editId, payload)

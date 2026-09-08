@@ -579,7 +579,7 @@ export default function FuelIssuance({ setPage }) {
         tankName:     selectedTank?.name || '—',
         pumpName:     tankPumps.find(p => p.id === form.pump_id)?.name || null,
         assetLabel:   form.asset_type === 'vehicle'
-          ? (selVehicle ? `Fleet No. ${selVehicle.fleet_number}${selVehicle.registration ? ' (' + selVehicle.registration + ')' : ''}` : null)
+          ? (selVehicle ? `${selVehicle.fleet_number || selVehicle.asset_number || selVehicle.registration || '—'}${selVehicle.registration && selVehicle.fleet_number ? ' (' + selVehicle.registration + ')' : ''}` : null)
           : isEquipmentLike(form.asset_type)
           ? (selEquipment ? eqLabel(selEquipment) : null)
           : null,
@@ -878,7 +878,7 @@ export default function FuelIssuance({ setPage }) {
                 const assetId = r.fleet_asset_id || r.vehicle_id || r.equipment_id
                 const v = vehicles.find(x => x.id === assetId)
                 const eq = equipment.find(x => x.id === assetId)
-                const label = v ? `${v.fleet_number}${v.registration ? ' (' + v.registration + ')' : ''}` : eq ? (eq.description || eq.fleet_number || eq.asset_number) : '—'
+                const label = v ? `${v.fleet_number || v.asset_number || v.registration || '—'}${v.registration && v.fleet_number ? ' (' + v.registration + ')' : ''}` : eq ? (eq.description || eq.fleet_number || eq.asset_number) : '—'
                 return (
                   <tr key={r.id || i} style={{ borderBottom: '1px solid black' }}>
                     <td style={{ padding: '3px 6px', borderRight: '1px solid black' }}>{i + 1}</td>
@@ -937,7 +937,7 @@ export default function FuelIssuance({ setPage }) {
               {br.rows.map((r, i) => {
                 const v = vehicles.find(x => x.id === r.vehicle_id)
                 const eq = equipment.find(x => x.id === r.equipment_id)
-                const label = v ? `${v.fleet_number}${v.registration ? ' · ' + v.registration : ''}` : eq ? eqLabel(eq) : '—'
+                const label = v ? `${v.fleet_number || v.asset_number || v.registration || '—'}${v.registration && v.fleet_number ? ' · ' + v.registration : ''}` : eq ? eqLabel(eq) : '—'
                 return (
                   <tr key={r.id || i} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                     <td style={{ padding: '10px 14px', color: THEME.textLow, fontWeight: 600 }}>{i + 1}</td>
@@ -1130,7 +1130,7 @@ export default function FuelIssuance({ setPage }) {
                             style={{ ...inp({ padding: '7px 8px', fontSize: '12px', flex: 1 }) }}>
                             <option value="">— Vehicle —</option>
                             {activeVehicles.map(v => (
-                              <option key={v.id} value={v.id}>{v.fleet_number}{v.registration ? ' · ' + v.registration : ''}</option>
+                              <option key={v.id} value={v.id}>{v.fleet_number || v.asset_number || v.registration || '—'}{v.registration && v.fleet_number ? ' · ' + v.registration : ''}</option>
                             ))}
                           </select>
                         ) : (
@@ -1377,8 +1377,8 @@ export default function FuelIssuance({ setPage }) {
                   value={form.vehicle_id}
                   onSelect={id => set('vehicle_id', id)}
                   placeholder="Search by fleet # or registration…"
-                  renderItem={v => `${v.fleet_number}${v.registration ? ' · ' + v.registration : ''}${v.fuel_types?.name ? ' · ' + v.fuel_types.name : ''}`}
-                  renderSelected={v => `${v.fleet_number}${v.registration ? ' (' + v.registration + ')' : ''}`}
+                  renderItem={v => `${v.fleet_number || v.asset_number || v.registration || '—'}${v.registration && v.fleet_number ? ' · ' + v.registration : ''}${v.fuel_types?.name ? ' · ' + v.fuel_types.name : ''}`}
+                  renderSelected={v => `${v.fleet_number || v.asset_number || v.registration || '—'}${v.registration && v.fleet_number ? ' (' + v.registration + ')' : ''}`}
                 />
                 <div style={{ marginTop: '10px' }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px' }}>

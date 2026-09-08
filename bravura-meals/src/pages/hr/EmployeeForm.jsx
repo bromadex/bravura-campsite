@@ -147,7 +147,6 @@ export default function EmployeeForm({ setPage, employeeId }) {
     const e = {}
     if (!form.name.trim()) e.name = 'Full name is required'
     if (!form.start_date) e.start_date = 'Start date is required'
-    if (!form.contractor_id) e.contractor_id = 'Select a contractor'
     if (wantAccount && !form.email.trim()) e.email = 'Email is required for a system account'
     const requireEc = settings.require_emergency_contact !== false
     const validContacts = contacts.filter(c => c.name.trim() && c.relationship.trim() && c.phone.trim())
@@ -174,8 +173,8 @@ export default function EmployeeForm({ setPage, employeeId }) {
         designation_id: form.designation_id || null,
         employment_type_id: form.employment_type_id || null,
         manager_id: form.manager_id || null,
-        contractor_id: form.contractor_id,
-        group_name: contractors.find(c => c.id === form.contractor_id)?.name || '',
+        contractor_id: form.contractor_id || null,
+        group_name: form.contractor_id ? (contractors.find(c => c.id === form.contractor_id)?.name || '') : null,
       }
 
       let empId = employeeId
@@ -320,12 +319,11 @@ export default function EmployeeForm({ setPage, employeeId }) {
             </select>
           </div>
           <div>
-            <SectionLabel>Contractor *</SectionLabel>
-            <select style={{ ...inputStyle, borderColor: errors.contractor_id ? THEME.error : THEME.outline }} value={form.contractor_id} onChange={e => set('contractor_id', e.target.value)}>
-              <option value="">— Select —</option>
+            <SectionLabel>Contractor</SectionLabel>
+            <select style={inputStyle} value={form.contractor_id} onChange={e => set('contractor_id', e.target.value)}>
+              <option value="">— None —</option>
               {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            {errors.contractor_id && <div style={errStyle}>{errors.contractor_id}</div>}
           </div>
           <div>
             <SectionLabel>Site</SectionLabel>

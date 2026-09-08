@@ -164,22 +164,23 @@ export function Modal({ open, onClose, title, children, footer, dirty, maxWidth 
       <div style={{
         background: THEME.surface, borderRadius: '12px', padding: 0,
         maxWidth: maxWidth || '560px', width: '100%', margin: '16px',
+        maxHeight: 'calc(100vh - 32px)', display: 'flex', flexDirection: 'column',
         boxShadow: '0 20px 48px rgba(0,0,0,.20), 0 4px 12px rgba(0,0,0,.10)',
         border: `1px solid ${THEME.outlineVar}`,
         overflow: 'hidden', position: 'relative',
       }}>
         <div style={{
-          padding: '16px 22px',
+          padding: '16px 22px', flexShrink: 0,
           fontSize: '16px', fontWeight: 600, color: THEME.text, letterSpacing: '-.01em',
           borderBottom: `1px solid ${THEME.outlineVar}`,
         }}>
           {title}
         </div>
-        <div style={{ color: THEME.textMed, padding: '20px 22px' }}>
+        <div style={{ color: THEME.textMed, padding: '20px 22px', overflowY: 'auto', flex: '1 1 auto' }}>
           {children}
         </div>
         {footer && (
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', padding: '14px 22px', background: THEME.surfaceVar, borderTop: `1px solid ${THEME.outlineVar}` }}>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', padding: '14px 22px', background: THEME.surfaceVar, borderTop: `1px solid ${THEME.outlineVar}`, flexShrink: 0 }}>
             {footer}
           </div>
         )}

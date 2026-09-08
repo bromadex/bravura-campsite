@@ -180,6 +180,9 @@ const ProcDashboard = lazy(() => import('./pages/procurement/ProcDashboard'))
 const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
 const ProcRFQ = lazy(() => import('./pages/procurement/ProcRFQ'))
 const ProcOrders = lazy(() => import('./pages/procurement/ProcOrders'))
+const ProcRequisitions = lazy(() => import('./pages/procurement/ProcRequisitions'))
+const ProcGRN = lazy(() => import('./pages/procurement/ProcGRN'))
+const ProcInvoices = lazy(() => import('./pages/procurement/ProcInvoices'))
 const ProcTracking = lazy(() => import('./pages/procurement/ProcTracking'))
 const ProcReports = lazy(() => import('./pages/procurement/ProcReports'))
 
@@ -469,9 +472,12 @@ function getProcurementPage(page, can, setPage) {
     case 'proc_dashboard': return can('procurement.view') ? <ProcDashboard setPage={setPage} /> : null
     case 'proc_suppliers': return can('procurement.view') ? <ProcSuppliers setPage={setPage} /> : null
     case 'proc_rfqs':      return can('procurement.view') ? <ProcRFQ setPage={setPage} /> : null
-    case 'proc_orders':    return can('procurement.view') ? <ProcOrders setPage={setPage} /> : null
-    case 'proc_tracking':  return can('procurement.view') ? <ProcTracking setPage={setPage} /> : null
-    case 'proc_reports':   return can('procurement.view') ? <ProcReports setPage={setPage} /> : null
+    case 'proc_orders':       return can('procurement.view') ? <ProcOrders setPage={setPage} /> : null
+    case 'proc_requisitions': return can('procurement.view') ? <ProcRequisitions setPage={setPage} /> : null
+    case 'proc_grn':          return can('procurement.view') ? <ProcGRN setPage={setPage} /> : null
+    case 'proc_invoices':     return can('procurement.view') ? <ProcInvoices setPage={setPage} /> : null
+    case 'proc_tracking':     return can('procurement.view') ? <ProcTracking setPage={setPage} /> : null
+    case 'proc_reports':      return can('procurement.view') ? <ProcReports setPage={setPage} /> : null
     default:               return can('procurement.view') ? <ProcDashboard setPage={setPage} /> : null
   }
 }

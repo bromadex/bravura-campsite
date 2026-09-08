@@ -17,13 +17,14 @@ export function FleetProvider({ children }) {
   const [workOrders,   setWorkOrders]   = useState([])
   const [trips,        setTrips]        = useState([])
   const [compliance,   setCompliance]   = useState([])
+  const [fuelTypes,    setFuelTypes]    = useState([])
   const [loading,      setLoading]      = useState(true)
 
   const fetchAll = useCallback(async () => {
     if (!currentSiteId) { setLoading(false); return }
     setLoading(true)
     try {
-      const [atRes, aRes, dRes, eRes, asgnRes, insRes, woRes, trRes, cRes] = await Promise.all([
+      const [atRes, aRes, dRes, eRes, asgnRes, insRes, woRes, trRes, cRes, ftRes] = await Promise.all([
         supabase
           .from('fleet_asset_types')
           .select('*')
@@ -31,7 +32,7 @@ export function FleetProvider({ children }) {
           .order('name'),
         supabase
           .from('fleet_assets')
-          .select('*, fleet_asset_types(id, name, category, icon)')
+          .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name)')
           .eq('site_id', currentSiteId)
           .eq('is_archived', false)
           .order('asset_number'),
@@ -74,6 +75,10 @@ export function FleetProvider({ children }) {
           .eq('site_id', currentSiteId)
           .eq('is_archived', false)
           .order('expiry_date'),
+        supabase
+          .from('fuel_types')
+          .select('id, name')
+          .order('name'),
       ])
       setAssetTypes(atRes.data || [])
       setAssets(aRes.data || [])
@@ -84,6 +89,7 @@ export function FleetProvider({ children }) {
       setWorkOrders(woRes.data || [])
       setTrips(trRes.data || [])
       setCompliance(cRes.data || [])
+      setFuelTypes(ftRes.data || [])
     } catch (err) {
       console.error('FleetContext load error:', err)
     } finally {
@@ -99,7 +105,7 @@ export function FleetProvider({ children }) {
     const { data: row, error } = await supabase
       .from('fleet_assets')
       .insert([{ ...data, site_id: currentSiteId }])
-      .select('*, fleet_asset_types(id, name, category, icon)')
+      .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name)')
       .single()
     if (error) throw error
     setAssets(prev => [...prev, row].sort((a, b) => (a.asset_number || '').localeCompare(b.asset_number || '')))
@@ -112,7 +118,7 @@ export function FleetProvider({ children }) {
       .update(data)
       .eq('id', id)
       .eq('site_id', currentSiteId)
-      .select('*, fleet_asset_types(id, name, category, icon)')
+      .select('*, fleet_asset_types(id, name, category, icon), fuel_types(id, name)')
       .single()
     if (error) throw error
     setAssets(prev => prev.map(a => a.id === id ? row : a))
@@ -161,7 +167,7 @@ export function FleetProvider({ children }) {
 
   const value = {
     loading, fetchAll,
-    assetTypes, assets, departments, employees,
+    assetTypes, assets, departments, employees, fuelTypes,
     assignments, inspections, workOrders, trips, compliance,
     vehicles, heavyEquipment, generators,
     activeAssignments, expiringCompliance, assetsByStatus,

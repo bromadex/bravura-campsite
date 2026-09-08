@@ -59,7 +59,7 @@ const TABS = ['Identity', 'Technical', 'Compliance', 'Operations', 'Finance']
 const EMPTY_FORM = {
   asset_number: '', description: '', registration: '', fleet_number: '',
   vin: '', serial_number: '', make: '', model: '', year: '', image_url: '',
-  fuel_type: '', tank_capacity_litres: '', expected_consumption_lpkm: '',
+  fuel_type_id: '', tank_capacity_litres: '', expected_consumption_lpkm: '',
   tare_weight: '', gross_vehicle_mass: '', tracker_id: '',
   licence_expiry: '', insurance_expiry: '', roadworthy_expiry: '',
   status: 'operational', department_id: '', assigned_project: '',
@@ -69,7 +69,7 @@ const EMPTY_FORM = {
 
 export default function FleetVehicles({ setPage }) {
   const { can } = usePermissions()
-  const { vehicles, assetTypes, departments, loading, addAsset, updateAsset, archiveAsset } = useFleet()
+  const { vehicles, assetTypes, departments, fuelTypes, loading, addAsset, updateAsset, archiveAsset } = useFleet()
 
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -153,7 +153,7 @@ export default function FleetVehicles({ setPage }) {
       model: asset.model || '',
       year: asset.year || '',
       image_url: asset.image_url || '',
-      fuel_type: asset.fuel_type || '',
+      fuel_type_id: asset.fuel_type_id || '',
       tank_capacity_litres: asset.tank_capacity_litres || '',
       expected_consumption_lpkm: asset.expected_consumption_lpkm || '',
       tare_weight: asset.tare_weight || '',
@@ -198,6 +198,7 @@ export default function FleetVehicles({ setPage }) {
         salvage_value: form.salvage_value ? Number(form.salvage_value) : null,
         useful_life_months: form.useful_life_months ? Number(form.useful_life_months) : null,
         department_id: form.department_id || null,
+        fuel_type_id: form.fuel_type_id || null,
       }
       if (editId) {
         await updateAsset(editId, payload)
@@ -310,7 +311,10 @@ export default function FleetVehicles({ setPage }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
           <div style={fieldWrap}>
             <label style={lbl}>Fuel Type</label>
-            <input style={inp} value={form.fuel_type} onChange={e => set('fuel_type', e.target.value)} placeholder="Diesel, Petrol, etc." />
+            <select style={inp} value={form.fuel_type_id} onChange={e => set('fuel_type_id', e.target.value)}>
+              <option value="">— Select —</option>
+              {(fuelTypes || []).map(ft => <option key={ft.id} value={ft.id}>{ft.name}</option>)}
+            </select>
           </div>
           <div style={fieldWrap}>
             <label style={lbl}>Tank Capacity (L)</label>
@@ -626,8 +630,8 @@ export default function FleetVehicles({ setPage }) {
                   {v.current_odometer_km != null && (
                     <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: THEME.surfaceVar, color: THEME.textMed }}>{formatOdo(v.current_odometer_km)}</span>
                   )}
-                  {v.fuel_type && (
-                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: THEME.surfaceVar, color: THEME.textMed }}>{v.fuel_type}</span>
+                  {v.fuel_types?.name && (
+                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: THEME.surfaceVar, color: THEME.textMed }}>{v.fuel_types.name}</span>
                   )}
                 </div>
                 {expiries.some(f => {

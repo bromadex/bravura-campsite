@@ -137,6 +137,22 @@ export default function CLHiredVehicles({ setPage }) {
         if (err) throw err
         showToast('Hired vehicle updated', 'green')
       } else {
+        const VEHICLE_TYPE_ID = '1090659c-b92d-44ac-a11f-5187dcd7886d'
+        const assetNum = `HV-${(form.registration || form.description).replace(/\s+/g, '').slice(0, 20)}`
+        const { data: fleetRow, error: fleetErr } = await supabase
+          .from('fleet_assets')
+          .insert([{
+            site_id: currentSiteId,
+            asset_type_id: VEHICLE_TYPE_ID,
+            asset_number: assetNum,
+            description: `[Hired] ${form.description}`,
+            registration: form.registration || null,
+            status: 'operational',
+          }])
+          .select('id')
+          .single()
+        if (fleetErr) throw fleetErr
+        payload.fleet_asset_id = fleetRow.id
         const { error: err } = await supabase.from('hired_vehicles').insert(payload)
         if (err) throw err
         showToast('Hired vehicle added', 'green')

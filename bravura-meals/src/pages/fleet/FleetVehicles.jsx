@@ -64,7 +64,7 @@ const EMPTY_FORM = {
   licence_expiry: '', insurance_expiry: '', roadworthy_expiry: '',
   status: 'operational', department_id: '', assigned_project: '',
   cost_center: '', current_odometer_km: '',
-  purchase_date: '', purchase_cost: '', salvage_value: '', useful_life_months: '',
+  purchase_date: '', purchase_cost: '', salvage_value: '',
 }
 
 export default function FleetVehicles({ setPage }) {
@@ -170,7 +170,6 @@ export default function FleetVehicles({ setPage }) {
       purchase_date: asset.purchase_date || '',
       purchase_cost: asset.purchase_cost || '',
       salvage_value: asset.salvage_value || '',
-      useful_life_months: asset.useful_life_months || '',
     })
     setTab(0)
     setError('')
@@ -196,7 +195,6 @@ export default function FleetVehicles({ setPage }) {
         current_odometer_km: form.current_odometer_km ? Number(form.current_odometer_km) : null,
         purchase_cost: form.purchase_cost ? Number(form.purchase_cost) : null,
         salvage_value: form.salvage_value ? Number(form.salvage_value) : null,
-        useful_life_months: form.useful_life_months ? Number(form.useful_life_months) : null,
         department_id: form.department_id || null,
         fuel_type_id: form.fuel_type_id || null,
       }
@@ -415,10 +413,6 @@ export default function FleetVehicles({ setPage }) {
           <div style={fieldWrap}>
             <label style={lbl}>Salvage Value</label>
             <input style={inp} type="number" step="0.01" value={form.salvage_value} onChange={e => set('salvage_value', e.target.value)} />
-          </div>
-          <div style={fieldWrap}>
-            <label style={lbl}>Useful Life (months)</label>
-            <input style={inp} type="number" value={form.useful_life_months} onChange={e => set('useful_life_months', e.target.value)} />
           </div>
         </div>
       )

@@ -316,64 +316,6 @@ export default function FuelDashboard({ setPage }) {
         }
       />
 
-      {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-        <KpiCard
-          label="Fuel On Hand"
-          value={fmtL(tankStats.onHand)}
-          sub={tankStats.fillPct !== null ? `${tankStats.fillPct.toFixed(0)}% of ${tankStats.capacity.toLocaleString()} L capacity` : 'no capacity set'}
-          icon="propane_tank"
-          accent={ACCENT.green}
-          progress={tankStats.fillPct}
-          onClick={() => setPage('fuel_tanks')}
-        />
-        <KpiCard
-          label="Issued Today"
-          value={fmtL(issuedToday)}
-          sub={fmtDate(today)}
-          icon="output"
-          accent={ACCENT.blue}
-          progress={issuedThisMonth > 0 ? (issuedToday / issuedThisMonth) * 100 : 0}
-          onClick={() => setPage('fuel_issues')}
-        />
-        <KpiCard
-          label="Issued This Month"
-          value={fmtL(issuedThisMonth)}
-          sub={`${monthIssuances.length.toLocaleString()} issuance${monthIssuances.length === 1 ? '' : 's'}`}
-          icon="trending_down"
-          accent={ACCENT.violet}
-          progress={issuedPrevMonth > 0 ? (issuedThisMonth / issuedPrevMonth) * 100 : (issuedThisMonth > 0 ? 100 : 0)}
-          onClick={() => setPage('fuel_issues')}
-        />
-        <KpiCard
-          label="Received This Month"
-          value={fmtL(receivedThisMonth)}
-          sub="deliveries"
-          icon="local_shipping"
-          accent={ACCENT.amber}
-          progress={issuedThisMonth > 0 ? (receivedThisMonth / (receivedThisMonth + issuedThisMonth)) * 100 : (receivedThisMonth > 0 ? 100 : 0)}
-          onClick={() => setPage('fuel_receipts')}
-        />
-        <KpiCard
-          label="Active Tanks"
-          value={activeTanks.length}
-          sub={tankStats.lowCount > 0 ? `${tankStats.lowCount} below ${LOW_PCT}%` : 'all above threshold'}
-          icon="propane_tank"
-          accent={ACCENT.teal}
-          progress={activeTanks.length > 0 ? ((activeTanks.length - tankStats.lowCount) / activeTanks.length) * 100 : 0}
-          onClick={() => setPage('fuel_tanks')}
-        />
-        <KpiCard
-          label="Pending Acks"
-          value={pendingAcks}
-          sub="issuance acknowledgements"
-          icon="pending_actions"
-          accent={ACCENT.pink}
-          progress={monthIssuances.length > 0 ? (pendingAcks / monthIssuances.length) * 100 : 0}
-          onClick={() => setPage('fuel_issues')}
-        />
-      </div>
-
       {/* Tank levels — SVG visuals + fill gauge */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.2fr) minmax(220px, 1fr)', gap: '16px', marginBottom: '16px' }}>
         <Section
@@ -441,6 +383,64 @@ export default function FuelDashboard({ setPage }) {
             label="of capacity"
           />
         </Section>
+      </div>
+
+      {/* KPI strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <KpiCard
+          label="Fuel On Hand"
+          value={fmtL(tankStats.onHand)}
+          sub={tankStats.fillPct !== null ? `${tankStats.fillPct.toFixed(0)}% of ${tankStats.capacity.toLocaleString()} L capacity` : 'no capacity set'}
+          icon="propane_tank"
+          accent={ACCENT.green}
+          progress={tankStats.fillPct}
+          onClick={() => setPage('fuel_tanks')}
+        />
+        <KpiCard
+          label="Issued Today"
+          value={fmtL(issuedToday)}
+          sub={fmtDate(today)}
+          icon="output"
+          accent={ACCENT.blue}
+          progress={issuedThisMonth > 0 ? (issuedToday / issuedThisMonth) * 100 : 0}
+          onClick={() => setPage('fuel_issues')}
+        />
+        <KpiCard
+          label="Issued This Month"
+          value={fmtL(issuedThisMonth)}
+          sub={`${monthIssuances.length.toLocaleString()} issuance${monthIssuances.length === 1 ? '' : 's'}`}
+          icon="trending_down"
+          accent={ACCENT.violet}
+          progress={issuedPrevMonth > 0 ? (issuedThisMonth / issuedPrevMonth) * 100 : (issuedThisMonth > 0 ? 100 : 0)}
+          onClick={() => setPage('fuel_issues')}
+        />
+        <KpiCard
+          label="Received This Month"
+          value={fmtL(receivedThisMonth)}
+          sub="deliveries"
+          icon="local_shipping"
+          accent={ACCENT.amber}
+          progress={issuedThisMonth > 0 ? (receivedThisMonth / (receivedThisMonth + issuedThisMonth)) * 100 : (receivedThisMonth > 0 ? 100 : 0)}
+          onClick={() => setPage('fuel_receipts')}
+        />
+        <KpiCard
+          label="Active Tanks"
+          value={activeTanks.length}
+          sub={tankStats.lowCount > 0 ? `${tankStats.lowCount} below ${LOW_PCT}%` : 'all above threshold'}
+          icon="propane_tank"
+          accent={ACCENT.teal}
+          progress={activeTanks.length > 0 ? ((activeTanks.length - tankStats.lowCount) / activeTanks.length) * 100 : 0}
+          onClick={() => setPage('fuel_tanks')}
+        />
+        <KpiCard
+          label="Pending Acks"
+          value={pendingAcks}
+          sub="issuance acknowledgements"
+          icon="pending_actions"
+          accent={ACCENT.pink}
+          progress={monthIssuances.length > 0 ? (pendingAcks / monthIssuances.length) * 100 : 0}
+          onClick={() => setPage('fuel_issues')}
+        />
       </div>
 
       {/* Projected tank level forecast */}

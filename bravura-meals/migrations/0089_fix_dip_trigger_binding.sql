@@ -52,7 +52,7 @@ UPDATE fuel_tanks t
            d.tank_id,
            COALESCE(d.level_end_litres, d.level_litres) AS dip_level
       FROM fuel_dip_readings d
-     WHERE COALESCE(d.is_deleted, false) = false
+     WHERE COALESCE(d.is_archived, false) = false
      ORDER BY d.tank_id, d.reading_date DESC, d.created_at DESC
   ) sub
  WHERE t.id = sub.tank_id

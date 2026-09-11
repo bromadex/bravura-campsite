@@ -548,7 +548,7 @@ export function FuelProvider({ children }) {
     const dipLevel = data.level_end_litres ?? data.level_litres
     setTanks(prev => prev.map(t =>
       t.id === data.tank_id && (!t.last_dip_date || data.reading_date >= t.last_dip_date)
-        ? { ...t, last_dip_date: data.reading_date, last_dip_reading: dipLevel }
+        ? { ...t, last_dip_date: data.reading_date, last_dip_reading: dipLevel, current_level_litres: dipLevel }
         : t
     ))
     return row
@@ -568,7 +568,7 @@ export function FuelProvider({ children }) {
     if (updatedLevel != null) {
       setTanks(prev => prev.map(t =>
         t.id === row.tank_id && (!t.last_dip_date || row.reading_date >= t.last_dip_date)
-          ? { ...t, last_dip_date: row.reading_date, last_dip_reading: updatedLevel }
+          ? { ...t, last_dip_date: row.reading_date, last_dip_reading: updatedLevel, current_level_litres: updatedLevel }
           : t
       ))
     }

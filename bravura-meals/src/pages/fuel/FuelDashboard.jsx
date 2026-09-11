@@ -9,6 +9,7 @@ import { buildForecast, daysUntil, simulateLevelCurve } from '../../utils/foreca
 import { Icon, PageHeader, fmtDate } from '../../components/ui'
 import { DashCard, KpiCard, AreaChart, DonutGauge, PairedBars, ProgressRow, ActivityRow, SectionTitle, LevelBandChart } from '../../components/dash'
 import FuelQuickNav from './FuelQuickNav'
+import FuelTankVisual from '../../components/FuelTankVisual'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 const CRIT_PCT = 15
@@ -373,23 +374,16 @@ export default function FuelDashboard({ setPage }) {
         />
       </div>
 
-      {/* Tank levels + fill gauge */}
+      {/* Tank levels — SVG visuals + fill gauge */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.2fr) minmax(220px, 1fr)', gap: '16px', marginBottom: '16px' }}>
         <Section
           title="Tank Levels"
           sub="Current balance per active tank"
           action={
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: THEME.textLow, flexWrap: 'wrap' }}>
-              {[
-                { c: ACCENT.teal, l: `≥ ${WARN_PCT}%` },
-                { c: THEME.warning, l: `${CRIT_PCT}–${WARN_PCT}%` },
-                { c: THEME.error, l: `< ${CRIT_PCT}%` },
-              ].map(x => (
-                <span key={x.l} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: x.c, display: 'inline-block' }} />{x.l}
-                </span>
-              ))}
-            </div>
+            <button onClick={() => setPage('fuel_tanks')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '12px', fontWeight: 500, color: FUEL_CLR, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: 'inherit', flexShrink: 0 }}>
+              View all tanks <Icon name="chevron_right" size={14} style={{ color: FUEL_CLR }} />
+            </button>
           }
         >
           {activeTanks.length === 0 ? (
@@ -397,12 +391,46 @@ export default function FuelDashboard({ setPage }) {
               No tanks configured yet.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {activeTanks.map((t, i) => (
-                <div key={t.id} style={{ borderBottom: i < activeTanks.length - 1 ? `1px solid ${THEME.outlineVar}` : 'none' }}>
-                  <TankRow tank={t} balance={tankBalance(t.id)} />
-                </div>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(activeTanks.length, 3)}, 1fr)`, gap: '16px' }}>
+              {activeTanks.map(t => {
+                const bal = tankBalance(t.id)
+                const cap = Number(t.capacity_litres) || 0
+                const pct = cap ? Math.min(100, Math.max(0, (bal / cap) * 100)) : 0
+                const minPct = Number(t.min_threshold_percent) || 20
+                const isLow = pct <= minPct
+                const ftName = t.fuel_types?.name || 'Diesel'
+                const ftColor = t.fuel_types?.colour || FUEL_CLR
+                const levelClr = isLow ? THEME.error : pct < minPct * 1.5 ? THEME.warning : ACCENT.teal
+                return (
+                  <div key={t.id}
+                    onClick={() => setPage('fuel_tanks')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 4px', borderRadius: '10px', transition: 'background .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, textAlign: 'center' }}>{t.name}</div>
+                    <FuelTankVisual
+                      percentage={pct}
+                      capacity={cap}
+                      currentLevel={bal}
+                      fuelName={ftName}
+                      fuelColor={ftColor !== FUEL_CLR ? ftColor : undefined}
+                      isLow={isLow}
+                      width={160}
+                      height={100}
+                      showLabel={true}
+                    />
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: levelClr }}>
+                        {Math.round(bal).toLocaleString()} L
+                      </span>
+                      <span style={{ fontSize: '11px', color: THEME.textLow, marginLeft: '6px' }}>
+                        of {cap.toLocaleString()} L
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </Section>

@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
@@ -158,6 +158,11 @@ const CLReportCostBySite    = lazy(() => import('./pages/contractors/CLReportCos
 const CLSettings            = lazy(() => import('./pages/contractors/CLSettings'))
 const CLCasualPayroll       = lazy(() => import('./pages/contractors/CLCasualPayroll'))
 
+// ── Finance ──────────────────────────────────────────────────────────────────
+const FIChartOfAccounts   = lazy(() => import('./pages/finance/ChartOfAccounts'))
+const FIJournalEntries    = lazy(() => import('./pages/finance/JournalEntries'))
+const FIJournalEntryDetail = lazy(() => import('./pages/finance/JournalEntryDetail'))
+
 // ── Inventory ─────────────────────────────────────────────────────────────────
 const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
 const InvItems       = lazy(() => import('./pages/inventory/InvItems'))
@@ -259,6 +264,7 @@ const MODULE_META = {
   admin:     { label: 'Administration',        icon: 'admin_panel_settings', navFn: adminNav },
   fuel:      { label: 'Fuel Management',       icon: 'local_gas_station',    navFn: fuelNav  },
   fleet:       { label: 'Fleet Management',      icon: 'directions_car',   navFn: fleetNav        },
+  finance:     { label: 'Finance',                    icon: 'account_balance',  navFn: financeNav      },
   contractors: { label: 'Contract & Contractor Management', icon: 'handshake', navFn: contractorsNav },
   inventory:   { label: 'Inventory Management',  icon: 'inventory_2',      navFn: inventoryNav    },
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
@@ -558,6 +564,16 @@ function getDeptPage(page, can, setPage) {
   }
 }
 
+function getFinancePage(page, can, setPage) {
+  const [base, param] = (page || '').split(':')
+  switch (base) {
+    case 'fi_chart_of_accounts': return can('finance.view') ? <FIChartOfAccounts setPage={setPage} /> : null
+    case 'fi_journal_entries':   return can('finance.view') ? <FIJournalEntries setPage={setPage} /> : null
+    case 'fi_journal_detail':    return can('finance.view') ? <FIJournalEntryDetail setPage={setPage} entryId={param} /> : null
+    default:                     return can('finance.view') ? <FIChartOfAccounts setPage={setPage} /> : null
+  }
+}
+
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
@@ -574,6 +590,7 @@ const DEFAULT_PAGE = {
   admin:     'admin_users',
   fuel:      'fuel_dashboard',
   fleet:       'fleet_dashboard',
+  finance:     'fi_chart_of_accounts',
   contractors: 'cl_dashboard',
   inventory:   'inv_dashboard',
   procurement: 'proc_dashboard',
@@ -611,6 +628,7 @@ function ModuleShell() {
   if (moduleId === 'admin')     content = getAdminPage(currentPage, can, setPage)
   if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
   if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
+  if (moduleId === 'finance')     content = getFinancePage(currentPage, can, setPage)
   if (moduleId === 'contractors') content = getContractorsPage(currentPage, can, setPage)
   if (moduleId === 'inventory')   content = getInventoryPage(currentPage, can, setPage)
   if (moduleId === 'procurement') content = getProcurementPage(currentPage, can, setPage)

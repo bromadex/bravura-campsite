@@ -87,8 +87,9 @@ export const MODULE_COLORS = {
   feedback:    '#6B7280',  // slate        – neutral, "system meta" feel
   contractors: '#0D7377',  // deep teal    – external workforce/contracts
   inventory:   '#B45309',  // amber-brown  – warehouses/stock
+  finance:     '#1565C0',  // blue         – finance/accounting
   projects:    '#1B5E20',  // deep green   – project management
-  dept:        '#1565C0',  // blue         – department workspaces
+  dept:        '#37474F',  // blue-grey    – department workspaces
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -129,6 +130,7 @@ export const moduleAccess = {
   // organisation reports bugs, gaps, and suggestions during the build phase.
   inventory: (role, can) => can ? can('inventory.view') : false,
   projects:  (role, can) => can ? can('projects.view') : false,
+  finance:   (role, can) => can ? can('finance.view') : false,
   dept:      (role, can) => can ? can('dept.view') : false,
   feedback:  r => !!r,
 }
@@ -268,6 +270,13 @@ export function procurementNav(role, can) {
     { id: 'proc_tracking',  label: 'Tracking',    section: 'Logistics',  icon: 'local_shipping', show: can('procurement.view') },
     { id: 'proc_reports',   label: 'Reports',     section: 'Analytics',  icon: 'bar_chart',      show: can('procurement.view') },
   ].filter(item => item.show !== false)
+}
+
+export function financeNav(role, can) {
+  return [
+    { id: 'fi_chart_of_accounts', label: 'Chart of Accounts', section: 'General Ledger', icon: 'account_balance' },
+    { id: 'fi_journal_entries',   label: 'Journal Entries',   section: 'General Ledger', icon: 'receipt_long' },
+  ]
 }
 
 export function contractorsNav(role, can) {

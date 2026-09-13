@@ -18,6 +18,7 @@ const ALL_MODULES = [
   { id: 'meals',     label: 'Meal Management',      icon: 'restaurant',           color: MODULE_COLORS.meals,     access: moduleAccess.meals     },
   { id: 'campsite',  label: 'Campsite',             icon: 'holiday_village',      color: MODULE_COLORS.campsite,  access: moduleAccess.campsite  },
   { id: 'workforce', label: 'HR Management',        icon: 'badge',                color: MODULE_COLORS.workforce, access: moduleAccess.workforce },
+  { id: 'finance',     label: 'Finance',              icon: 'account_balance',      color: MODULE_COLORS.finance,     access: moduleAccess.finance     },
   { id: 'contractors', label: 'Contractors',          icon: 'handshake',            color: MODULE_COLORS.contractors, access: moduleAccess.contractors },
   { id: 'inventory',  label: 'Inventory',            icon: 'inventory_2',          color: MODULE_COLORS.inventory,  access: moduleAccess.inventory  },
   { id: 'projects',   label: 'Projects',              icon: 'engineering',          color: MODULE_COLORS.projects,   access: moduleAccess.projects   },

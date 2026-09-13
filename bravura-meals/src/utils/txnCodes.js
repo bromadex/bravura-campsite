@@ -198,6 +198,11 @@ export const TXN_CODES = [
   { code: 'PR07', path: '/procurement/proc_requisitions', label: 'Requisitions',          module: 'procurement' },
   { code: 'PR08', path: '/procurement/proc_grn',          label: 'Goods Received Notes',  module: 'procurement' },
   { code: 'PR09', path: '/procurement/proc_invoices',     label: 'Purchase Invoices',     module: 'procurement' },
+  // ── Finance ──
+  { code: 'FI01', path: '/finance/fi_chart_of_accounts', label: 'Chart of Accounts',      module: 'finance' },
+  { code: 'FI02', path: '/finance/fi_journal_entries',   label: 'Journal Entries',         module: 'finance' },
+  { code: 'FI03', path: '/finance/fi_journal_detail',    label: 'Journal Entry Detail',    module: 'finance' },
+
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },
 ]

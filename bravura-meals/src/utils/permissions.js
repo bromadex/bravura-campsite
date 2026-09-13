@@ -276,6 +276,7 @@ export function financeNav(role, can) {
   return [
     { id: 'fi_chart_of_accounts', label: 'Chart of Accounts', section: 'General Ledger', icon: 'account_balance' },
     { id: 'fi_journal_entries',   label: 'Journal Entries',   section: 'General Ledger', icon: 'receipt_long' },
+    { id: 'fi_bank_accounts',     label: 'Bank Accounts',     section: 'Banking',        icon: 'account_balance_wallet' },
   ]
 }
 

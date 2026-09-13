@@ -162,6 +162,8 @@ const CLCasualPayroll       = lazy(() => import('./pages/contractors/CLCasualPay
 const FIChartOfAccounts   = lazy(() => import('./pages/finance/ChartOfAccounts'))
 const FIJournalEntries    = lazy(() => import('./pages/finance/JournalEntries'))
 const FIJournalEntryDetail = lazy(() => import('./pages/finance/JournalEntryDetail'))
+const FIBankAccounts       = lazy(() => import('./pages/finance/BankAccounts'))
+const FIBankReconciliation = lazy(() => import('./pages/finance/BankReconciliation'))
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
@@ -570,6 +572,8 @@ function getFinancePage(page, can, setPage) {
     case 'fi_chart_of_accounts': return can('finance.view') ? <FIChartOfAccounts setPage={setPage} /> : null
     case 'fi_journal_entries':   return can('finance.view') ? <FIJournalEntries setPage={setPage} /> : null
     case 'fi_journal_detail':    return can('finance.view') ? <FIJournalEntryDetail setPage={setPage} entryId={param} /> : null
+    case 'fi_bank_accounts':     return can('finance.view') ? <FIBankAccounts setPage={setPage} /> : null
+    case 'fi_reconciliation':    return can('finance.view') ? <FIBankReconciliation setPage={setPage} bankAccountId={param} /> : null
     default:                     return can('finance.view') ? <FIChartOfAccounts setPage={setPage} /> : null
   }
 }

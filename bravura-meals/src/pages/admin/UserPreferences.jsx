@@ -29,7 +29,7 @@ const LANDING_OPTIONS = [
   { value: 'procurement', label: 'Procurement' },
   { value: 'admin', label: 'Admin' },
   { value: 'contractors', label: 'Contractors' },
-  { value: 'concrete', label: 'Concrete Operations' },
+  { value: 'concrete', label: 'Batch Plant Operations' },
 ]
 
 const DATE_FORMATS = [

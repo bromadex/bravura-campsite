@@ -23,7 +23,7 @@
 | 7 | Contractors | CL | **Built** (Phases 1–3) — cost dashboard/reports pending |
 | 8 | Departments | DP | **Planned** — portal not yet built |
 | 9 | Campsite | CA | **Built** — dashboard revamp pending |
-| 10 | Concrete Operations | CO | **Planned** — new module |
+| 10 | Batch Plant Operations | CO | **Planned** — new module |
 | 11 | Projects | PJ | **Planned** — new module (SharePoint/Planner style) |
 
 **Cross-cutting:** HQ multi-site architecture (applySiteFilter, site badges, cross-site dashboards) — **planned**, prompts documented below.
@@ -95,7 +95,7 @@ Migration 0083 applied. **Remaining:** Phase 4 (cost aggregation RPCs), Phase 5 
 - [ ] **Preferences page** — needs redesign with proper sections
 
 ### Modules Not Yet Built
-- [ ] **Concrete Operations (CO)** — full module (mix designs, batches, cement/aggregate inventory, cube tests, reorder alerts)
+- [ ] **Batch Plant Operations (CO)** — full module (mix designs, batches, cement/aggregate inventory, cube tests, reorder alerts)
 - [ ] **Projects (PJ)** — full module (Kanban boards, task management, timeline/Gantt, files — SharePoint/Planner style)
 - [ ] **Departments (DP)** — contextual portal showing "{Department Name} Department" scoped to user's department
 
@@ -150,7 +150,7 @@ Reorder the entire ERP navigation to follow the business cycle:
 | 7 | Contractors | CL |
 | 8 | Departments | DP |
 | 9 | Campsite | CA |
-| 10 | Concrete Operations | CO |
+| 10 | Batch Plant Operations | CO |
 | 11 | Projects | PJ |
 
 - [ ] Reorder sidebar navigation
@@ -159,7 +159,7 @@ Reorder the entire ERP navigation to follow the business cycle:
 - [ ] Update `moduleAccess`, nav arrays, and `DEFAULT_PAGE` mappings in `permissions.js`
 - [ ] Verify all existing routes and deep links still work
 
-#### 1.2 Concrete Operations — Database Migration
+#### 1.2 Batch Plant Operations — Database Migration
 
 New tables with RLS policies using `_has_permission('concrete.view', site_id)` pattern:
 
@@ -254,7 +254,7 @@ Key relationships:
 - [ ] Sections: My Team, Department Assets, Requests, Budget, Tasks, Contractors
 - [ ] Department selector for managers overseeing multiple departments
 
-#### 5.2 Concrete Operations Dashboard
+#### 5.2 Batch Plant Operations Dashboard
 - [ ] Interactive SVG charts: production KPIs, cement stock gauge, grade donut, cost trend
 - [ ] Reorder alerts panel, quality alerts, dispatch log
 

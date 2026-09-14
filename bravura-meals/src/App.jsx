@@ -228,7 +228,7 @@ const DeptImport          = lazy(() => import('./pages/dept/DeptImport'))
 const DeptNotifications   = lazy(() => import('./pages/dept/DeptNotifications'))
 const DeptTemplates       = lazy(() => import('./pages/dept/DeptTemplates'))
 
-// ── Concrete Operations ──────────────────────────────────────────────────────
+// ── Batch Plant Operations ───────────────────────────────────────────────────
 const ConcreteDashboard      = lazy(() => import('./pages/concrete/ConcreteDashboard'))
 const MixDesigns             = lazy(() => import('./pages/concrete/MixDesigns'))
 const ConcreteBatches        = lazy(() => import('./pages/concrete/ConcreteBatches'))
@@ -288,7 +288,7 @@ const MODULE_META = {
   inventory:   { label: 'Inventory Management',  icon: 'inventory_2',      navFn: inventoryNav    },
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
   projects:    { label: 'Project Management',    icon: 'engineering',      navFn: projectsNav     },
-  concrete:    { label: 'Concrete Operations',   icon: 'factory',          navFn: concreteNav     },
+  concrete:    { label: 'Batch Plant Operations', icon: 'factory',          navFn: concreteNav     },
   dept:        { label: 'Department Workspaces', icon: 'domain',           navFn: deptNav         },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }

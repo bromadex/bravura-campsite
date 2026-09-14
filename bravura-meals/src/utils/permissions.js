@@ -130,7 +130,7 @@ export const moduleAccess = {
   // organisation reports bugs, gaps, and suggestions during the build phase.
   inventory: (role, can) => can ? can('inventory.view') : false,
   projects:  (role, can) => can ? can('projects.view') : false,
-  finance:   (role, can) => can ? can('finance.view') : false,
+  finance:   r => !!r,
   dept:      (role, can) => can ? can('dept.view') : false,
   feedback:  r => !!r,
 }

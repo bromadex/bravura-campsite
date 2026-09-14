@@ -229,6 +229,7 @@ export default function CampHeadcount({ setPage }) {
 
   return (
     <div className="print-page">
+      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_headcount" />
 
       {/* Print header */}
       <div className="print-only" style={{ display: 'none', marginBottom: '16px' }}>
@@ -335,7 +336,6 @@ export default function CampHeadcount({ setPage }) {
                 const pct = kpis.totalEmployees > 0 ? Math.round(co.empCount / kpis.totalEmployees * 100) : 0
                 return (
                   <div key={co.id}>
-      <QuickNav pills={CAMPSITE_PILLS} setPage={setPage} current="camp_headcount" />
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 500, color: THEME.text }}>{co.name}</span>
                       <div style={{ display: 'flex', gap: '12px', fontSize: '12px' }}>

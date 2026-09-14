@@ -4,7 +4,6 @@ import { useAuth } from '../../auth/AuthContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { PageHeader, Icon, Card, Button, TextField, StatusBadge, Chip, showToast } from '../../components/ui'
-import { usePermissions } from '../../contexts/PermissionsContext'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const CLR = MODULE_COLORS.feedback
@@ -40,7 +39,6 @@ export default function FeedbackBoard() {
   const { profile } = useAuth()
   const { currentSite, currentSiteId } = useSite()
   const rt = useRealtimeRefresh('feedback_submissions', null)
-  const { can } = usePermissions()
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -92,13 +90,6 @@ export default function FeedbackBoard() {
     acc[k.id] = items.filter(i => i.kind === k.id).length
     return acc
   }, {})
-
-  if (!can('feedback.view')) return (
-    <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>
-      <Icon name="lock" size={32} style={{ color: THEME.outline, display: 'block', margin: '0 auto 12px' }} />
-      Access denied — requires Feedback View permission.
-    </div>
-  )
 
   return (
     <div style={{ maxWidth: '1050px', margin: '0 auto' }}>

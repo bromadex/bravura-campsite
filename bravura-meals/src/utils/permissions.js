@@ -89,6 +89,7 @@ export const MODULE_COLORS = {
   inventory:   '#B45309',  // amber-brown  – warehouses/stock
   finance:     '#1565C0',  // blue         – finance/accounting
   projects:    '#1B5E20',  // deep green   – project management
+  concrete:    '#EF6C00',  // deep orange  – concrete/batch plant
   dept:        '#37474F',  // blue-grey    – department workspaces
 }
 
@@ -131,6 +132,7 @@ export const moduleAccess = {
   inventory: (role, can) => can ? can('inventory.view') : false,
   projects:  (role, can) => can ? can('projects.view') : false,
   finance:   r => !!r,
+  concrete:  (role, can) => can ? can('concrete.view') : false,
   dept:      (role, can) => can ? can('dept.view') : false,
   feedback:  r => !!r,
 }
@@ -337,6 +339,19 @@ export function fleetNav(role, can) {
     { id: 'fleet_contractors', label: 'Contractor Equipment', section: 'Registry', icon: 'handshake' },
     { id: 'fleet_reports',     label: 'Reports',         section: 'Reports',      icon: 'bar_chart' },
     { id: 'fleet_settings',    label: 'Settings',        section: 'Admin',        icon: 'settings' },
+  ]
+}
+
+export function concreteNav(role, can) {
+  return [
+    { id: 'co_dashboard',       label: 'Dashboard',          section: 'Overview',    icon: 'dashboard' },
+    { id: 'co_mix_designs',     label: 'Mix Designs',        section: 'Production',  icon: 'science' },
+    { id: 'co_batches',         label: 'Batches',            section: 'Production',  icon: 'factory' },
+    { id: 'co_cement',          label: 'Cement Inventory',   section: 'Inventory',   icon: 'inventory' },
+    { id: 'co_aggregates',      label: 'Aggregate Inventory',section: 'Inventory',   icon: 'layers' },
+    { id: 'co_cube_tests',      label: 'Cube Tests',         section: 'Quality',     icon: 'verified' },
+    { id: 'co_project_costing', label: 'Project Costing',    section: 'Reports',     icon: 'request_quote' },
+    { id: 'co_settings',        label: 'Settings',           section: 'Admin',       icon: 'settings' },
   ]
 }
 

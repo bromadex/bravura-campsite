@@ -212,6 +212,16 @@ export const TXN_CODES = [
   { code: 'FI11', path: '/finance/fi_cost_report',    label: 'Cost Centre Report',      module: 'finance' },
   { code: 'FI12', path: '/finance/fi_dashboard',      label: 'Finance Dashboard',       module: 'finance' },
 
+  // ── Concrete Operations ──
+  { code: 'CO01', path: '/concrete/co_dashboard',       label: 'Concrete Dashboard',   module: 'concrete' },
+  { code: 'CO02', path: '/concrete/co_mix_designs',     label: 'Mix Designs',          module: 'concrete' },
+  { code: 'CO03', path: '/concrete/co_batches',         label: 'Concrete Batches',     module: 'concrete' },
+  { code: 'CO04', path: '/concrete/co_cement',          label: 'Cement Inventory',     module: 'concrete' },
+  { code: 'CO05', path: '/concrete/co_aggregates',      label: 'Aggregate Inventory',  module: 'concrete' },
+  { code: 'CO06', path: '/concrete/co_cube_tests',      label: 'Cube Tests',           module: 'concrete' },
+  { code: 'CO07', path: '/concrete/co_project_costing', label: 'Project Costing',      module: 'concrete' },
+  { code: 'CO08', path: '/concrete/co_settings',        label: 'Batch Plant Settings', module: 'concrete' },
+
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },
 ]

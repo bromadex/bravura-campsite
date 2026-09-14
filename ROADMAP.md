@@ -16,7 +16,7 @@
 |---|--------|------|--------|
 | 1 | Finance | FI | **Complete** (Phases 1–5) |
 | 2 | Procurement | PR | **Built** — dashboard revamp pending |
-| 3 | Inventory / Stores | IN/ST | **Planned** — tables + pages not yet built |
+| 3 | Inventory / Stores | IN/ST | **Built** — dashboard revamp pending |
 | 4 | Fuel | FU | **Built** (Phases 1–4) — dashboard revamp pending |
 | 5 | Fleet | FL | **Built** — dashboard revamp pending |
 | 6 | HR | HR | **Built** (Phases 1–5 incl. analytics) — designation display bug, dashboard revamp pending |
@@ -95,7 +95,6 @@ Migration 0083 applied. **Remaining:** Phase 4 (cost aggregation RPCs), Phase 5 
 - [ ] **Preferences page** — needs redesign with proper sections
 
 ### Modules Not Yet Built
-- [ ] **Inventory / Stores (IN/ST)** — full module (catalogue, stock operations, procurement workflow, reports)
 - [ ] **Concrete Operations (CO)** — full module (mix designs, batches, cement/aggregate inventory, cube tests, reorder alerts)
 - [ ] **Projects (PJ)** — full module (Kanban boards, task management, timeline/Gantt, files — SharePoint/Planner style)
 - [ ] **Departments (DP)** — contextual portal showing "{Department Name} Department" scoped to user's department
@@ -308,14 +307,6 @@ To be executed after all operational modules are built. Converts ERP from "one s
 6. **Dashboard Aggregation** — Cross-site KPIs and per-site breakdown cards
 7. **Reports Cross-Site** — Site filter on all reports, site column in exports
 8. **Security Audit** — RLS verification, RBAC not bypassed by HQ view, insert validation
-
-### Future — Inventory Module (IN/ST)
-
-4-phase plan:
-1. **Foundation & Catalogue** — stores, item_categories, items, units_of_measure, inventory_movements (immutable ledger)
-2. **Stock Operations** — goods receipts, goods issues, stock transfers, stock counts, adjustments
-3. **Procurement Workflow** — purchase requisitions → POs → goods receipts (link to Procurement module)
-4. **Reports & Automation** — stock valuation, movement history, reorder alerts, ABC analysis
 
 ### Future — Contractors Remaining (CL Phases 4–6)
 

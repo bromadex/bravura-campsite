@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav, concreteNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
@@ -228,6 +228,16 @@ const DeptImport          = lazy(() => import('./pages/dept/DeptImport'))
 const DeptNotifications   = lazy(() => import('./pages/dept/DeptNotifications'))
 const DeptTemplates       = lazy(() => import('./pages/dept/DeptTemplates'))
 
+// ── Concrete Operations ──────────────────────────────────────────────────────
+const ConcreteDashboard      = lazy(() => import('./pages/concrete/ConcreteDashboard'))
+const MixDesigns             = lazy(() => import('./pages/concrete/MixDesigns'))
+const ConcreteBatches        = lazy(() => import('./pages/concrete/ConcreteBatches'))
+const CementInventory        = lazy(() => import('./pages/concrete/CementInventory'))
+const AggregateInventory     = lazy(() => import('./pages/concrete/AggregateInventory'))
+const CubeTests              = lazy(() => import('./pages/concrete/CubeTests'))
+const ProjectCosting         = lazy(() => import('./pages/concrete/ProjectCosting'))
+const BatchPlantSettings     = lazy(() => import('./pages/concrete/BatchPlantSettings'))
+
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
 const QuickStartGuide          = lazy(() => import('./pages/feedback/QuickStartGuide'))
@@ -278,6 +288,7 @@ const MODULE_META = {
   inventory:   { label: 'Inventory Management',  icon: 'inventory_2',      navFn: inventoryNav    },
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
   projects:    { label: 'Project Management',    icon: 'engineering',      navFn: projectsNav     },
+  concrete:    { label: 'Concrete Operations',   icon: 'factory',          navFn: concreteNav     },
   dept:        { label: 'Department Workspaces', icon: 'domain',           navFn: deptNav         },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
@@ -592,6 +603,20 @@ function getFinancePage(page, can, setPage) {
   }
 }
 
+function getConcretePage(page, can, setPage) {
+  switch (page) {
+    case 'co_dashboard':       return <ConcreteDashboard setPage={setPage} />
+    case 'co_mix_designs':     return can('concrete.create') || can('concrete.view') ? <MixDesigns setPage={setPage} /> : null
+    case 'co_batches':         return <ConcreteBatches setPage={setPage} />
+    case 'co_cement':          return <CementInventory setPage={setPage} />
+    case 'co_aggregates':      return <AggregateInventory setPage={setPage} />
+    case 'co_cube_tests':      return <CubeTests setPage={setPage} />
+    case 'co_project_costing': return <ProjectCosting setPage={setPage} />
+    case 'co_settings':        return can('concrete.edit') ? <BatchPlantSettings setPage={setPage} /> : null
+    default:                   return <ConcreteDashboard setPage={setPage} />
+  }
+}
+
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
@@ -613,6 +638,7 @@ const DEFAULT_PAGE = {
   inventory:   'inv_dashboard',
   procurement: 'proc_dashboard',
   projects:    'pj_dashboard',
+  concrete:    'co_dashboard',
   dept:        'dept_dashboard',
   feedback:    'feedback_board',
 }
@@ -651,6 +677,7 @@ function ModuleShell() {
   if (moduleId === 'inventory')   content = getInventoryPage(currentPage, can, setPage)
   if (moduleId === 'procurement') content = getProcurementPage(currentPage, can, setPage)
   if (moduleId === 'projects')  content = getProjectsPage(currentPage, can, setPage)
+  if (moduleId === 'concrete')  content = getConcretePage(currentPage, can, setPage)
   if (moduleId === 'dept')      content = getDeptPage(currentPage, can, setPage)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 

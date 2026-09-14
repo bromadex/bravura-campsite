@@ -164,6 +164,9 @@ const FIJournalEntries    = lazy(() => import('./pages/finance/JournalEntries'))
 const FIJournalEntryDetail = lazy(() => import('./pages/finance/JournalEntryDetail'))
 const FIBankAccounts       = lazy(() => import('./pages/finance/BankAccounts'))
 const FIBankReconciliation = lazy(() => import('./pages/finance/BankReconciliation'))
+const FITrialBalance       = lazy(() => import('./pages/finance/TrialBalance'))
+const FIProfitAndLoss      = lazy(() => import('./pages/finance/ProfitAndLoss'))
+const FIBalanceSheet       = lazy(() => import('./pages/finance/BalanceSheet'))
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
@@ -574,6 +577,9 @@ function getFinancePage(page, can, setPage) {
     case 'fi_journal_detail':    return can('finance.view') ? <FIJournalEntryDetail setPage={setPage} entryId={param} /> : null
     case 'fi_bank_accounts':     return can('finance.view') ? <FIBankAccounts setPage={setPage} /> : null
     case 'fi_reconciliation':    return can('finance.view') ? <FIBankReconciliation setPage={setPage} bankAccountId={param} /> : null
+    case 'fi_trial_balance':     return can('finance.view') ? <FITrialBalance setPage={setPage} /> : null
+    case 'fi_profit_and_loss':   return can('finance.view') ? <FIProfitAndLoss setPage={setPage} /> : null
+    case 'fi_balance_sheet':     return can('finance.view') ? <FIBalanceSheet setPage={setPage} /> : null
     default:                     return can('finance.view') ? <FIChartOfAccounts setPage={setPage} /> : null
   }
 }

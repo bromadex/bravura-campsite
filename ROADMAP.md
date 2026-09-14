@@ -1,14 +1,144 @@
-# Bravura ERP — Development Roadmap
+# Bravura ERP — Unified Development Roadmap
 
 > Last updated: 2026-09-14
 
 ---
 
-## Phase 1 — Module Reorder & Concrete Foundation
+## System Overview
 
-### 1.1 Module Reorder
+**Stack:** React 19 + Vite SPA (`bravura-meals/`), Supabase (PostgREST + RLS), Vercel auto-deploys from `main`.
 
-Reorder the entire ERP to follow the business cycle across all navigation surfaces:
+**Sites:** Kamativi (KAM — primary), Selous, Manhizi, Harare (HQ / head_office).
+
+**Modules (business cycle order):**
+
+| # | Module | Code | Status |
+|---|--------|------|--------|
+| 1 | Finance | FI | **Complete** (Phases 1–5) |
+| 2 | Procurement | PR | **Built** — dashboard revamp pending |
+| 3 | Inventory / Stores | IN/ST | **Planned** — tables + pages not yet built |
+| 4 | Fuel | FU | **Built** (Phases 1–4) — dashboard revamp pending |
+| 5 | Fleet | FL | **Built** — dashboard revamp pending |
+| 6 | HR | HR | **Built** (Phases 1–5 incl. analytics) — designation display bug, dashboard revamp pending |
+| 7 | Contractors | CL | **Built** (Phases 1–3) — cost dashboard/reports pending |
+| 8 | Departments | DP | **Planned** — portal not yet built |
+| 9 | Campsite | CA | **Built** — dashboard revamp pending |
+| 10 | Concrete Operations | CO | **Planned** — new module |
+| 11 | Projects | PJ | **Planned** — new module (SharePoint/Planner style) |
+
+**Cross-cutting:** HQ multi-site architecture (applySiteFilter, site badges, cross-site dashboards) — **planned**, prompts documented below.
+
+---
+
+## What's Done
+
+### Finance (FI) — ALL COMPLETE
+- Phase 1: GL Foundation — Chart of Accounts, Journal Entries, GL Posting Engine, Permissions
+- Phase 2: Banking — Bank Accounts, Bank Reconciliation (CSV import, auto-match)
+- Phase 3: Financial Reports — Trial Balance, Profit & Loss, Balance Sheet
+- Phase 4: Cash Flow & Cost Centres — Cash Flow Statement, Cost Centres + Report
+- Phase 5: Cross-Module Integration — Auto GL Postings (fuel, fleet, meals, payroll), Finance Dashboard with interactive SVG charts
+
+T-codes: FI01–FI12
+
+### Fuel (FU) — CORE COMPLETE
+- Phase 1: Tank management, dip readings, fuel receipts
+- Phase 2: Fuel issuance, vehicle/equipment consumers, odometer tracking
+- Phase 3: Reports (daily, monthly, variance, delivery, vehicle consumption, cost allocation)
+- Phase 4: Fuel requests/approvals, budget tracking
+
+T-codes registered. Dashboard exists but needs revamp to interactive SVG charts.
+
+### Fleet (FL) — CORE COMPLETE
+- Vehicle and equipment registry, operators, maintenance scheduling
+- Maintenance records, parts tracking, status history
+- Fleet dashboard (basic — needs revamp)
+- RLS lockdown (migration 0079 applied)
+
+### HR (HR) — PHASES 1–5 COMPLETE
+- Phase 1: Foundation — employees, departments, designations, employee numbers (BRA prefix)
+- Phase 2: Leave management, documents, medical records, org chart, site transfers
+- Phase 3: Attendance/shifts, training, skills matrix, HR reports
+- Phase 4: Payroll, appraisals, disciplinary, exit management
+- Phase 5: HR analytics/AI
+
+Migrations 0100–0108 applied. **Known bug:** designations display as blank — needs investigation.
+
+### Contractors (CL) — PHASES 1–3 COMPLETE
+- Phase 1: Contractor companies, contracts, casual workers registry
+- Phase 2: Timesheets, hired vehicles, hired equipment
+- Phase 3: Placeholder cost dashboard/reports pages (awaiting cross-module RPCs)
+
+Migration 0083 applied. **Remaining:** Phase 4 (cost aggregation RPCs), Phase 5 (compliance/insurance tracking), Phase 6 (cross-module integration).
+
+### Campsite (CA) — CORE COMPLETE
+- Blocks, rooms, beds, room assignments, camp headcount
+- Camp supplies, meals integration
+- Migration 0081 (beds/assignments site_id) applied
+
+### Procurement (PR) — CORE COMPLETE
+- Suppliers, requisitions, purchase orders, approvals
+- Receipts, supplier performance
+
+### Meals (ME) — CORE COMPLETE
+- Daily entry, kitchen confirm, approvals, billing, reports
+
+### Admin (AD) — BUILT
+- User management, roles, permissions, audit log viewer, site management
+
+---
+
+## What's NOT Done
+
+### Immediate Fixes
+- [ ] **HR designation display bug** — showing blanks
+- [ ] **Preferences page** — needs redesign with proper sections
+
+### Modules Not Yet Built
+- [ ] **Inventory / Stores (IN/ST)** — full module (catalogue, stock operations, procurement workflow, reports)
+- [ ] **Concrete Operations (CO)** — full module (mix designs, batches, cement/aggregate inventory, cube tests, reorder alerts)
+- [ ] **Projects (PJ)** — full module (Kanban boards, task management, timeline/Gantt, files — SharePoint/Planner style)
+- [ ] **Departments (DP)** — contextual portal showing "{Department Name} Department" scoped to user's department
+
+### Dashboard Revamps Needed (all modules → interactive SVG charts like Finance)
+- [ ] Procurement dashboard
+- [ ] Inventory dashboard
+- [ ] Fuel dashboard
+- [ ] Fleet dashboard
+- [ ] HR dashboard
+- [ ] Contractors dashboard
+- [ ] Campsite dashboard
+- [ ] Concrete dashboard (new)
+
+### Module Reorder
+- [ ] Reorder sidebar, home tiles, command palette to business cycle order (Finance → Procurement → Inventory → Fuel → Fleet → HR → Contractors → Departments → Campsite → Concrete → Projects)
+
+### Contractors Remaining
+- [ ] Phase 4: Cost aggregation RPCs, cost dashboard with real data
+- [ ] Phase 5: Compliance tracking, insurance expiry alerts, safety certifications
+- [ ] Phase 6: Cross-module integration (link to procurement POs, fleet assets, finance GL)
+
+### HQ Multi-Site Architecture
+- [ ] Foundation: `applySiteFilter()` helper, SiteContext `isHQ` flag, HQ badge
+- [ ] FuelContext cross-site data loading
+- [ ] CampsiteContext cross-site data loading
+- [ ] Procurement centralization under HQ (requesting_site_id)
+- [ ] Employee transfers table and UI
+- [ ] Fleet cross-site visibility with site badges
+- [ ] Site badges and filtering sweep across all list views
+- [ ] Dashboard cross-site aggregation
+- [ ] Reports cross-site support
+- [ ] Security audit
+
+---
+
+## Development Phases
+
+### Phase 1 — Module Reorder & Concrete Foundation
+
+#### 1.1 Module Reorder
+
+Reorder the entire ERP navigation to follow the business cycle:
 
 | Order | Module | Code |
 |-------|--------|------|
@@ -30,14 +160,14 @@ Reorder the entire ERP to follow the business cycle across all navigation surfac
 - [ ] Update `moduleAccess`, nav arrays, and `DEFAULT_PAGE` mappings in `permissions.js`
 - [ ] Verify all existing routes and deep links still work
 
-### 1.2 Concrete Operations — Database Migration
+#### 1.2 Concrete Operations — Database Migration
 
 New tables with RLS policies using `_has_permission('concrete.view', site_id)` pattern:
 
 | Table | Purpose |
 |-------|---------|
 | `mix_designs` | Versioned concrete recipes per grade (C20, C25, C30, C40 etc.) |
-| `mix_design_aggregates` | Per-aggregate quantities in each mix design (one row per aggregate type) |
+| `mix_design_aggregates` | Per-aggregate quantities in each mix design |
 | `aggregate_types` | Aggregate catalogue: 10mm, 20mm, 40mm, Crusher Dust, River Sand |
 | `concrete_batches` | Production records — batch number, grade, quantity m³, truck, driver, project, status |
 | `batch_aggregates` | Actual vs theoretical aggregate usage per batch |
@@ -51,322 +181,195 @@ Key relationships:
 - `concrete_batches.driver_id` → `profiles`
 - `concrete_batches.project_id` → `projects`
 - `concrete_batches.mix_design_id` → `mix_designs`
-- `batch_aggregates.aggregate_type_id` → `aggregate_types`
 - `cube_tests.batch_id` → `concrete_batches`
 
-- [ ] Create migration file with all tables, FKs, indexes, and RLS policies
-- [ ] Seed permissions: `concrete.view`, `concrete.create`, `concrete.edit`, `concrete.delete`, `concrete.approve`
-- [ ] Seed default aggregate types per site
-- [ ] Add T-codes: CO01–CO08
-- [ ] Add `concreteNav` array and `moduleAccess.concrete` to `permissions.js`
-- [ ] Add lazy imports and `getConcretePage()` route function to `App.jsx`
+---
+
+### Phase 2 — HR Fix + Preferences + Dashboard Revamps (Part 1)
+
+#### 2.1 HR Designation Fix
+- [ ] Investigate and fix blank designations on employee records
+
+#### 2.2 Preferences Page Improvement
+- [ ] Profile, Notifications, Display, Security, Accessibility sections
+
+#### 2.3 Procurement Dashboard Revamp
+- [ ] KPI tiles with sparklines, spend bar chart, category donut, top suppliers, pending approvals
+
+#### 2.4 Inventory/Stores Dashboard Revamp
+- [ ] KPI tiles, stock value by category, low stock alerts, receipts vs issues trend
+
+#### 2.5 Fuel Dashboard Revamp
+- [ ] KPI tiles with sparklines, tank gauge charts, consumption trends, top consumers, alerts
 
 ---
 
-## Phase 2 — HR Designation Fix + Preferences Page + Dashboard Revamps (Part 1)
+### Phase 3 — Dashboard Revamps (Part 2) + Concrete Production
 
-### 2.1 HR Designation Fix
+#### 3.1 Fleet Dashboard Revamp
+- [ ] KPI tiles, status donut, maintenance cost bar, utilization gauge, upcoming maintenance
 
-Designations were set up but display as blank on employee records.
+#### 3.2 HR Dashboard Revamp
+- [ ] KPI tiles, department donut, hires vs terminations trend, turnover gauge, leave overview
 
-- [ ] Investigate root cause: missing join, null FK, or designation not saved on employee create/edit
-- [ ] Fix the data query and/or the save logic
-- [ ] Verify designations display on: employee list, employee detail, org chart
+#### 3.3 Contractors Dashboard Revamp
+- [ ] KPI tiles, spend by contractor bar, contract type donut, expiring contracts alerts
 
-### 2.2 Preferences Page Improvement
+#### 3.4 Campsite Dashboard Revamp
+- [ ] KPI tiles, occupancy gauge, trend bar, room status grid, meal trends
 
-Redesign the user preferences page with a clean, modern layout:
+#### 3.5 Mix Designs Screen
+- [ ] List/edit mix designs per grade, dynamic aggregate rows, version tracking
 
-| Section | Contents |
-|---------|----------|
-| **Profile** | Name, avatar, contact details |
-| **Notifications** | Email alerts, in-app alerts (toggles per module) |
-| **Display** | Default site, default landing module/page, date format, number format, timezone |
-| **Security** | Change password, active sessions |
-| **Accessibility** | Font size preference, compact/comfortable density mode |
-
-- [ ] Audit current preferences page
-- [ ] Design and build improved layout with section grouping, toggles, dropdowns
-- [ ] Save to `profiles` or new `user_preferences` table
-- [ ] Respect saved preferences across the app (landing page, date format, etc.)
-
-### 2.3 Procurement Dashboard Revamp
-
-Interactive dashboard with hover tooltips on all charts:
-
-- [ ] KPI tiles with sparklines: total POs this month, total spend, pending approvals count, average PO processing time
-- [ ] Bar chart: monthly spend trend (6–12 months)
-- [ ] Donut chart: spend by category/department
-- [ ] Top suppliers table: name, total spend, PO count, last order date
-- [ ] Pending approvals list with quick-action buttons
-- [ ] Recent POs table
-
-### 2.4 Inventory/Stores Dashboard Revamp
-
-- [ ] KPI tiles: total stock value, items below reorder level, items received this month, items issued this month
-- [ ] Bar chart: stock value by category
-- [ ] Low stock alerts panel with days-until-stockout estimates
-- [ ] Line chart: receipts vs issues trend over time
-- [ ] Top consumed items table
-- [ ] Recent stock movements table
-
-### 2.5 Fuel Dashboard Revamp
-
-- [ ] KPI tiles with sparklines: litres issued today/this month, total fuel cost, average cost per litre, transaction count
-- [ ] Gauge charts: tank levels (current level vs capacity per tank)
-- [ ] Line chart: daily consumption trend
-- [ ] Bar chart: consumption by department/vehicle
-- [ ] Top consumers table: vehicle/department, litres, cost
-- [ ] Alerts panel: tanks below threshold, abnormal consumption spikes
-- [ ] Recent transactions table
+#### 3.6 Concrete Batches Screen
+- [ ] Batch creation flow (grade → mix design → calculate materials → assign truck/driver/project)
+- [ ] Status workflow: Mixing → Dispatched → Delivered → Cancelled
+- [ ] Actual vs theoretical material tracking with variance display
 
 ---
 
-## Phase 3 — Dashboard Revamps (Part 2) + Mix Designs & Concrete Production
+### Phase 4 — Concrete Inventory + Quality Control + Project Costing
 
-### 3.1 Fleet Dashboard Revamp
+#### 4.1 Cement Inventory
+- [ ] Deliveries log, stock view (opening + deliveries − consumed = remaining)
+- [ ] Reorder alert: days of stock remaining, color-coded urgency, "ORDER NOW" when within lead time
 
-- [ ] KPI tiles: total vehicles, active count, in-maintenance count, idle count
-- [ ] Donut chart: vehicle status breakdown (active/maintenance/idle/decommissioned)
-- [ ] Bar chart: maintenance cost by vehicle (top 10)
-- [ ] Gauge: fleet utilization rate
-- [ ] Upcoming maintenance table with overdue flags
-- [ ] Line chart: cost per vehicle trend
-- [ ] Recent maintenance records table
+#### 4.2 Aggregate Inventory
+- [ ] Same structure per aggregate type (10mm, 20mm, 40mm, crusher dust, river sand)
 
-### 3.2 HR Dashboard Revamp
+#### 4.3 Cube Tests
+- [ ] Log 7-day and 28-day compressive strength, auto pass/fail vs target
 
-- [ ] KPI tiles: total headcount, new hires this month, terminations this month, employees on leave today
-- [ ] Donut chart: headcount by department
-- [ ] Bar chart: monthly hires vs terminations trend
-- [ ] Gauge: turnover rate
-- [ ] Leave overview: who's on leave today/this week
-- [ ] Upcoming events: birthdays, contract renewals, probation endings
-- [ ] Department breakdown table: department, headcount, vacancies, budget
+#### 4.4 Project Costing Report
+- [ ] Material cost breakdown per project, cost per m³, margin analysis
 
-### 3.3 Contractors Dashboard Revamp
-
-- [ ] KPI tiles: active contracts count, total contract value, spend this month, casual workers today
-- [ ] Bar chart: spend by contractor
-- [ ] Donut chart: contract type breakdown
-- [ ] Active contracts table with days remaining and % spent
-- [ ] Timesheet summary: hours this week/month
-- [ ] Expiring contracts alerts panel
-
-### 3.4 Campsite Dashboard Revamp
-
-- [ ] KPI tiles: total beds, occupied beds, occupancy %, meals served today
-- [ ] Gauge chart: occupancy rate
-- [ ] Bar chart: occupancy trend by week/month
-- [ ] Room status grid: visual blocks showing occupied/vacant/maintenance per room
-- [ ] Line chart: meal count trends
-- [ ] Recent check-ins/check-outs table
-
-### 3.5 Mix Designs Screen
-
-- [ ] List view: grade, name, cement per m³, water per m³, aggregate breakdown, active status
-- [ ] Add/Edit modal: grade dropdown, name, cement_kg_per_m3, water_litres_per_m3, dynamic aggregate rows (select type + quantity per row)
-- [ ] Version warning: editing a mix design used in existing batches prompts to create new version
-- [ ] Search and filter by grade
-- [ ] Archive/restore
-
-### 3.6 Concrete Batches Screen
-
-- [ ] Batch creation flow: select grade → auto-selects mix design → enter quantity (m³) → system calculates theoretical materials → assign mixer truck (from fleet_assets) → assign driver → delivery location → select project → create
-- [ ] Batch list: batch number, date, grade, quantity, project, truck, driver, status, variance %
-- [ ] Batch detail view: all fields, material breakdown (theoretical vs actual side by side, variance highlighted red/green), dispatch/return times, turnaround time
-- [ ] Record actuals: operator enters actual cement, water, and aggregate per type — system computes variance
-- [ ] Status workflow: Mixing → Dispatched (records dispatch_time) → Delivered (records return_time) → Cancelled
-- [ ] Filter by date range, grade, project, truck, status
-- [ ] Export to CSV
+#### 4.5 Batch Plant Settings
+- [ ] Minimum stock levels, lead times, safety factors, batch number config
 
 ---
 
-## Phase 4 — Cement & Aggregate Inventory + Quality Control + Project Costing
+### Phase 5 — Departments Portal + Concrete Dashboard + Integration
 
-### 4.1 Cement Inventory Screen
+#### 5.1 Department Portal
+- [ ] Dynamic header: "{Department Name} Department" based on logged-in user
+- [ ] Sections: My Team, Department Assets, Requests, Budget, Tasks, Contractors
+- [ ] Department selector for managers overseeing multiple departments
 
-- [ ] **Deliveries tab**: log deliveries (supplier, delivery note, truck registration, quantity kg, unit cost, total cost, silo number, date). List with search/filter/export
-- [ ] **Stock view**: Opening stock + deliveries − consumed (from batches) = **remaining stock** (prominently displayed)
-- [ ] Silo breakdown: stock per silo (if multiple)
-- [ ] Line chart: daily/weekly cement consumption trend
-- [ ] **Reorder alert panel**: current stock, average daily consumption, days of stock remaining, supplier lead time, color-coded urgency (green >10 days, orange 5–10 days, red <5 days), suggested order quantity
-- [ ] "ORDER NOW" warning when stock will run out within lead time
+#### 5.2 Concrete Operations Dashboard
+- [ ] Interactive SVG charts: production KPIs, cement stock gauge, grade donut, cost trend
+- [ ] Reorder alerts panel, quality alerts, dispatch log
 
-### 4.2 Aggregate Inventory Screen
+#### 5.3 Fleet Integration for Mixer Trucks
+- [ ] Dispatch log, turnaround analysis, truck utilization, driver performance
 
-Same structure as cement, repeated per aggregate type:
-
-- [ ] **Deliveries tab**: log per type (10mm, 20mm, 40mm, crusher dust, river sand), supplier, quantity, cost, stockpile location
-- [ ] **Stock view per type**: opening + deliveries − consumed = remaining
-- [ ] Reorder alerts per aggregate type (same logic as cement)
-- [ ] Consumption trend chart per type
-
-### 4.3 Cube Tests Screen
-
-- [ ] Log cube test: select batch, sample number, 7-day test date + result (MPa), 28-day test date + result (MPa), target strength (auto-filled from grade)
-- [ ] Auto pass/fail: 28-day result ≥ target → Pass, else → Fail. Warning if 7-day result is abnormally low (<60% of target)
-- [ ] Batch quality badge: Passed / Failed / Pending (awaiting 28-day)
-- [ ] Test results list: batch number, grade, 7-day, 28-day, target, status, tested by
-- [ ] Filter by status (pending/pass/fail), date range, grade
-- [ ] Failed batches highlighted in red
-
-### 4.4 Project Costing Report
-
-- [ ] Project selector dropdown
-- [ ] Summary: total m³ delivered, total batches, date range
-- [ ] Material cost breakdown: cement cost (kg consumed × weighted average cost/kg), aggregate cost per type (same logic), total material cost
-- [ ] Cost per m³: total material cost ÷ total m³
-- [ ] Revenue and margin: if project has contract value — revenue, gross margin, margin %
-- [ ] Comparison table: all projects side by side (name, m³, material cost, cost/m³, revenue, margin)
-- [ ] Export to CSV
-
-### 4.5 Batch Plant Settings Screen
-
-- [ ] Cement: minimum stock level (kg), supplier lead time (days), safety factor multiplier
-- [ ] Per aggregate type: minimum stock level, lead time, safety factor
-- [ ] Batch number config: prefix (BTH), year format, sequence start
-- [ ] Default silo/stockpile assignments
-- [ ] Save to `batch_plant_settings` table
+#### 5.4 Finance Integration
+- [ ] Auto GL postings for cement/aggregate deliveries and concrete production consumption
 
 ---
 
-## Phase 5 — Departments Portal + Concrete Dashboard + Fleet Integration
+### Phase 6 — Projects Module (SharePoint / Planner Style)
 
-### 5.1 Department Portal
+#### 6.1 Project Board (Kanban)
+- [ ] Drag-and-drop task cards between customizable buckets
+- [ ] Cards: title, assignee, due date, priority, checklist progress, attachments, comments
 
-Dynamic, context-aware department home page:
+#### 6.2 Task Detail
+- [ ] Rich description, assignees, due dates, priority, labels, checklist, attachments, comments/activity
 
-- [ ] Header shows "**{Department Name} Department**" based on logged-in user's department
-- [ ] **My Team**: staff list filtered by department — name, designation, contact, status
-- [ ] **Department Assets**: fleet vehicles and equipment assigned to this department (from `fleet_assets`)
-- [ ] **Department Requests**: procurement requests and maintenance requests raised by department members
-- [ ] **Department Budget**: cost centre spend vs budget for this department (from Finance/Cost Centres), variance display
-- [ ] **Department Tasks**: tasks assigned to department members (from Projects module)
-- [ ] **Department Contractors**: contractors and casuals working under this department
-- [ ] Department selector dropdown for managers/admins overseeing multiple departments
-- [ ] Works for all departments: Electrical, Mechanical, Transport, Admin, Kitchen, Mining, Processing, etc.
+#### 6.3 Project Hub
+- [ ] All projects list with progress %, tabs: Overview, Board, Timeline, Files, Settings
 
-### 5.2 Concrete Operations Dashboard
+#### 6.4 Timeline / Gantt View
+- [ ] Horizontal timeline with task bars, dependencies, zoom levels
 
-Interactive dashboard (same design standard as Finance Dashboard):
+#### 6.5 My Tasks View
+- [ ] Cross-project view of all tasks assigned to current user
 
-- [ ] KPI tiles with sparklines: concrete produced today (m³), produced this month, batches today, active mixer trucks
-- [ ] Gauge charts: cement stock level (days remaining), fleet utilization rate
-- [ ] Bar chart: daily production volume (last 30 days) with hover (m³ + batch count)
-- [ ] Donut chart: production by grade (C20/C25/C30/C40) with hover (m³ + %)
-- [ ] Line chart: cost per m³ trend over time with hover
-- [ ] **Reorder alerts panel**: cement and each aggregate — days remaining, color-coded, "Order Now" suggestions
-- [ ] Stock levels summary: cement + each aggregate remaining with mini progress bars
-- [ ] Recent batches table: batch number, date, grade, m³, project, truck, status
-- [ ] Quality alerts: pending cube tests, failed tests
-- [ ] Today's dispatch log: truck, driver, batch, dispatched at, returned at, turnaround time
+#### 6.6 Team View
+- [ ] Workload per member across projects
 
-### 5.3 Fleet Integration for Mixer Trucks
+#### 6.7 Files (Document Library)
+- [ ] Per-project file storage, folders, preview, version history
 
-- [ ] Tag mixer trucks in `fleet_assets` (asset_type or dedicated flag)
-- [ ] Dispatch log: each concrete batch dispatch visible in both Concrete and Fleet modules
-- [ ] Turnaround analysis: average turnaround time per truck, per driver, per project — bar chart with hover
-- [ ] Truck utilization: batches per truck per day/week/month, idle time, productive hours
-- [ ] Driver performance: m³ delivered per driver, trips per day, average turnaround
-- [ ] Maintenance warning: if truck is due for service, warn when assigning to a batch
-
-### 5.4 Finance Integration
-
-- [ ] Cement/aggregate deliveries optionally link to procurement PO or auto-create journal entry (DR Raw Materials, CR Accounts Payable)
-- [ ] Concrete production consumption posts to Concrete cost centre (DR Cost of Production, CR Raw Materials)
-- [ ] Cost per m³ data feeds into Finance → Cost Centre Report
-- [ ] Project costing data available from Finance filtered by project
+#### 6.8 Database Migration
+- [ ] Tables: projects, project_members, project_buckets, project_tasks, task_labels, task_checklist_items, task_comments, task_activity_log, task_attachments, task_dependencies
 
 ---
 
-## Phase 6 — Projects Module (SharePoint / Planner Style)
+### Future — HQ Multi-Site Architecture
 
-### 6.1 Project Board (Kanban — like Microsoft Planner)
+To be executed after all operational modules are built. Converts ERP from "one site at a time" to "HQ sees everything."
 
-- [ ] Board view: columns are buckets (To Do, In Progress, Review, Done) — drag and drop tasks between columns
-- [ ] Task cards show: title, assignee avatar, due date, priority label (Urgent/High/Medium/Low with color), checklist progress (e.g. "3/5"), attachment icon, comment count
-- [ ] Customizable buckets per project: add, rename, reorder, delete
-- [ ] Filter tasks by: assignee, priority, due date, label, bucket
-- [ ] Group by: bucket (default), assignee, priority, due date
+1. **Foundation** — `site_type` column on sites, `applySiteFilter()` helper, `isHQ` in SiteContext
+2. **Context Updates** — FuelContext, CampsiteContext, ProcurementContext cross-site data loading
+3. **Employee Transfers** — `employee_transfers` table, transfer UI, site reassignment
+4. **Fleet Cross-Site** — Site badges on vehicles/equipment, asset transfers between sites
+5. **List View Sweep** — SiteBadge component, site filter dropdown on all list pages when HQ
+6. **Dashboard Aggregation** — Cross-site KPIs and per-site breakdown cards
+7. **Reports Cross-Site** — Site filter on all reports, site column in exports
+8. **Security Audit** — RLS verification, RBAC not bypassed by HQ view, insert validation
 
-### 6.2 Task Detail
+### Future — Inventory Module (IN/ST)
 
-- [ ] Title and description (rich text)
-- [ ] Assignee: single or multiple from site users
-- [ ] Due date with overdue highlighting
-- [ ] Priority: Urgent (red), High (orange), Medium (yellow), Low (green)
-- [ ] Labels/tags: custom per project, color-coded
-- [ ] Checklist: add sub-items with checkboxes, progress bar
-- [ ] Attachments: upload files (Supabase Storage)
-- [ ] Comments/activity feed: threaded comments + auto-logged activity (status changes, assignment changes, due date changes)
-- [ ] Status: Not Started → In Progress → Review → Completed
-- [ ] Start date + due date for timeline view
+4-phase plan:
+1. **Foundation & Catalogue** — stores, item_categories, items, units_of_measure, inventory_movements (immutable ledger)
+2. **Stock Operations** — goods receipts, goods issues, stock transfers, stock counts, adjustments
+3. **Procurement Workflow** — purchase requisitions → POs → goods receipts (link to Procurement module)
+4. **Reports & Automation** — stock valuation, movement history, reorder alerts, ABC analysis
 
-### 6.3 Project List / Hub (like SharePoint)
+### Future — Contractors Remaining (CL Phases 4–6)
 
-- [ ] All projects: name, description, owner, team members, progress %, status, start/end dates
-- [ ] Project detail page with tabs: Overview, Board (Kanban), Timeline, Files, Settings
-- [ ] Progress: auto-calculated from completed tasks / total tasks
-
-### 6.4 Timeline / Gantt View
-
-- [ ] Horizontal timeline: tasks as bars (start → due date)
-- [ ] Color-coded by priority or assignee
-- [ ] Task dependencies as connecting lines (optional)
-- [ ] Zoom levels: day / week / month
-- [ ] Hover shows task details
-
-### 6.5 My Tasks View (like Planner "My Tasks")
-
-- [ ] Cross-project view of all tasks assigned to the logged-in user
-- [ ] Group by: project, due date, priority, or status
-- [ ] Quick status toggle without opening the full task
-
-### 6.6 Team View
-
-- [ ] Workload per team member across all projects
-- [ ] Cards grouped by person: assigned tasks, due dates, status
-- [ ] Identify overloaded or idle team members
-
-### 6.7 Files (like SharePoint Document Library)
-
-- [ ] Per-project file storage via Supabase Storage
-- [ ] Upload/download, folder structure
-- [ ] File preview for images and PDFs
-- [ ] Version history (optional)
-
-### 6.8 Projects — Database Migration
-
-| Table | Purpose |
-|-------|---------|
-| `projects` | Project registry — name, description, owner, status, dates |
-| `project_members` | Team membership — user, role (owner/member/viewer) |
-| `project_buckets` | Kanban columns per project — name, sort order |
-| `project_tasks` | Tasks — title, description, assignee, priority, status, dates, bucket |
-| `task_labels` | Custom labels per project — name, color |
-| `task_label_assignments` | Many-to-many: tasks ↔ labels |
-| `task_checklist_items` | Sub-items within a task — title, completed flag, sort order |
-| `task_comments` | Threaded comments on tasks |
-| `task_activity_log` | Auto-logged task changes — field, old value, new value |
-| `task_attachments` | File uploads linked to tasks (Supabase Storage) |
-| `task_dependencies` | Task relationships — predecessor/successor, dependency type |
-
-- [ ] Create migration with all tables, FKs, indexes, RLS policies
-- [ ] Seed permissions: `projects.view`, `projects.create`, `projects.edit`, `projects.delete`, `projects.approve`
-- [ ] Add T-codes: PJ01–PJ08
-- [ ] Add `projectsNav` and `moduleAccess.projects` to `permissions.js`
-- [ ] Add lazy imports and `getProjectsPage()` to `App.jsx`
+4. Cost aggregation RPCs, real cost dashboard data
+5. Compliance tracking, insurance expiry alerts, safety certifications
+6. Cross-module: link to procurement POs, fleet assets, finance GL
 
 ---
 
-## Summary
+## Architecture Reference
 
-| Phase | Focus | Key Deliverables |
-|-------|-------|-----------------|
-| **1** | Module Reorder + Concrete DB | Reordered nav/tiles, all Concrete tables + RLS + T-codes |
-| **2** | HR Fix + Preferences + Dashboards (1) | Designation fix, improved preferences, Procurement/Inventory/Fuel dashboards |
-| **3** | Dashboards (2) + Concrete Production | Fleet/HR/Contractors/Campsite dashboards, Mix Designs, Batches screen |
-| **4** | Concrete Inventory + QC + Costing | Cement & Aggregate inventory with reorder alerts, Cube Tests, Project Costing |
-| **5** | Departments + Concrete Dashboard | Department portal, Concrete dashboard, Fleet/Finance integration |
-| **6** | Projects Module | Kanban board, task management, timeline/Gantt, files, SharePoint/Planner UX |
+### Permissions
+- `permissions` table: `code`, `module`, `action` — all NOT NULL
+- `action` CHECK: `('View','Create','Edit','Delete','Approve')` — max 5 per module
+- RLS via `_has_permission(code, site_id)` / `_has_hr_permission`
+- RBAC: always `const { can } = usePermissions()` then `can('module.action')`
+
+### Database Conventions
+- All tables site-scoped via `site_id`
+- Soft deletes only (`is_archived` flag, void for journal entries)
+- Audit trail: `created_by`, `updated_by`, `created_at`, `updated_at`
+- Migrations in `bravura-meals/migrations/`, applied via Supabase SQL editor
+- Migration numbering: general from 0079; 0100–0149 reserved for HR
+
+### UI Standards
+- Inline styles only, THEME tokens from `src/utils/permissions.js`
+- Every screen gets a T-code in `src/utils/txnCodes.js`
+- Dashboards: interactive SVG charts with hover tooltips, KPI tiles with sparklines, gauges
+
+### Key Schema Notes
+- `sites.site_type` CHECK: `('operational_site','head_office')` — Harare = head_office
+- `fleet_status_history` and `fleet_maintenance_parts` have no `site_id` (scope via joins)
+- `beds` and `room_assignments` have `site_id` (added in migration 0081)
+- PostgREST embeds require real FK. Use `.maybeSingle()` for maybe-empty lookups
+- `supabase` is a NAMED export from `src/supabaseClient.js`
+
+### Applied Migrations
+0073, 0079, 0080, 0081, 0082, 0083, 0100, 0102, 0103, 0106, 0107, 0108
+
+---
+
+## T-Code Plan
+
+| Code | Page | Module |
+|------|------|--------|
+| FI01–FI12 | Finance pages | Finance |
+| FU01–FU12 | Fuel pages | Fuel |
+| FL01–FL06 | Fleet pages | Fleet |
+| HR01–HR20 | HR pages | HR |
+| CA01–CA06 | Campsite pages | Campsite |
+| ME01–ME06 | Meals pages | Meals |
+| PR01–PR06 | Procurement pages | Procurement |
+| CL01–CL08 | Contractor pages | Contractors |
+| AD01–AD06 | Admin pages | Admin |
+| CO01–CO08 | Concrete pages | Concrete (new) |
+| PJ01–PJ08 | Project pages | Projects (new) |
+| DP01–DP04 | Department pages | Departments (new) |

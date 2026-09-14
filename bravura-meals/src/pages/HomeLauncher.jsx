@@ -9,23 +9,22 @@ import { supabase } from '../supabaseClient'
 import SiteSwitcher from '../components/SiteSwitcher'
 
 // ── Module definitions ────────────────────────────────────────────────────────
-// Order intentional: business operations first (meals → camp → fuel), then
-// people & assets (HR → fleet), then system-level (admin), then feedback so it
-// sits as the shared "help us build this" surface at the end.
+// Order: business cycle (Finance → Procurement → Inventory → Fuel → Fleet →
+// HR → Contractors → Departments → Campsite → Meals → Projects), then Admin, Feedback.
 const ALL_MODULES = [
-  { id: 'fuel',      label: 'Fuel Management',      icon: 'local_gas_station',    color: MODULE_COLORS.fuel,      access: moduleAccess.fuel      },
-  { id: 'fleet',     label: 'Fleet Management',     icon: 'directions_car',       color: MODULE_COLORS.fleet,     access: moduleAccess.fleet     },
-  { id: 'meals',     label: 'Meal Management',      icon: 'restaurant',           color: MODULE_COLORS.meals,     access: moduleAccess.meals     },
-  { id: 'campsite',  label: 'Campsite',             icon: 'holiday_village',      color: MODULE_COLORS.campsite,  access: moduleAccess.campsite  },
-  { id: 'workforce', label: 'HR Management',        icon: 'badge',                color: MODULE_COLORS.workforce, access: moduleAccess.workforce },
   { id: 'finance',     label: 'Finance',              icon: 'account_balance',      color: MODULE_COLORS.finance,     access: moduleAccess.finance     },
-  { id: 'contractors', label: 'Contractors',          icon: 'handshake',            color: MODULE_COLORS.contractors, access: moduleAccess.contractors },
-  { id: 'inventory',  label: 'Inventory',            icon: 'inventory_2',          color: MODULE_COLORS.inventory,  access: moduleAccess.inventory  },
-  { id: 'projects',   label: 'Projects',              icon: 'engineering',          color: MODULE_COLORS.projects,   access: moduleAccess.projects   },
-  { id: 'dept',          label: 'Departments',          icon: 'domain',               color: MODULE_COLORS.dept,         access: moduleAccess.dept         },
-  { id: 'admin',        label: 'Administration',       icon: 'admin_panel_settings', color: MODULE_COLORS.admin,        access: moduleAccess.admin        },
   { id: 'procurement', label: 'Procurement',          icon: 'storefront',           color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
-  { id: 'feedback',    label: 'Feedback',             icon: 'forum',                color: MODULE_COLORS.feedback,    access: moduleAccess.feedback    },
+  { id: 'inventory',   label: 'Inventory',            icon: 'inventory_2',          color: MODULE_COLORS.inventory,   access: moduleAccess.inventory   },
+  { id: 'fuel',        label: 'Fuel Management',      icon: 'local_gas_station',    color: MODULE_COLORS.fuel,        access: moduleAccess.fuel        },
+  { id: 'fleet',       label: 'Fleet Management',     icon: 'directions_car',       color: MODULE_COLORS.fleet,       access: moduleAccess.fleet       },
+  { id: 'workforce',   label: 'HR Management',        icon: 'badge',                color: MODULE_COLORS.workforce,   access: moduleAccess.workforce   },
+  { id: 'contractors', label: 'Contractors',           icon: 'handshake',            color: MODULE_COLORS.contractors, access: moduleAccess.contractors },
+  { id: 'dept',        label: 'Departments',           icon: 'domain',               color: MODULE_COLORS.dept,        access: moduleAccess.dept        },
+  { id: 'campsite',    label: 'Campsite',              icon: 'holiday_village',      color: MODULE_COLORS.campsite,    access: moduleAccess.campsite    },
+  { id: 'meals',       label: 'Meal Management',       icon: 'restaurant',           color: MODULE_COLORS.meals,       access: moduleAccess.meals       },
+  { id: 'projects',    label: 'Projects',              icon: 'engineering',          color: MODULE_COLORS.projects,    access: moduleAccess.projects    },
+  { id: 'admin',       label: 'Administration',        icon: 'admin_panel_settings', color: MODULE_COLORS.admin,       access: moduleAccess.admin       },
+  { id: 'feedback',    label: 'Feedback',              icon: 'forum',                color: MODULE_COLORS.feedback,    access: moduleAccess.feedback    },
 ]
 
 // Simple viewport tracker so inline styles can respond to breakpoints.

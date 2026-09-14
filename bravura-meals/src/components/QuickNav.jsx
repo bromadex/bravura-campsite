@@ -111,6 +111,17 @@ export const CONTRACTOR_PILLS = [
   { id: 'cl_settings',   label: 'Settings',    icon: 'settings',        color: '#546E7A' },
 ]
 
+export const CONCRETE_PILLS = [
+  { id: 'co_dashboard',       label: 'Dashboard',     icon: 'dashboard',      color: '#EF6C00' },
+  { id: 'co_mix_designs',     label: 'Mix Designs',   icon: 'science',        color: '#1565C0' },
+  { id: 'co_batches',         label: 'Batches',       icon: 'factory',        color: '#2E7D32' },
+  { id: 'co_cement',          label: 'Cement',        icon: 'inventory',      color: '#6A1B9A' },
+  { id: 'co_aggregates',      label: 'Aggregates',    icon: 'layers',         color: '#00838F' },
+  { id: 'co_cube_tests',      label: 'Cube Tests',    icon: 'verified',       color: '#C62828' },
+  { id: 'co_project_costing', label: 'Project Costing', icon: 'request_quote', color: '#37474F' },
+  { id: 'co_settings',        label: 'Settings',      icon: 'settings',       color: '#546E7A' },
+]
+
 export const PROJECT_PILLS = [
   { id: 'pj_dashboard', label: 'Dashboard',  icon: 'dashboard',      color: '#1B5E20' },
   { id: 'pj_projects',  label: 'Projects',   icon: 'folder_open',    color: '#2E7D32' },

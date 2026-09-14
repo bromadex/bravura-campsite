@@ -576,19 +576,19 @@ function getDeptPage(page, can, setPage) {
 function getFinancePage(page, can, setPage) {
   const [base, param] = (page || '').split(':')
   switch (base) {
-    case 'fi_chart_of_accounts': return can('finance.view') ? <FIChartOfAccounts setPage={setPage} /> : null
-    case 'fi_journal_entries':   return can('finance.view') ? <FIJournalEntries setPage={setPage} /> : null
-    case 'fi_journal_detail':    return can('finance.view') ? <FIJournalEntryDetail setPage={setPage} entryId={param} /> : null
-    case 'fi_bank_accounts':     return can('finance.view') ? <FIBankAccounts setPage={setPage} /> : null
-    case 'fi_reconciliation':    return can('finance.view') ? <FIBankReconciliation setPage={setPage} bankAccountId={param} /> : null
-    case 'fi_trial_balance':     return can('finance.view') ? <FITrialBalance setPage={setPage} /> : null
-    case 'fi_profit_and_loss':   return can('finance.view') ? <FIProfitAndLoss setPage={setPage} /> : null
-    case 'fi_balance_sheet':     return can('finance.view') ? <FIBalanceSheet setPage={setPage} /> : null
-    case 'fi_cash_flow':         return can('finance.view') ? <FICashFlow setPage={setPage} /> : null
-    case 'fi_cost_centres':      return can('finance.view') ? <FICostCentres setPage={setPage} /> : null
-    case 'fi_cost_report':       return can('finance.view') ? <FICostCentreReport setPage={setPage} /> : null
-    case 'fi_dashboard':         return can('finance.view') ? <FIDashboard setPage={setPage} /> : null
-    default:                     return can('finance.view') ? <FIDashboard setPage={setPage} /> : null
+    case 'fi_chart_of_accounts': return <FIChartOfAccounts setPage={setPage} />
+    case 'fi_journal_entries':   return <FIJournalEntries setPage={setPage} />
+    case 'fi_journal_detail':    return <FIJournalEntryDetail setPage={setPage} entryId={param} />
+    case 'fi_bank_accounts':     return <FIBankAccounts setPage={setPage} />
+    case 'fi_reconciliation':    return <FIBankReconciliation setPage={setPage} bankAccountId={param} />
+    case 'fi_trial_balance':     return <FITrialBalance setPage={setPage} />
+    case 'fi_profit_and_loss':   return <FIProfitAndLoss setPage={setPage} />
+    case 'fi_balance_sheet':     return <FIBalanceSheet setPage={setPage} />
+    case 'fi_cash_flow':         return <FICashFlow setPage={setPage} />
+    case 'fi_cost_centres':      return <FICostCentres setPage={setPage} />
+    case 'fi_cost_report':       return <FICostCentreReport setPage={setPage} />
+    case 'fi_dashboard':         return <FIDashboard setPage={setPage} />
+    default:                     return <FIDashboard setPage={setPage} />
   }
 }
 

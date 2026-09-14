@@ -167,6 +167,10 @@ const FIBankReconciliation = lazy(() => import('./pages/finance/BankReconciliati
 const FITrialBalance       = lazy(() => import('./pages/finance/TrialBalance'))
 const FIProfitAndLoss      = lazy(() => import('./pages/finance/ProfitAndLoss'))
 const FIBalanceSheet       = lazy(() => import('./pages/finance/BalanceSheet'))
+const FICashFlow           = lazy(() => import('./pages/finance/CashFlowStatement'))
+const FICostCentres        = lazy(() => import('./pages/finance/CostCentres'))
+const FICostCentreReport   = lazy(() => import('./pages/finance/CostCentreReport'))
+const FIDashboard          = lazy(() => import('./pages/finance/FinanceDashboard'))
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
@@ -580,7 +584,11 @@ function getFinancePage(page, can, setPage) {
     case 'fi_trial_balance':     return can('finance.view') ? <FITrialBalance setPage={setPage} /> : null
     case 'fi_profit_and_loss':   return can('finance.view') ? <FIProfitAndLoss setPage={setPage} /> : null
     case 'fi_balance_sheet':     return can('finance.view') ? <FIBalanceSheet setPage={setPage} /> : null
-    default:                     return can('finance.view') ? <FIChartOfAccounts setPage={setPage} /> : null
+    case 'fi_cash_flow':         return can('finance.view') ? <FICashFlow setPage={setPage} /> : null
+    case 'fi_cost_centres':      return can('finance.view') ? <FICostCentres setPage={setPage} /> : null
+    case 'fi_cost_report':       return can('finance.view') ? <FICostCentreReport setPage={setPage} /> : null
+    case 'fi_dashboard':         return can('finance.view') ? <FIDashboard setPage={setPage} /> : null
+    default:                     return can('finance.view') ? <FIDashboard setPage={setPage} /> : null
   }
 }
 
@@ -600,7 +608,7 @@ const DEFAULT_PAGE = {
   admin:     'admin_users',
   fuel:      'fuel_dashboard',
   fleet:       'fleet_dashboard',
-  finance:     'fi_chart_of_accounts',
+  finance:     'fi_dashboard',
   contractors: 'cl_dashboard',
   inventory:   'inv_dashboard',
   procurement: 'proc_dashboard',

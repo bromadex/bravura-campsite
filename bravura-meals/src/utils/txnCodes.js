@@ -207,6 +207,10 @@ export const TXN_CODES = [
   { code: 'FI06', path: '/finance/fi_trial_balance',   label: 'Trial Balance',           module: 'finance' },
   { code: 'FI07', path: '/finance/fi_profit_and_loss', label: 'Profit & Loss',           module: 'finance' },
   { code: 'FI08', path: '/finance/fi_balance_sheet',   label: 'Balance Sheet',           module: 'finance' },
+  { code: 'FI09', path: '/finance/fi_cash_flow',      label: 'Cash Flow Statement',     module: 'finance' },
+  { code: 'FI10', path: '/finance/fi_cost_centres',   label: 'Cost Centres',            module: 'finance' },
+  { code: 'FI11', path: '/finance/fi_cost_report',    label: 'Cost Centre Report',      module: 'finance' },
+  { code: 'FI12', path: '/finance/fi_dashboard',      label: 'Finance Dashboard',       module: 'finance' },
 
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },

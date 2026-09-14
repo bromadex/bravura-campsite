@@ -274,12 +274,16 @@ export function procurementNav(role, can) {
 
 export function financeNav(role, can) {
   return [
+    { id: 'fi_dashboard',         label: 'Dashboard',         section: 'Overview',       icon: 'dashboard' },
     { id: 'fi_chart_of_accounts', label: 'Chart of Accounts', section: 'General Ledger', icon: 'account_balance' },
     { id: 'fi_journal_entries',   label: 'Journal Entries',   section: 'General Ledger', icon: 'receipt_long' },
     { id: 'fi_bank_accounts',     label: 'Bank Accounts',     section: 'Banking',        icon: 'account_balance_wallet' },
     { id: 'fi_trial_balance',     label: 'Trial Balance',     section: 'Reports',        icon: 'balance' },
     { id: 'fi_profit_and_loss',   label: 'Profit & Loss',     section: 'Reports',        icon: 'trending_up' },
     { id: 'fi_balance_sheet',     label: 'Balance Sheet',     section: 'Reports',        icon: 'account_tree' },
+    { id: 'fi_cash_flow',         label: 'Cash Flow',         section: 'Reports',        icon: 'water_drop' },
+    { id: 'fi_cost_centres',      label: 'Cost Centres',      section: 'Cost Tracking',  icon: 'category' },
+    { id: 'fi_cost_report',       label: 'Cost Centre Report',section: 'Cost Tracking',  icon: 'bar_chart' },
   ]
 }
 

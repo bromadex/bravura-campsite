@@ -23,6 +23,7 @@ const ALL_MODULES = [
   { id: 'campsite',    label: 'Campsite',              icon: 'holiday_village',      color: MODULE_COLORS.campsite,    access: moduleAccess.campsite    },
   { id: 'meals',       label: 'Meal Management',       icon: 'restaurant',           color: MODULE_COLORS.meals,       access: moduleAccess.meals       },
   { id: 'concrete',   label: 'Batch Plant Operations', icon: 'factory',              color: MODULE_COLORS.concrete,    access: moduleAccess.concrete    },
+  { id: 'sheq',       label: 'SHEQ',                   icon: 'health_and_safety',    color: MODULE_COLORS.sheq,        access: moduleAccess.sheq        },
   { id: 'projects',    label: 'Projects',              icon: 'engineering',          color: MODULE_COLORS.projects,    access: moduleAccess.projects    },
   { id: 'admin',       label: 'Administration',        icon: 'admin_panel_settings', color: MODULE_COLORS.admin,       access: moduleAccess.admin       },
   { id: 'feedback',    label: 'Feedback',              icon: 'forum',                color: MODULE_COLORS.feedback,    access: moduleAccess.feedback    },

@@ -90,6 +90,7 @@ export const MODULE_COLORS = {
   finance:     '#1565C0',  // blue         – finance/accounting
   projects:    '#1B5E20',  // deep green   – project management
   concrete:    '#EF6C00',  // deep orange  – concrete/batch plant
+  sheq:        '#D32F2F',  // red          – safety/health/environment/quality
   dept:        '#37474F',  // blue-grey    – department workspaces
 }
 
@@ -118,6 +119,7 @@ export const moduleAccess = {
   campsite:     r => !!r,
   meals:        (role, can) => can ? can('meals.view') : false,
   concrete:     (role, can) => can ? can('concrete.view') : false,
+  sheq:         (role, can) => can ? can('sheq.view') : false,
   projects:     (role, can) => can ? can('projects.view') : false,
   admin:        (role, can) => can ? can('users.view') : false,
   feedback:     r => !!r,
@@ -338,6 +340,18 @@ export function concreteNav(role, can) {
     { id: 'co_cube_tests',      label: 'Cube Tests',         section: 'Quality',     icon: 'verified' },
     { id: 'co_project_costing', label: 'Project Costing',    section: 'Reports',     icon: 'request_quote' },
     { id: 'co_settings',        label: 'Settings',           section: 'Admin',       icon: 'settings' },
+  ]
+}
+
+export function sheqNav(role, can) {
+  return [
+    { id: 'sq_dashboard',      label: 'Dashboard',           section: 'Overview',       icon: 'dashboard' },
+    { id: 'sq_incidents',      label: 'Incidents',           section: 'Safety',         icon: 'warning' },
+    { id: 'sq_hazards',        label: 'Hazard Reports',      section: 'Safety',         icon: 'report_problem' },
+    { id: 'sq_observations',   label: 'Safety Observations', section: 'Safety',         icon: 'visibility' },
+    { id: 'sq_capa',           label: 'CAPA',                section: 'Actions',        icon: 'task_alt' },
+    { id: 'sq_reports',        label: 'Reports',             section: 'Reports',        icon: 'bar_chart' },
+    { id: 'sq_settings',       label: 'Settings',            section: 'Admin',          icon: 'settings' },
   ]
 }
 

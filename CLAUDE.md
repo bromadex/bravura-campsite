@@ -58,6 +58,23 @@ admin (AD), procurement (PR), feedback (FB), contractors/CL (CL).
 HR pages: `src/pages/hr/` (+ `hr/leave/`). Legacy workforce pages still in
 `src/pages/workforce/`. Contractor pages: `src/pages/contractors/`.
 
+## SHEQ Module Roadmap
+
+Phase 1 (Foundation & Core Safety — 0160): Dashboard, Incidents, Incident Detail,
+Hazard/Near-Miss Reporting, CAPA Register, Safety Observations, SHEQ Reports, Settings.
+Phase 2 (Risk & Permits — 0161): Risk Register, Risk Assessments, PTW, PTW Board,
+LOTO Isolation Register, Risk Matrix Config.
+Phase 3 (Inspections & Audits — 0162): Inspections, Inspection Templates, Audit
+Programme, Audit Findings, SHEQ Calendar.
+Phase 4 (Training, Competency & Medical — 0163): Training & Competency Matrix,
+Medical Fitness Register, Toolbox Talks, Employee SHEQ Profile, Induction Register.
+Phase 5 (Environment & PPE — 0164): Environmental Register, Waste Management,
+Spill Management, Environmental Monitoring, PPE Register & Issues, Resource Consumption.
+Phase 6 (Compliance, Documents & Contractors — 0165): Legal Register, Document Control,
+Contractor SHEQ Compliance, Emergency Plans, Emergency Drills, Management Review, Analytics.
+Phase 7 (Cross-Module Integration): Fleet→SHEQ incidents, HR→SHEQ profiles,
+Contractors→compliance scores, Projects→risk registers, Finance→incident costs.
+
 ## Current state (July 2026)
 
 - HR Phase 1 (foundation) and Phase 2 (leave, documents, medical, org chart,

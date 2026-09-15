@@ -222,6 +222,15 @@ export const TXN_CODES = [
   { code: 'CO07', path: '/concrete/co_project_costing', label: 'Project Costing',      module: 'concrete' },
   { code: 'CO08', path: '/concrete/co_settings',        label: 'Batch Plant Settings', module: 'concrete' },
 
+  // ── SHEQ (SQ) ──────────────────────────────────────────────────────────────
+  { code: 'SQ01', path: '/sheq/sq_dashboard',     label: 'SHEQ Dashboard',        module: 'sheq' },
+  { code: 'SQ02', path: '/sheq/sq_incidents',      label: 'Incidents',             module: 'sheq' },
+  { code: 'SQ03', path: '/sheq/sq_hazards',        label: 'Hazard Reports',        module: 'sheq' },
+  { code: 'SQ04', path: '/sheq/sq_observations',   label: 'Safety Observations',   module: 'sheq' },
+  { code: 'SQ05', path: '/sheq/sq_capa',           label: 'CAPA',                  module: 'sheq' },
+  { code: 'SQ06', path: '/sheq/sq_reports',         label: 'SHEQ Reports',          module: 'sheq' },
+  { code: 'SQ07', path: '/sheq/sq_settings',        label: 'SHEQ Settings',         module: 'sheq' },
+
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },
 ]

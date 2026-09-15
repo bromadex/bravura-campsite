@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav, concreteNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav, concreteNav, sheqNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
@@ -238,6 +238,15 @@ const CubeTests              = lazy(() => import('./pages/concrete/CubeTests'))
 const ProjectCosting         = lazy(() => import('./pages/concrete/ProjectCosting'))
 const BatchPlantSettings     = lazy(() => import('./pages/concrete/BatchPlantSettings'))
 
+// ── SHEQ ─────────────────────────────────────────────────────────────────────
+const SheqDashboard        = lazy(() => import('./pages/sheq/SheqDashboard'))
+const SheqIncidents        = lazy(() => import('./pages/sheq/SheqIncidents'))
+const SheqHazards          = lazy(() => import('./pages/sheq/SheqHazards'))
+const SheqObservations     = lazy(() => import('./pages/sheq/SheqObservations'))
+const SheqCapa             = lazy(() => import('./pages/sheq/SheqCapa'))
+const SheqReports          = lazy(() => import('./pages/sheq/SheqReports'))
+const SheqSettings         = lazy(() => import('./pages/sheq/SheqSettings'))
+
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
 const QuickStartGuide          = lazy(() => import('./pages/feedback/QuickStartGuide'))
@@ -289,6 +298,7 @@ const MODULE_META = {
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
   projects:    { label: 'Project Management',    icon: 'engineering',      navFn: projectsNav     },
   concrete:    { label: 'Batch Plant Operations', icon: 'factory',          navFn: concreteNav     },
+  sheq:        { label: 'SHEQ',                  icon: 'health_and_safety', navFn: sheqNav        },
   dept:        { label: 'Department Workspaces', icon: 'domain',           navFn: deptNav         },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
@@ -617,6 +627,19 @@ function getConcretePage(page, can, setPage) {
   }
 }
 
+function getSheqPage(page, can, setPage) {
+  switch (page) {
+    case 'sq_dashboard':    return <SheqDashboard setPage={setPage} />
+    case 'sq_incidents':    return <SheqIncidents setPage={setPage} />
+    case 'sq_hazards':      return <SheqHazards setPage={setPage} />
+    case 'sq_observations': return <SheqObservations setPage={setPage} />
+    case 'sq_capa':         return <SheqCapa setPage={setPage} />
+    case 'sq_reports':      return <SheqReports setPage={setPage} />
+    case 'sq_settings':     return can('sheq.edit') ? <SheqSettings setPage={setPage} /> : null
+    default:                return <SheqDashboard setPage={setPage} />
+  }
+}
+
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
@@ -639,6 +662,7 @@ const DEFAULT_PAGE = {
   procurement: 'proc_dashboard',
   projects:    'pj_dashboard',
   concrete:    'co_dashboard',
+  sheq:        'sq_dashboard',
   dept:        'dept_dashboard',
   feedback:    'feedback_board',
 }
@@ -678,6 +702,7 @@ function ModuleShell() {
   if (moduleId === 'procurement') content = getProcurementPage(currentPage, can, setPage)
   if (moduleId === 'projects')  content = getProjectsPage(currentPage, can, setPage)
   if (moduleId === 'concrete')  content = getConcretePage(currentPage, can, setPage)
+  if (moduleId === 'sheq')      content = getSheqPage(currentPage, can, setPage)
   if (moduleId === 'dept')      content = getDeptPage(currentPage, can, setPage)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 

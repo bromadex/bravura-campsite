@@ -122,6 +122,16 @@ export const CONCRETE_PILLS = [
   { id: 'co_settings',        label: 'Settings',      icon: 'settings',       color: '#546E7A' },
 ]
 
+export const SHEQ_PILLS = [
+  { id: 'sq_dashboard',    label: 'Dashboard',      icon: 'dashboard',      color: '#D32F2F' },
+  { id: 'sq_incidents',    label: 'Incidents',       icon: 'warning',        color: '#E65100' },
+  { id: 'sq_hazards',      label: 'Hazards',         icon: 'report_problem', color: '#F57F17' },
+  { id: 'sq_observations', label: 'Observations',    icon: 'visibility',     color: '#2E7D32' },
+  { id: 'sq_capa',         label: 'CAPA',            icon: 'task_alt',       color: '#1565C0' },
+  { id: 'sq_reports',      label: 'Reports',         icon: 'bar_chart',      color: '#6A1B9A' },
+  { id: 'sq_settings',     label: 'Settings',        icon: 'settings',       color: '#546E7A' },
+]
+
 export const PROJECT_PILLS = [
   { id: 'pj_dashboard', label: 'Dashboard',  icon: 'dashboard',      color: '#1B5E20' },
   { id: 'pj_projects',  label: 'Projects',   icon: 'folder_open',    color: '#2E7D32' },

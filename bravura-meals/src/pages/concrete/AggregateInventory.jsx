@@ -9,6 +9,7 @@ import {
   Modal, Chip, TableWrap, THead, Th, TRow, Td, fmtDate, StatCard,
 } from '../../components/ui'
 import QuickNav, { CONCRETE_PILLS } from '../../components/QuickNav'
+import { createDeliveryJournal } from '../../utils/financeIntegration'
 
 const CLR = MODULE_COLORS.concrete
 
@@ -215,7 +216,17 @@ export default function AggregateInventory({ setPage }) {
       showToast('Failed to save delivery: ' + error.message, 'error')
       return
     }
-    showToast('Delivery recorded', 'success')
+
+    // Auto-create draft journal entry for the delivery
+    const deliveryTotal = unit ? qty * unit : 0
+    if (deliveryTotal > 0) {
+      const typeName = aggTypes.find(t => t.id === deliveryForm.aggregate_type_id)?.name || 'Aggregate'
+      const desc = `Aggregate delivery: ${typeName} from ${deliveryForm.supplier || 'unknown'} — ${qty}kg`
+      const jr = await createDeliveryJournal({ supabase, siteId: currentSiteId, userId: user?.id, description: desc, totalCost: deliveryTotal })
+      showToast(jr.success ? 'Delivery saved. Draft journal entry created.' : 'Delivery saved.', jr.success ? 'success' : undefined)
+    } else {
+      showToast('Delivery recorded', 'success')
+    }
     setShowDeliveryModal(false)
     setDeliveryForm(BLANK_DELIVERY)
     refresh()

@@ -7,6 +7,7 @@ import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
 import QuickNav, { CONCRETE_PILLS } from '../../components/QuickNav'
 import { exportCsv } from '../../utils/csv'
+import { createProductionJournal } from '../../utils/financeIntegration'
 
 const CO_CLR = '#EF6C00'
 
@@ -278,6 +279,30 @@ function BatchModal({ batch, mixDesigns, fleetAssets, drivers, allBatches, siteI
               .update({ end_time: new Date().toISOString() })
               .eq('id', matchingTrips[0].id)
           }
+        }
+
+        // Auto-create production journal when batch is delivered
+        if (form.status === 'delivered' && batch.status !== 'delivered') {
+          try {
+            const actualCement = form.actual_cement_kg ? parseFloat(form.actual_cement_kg) : 0
+            if (actualCement > 0) {
+              // Get latest cement unit cost for cost estimation
+              const { data: recentCement } = await supabase
+                .from('cement_deliveries')
+                .select('unit_cost')
+                .eq('site_id', siteId)
+                .eq('is_archived', false)
+                .not('unit_cost', 'is', null)
+                .order('delivery_date', { ascending: false })
+                .limit(1)
+              const unitCost = recentCement?.[0]?.unit_cost
+              if (unitCost) {
+                const materialCost = actualCement * Number(unitCost)
+                const desc = `Concrete production: Batch ${batch.batch_number} — ${form.grade} — ${parseFloat(form.quantity_m3)}m³`
+                await createProductionJournal({ supabase, siteId, userId, description: desc, materialCost })
+              }
+            }
+          } catch (_) { /* don't block batch update */ }
         }
 
         showToast('Batch updated')

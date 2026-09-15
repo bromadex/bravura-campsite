@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, Modal, showToast } from '../../components/ui'
 import QuickNav, { CONCRETE_PILLS } from '../../components/QuickNav'
+import { createDeliveryJournal } from '../../utils/financeIntegration'
 
 const ACCENT = MODULE_COLORS.concrete
 const LEAD_TIME_DAYS = 7
@@ -126,7 +127,16 @@ export default function CementInventory({ setPage }) {
     })
     setSaving(false)
     if (error) { showToast(error.message, 'error'); return }
-    showToast('Delivery recorded')
+
+    // Auto-create draft journal entry for the delivery
+    if (totalCost > 0) {
+      const dn = form.delivery_note_number.trim()
+      const desc = `Cement delivery: ${form.supplier.trim()} — ${Number(form.quantity_kg)}kg${dn ? ` — DN#${dn}` : ''}`
+      const jr = await createDeliveryJournal({ supabase, siteId: currentSiteId, userId: user?.id, description: desc, totalCost })
+      showToast(jr.success ? 'Delivery saved. Draft journal entry created.' : 'Delivery saved.', jr.success ? 'success' : undefined)
+    } else {
+      showToast('Delivery recorded')
+    }
     setShowAdd(false)
     setForm(emptyForm)
     fetchDeliveries()
@@ -283,6 +293,10 @@ export default function CementInventory({ setPage }) {
           <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Delivery'}</Button>
         </>}
       >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '8px', background: '#E3F2FD', marginBottom: '14px', fontSize: '12px', color: '#1565C0' }}>
+          <Icon name="info" size={16} style={{ color: '#1565C0', flexShrink: 0 }} />
+          A draft journal entry will be created in Finance for this delivery.
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={labelStyle}>Supplier *</label>

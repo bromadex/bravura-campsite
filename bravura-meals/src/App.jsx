@@ -246,6 +246,12 @@ const SheqObservations     = lazy(() => import('./pages/sheq/SheqObservations'))
 const SheqCapa             = lazy(() => import('./pages/sheq/SheqCapa'))
 const SheqReports          = lazy(() => import('./pages/sheq/SheqReports'))
 const SheqSettings         = lazy(() => import('./pages/sheq/SheqSettings'))
+const SheqRiskRegister     = lazy(() => import('./pages/sheq/SheqRiskRegister'))
+const SheqRiskAssessments  = lazy(() => import('./pages/sheq/SheqRiskAssessments'))
+const SheqPermits          = lazy(() => import('./pages/sheq/SheqPermits'))
+const SheqPtwBoard         = lazy(() => import('./pages/sheq/SheqPtwBoard'))
+const SheqLoto             = lazy(() => import('./pages/sheq/SheqLoto'))
+const SheqRiskMatrix       = lazy(() => import('./pages/sheq/SheqRiskMatrix'))
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
@@ -635,8 +641,14 @@ function getSheqPage(page, can, setPage) {
     case 'sq_observations': return <SheqObservations setPage={setPage} />
     case 'sq_capa':         return <SheqCapa setPage={setPage} />
     case 'sq_reports':      return <SheqReports setPage={setPage} />
-    case 'sq_settings':     return can('sheq.edit') ? <SheqSettings setPage={setPage} /> : null
-    default:                return <SheqDashboard setPage={setPage} />
+    case 'sq_risk_register':    return <SheqRiskRegister setPage={setPage} />
+    case 'sq_risk_assessments': return <SheqRiskAssessments setPage={setPage} />
+    case 'sq_permits':          return <SheqPermits setPage={setPage} />
+    case 'sq_ptw_board':        return <SheqPtwBoard setPage={setPage} />
+    case 'sq_loto':             return <SheqLoto setPage={setPage} />
+    case 'sq_risk_matrix':      return can('sheq.edit') ? <SheqRiskMatrix setPage={setPage} /> : null
+    case 'sq_settings':         return can('sheq.edit') ? <SheqSettings setPage={setPage} /> : null
+    default:                    return <SheqDashboard setPage={setPage} />
   }
 }
 

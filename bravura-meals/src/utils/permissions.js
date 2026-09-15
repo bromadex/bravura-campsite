@@ -350,6 +350,12 @@ export function sheqNav(role, can) {
     { id: 'sq_hazards',        label: 'Hazard Reports',      section: 'Safety',         icon: 'report_problem' },
     { id: 'sq_observations',   label: 'Safety Observations', section: 'Safety',         icon: 'visibility' },
     { id: 'sq_capa',           label: 'CAPA',                section: 'Actions',        icon: 'task_alt' },
+    { id: 'sq_risk_register',  label: 'Risk Register',       section: 'Risk',           icon: 'shield' },
+    { id: 'sq_risk_assessments', label: 'Risk Assessments',  section: 'Risk',           icon: 'assignment' },
+    { id: 'sq_permits',        label: 'Permit to Work',      section: 'Permits',        icon: 'description' },
+    { id: 'sq_ptw_board',      label: 'PTW Board',           section: 'Permits',        icon: 'view_kanban' },
+    { id: 'sq_loto',           label: 'LOTO Register',       section: 'Permits',        icon: 'lock' },
+    { id: 'sq_risk_matrix',    label: 'Risk Matrix',         section: 'Admin',          icon: 'grid_on' },
     { id: 'sq_reports',        label: 'Reports',             section: 'Reports',        icon: 'bar_chart' },
     { id: 'sq_settings',       label: 'Settings',            section: 'Admin',          icon: 'settings' },
   ]

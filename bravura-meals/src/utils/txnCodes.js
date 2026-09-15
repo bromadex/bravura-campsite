@@ -230,6 +230,12 @@ export const TXN_CODES = [
   { code: 'SQ05', path: '/sheq/sq_capa',           label: 'CAPA',                  module: 'sheq' },
   { code: 'SQ06', path: '/sheq/sq_reports',         label: 'SHEQ Reports',          module: 'sheq' },
   { code: 'SQ07', path: '/sheq/sq_settings',        label: 'SHEQ Settings',         module: 'sheq' },
+  { code: 'SQ08', path: '/sheq/sq_risk_register',   label: 'Risk Register',         module: 'sheq' },
+  { code: 'SQ09', path: '/sheq/sq_risk_assessments', label: 'Risk Assessments',     module: 'sheq' },
+  { code: 'SQ10', path: '/sheq/sq_permits',          label: 'Permit to Work',       module: 'sheq' },
+  { code: 'SQ11', path: '/sheq/sq_ptw_board',        label: 'PTW Board',            module: 'sheq' },
+  { code: 'SQ12', path: '/sheq/sq_loto',             label: 'LOTO Register',        module: 'sheq' },
+  { code: 'SQ13', path: '/sheq/sq_risk_matrix',      label: 'Risk Matrix',          module: 'sheq' },
 
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },

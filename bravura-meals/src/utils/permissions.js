@@ -103,38 +103,24 @@ export const ROLE_LABELS = {
 }
 
 // ─── Module access ────────────────────────────────────────────────────────────
+// Order follows business cycle: Finance → Procurement → Inventory → Fuel →
+// Fleet → HR → Contractors → Departments → Campsite → Meals → Concrete →
+// Projects, then Admin, Feedback.
 export const moduleAccess = {
-  // All authenticated users can see Workforce & Campsite
-  workforce: r => !!r,
-  campsite:  r => !!r,
-  // Meals: swapped to real RBAC alongside the PIN gate removal — every page
-  // inside Meals is now permission-gated, so the module tile should use the
-  // same single source of truth rather than a separate hardcoded role list.
-  // Camp Supervisor (old 'approver') loses the tile too — consistent, not a
-  // new narrowing, since they'd already lost every meaningful action inside
-  // Meals in the page-level swap.
-  meals:     (role, can) => can ? can('meals.view') : false,
-  // Administration is new code — gated by REAL RBAC from the start, not the
-  // legacy role string. Signature is (role, can) so the same .access(role, can)
-  // call works for every module; the three above simply ignore the extra arg.
-  admin:     (role, can) => can ? can('users.view') : false,
-  // Fuel Management — gated by fuel.view from the start.
-  fuel:      (role, can) => can ? can('fuel.view') : false,
-  // Fleet Management — all authenticated users can access; vehicle registry is
-  // not sensitive operational data and is useful across roles.
-  fleet:     r => !!r,
-  // Procurement — gated by procurement.view
-  procurement: (role, can) => can ? can('procurement.view') : false,
-  // Contract & Contractor Management — gated by contractors.view
-  contractors: (role, can) => can ? can('contractors.view') : false,
-  // Feedback — always open to any signed-in user. This is where the whole
-  // organisation reports bugs, gaps, and suggestions during the build phase.
-  inventory: (role, can) => can ? can('inventory.view') : false,
-  projects:  (role, can) => can ? can('projects.view') : false,
-  finance:   r => !!r,
-  concrete:  (role, can) => can ? can('concrete.view') : false,
-  dept:      (role, can) => can ? can('dept.view') : false,
-  feedback:  r => !!r,
+  finance:      r => !!r,
+  procurement:  (role, can) => can ? can('procurement.view') : false,
+  inventory:    (role, can) => can ? can('inventory.view') : false,
+  fuel:         (role, can) => can ? can('fuel.view') : false,
+  fleet:        r => !!r,
+  workforce:    r => !!r,
+  contractors:  (role, can) => can ? can('contractors.view') : false,
+  dept:         (role, can) => can ? can('dept.view') : false,
+  campsite:     r => !!r,
+  meals:        (role, can) => can ? can('meals.view') : false,
+  concrete:     (role, can) => can ? can('concrete.view') : false,
+  projects:     (role, can) => can ? can('projects.view') : false,
+  admin:        (role, can) => can ? can('users.view') : false,
+  feedback:     r => !!r,
 }
 
 // ─── Feedback nav ─────────────────────────────────────────────────────────────

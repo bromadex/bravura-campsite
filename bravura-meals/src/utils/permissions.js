@@ -356,6 +356,12 @@ export function sheqNav(role, can) {
     { id: 'sq_ptw_board',      label: 'PTW Board',           section: 'Permits',        icon: 'view_kanban' },
     { id: 'sq_loto',           label: 'LOTO Register',       section: 'Permits',        icon: 'lock' },
     { id: 'sq_risk_matrix',    label: 'Risk Matrix',         section: 'Admin',          icon: 'grid_on' },
+    { id: 'sq_environmental',  label: 'Environmental',       section: 'Environment',    icon: 'eco' },
+    { id: 'sq_waste',          label: 'Waste Management',    section: 'Environment',    icon: 'delete_sweep' },
+    { id: 'sq_spills',         label: 'Spill Management',    section: 'Environment',    icon: 'water_drop' },
+    { id: 'sq_env_monitoring', label: 'Env Monitoring',      section: 'Environment',    icon: 'monitor_heart' },
+    { id: 'sq_ppe',            label: 'PPE Register',        section: 'PPE',            icon: 'health_and_safety' },
+    { id: 'sq_resources',      label: 'Resource Consumption', section: 'Environment',   icon: 'bolt' },
     { id: 'sq_reports',        label: 'Reports',             section: 'Reports',        icon: 'bar_chart' },
     { id: 'sq_settings',       label: 'Settings',            section: 'Admin',          icon: 'settings' },
   ]

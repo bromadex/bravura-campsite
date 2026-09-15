@@ -236,6 +236,12 @@ export const TXN_CODES = [
   { code: 'SQ11', path: '/sheq/sq_ptw_board',        label: 'PTW Board',            module: 'sheq' },
   { code: 'SQ12', path: '/sheq/sq_loto',             label: 'LOTO Register',        module: 'sheq' },
   { code: 'SQ13', path: '/sheq/sq_risk_matrix',      label: 'Risk Matrix',          module: 'sheq' },
+  { code: 'SQ14', path: '/sheq/sq_environmental',    label: 'Environmental Register', module: 'sheq' },
+  { code: 'SQ15', path: '/sheq/sq_waste',             label: 'Waste Management',      module: 'sheq' },
+  { code: 'SQ16', path: '/sheq/sq_spills',            label: 'Spill Management',      module: 'sheq' },
+  { code: 'SQ17', path: '/sheq/sq_env_monitoring',    label: 'Env Monitoring',        module: 'sheq' },
+  { code: 'SQ18', path: '/sheq/sq_ppe',               label: 'PPE Register',          module: 'sheq' },
+  { code: 'SQ19', path: '/sheq/sq_resources',         label: 'Resource Consumption',  module: 'sheq' },
 
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },

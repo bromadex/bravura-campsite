@@ -132,6 +132,12 @@ export const SHEQ_PILLS = [
   { id: 'sq_permits',         label: 'PTW',             icon: 'description',    color: '#00695C' },
   { id: 'sq_loto',            label: 'LOTO',            icon: 'lock',           color: '#37474F' },
   { id: 'sq_risk_matrix',     label: 'Risk Matrix',     icon: 'grid_on',        color: '#4527A0' },
+  { id: 'sq_environmental',   label: 'Environmental',   icon: 'eco',            color: '#2E7D32' },
+  { id: 'sq_waste',           label: 'Waste',           icon: 'delete_sweep',   color: '#5D4037' },
+  { id: 'sq_spills',          label: 'Spills',          icon: 'water_drop',     color: '#0277BD' },
+  { id: 'sq_env_monitoring',  label: 'Monitoring',      icon: 'monitor_heart',  color: '#00838F' },
+  { id: 'sq_ppe',             label: 'PPE',             icon: 'health_and_safety', color: '#E65100' },
+  { id: 'sq_resources',       label: 'Resources',       icon: 'bolt',           color: '#F57F17' },
   { id: 'sq_reports',         label: 'Reports',         icon: 'bar_chart',      color: '#6A1B9A' },
   { id: 'sq_settings',        label: 'Settings',        icon: 'settings',       color: '#546E7A' },
 ]

@@ -252,6 +252,12 @@ const SheqPermits          = lazy(() => import('./pages/sheq/SheqPermits'))
 const SheqPtwBoard         = lazy(() => import('./pages/sheq/SheqPtwBoard'))
 const SheqLoto             = lazy(() => import('./pages/sheq/SheqLoto'))
 const SheqRiskMatrix       = lazy(() => import('./pages/sheq/SheqRiskMatrix'))
+const SheqEnvironmental    = lazy(() => import('./pages/sheq/SheqEnvironmental'))
+const SheqWaste            = lazy(() => import('./pages/sheq/SheqWaste'))
+const SheqSpills           = lazy(() => import('./pages/sheq/SheqSpills'))
+const SheqEnvMonitoring    = lazy(() => import('./pages/sheq/SheqEnvMonitoring'))
+const SheqPpe              = lazy(() => import('./pages/sheq/SheqPpe'))
+const SheqResources        = lazy(() => import('./pages/sheq/SheqResources'))
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
@@ -647,6 +653,12 @@ function getSheqPage(page, can, setPage) {
     case 'sq_ptw_board':        return <SheqPtwBoard setPage={setPage} />
     case 'sq_loto':             return <SheqLoto setPage={setPage} />
     case 'sq_risk_matrix':      return can('sheq.edit') ? <SheqRiskMatrix setPage={setPage} /> : null
+    case 'sq_environmental':    return <SheqEnvironmental setPage={setPage} />
+    case 'sq_waste':            return <SheqWaste setPage={setPage} />
+    case 'sq_spills':           return <SheqSpills setPage={setPage} />
+    case 'sq_env_monitoring':   return <SheqEnvMonitoring setPage={setPage} />
+    case 'sq_ppe':              return <SheqPpe setPage={setPage} />
+    case 'sq_resources':        return <SheqResources setPage={setPage} />
     case 'sq_settings':         return can('sheq.edit') ? <SheqSettings setPage={setPage} /> : null
     default:                    return <SheqDashboard setPage={setPage} />
   }

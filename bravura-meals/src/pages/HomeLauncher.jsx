@@ -261,8 +261,10 @@ export default function HomeLauncher({ onEnterModule }) {
           borderRadius: '10px',
           padding: '0 14px',
           height: '40px',
+          cursor: 'pointer',
           transition: 'background .15s, border-color .15s',
         }}
+        onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.11)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.14)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.08)' }}
         >

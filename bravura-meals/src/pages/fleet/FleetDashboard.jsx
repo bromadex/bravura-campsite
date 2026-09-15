@@ -78,6 +78,7 @@ export default function FleetDashboard({ setPage }) {
   const [detailAsset, setDetailAsset] = useState(null)
   const [overConsumers, setOverConsumers] = useState([])
   const [costData, setCostData] = useState({ byAsset: [], byType: [], monthlyTrend: [], totalCost: 0 })
+  const [concreteTrips, setConcreteTrips] = useState([])
   const OVER_PCT_THRESHOLD = 20  // configurable later via fleet_settings
 
   const openWorkOrders = useMemo(() =>
@@ -133,6 +134,25 @@ export default function FleetDashboard({ setPage }) {
       if (!cancelled) setOverConsumers(results)
     }
     load()
+    return () => { cancelled = true }
+  }, [currentSiteId])
+
+  // Today's concrete dispatches
+  useEffect(() => {
+    if (!currentSiteId) return
+    let cancelled = false
+    async function loadConcreteTrips() {
+      const today = new Date().toISOString().slice(0, 10)
+      const { data } = await supabase
+        .from('fleet_trips')
+        .select('id, asset_id, start_time, end_time, purpose, fleet_assets(asset_number, fleet_number, registration)')
+        .eq('site_id', currentSiteId)
+        .eq('trip_date', today)
+        .like('purpose', 'Concrete batch%')
+        .order('start_time', { ascending: false })
+      if (!cancelled) setConcreteTrips(data || [])
+    }
+    loadConcreteTrips()
     return () => { cancelled = true }
   }, [currentSiteId])
 
@@ -578,6 +598,54 @@ export default function FleetDashboard({ setPage }) {
           </div>
         </Section>
       )}
+
+      {/* Today's Concrete Dispatches */}
+      <Section title="Today's Concrete Dispatches" sub="Mixer trucks dispatched for concrete delivery today" style={{ marginBottom: '16px' }}>
+        {concreteTrips.length === 0 ? (
+          <div style={{ fontSize: '13px', color: THEME.textLow, padding: '16px 0', textAlign: 'center' }}>
+            No concrete dispatches today
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr>
+                  {['Truck', 'Batch Info', 'Dispatched', 'Returned', 'Turnaround'].map(h => (
+                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, borderBottom: `1px solid ${THEME.outlineVar}`, whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {concreteTrips.map(t => {
+                  const truck = t.fleet_assets
+                    ? (t.fleet_assets.fleet_number || t.fleet_assets.asset_number || '') + (t.fleet_assets.registration ? ` (${t.fleet_assets.registration})` : '')
+                    : '--'
+                  const dispatched = t.start_time ? new Date(t.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'
+                  const returned = t.end_time ? new Date(t.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null
+                  let turnaround = null
+                  if (t.start_time && t.end_time) {
+                    const mins = Math.round((new Date(t.end_time) - new Date(t.start_time)) / 60000)
+                    turnaround = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`
+                  }
+                  return (
+                    <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 500, color: THEME.text, whiteSpace: 'nowrap' }}>{truck}</td>
+                      <td style={{ padding: '8px 10px', color: THEME.text, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.purpose || '--'}</td>
+                      <td style={{ padding: '8px 10px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{dispatched}</td>
+                      <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                        {returned || <span style={{ color: ACCENT.orange, fontWeight: 600, fontSize: '11px' }}>En route</span>}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontWeight: 500, color: turnaround ? ACCENT.green : THEME.textLow, whiteSpace: 'nowrap' }}>
+                        {turnaround || '--'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
 
       <Section title="Quick Actions" sub="Jump to a fleet module">
         {[

@@ -52,11 +52,18 @@ export default function FleetTrips({ setPage }) {
     const tripsWithDist = all.filter(t => t.distance_km > 0)
     const avgDist = tripsWithDist.length ? totalDist / tripsWithDist.length : 0
     const completed = all.filter(t => t.end_time).length
+    const concreteTrips = all.filter(t => (t.purpose || '').startsWith('Concrete batch'))
+    const concreteWithTimes = concreteTrips.filter(t => t.start_time && t.end_time)
+    const avgTurnaround = concreteWithTimes.length
+      ? concreteWithTimes.reduce((s, t) => s + (new Date(t.end_time) - new Date(t.start_time)) / 60000, 0) / concreteWithTimes.length
+      : 0
     return {
       total: all.length,
       totalDist,
       avgDist,
       completed,
+      concreteCount: concreteTrips.length,
+      concreteAvgMins: avgTurnaround,
     }
   }, [trips])
 
@@ -152,6 +159,7 @@ export default function FleetTrips({ setPage }) {
     { label: 'Total Distance', value: kpis.totalDist.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' km', icon: 'straighten', bg: THEME.statusSuccessBg, fg: THEME.statusSuccessText },
     { label: 'Avg Distance', value: kpis.avgDist.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' km', icon: 'speed', bg: THEME.statusWarningBg, fg: THEME.statusWarningText },
     { label: 'Completed', value: kpis.completed, icon: 'check_circle', bg: THEME.statusTertiaryBg, fg: THEME.statusTertiaryText },
+    { label: 'Concrete Trips', value: `${kpis.concreteCount}${kpis.concreteAvgMins > 0 ? ` · avg ${Math.round(kpis.concreteAvgMins)}m` : ''}`, icon: 'local_shipping', bg: '#EF6C0014', fg: '#EF6C00' },
   ]
 
   function getAssetLabel(id) {

@@ -246,6 +246,40 @@ function BatchModal({ batch, mixDesigns, fleetAssets, drivers, allBatches, siteI
           }
         }
 
+        // Auto-create fleet_trip when status changes to 'dispatched'
+        if (form.status === 'dispatched' && batch.status !== 'dispatched' && form.fleet_asset_id) {
+          const tripPurpose = `Concrete batch ${batch.batch_number} — ${form.grade} — ${parseFloat(form.quantity_m3)}m³`
+          await supabase.from('fleet_trips').insert({
+            asset_id: form.fleet_asset_id,
+            operator_id: form.driver_id || null,
+            trip_date: new Date().toISOString().slice(0, 10),
+            start_time: new Date().toISOString(),
+            destination: form.delivery_location || 'Concrete delivery',
+            purpose: tripPurpose,
+            site_id: siteId,
+            notes: 'Auto-created from concrete batch dispatch',
+          })
+        }
+
+        // Update fleet_trip end_time when status changes to 'delivered'
+        if (form.status === 'delivered' && batch.status !== 'delivered' && form.fleet_asset_id) {
+          const today = new Date().toISOString().slice(0, 10)
+          const { data: matchingTrips } = await supabase
+            .from('fleet_trips')
+            .select('id')
+            .eq('asset_id', form.fleet_asset_id)
+            .eq('trip_date', today)
+            .eq('site_id', siteId)
+            .like('purpose', `%${batch.batch_number}%`)
+            .is('end_time', null)
+            .limit(1)
+          if (matchingTrips && matchingTrips.length > 0) {
+            await supabase.from('fleet_trips')
+              .update({ end_time: new Date().toISOString() })
+              .eq('id', matchingTrips[0].id)
+          }
+        }
+
         showToast('Batch updated')
       } else {
         const batchNumber = generateBatchNumber(allBatches)

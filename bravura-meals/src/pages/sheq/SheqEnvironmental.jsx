@@ -502,7 +502,7 @@ export default function SheqEnvironmental({ setPage }) {
     const rows = filtered.map(a => [
       a.aspect_number, a.title, a.activity || '', fmtType(a.category),
       a.impact || '', a.risk_score ?? '', a.risk_level || '',
-      a.residual_risk ?? '', a.status, a.responsible_profile?.name || '',
+      a.residual_risk ?? '', a.status, profileMap[a.responsible] || '',
     ])
     exportCsv(`sheq-environmental-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
     showToast('CSV exported')

@@ -258,6 +258,11 @@ const SheqSpills           = lazy(() => import('./pages/sheq/SheqSpills'))
 const SheqEnvMonitoring    = lazy(() => import('./pages/sheq/SheqEnvMonitoring'))
 const SheqPpe              = lazy(() => import('./pages/sheq/SheqPpe'))
 const SheqResources        = lazy(() => import('./pages/sheq/SheqResources'))
+const SheqInspections      = lazy(() => import('./pages/sheq/SheqInspections'))
+const SheqTemplates        = lazy(() => import('./pages/sheq/SheqTemplates'))
+const SheqAudits           = lazy(() => import('./pages/sheq/SheqAudits'))
+const SheqAuditFindings    = lazy(() => import('./pages/sheq/SheqAuditFindings'))
+const SheqCalendar         = lazy(() => import('./pages/sheq/SheqCalendar'))
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
@@ -659,6 +664,11 @@ function getSheqPage(page, can, setPage) {
     case 'sq_env_monitoring':   return <SheqEnvMonitoring setPage={setPage} />
     case 'sq_ppe':              return <SheqPpe setPage={setPage} />
     case 'sq_resources':        return <SheqResources setPage={setPage} />
+    case 'sq_inspections':      return <SheqInspections setPage={setPage} />
+    case 'sq_templates':        return <SheqTemplates setPage={setPage} />
+    case 'sq_audits':           return <SheqAudits setPage={setPage} />
+    case 'sq_audit_findings':   return <SheqAuditFindings setPage={setPage} />
+    case 'sq_calendar':         return <SheqCalendar setPage={setPage} />
     case 'sq_settings':         return can('sheq.edit') ? <SheqSettings setPage={setPage} /> : null
     default:                    return <SheqDashboard setPage={setPage} />
   }

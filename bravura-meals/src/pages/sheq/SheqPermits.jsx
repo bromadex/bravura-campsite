@@ -93,7 +93,7 @@ function ApprovalChain({ permit, profiles }) {
   ]
   const profMap = useMemo(() => {
     const m = {}
-    profiles.forEach(p => { m[p.id] = p.full_name })
+    profiles.forEach(p => { m[p.id] = p.name })
     return m
   }, [profiles])
 
@@ -500,7 +500,7 @@ export default function SheqPermits({ setPage }) {
     try {
       const { data, error: err } = await supabase
         .from('sheq_permits')
-        .select('*, permit_type:sheq_permit_types!sheq_permits_permit_type_id_fkey(name), requester:profiles!sheq_permits_requested_by_fkey(full_name)')
+        .select('*, permit_type:sheq_permit_types!sheq_permits_permit_type_id_fkey(name)')
         .eq('site_id', currentSiteId)
         .is('is_archived', false)
         .order('created_at', { ascending: false })
@@ -518,7 +518,7 @@ export default function SheqPermits({ setPage }) {
     const [types, projs, profs] = await Promise.all([
       supabase.from('sheq_permit_types').select('id, name').eq('site_id', currentSiteId).eq('is_active', true).order('name'),
       supabase.from('projects').select('id, name').eq('site_id', currentSiteId).is('is_archived', false).order('name'),
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
     ])
     setPermitTypes(types.data || [])
     setProjects(projs.data || [])
@@ -570,7 +570,7 @@ export default function SheqPermits({ setPage }) {
     const rows = filtered.map(p => [
       p.permit_number, p.title, p.permit_type?.name || '', p.location || '',
       p.start_date || '', p.end_date || '', fmtLabel(p._eff),
-      p.requester?.full_name || '',
+      profMap[p.requested_by] || '',
     ])
     exportCsv(`sheq-permits-${today}.csv`, headers, rows)
     showToast('CSV exported')
@@ -728,7 +728,7 @@ export default function SheqPermits({ setPage }) {
                       {fmtDate(p.start_date)}{p.end_date ? ` - ${fmtDate(p.end_date)}` : ''}
                     </td>
                     <td style={{ padding: '10px 12px' }}><StatusBadge status={p._eff} /></td>
-                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{p.requester?.full_name || '--'}</td>
+                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{profMap[p.requested_by] || '--'}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         {(canEdit || canApprove) && (

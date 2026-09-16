@@ -262,9 +262,9 @@ function LotoModal({ loto, permits, profiles, siteId, userId, canApprove, onClos
                 Status: <Badge label={STATUS_LABELS[loto.status]} color={STATUS_COLORS[loto.status]} />
               </div>
               <div style={{ fontSize: '12px', color: THEME.textMed, lineHeight: 1.8 }}>
-                {loto.applied_by_profile?.full_name && <div>Applied by: {loto.applied_by_profile.full_name} at {fmtDatetime(loto.applied_at)}</div>}
-                {loto.verified_by_profile?.full_name && <div>Verified by: {loto.verified_by_profile.full_name} at {fmtDatetime(loto.verified_at)}</div>}
-                {loto.restored_by_profile?.full_name && <div>Restored by: {loto.restored_by_profile.full_name} at {fmtDatetime(loto.restored_at)}</div>}
+                {profileMap[loto.applied_by] && <div>Applied by: {profileMap[loto.applied_by]} at {fmtDatetime(loto.applied_at)}</div>}
+                {profileMap[loto.verified_by] && <div>Verified by: {profileMap[loto.verified_by]} at {fmtDatetime(loto.verified_at)}</div>}
+                {profileMap[loto.restored_by] && <div>Restored by: {profileMap[loto.restored_by]} at {fmtDatetime(loto.restored_at)}</div>}
               </div>
             </div>
           )}
@@ -320,11 +320,11 @@ export default function SheqLoto({ setPage }) {
     const [{ data, error }, { data: profs }, { data: perms }] = await Promise.all([
       supabase
         .from('sheq_loto_isolations')
-        .select('*, applied_by_profile:profiles!sheq_loto_isolations_applied_by_fkey(full_name), verified_by_profile:profiles!sheq_loto_isolations_verified_by_fkey(full_name), restored_by_profile:profiles!sheq_loto_isolations_restored_by_fkey(full_name)')
+        .select('*')
         .eq('site_id', currentSiteId)
         .is('is_archived', false)
         .order('created_at', { ascending: false }),
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
       supabase
         .from('sheq_permits')
         .select('id, permit_number, work_description')
@@ -341,6 +341,8 @@ export default function SheqLoto({ setPage }) {
   }, [currentSiteId])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   // KPI calculations
   const kpis = useMemo(() => {
@@ -381,7 +383,7 @@ export default function SheqLoto({ setPage }) {
       r.isolation_number, r.equipment_name, r.equipment_id_tag || '',
       ENERGY_LABELS[r.energy_source] || r.energy_source, r.isolation_point || '',
       r.lock_number, r.tag_number,
-      r.applied_by_profile?.full_name || '', r.applied_at ? fmtDatetime(r.applied_at) : '',
+      profileMap[r.applied_by] || '', r.applied_at ? fmtDatetime(r.applied_at) : '',
       STATUS_LABELS[r.status] || r.status,
     ])
     exportCsv(`sheq-loto-${new Date().toISOString().slice(0, 10)}.csv`, headers, csvRows)
@@ -523,7 +525,7 @@ export default function SheqLoto({ setPage }) {
                     <td style={{ padding: '10px 12px', color: THEME.textMed }}>{r.isolation_point || '--'}</td>
                     <td style={{ padding: '10px 12px', fontFamily: 'monospace', color: THEME.text }}>{r.lock_number}</td>
                     <td style={{ padding: '10px 12px', fontFamily: 'monospace', color: THEME.text }}>{r.tag_number}</td>
-                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{r.applied_by_profile?.full_name || '--'}</td>
+                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{profileMap[r.applied_by] || '--'}</td>
                     <td style={{ padding: '10px 12px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{fmtDatetime(r.applied_at)}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <Badge label={STATUS_LABELS[r.status]} color={STATUS_COLORS[r.status]} />

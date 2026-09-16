@@ -316,7 +316,7 @@ export default function SheqHazards({ setPage }) {
     try {
       const { data, error: err } = await supabase
         .from('sheq_hazard_reports')
-        .select('*, reporter:profiles!sheq_hazard_reports_reported_by_fkey(full_name)')
+        .select('*')
         .eq('site_id', currentSiteId)
         .is('is_archived', false)
         .order('report_date', { ascending: false })
@@ -331,11 +331,13 @@ export default function SheqHazards({ setPage }) {
 
   async function fetchRefData() {
     if (!currentSiteId) return
-    const { data } = await supabase.from('profiles').select('id, full_name')
+    const { data } = await supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name')
     setProfiles(data || [])
   }
 
   useEffect(() => { fetchHazards(); fetchRefData() }, [currentSiteId])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   const filtered = useMemo(() => {
     let list = hazards
@@ -363,7 +365,7 @@ export default function SheqHazards({ setPage }) {
     const rows = filtered.map(h => [
       h.report_number, h.report_date, fmtLabel(h.category),
       h.priority, h.location || '', STATUS_META[h.status]?.label || h.status,
-      h.reporter?.full_name || (h.is_anonymous ? 'Anonymous' : ''), h.description || '',
+      profileMap[h.reported_by] || (h.is_anonymous ? 'Anonymous' : ''), h.description || '',
     ])
     exportCsv(`sheq-hazards-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
     showToast('CSV exported')
@@ -499,7 +501,7 @@ export default function SheqHazards({ setPage }) {
                     <td style={{ padding: '10px 12px' }}><PriorityBadge priority={haz.priority} /></td>
                     <td style={{ padding: '10px 12px', color: THEME.textMed, maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{haz.location || '--'}</td>
                     <td style={{ padding: '10px 12px' }}><StatusBadge status={haz.status} /></td>
-                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{haz.is_anonymous ? 'Anonymous' : (haz.reporter?.full_name || '--')}</td>
+                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{haz.is_anonymous ? 'Anonymous' : (profileMap[haz.reported_by] || '--')}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         {canEdit && (

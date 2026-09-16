@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -115,7 +115,7 @@ function InspectionModal({ record, templates, profiles, departments, projects, s
             <Field label="Inspector">
               <select style={selectStyle} value={form.inspector_id} onChange={e => set('inspector_id', e.target.value)}>
                 <option value="">Select...</option>
-                {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                {profiles.map(p => <option key={p.id} value={p.id}>{p.employee_number} — {p.name}</option>)}
               </select>
             </Field>
           </div>
@@ -170,9 +170,9 @@ export default function SheqInspections({ setPage }) {
     if (!currentSiteId) return
     setLoading(true)
     const [insRes, tplRes, profRes, deptRes, projRes] = await Promise.all([
-      supabase.from('sheq_inspections').select('*, profiles!sheq_inspections_inspector_id_fkey(full_name)').eq('site_id', currentSiteId).eq('is_archived', false).order('inspection_date', { ascending: false }).limit(500),
+      supabase.from('sheq_inspections').select('*').eq('site_id', currentSiteId).eq('is_archived', false).order('inspection_date', { ascending: false }).limit(500),
       supabase.from('sheq_inspection_templates').select('id, template_code, name').eq('site_id', currentSiteId).eq('is_active', true).eq('is_archived', false),
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
       supabase.from('departments').select('id, name').eq('site_id', currentSiteId),
       supabase.from('projects').select('id, name').eq('site_id', currentSiteId),
     ])
@@ -186,6 +186,8 @@ export default function SheqInspections({ setPage }) {
   }
 
   useEffect(() => { load() }, [currentSiteId])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   const filtered = rows.filter(r => {
     if (filterStatus !== 'all' && r.status !== filterStatus) return false
@@ -254,7 +256,7 @@ export default function SheqInspections({ setPage }) {
                   <td style={{ padding: '10px 12px', color: THEME.text }}>{r.inspection_date}</td>
                   <td style={{ padding: '10px 12px', color: THEME.text }}>{r.title}</td>
                   <td style={{ padding: '10px 12px', color: THEME.textMed }}>{r.location || '--'}</td>
-                  <td style={{ padding: '10px 12px', color: THEME.text }}>{r.profiles?.full_name || '--'}</td>
+                  <td style={{ padding: '10px 12px', color: THEME.text }}>{profileMap[r.inspector_id] || '--'}</td>
                   <td style={{ padding: '10px 12px' }}>
                     {r.score_pct != null ? (
                       <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: r.score_pct >= 80 ? '#E8F5E9' : r.score_pct >= 60 ? '#FFF8E1' : '#FFEBEE', color: r.score_pct >= 80 ? '#2E7D32' : r.score_pct >= 60 ? '#F59E0B' : '#D32F2F' }}>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -124,7 +124,7 @@ function AuditModal({ audit, profiles, departments, projects, siteId, onClose, o
             <Field label="Lead Auditor">
               <select style={selectStyle} value={form.lead_auditor_id} onChange={e => set('lead_auditor_id', e.target.value)}>
                 <option value="">Select...</option>
-                {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                {profiles.map(p => <option key={p.id} value={p.id}>{p.employee_number} — {p.name}</option>)}
               </select>
             </Field>
             <Field label="Status">
@@ -175,8 +175,8 @@ export default function SheqAudits({ setPage }) {
     if (!currentSiteId) return
     setLoading(true)
     const [audRes, profRes, deptRes, projRes] = await Promise.all([
-      supabase.from('sheq_audits').select('*, profiles!sheq_audits_lead_auditor_id_fkey(full_name)').eq('site_id', currentSiteId).eq('is_archived', false).order('audit_date', { ascending: false }).limit(500),
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('sheq_audits').select('*').eq('site_id', currentSiteId).eq('is_archived', false).order('audit_date', { ascending: false }).limit(500),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
       supabase.from('departments').select('id, name').eq('site_id', currentSiteId),
       supabase.from('projects').select('id, name').eq('site_id', currentSiteId),
     ])
@@ -189,6 +189,8 @@ export default function SheqAudits({ setPage }) {
   }
 
   useEffect(() => { load() }, [currentSiteId])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   const filtered = rows.filter(r => {
     if (filterStatus !== 'all' && r.status !== filterStatus) return false
@@ -255,7 +257,7 @@ export default function SheqAudits({ setPage }) {
                   <td style={{ padding: '10px 12px', color: THEME.text }}>{r.audit_date}</td>
                   <td style={{ padding: '10px 12px', color: THEME.text }}>{r.title}</td>
                   <td style={{ padding: '10px 12px', color: THEME.text }}>{AUDIT_TYPES[r.audit_type] || r.audit_type}</td>
-                  <td style={{ padding: '10px 12px', color: THEME.text }}>{r.profiles?.full_name || '--'}</td>
+                  <td style={{ padding: '10px 12px', color: THEME.text }}>{profileMap[r.lead_auditor_id] || '--'}</td>
                   <td style={{ padding: '10px 12px' }}>
                     {r.findings_count > 0 ? (
                       <span style={{ fontSize: '12px' }}>

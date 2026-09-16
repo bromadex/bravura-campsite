@@ -426,7 +426,7 @@ export default function SheqIncidents({ setPage }) {
     try {
       const { data, error: err } = await supabase
         .from('sheq_incidents')
-        .select('*, reporter:profiles!sheq_incidents_reported_by_fkey(full_name)')
+        .select('*')
         .eq('site_id', currentSiteId)
         .is('is_archived', false)
         .order('incident_date', { ascending: false })
@@ -443,13 +443,15 @@ export default function SheqIncidents({ setPage }) {
     if (!currentSiteId) return
     const [cats, profs] = await Promise.all([
       supabase.from('sheq_incident_categories').select('id, name').eq('site_id', currentSiteId).eq('is_active', true),
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
     ])
     setCategories(cats.data || [])
     setProfiles(profs.data || [])
   }
 
   useEffect(() => { fetchIncidents(); fetchRefData() }, [currentSiteId])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   const filtered = useMemo(() => {
     let list = incidents
@@ -477,7 +479,7 @@ export default function SheqIncidents({ setPage }) {
     const rows = filtered.map(i => [
       i.incident_number, i.incident_date, fmtType(i.incident_type),
       i.severity, i.location || '', STATUS_META[i.status]?.label || i.status,
-      i.reporter?.full_name || '', i.description || '',
+      profileMap[i.reported_by] || '', i.description || '',
     ])
     exportCsv(`sheq-incidents-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
     showToast('CSV exported')
@@ -613,7 +615,7 @@ export default function SheqIncidents({ setPage }) {
                     <td style={{ padding: '10px 12px' }}><SeverityBadge severity={inc.severity} /></td>
                     <td style={{ padding: '10px 12px', color: THEME.textMed, maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inc.location || '--'}</td>
                     <td style={{ padding: '10px 12px' }}><StatusBadge status={inc.status} /></td>
-                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{inc.reporter?.full_name || '--'}</td>
+                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{profileMap[inc.reported_by] || '--'}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         {canEdit && (

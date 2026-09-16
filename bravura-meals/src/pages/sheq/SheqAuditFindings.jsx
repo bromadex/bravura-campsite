@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -123,7 +123,7 @@ function FindingModal({ finding, audits, profiles, siteId, userId, onClose, onSa
             <Field label="Responsible">
               <select style={selectStyle} value={form.responsible_id} onChange={e => set('responsible_id', e.target.value)}>
                 <option value="">Select...</option>
-                {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                {profiles.map(p => <option key={p.id} value={p.id}>{p.employee_number} — {p.name}</option>)}
               </select>
             </Field>
             <Field label="Due Date"><input style={inputStyle} type="date" value={form.due_date} onChange={e => set('due_date', e.target.value)} /></Field>
@@ -160,9 +160,9 @@ export default function SheqAuditFindings({ setPage }) {
     if (!currentSiteId) return
     setLoading(true)
     const [findRes, audRes, profRes] = await Promise.all([
-      supabase.from('sheq_audit_findings').select('*, sheq_audits(audit_number, title), profiles!sheq_audit_findings_responsible_id_fkey(full_name)').eq('site_id', currentSiteId).eq('is_archived', false).order('created_at', { ascending: false }).limit(500),
+      supabase.from('sheq_audit_findings').select('*, sheq_audits(audit_number, title)').eq('site_id', currentSiteId).eq('is_archived', false).order('created_at', { ascending: false }).limit(500),
       supabase.from('sheq_audits').select('id, audit_number, title').eq('site_id', currentSiteId).eq('is_archived', false),
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
     ])
     if (findRes.error) showToast(findRes.error.message, 'error')
     setRows(findRes.data || [])
@@ -172,6 +172,8 @@ export default function SheqAuditFindings({ setPage }) {
   }
 
   useEffect(() => { load() }, [currentSiteId])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   const filtered = rows.filter(r => {
     if (filterStatus !== 'all' && r.status !== filterStatus) return false
@@ -252,7 +254,7 @@ export default function SheqAuditFindings({ setPage }) {
                       <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: ft.bg, color: ft.color }}>{ft.label}</span>
                     </td>
                     <td style={{ padding: '10px 12px', color: THEME.text, maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</td>
-                    <td style={{ padding: '10px 12px', color: THEME.text }}>{r.profiles?.full_name || '--'}</td>
+                    <td style={{ padding: '10px 12px', color: THEME.text }}>{profileMap[r.responsible_id] || '--'}</td>
                     <td style={{ padding: '10px 12px', color: overdue ? '#D32F2F' : THEME.textMed, fontWeight: overdue ? 600 : 400 }}>{r.due_date || '--'}{overdue && <Icon name="warning" size={12} style={{ color: '#D32F2F', marginLeft: '4px', verticalAlign: 'middle' }} />}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: STATUS_META[r.status]?.bg, color: STATUS_META[r.status]?.color }}>

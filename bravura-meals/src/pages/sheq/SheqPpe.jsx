@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -193,7 +193,7 @@ function IssueModal({ issue, ppeItems, profiles, siteId, userId, onClose, onSave
           <Field label="Issued To" required>
             <select style={selectStyle} value={form.issued_to} onChange={e => set('issued_to', e.target.value)}>
               <option value="">Select person...</option>
-              {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+              {profiles.map(p => <option key={p.id} value={p.id}>{p.employee_number} — {p.name}</option>)}
             </select>
           </Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
@@ -248,8 +248,8 @@ export default function SheqPpe({ setPage }) {
     setLoading(true)
     const [itemsRes, issuesRes, profilesRes] = await Promise.all([
       supabase.from('sheq_ppe_items').select('*').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
-      supabase.from('sheq_ppe_issues').select('*, sheq_ppe_items(name, ppe_code), profiles!sheq_ppe_issues_issued_to_fkey(full_name)').eq('site_id', currentSiteId).eq('is_archived', false).order('issue_date', { ascending: false }).limit(500),
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('sheq_ppe_issues').select('*, sheq_ppe_items(name, ppe_code)').eq('site_id', currentSiteId).eq('is_archived', false).order('issue_date', { ascending: false }).limit(500),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
     ])
     if (itemsRes.error) showToast(itemsRes.error.message, 'error')
     if (issuesRes.error) showToast(issuesRes.error.message, 'error')
@@ -261,6 +261,8 @@ export default function SheqPpe({ setPage }) {
 
   useEffect(() => { load() }, [currentSiteId])
 
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
+
   const filteredItems = items.filter(r => {
     if (!search) return true
     const s = search.toLowerCase()
@@ -270,7 +272,7 @@ export default function SheqPpe({ setPage }) {
   const filteredIssues = issues.filter(r => {
     if (!search) return true
     const s = search.toLowerCase()
-    return (r.issue_number || '').toLowerCase().includes(s) || (r.sheq_ppe_items?.name || '').toLowerCase().includes(s) || (r.profiles?.full_name || '').toLowerCase().includes(s)
+    return (r.issue_number || '').toLowerCase().includes(s) || (r.sheq_ppe_items?.name || '').toLowerCase().includes(s) || (profileMap[r.issued_to] || '').toLowerCase().includes(s)
   })
 
   async function handleArchiveItem(r) {
@@ -390,7 +392,7 @@ export default function SheqPpe({ setPage }) {
                     <td style={{ padding: '10px 12px', fontWeight: 600, color: ACCENT }}>{r.issue_number}</td>
                     <td style={{ padding: '10px 12px', color: THEME.text }}>{r.issue_date}</td>
                     <td style={{ padding: '10px 12px', color: THEME.text }}>{r.sheq_ppe_items?.name || '--'}</td>
-                    <td style={{ padding: '10px 12px', color: THEME.text }}>{r.profiles?.full_name || '--'}</td>
+                    <td style={{ padding: '10px 12px', color: THEME.text }}>{profileMap[r.issued_to] || '--'}</td>
                     <td style={{ padding: '10px 12px', color: THEME.text }}>{r.quantity}</td>
                     <td style={{ padding: '10px 12px', color: THEME.textMed }}>{r.size || '--'}</td>
                     <td style={{ padding: '10px 12px', color: THEME.textMed }}>{CONDITIONS[r.condition_on_issue] || r.condition_on_issue}</td>

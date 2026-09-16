@@ -306,7 +306,7 @@ function EnvironmentalModal({ aspect, profiles, siteId, userId, canApprove, onCl
             <Field label="Responsible">
               <select style={selectStyle} value={form.responsible} onChange={e => set('responsible', e.target.value)}>
                 <option value="">Select...</option>
-                {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                {profiles.map(p => <option key={p.id} value={p.id}>{p.employee_number} — {p.name}</option>)}
               </select>
             </Field>
           </div>
@@ -438,7 +438,7 @@ export default function SheqEnvironmental({ setPage }) {
     try {
       const { data, error: err } = await supabase
         .from('sheq_environmental_aspects')
-        .select('*, responsible_profile:profiles!sheq_environmental_aspects_responsible_fkey(full_name)')
+        .select('*')
         .eq('site_id', currentSiteId)
         .is('is_archived', false)
         .order('created_at', { ascending: false })
@@ -453,11 +453,13 @@ export default function SheqEnvironmental({ setPage }) {
 
   async function fetchRefData() {
     if (!currentSiteId) return
-    const { data } = await supabase.from('profiles').select('id, full_name')
+    const { data } = await supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name')
     setProfiles(data || [])
   }
 
   useEffect(() => { fetchAspects(); fetchRefData() }, [currentSiteId])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   const filtered = useMemo(() => {
     let list = aspects
@@ -500,7 +502,7 @@ export default function SheqEnvironmental({ setPage }) {
     const rows = filtered.map(a => [
       a.aspect_number, a.title, a.activity || '', fmtType(a.category),
       a.impact || '', a.risk_score ?? '', a.risk_level || '',
-      a.residual_risk ?? '', a.status, a.responsible_profile?.full_name || '',
+      a.residual_risk ?? '', a.status, a.responsible_profile?.name || '',
     ])
     exportCsv(`sheq-environmental-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
     showToast('CSV exported')
@@ -659,7 +661,7 @@ export default function SheqEnvironmental({ setPage }) {
                     <td style={{ padding: '10px 12px' }}><RiskBadge level={item.risk_level} /></td>
                     <td style={{ padding: '10px 12px' }}><RiskScoreCell score={item.residual_risk} /></td>
                     <td style={{ padding: '10px 12px' }}><StatusBadge status={item.status} /></td>
-                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{item.responsible_profile?.full_name || '--'}</td>
+                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{profileMap[item.responsible] || '--'}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         {canEdit && (

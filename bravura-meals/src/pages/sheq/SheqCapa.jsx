@@ -232,7 +232,7 @@ function CapaModal({ capa, profiles, siteId, userId, canApprove, onClose, onSave
             <Field label="Assigned To">
               <select style={selectStyle} value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}>
                 <option value="">Unassigned</option>
-                {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                {profiles.map(p => <option key={p.id} value={p.id}>{p.employee_number} — {p.name}</option>)}
               </select>
             </Field>
           </div>
@@ -330,11 +330,11 @@ export default function SheqCapa({ setPage }) {
     const [{ data, error }, { data: profs }] = await Promise.all([
       supabase
         .from('sheq_capa')
-        .select('*, assigned_profile:profiles!sheq_capa_assigned_to_fkey(full_name)')
+        .select('*')
         .eq('site_id', currentSiteId)
         .is('is_archived', false)
         .order('created_at', { ascending: false }),
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
     ])
     if (error) showToast(error.message, 'error')
     else setRows(data || [])
@@ -343,6 +343,8 @@ export default function SheqCapa({ setPage }) {
   }, [currentSiteId])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   // KPI calculations
   const kpis = useMemo(() => {
@@ -394,7 +396,7 @@ export default function SheqCapa({ setPage }) {
     const csvRows = filtered.map(r => [
       r.capa_number, SOURCE_LABELS[r.source_type] || r.source_type, r.action_type,
       r.description, r.priority, displayStatus(r),
-      r.assigned_profile?.full_name || '', r.due_date || '',
+      profileMap[r.assigned_to] || '', r.due_date || '',
       r.created_at ? new Date(r.created_at).toLocaleDateString() : '',
     ])
     exportCsv(`sheq-capa-${new Date().toISOString().slice(0, 10)}.csv`, headers, csvRows)
@@ -543,7 +545,7 @@ export default function SheqCapa({ setPage }) {
                       <td style={{ padding: '10px 12px' }}>
                         <Badge label={STATUS_LABELS[ds]} color={STATUS_COLORS[ds]} />
                       </td>
-                      <td style={{ padding: '10px 12px', color: THEME.textMed }}>{r.assigned_profile?.full_name || '--'}</td>
+                      <td style={{ padding: '10px 12px', color: THEME.textMed }}>{profileMap[r.assigned_to] || '--'}</td>
                       <td style={{ padding: '10px 12px', color: isDue ? '#D32F2F' : THEME.textMed, fontWeight: isDue ? 600 : 400, whiteSpace: 'nowrap' }}>{dueDateStr}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <div style={{ display: 'flex', gap: '4px' }}>

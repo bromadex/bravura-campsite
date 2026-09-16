@@ -292,7 +292,7 @@ function RiskModal({ risk, profiles, departments, projects, matrix, siteId, user
             <Field label="Owner">
               <select style={selectStyle} value={form.owner_id} onChange={e => set('owner_id', e.target.value)}>
                 <option value="">Unassigned</option>
-                {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                {profiles.map(p => <option key={p.id} value={p.id}>{p.employee_number} — {p.name}</option>)}
               </select>
             </Field>
             <Field label="Review Date">
@@ -412,7 +412,7 @@ export default function SheqRiskRegister({ setPage }) {
     try {
       const { data, error: err } = await supabase
         .from('sheq_risk_register')
-        .select('*, owner:profiles!sheq_risk_register_owner_id_fkey(full_name)')
+        .select('*')
         .eq('site_id', currentSiteId)
         .is('is_archived', false)
         .order('created_at', { ascending: false })
@@ -428,7 +428,7 @@ export default function SheqRiskRegister({ setPage }) {
   async function fetchRefData() {
     if (!currentSiteId) return
     const [profs, depts, projs, mat] = await Promise.all([
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
       supabase.from('departments').select('id, name').eq('site_id', currentSiteId),
       supabase.from('projects').select('id, name').eq('site_id', currentSiteId),
       supabase.from('sheq_risk_matrix').select('likelihood, severity, risk_level').eq('site_id', currentSiteId),
@@ -440,6 +440,8 @@ export default function SheqRiskRegister({ setPage }) {
   }
 
   useEffect(() => { fetchRisks(); fetchRefData() }, [currentSiteId])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   const filtered = useMemo(() => {
     let list = risks
@@ -477,7 +479,7 @@ export default function SheqRiskRegister({ setPage }) {
       r.risk_number, r.title, r.hazard || '',
       r.likelihood || '', r.severity || '', (r.likelihood || 0) * (r.severity || 0) || '',
       r.risk_level || '', r.residual_likelihood || '', r.residual_severity || '',
-      r.residual_risk_level || '', r.owner?.full_name || '', r.status, r.review_date || '',
+      r.residual_risk_level || '', profileMap[r.owner_id] || '', r.status, r.review_date || '',
     ])
     exportCsv(`sheq-risks-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
     showToast('CSV exported')
@@ -634,7 +636,7 @@ export default function SheqRiskRegister({ setPage }) {
                     <td style={{ padding: '10px 12px' }}><RiskLevelBadge level={r.risk_level} /></td>
                     <td style={{ padding: '10px 12px' }}><RiskScoreBadge likelihood={r.residual_likelihood} severity={r.residual_severity} /></td>
                     <td style={{ padding: '10px 12px' }}><RiskLevelBadge level={r.residual_risk_level} /></td>
-                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{r.owner?.full_name || '--'}</td>
+                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{profileMap[r.owner_id] || '--'}</td>
                     <td style={{ padding: '10px 12px' }}><StatusBadge status={r.status} /></td>
                     <td style={{ padding: '10px 12px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{r.review_date || '--'}</td>
                     <td style={{ padding: '10px 12px' }}>

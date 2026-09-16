@@ -67,7 +67,7 @@ export default function SheqPtwBoard({ setPage }) {
     try {
       const { data, error } = await supabase
         .from('sheq_permits')
-        .select('*, permit_type:sheq_permit_types!sheq_permits_permit_type_id_fkey(id, name), requester:profiles!sheq_permits_requested_by_fkey(full_name)')
+        .select('*, permit_type:sheq_permit_types!sheq_permits_permit_type_id_fkey(id, name), requester:employees!sheq_permits_requested_by_fkey(name)')
         .eq('site_id', currentSiteId)
         .is('is_archived', false)
         .lte('start_date', dateFilter)
@@ -270,10 +270,10 @@ export default function SheqPtwBoard({ setPage }) {
                                 {p.start_time || '--'} - {p.end_time || '--'}
                               </div>
                             )}
-                            {p.requester?.full_name && (
+                            {p.requester?.name && (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <Icon name="person" size={11} style={{ color: THEME.textLow }} />
-                                {p.requester.full_name}
+                                {p.requester.name}
                               </div>
                             )}
                           </div>

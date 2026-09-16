@@ -475,7 +475,7 @@ export default function SheqRiskAssessments({ setPage }) {
     try {
       const { data, error: err } = await supabase
         .from('sheq_risk_assessments')
-        .select('*, assessor:profiles!sheq_risk_assessments_assessed_by_fkey(full_name)')
+        .select('*')
         .eq('site_id', currentSiteId)
         .is('is_archived', false)
         .order('created_at', { ascending: false })
@@ -491,7 +491,7 @@ export default function SheqRiskAssessments({ setPage }) {
   async function fetchRefData() {
     if (!currentSiteId) return
     const [profs, depts, projs] = await Promise.all([
-      supabase.from('profiles').select('id, full_name'),
+      supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
       supabase.from('departments').select('id, name').eq('site_id', currentSiteId),
       supabase.from('projects').select('id, name').eq('site_id', currentSiteId),
     ])
@@ -501,6 +501,8 @@ export default function SheqRiskAssessments({ setPage }) {
   }
 
   useEffect(() => { fetchAssessments(); fetchRefData() }, [currentSiteId])
+
+  const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 
   // Derive display statuses
   const withDisplayStatus = useMemo(() =>
@@ -544,7 +546,7 @@ export default function SheqRiskAssessments({ setPage }) {
     const headers = ['Assessment #', 'Title', 'Type', 'Assessed By', 'Assessment Date', 'Review Date', 'Status']
     const rows = filtered.map(a => [
       a.assessment_number, a.title, (a.assessment_type || '').toUpperCase(),
-      a.assessor?.full_name || '', a.assessment_date || '', a.review_date || '',
+      profileMap[a.assessed_by] || '', a.assessment_date || '', a.review_date || '',
       STATUS_META[a._displayStatus]?.label || a._displayStatus,
     ])
     exportCsv(`sheq-risk-assessments-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows)
@@ -698,7 +700,7 @@ export default function SheqRiskAssessments({ setPage }) {
                     <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontWeight: 500, color: THEME.text }}>{a.assessment_number}</td>
                     <td style={{ padding: '10px 12px', color: THEME.text, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</td>
                     <td style={{ padding: '10px 12px' }}><TypeBadge type={a.assessment_type} /></td>
-                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{a.assessor?.full_name || '--'}</td>
+                    <td style={{ padding: '10px 12px', color: THEME.textMed }}>{profileMap[a.assessed_by] || '--'}</td>
                     <td style={{ padding: '10px 12px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{a.assessment_date || '--'}</td>
                     <td style={{ padding: '10px 12px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{a.review_date || '--'}</td>
                     <td style={{ padding: '10px 12px' }}><StatusBadge status={a._displayStatus} /></td>

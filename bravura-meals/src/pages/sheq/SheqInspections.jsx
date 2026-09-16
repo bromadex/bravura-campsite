@@ -172,7 +172,7 @@ export default function SheqInspections({ setPage }) {
     const [insRes, tplRes, profRes, deptRes, projRes] = await Promise.all([
       supabase.from('sheq_inspections').select('*, profiles!sheq_inspections_inspector_id_fkey(full_name)').eq('site_id', currentSiteId).eq('is_archived', false).order('inspection_date', { ascending: false }).limit(500),
       supabase.from('sheq_inspection_templates').select('id, template_code, name').eq('site_id', currentSiteId).eq('is_active', true).eq('is_archived', false),
-      supabase.from('profiles').select('id, full_name').eq('site_id', currentSiteId),
+      supabase.from('profiles').select('id, full_name'),
       supabase.from('departments').select('id, name').eq('site_id', currentSiteId),
       supabase.from('projects').select('id, name').eq('site_id', currentSiteId),
     ])

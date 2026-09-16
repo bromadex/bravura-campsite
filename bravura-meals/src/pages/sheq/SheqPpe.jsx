@@ -249,7 +249,7 @@ export default function SheqPpe({ setPage }) {
     const [itemsRes, issuesRes, profilesRes] = await Promise.all([
       supabase.from('sheq_ppe_items').select('*').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
       supabase.from('sheq_ppe_issues').select('*, sheq_ppe_items(name, ppe_code), profiles!sheq_ppe_issues_issued_to_fkey(full_name)').eq('site_id', currentSiteId).eq('is_archived', false).order('issue_date', { ascending: false }).limit(500),
-      supabase.from('profiles').select('id, full_name').eq('site_id', currentSiteId),
+      supabase.from('profiles').select('id, full_name'),
     ])
     if (itemsRes.error) showToast(itemsRes.error.message, 'error')
     if (issuesRes.error) showToast(issuesRes.error.message, 'error')

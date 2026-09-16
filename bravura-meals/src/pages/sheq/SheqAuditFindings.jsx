@@ -162,7 +162,7 @@ export default function SheqAuditFindings({ setPage }) {
     const [findRes, audRes, profRes] = await Promise.all([
       supabase.from('sheq_audit_findings').select('*, sheq_audits(audit_number, title), profiles!sheq_audit_findings_responsible_id_fkey(full_name)').eq('site_id', currentSiteId).eq('is_archived', false).order('created_at', { ascending: false }).limit(500),
       supabase.from('sheq_audits').select('id, audit_number, title').eq('site_id', currentSiteId).eq('is_archived', false),
-      supabase.from('profiles').select('id, full_name').eq('site_id', currentSiteId),
+      supabase.from('profiles').select('id, full_name'),
     ])
     if (findRes.error) showToast(findRes.error.message, 'error')
     setRows(findRes.data || [])

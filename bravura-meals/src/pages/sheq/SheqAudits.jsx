@@ -176,7 +176,7 @@ export default function SheqAudits({ setPage }) {
     setLoading(true)
     const [audRes, profRes, deptRes, projRes] = await Promise.all([
       supabase.from('sheq_audits').select('*, profiles!sheq_audits_lead_auditor_id_fkey(full_name)').eq('site_id', currentSiteId).eq('is_archived', false).order('audit_date', { ascending: false }).limit(500),
-      supabase.from('profiles').select('id, full_name').eq('site_id', currentSiteId),
+      supabase.from('profiles').select('id, full_name'),
       supabase.from('departments').select('id, name').eq('site_id', currentSiteId),
       supabase.from('projects').select('id, name').eq('site_id', currentSiteId),
     ])

@@ -263,6 +263,17 @@ const SheqTemplates        = lazy(() => import('./pages/sheq/SheqTemplates'))
 const SheqAudits           = lazy(() => import('./pages/sheq/SheqAudits'))
 const SheqAuditFindings    = lazy(() => import('./pages/sheq/SheqAuditFindings'))
 const SheqCalendar         = lazy(() => import('./pages/sheq/SheqCalendar'))
+const SheqTraining         = lazy(() => import('./pages/sheq/SheqTraining'))
+const SheqMedical          = lazy(() => import('./pages/sheq/SheqMedical'))
+const SheqToolboxTalks     = lazy(() => import('./pages/sheq/SheqToolboxTalks'))
+const SheqEmployeeProfile  = lazy(() => import('./pages/sheq/SheqEmployeeProfile'))
+const SheqInductions       = lazy(() => import('./pages/sheq/SheqInductions'))
+const SheqLegalRegister    = lazy(() => import('./pages/sheq/SheqLegalRegister'))
+const SheqDocControl       = lazy(() => import('./pages/sheq/SheqDocControl'))
+const SheqContractorCompliance = lazy(() => import('./pages/sheq/SheqContractorCompliance'))
+const SheqEmergencyPlans   = lazy(() => import('./pages/sheq/SheqEmergencyPlans'))
+const SheqEmergencyDrills  = lazy(() => import('./pages/sheq/SheqEmergencyDrills'))
+const SheqMgmtReview       = lazy(() => import('./pages/sheq/SheqMgmtReview'))
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
@@ -669,6 +680,17 @@ function getSheqPage(page, can, setPage) {
     case 'sq_audits':           return <SheqAudits setPage={setPage} />
     case 'sq_audit_findings':   return <SheqAuditFindings setPage={setPage} />
     case 'sq_calendar':         return <SheqCalendar setPage={setPage} />
+    case 'sq_training':         return <SheqTraining setPage={setPage} />
+    case 'sq_medical':          return <SheqMedical setPage={setPage} />
+    case 'sq_toolbox':          return <SheqToolboxTalks setPage={setPage} />
+    case 'sq_emp_profile':      return <SheqEmployeeProfile setPage={setPage} />
+    case 'sq_inductions':       return <SheqInductions setPage={setPage} />
+    case 'sq_legal':            return <SheqLegalRegister setPage={setPage} />
+    case 'sq_doc_control':      return <SheqDocControl setPage={setPage} />
+    case 'sq_contractor_compliance': return <SheqContractorCompliance setPage={setPage} />
+    case 'sq_emergency_plans':  return <SheqEmergencyPlans setPage={setPage} />
+    case 'sq_emergency_drills': return <SheqEmergencyDrills setPage={setPage} />
+    case 'sq_mgmt_review':      return <SheqMgmtReview setPage={setPage} />
     case 'sq_settings':         return can('sheq.edit') ? <SheqSettings setPage={setPage} /> : null
     default:                    return <SheqDashboard setPage={setPage} />
   }

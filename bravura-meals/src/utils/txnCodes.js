@@ -247,6 +247,19 @@ export const TXN_CODES = [
   { code: 'SQ22', path: '/sheq/sq_audits',            label: 'Audit Programme',       module: 'sheq' },
   { code: 'SQ23', path: '/sheq/sq_audit_findings',    label: 'Audit Findings',        module: 'sheq' },
   { code: 'SQ24', path: '/sheq/sq_calendar',          label: 'SHEQ Calendar',         module: 'sheq' },
+  // Phase 4 — Training, Competency & Medical
+  { code: 'SQ25', path: '/sheq/sq_training',            label: 'Training Matrix',           module: 'sheq' },
+  { code: 'SQ26', path: '/sheq/sq_medical',             label: 'Medical Fitness',           module: 'sheq' },
+  { code: 'SQ27', path: '/sheq/sq_toolbox',             label: 'Toolbox Talks',             module: 'sheq' },
+  { code: 'SQ28', path: '/sheq/sq_emp_profile',         label: 'Employee SHEQ Profile',     module: 'sheq' },
+  { code: 'SQ29', path: '/sheq/sq_inductions',          label: 'Induction Register',        module: 'sheq' },
+  // Phase 6 — Compliance, Documents & Contractors
+  { code: 'SQ30', path: '/sheq/sq_legal',               label: 'Legal Register',            module: 'sheq' },
+  { code: 'SQ31', path: '/sheq/sq_doc_control',         label: 'Document Control',          module: 'sheq' },
+  { code: 'SQ32', path: '/sheq/sq_contractor_compliance', label: 'Contractor Compliance',   module: 'sheq' },
+  { code: 'SQ33', path: '/sheq/sq_emergency_plans',     label: 'Emergency Plans',           module: 'sheq' },
+  { code: 'SQ34', path: '/sheq/sq_emergency_drills',    label: 'Emergency Drills',          module: 'sheq' },
+  { code: 'SQ35', path: '/sheq/sq_mgmt_review',         label: 'Management Review',         module: 'sheq' },
 
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },

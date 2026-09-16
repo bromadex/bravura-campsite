@@ -106,7 +106,7 @@ Contractors→compliance scores, Projects→risk registers, Finance→incident c
 8. ~~Smoke tests for RPCs + billing math; CI~~ (done — vitest + 3 test suites, GitHub Actions CI)
 9. ~~FuelContext pagination~~ (done — ref data fetched once, transactions date-filtered 30 days default)
 10. Realtime/staleness handling for flags & approvals (later)
-11. Restyle Command Center search bar — the top-bar "Command Center..." pill looks raw/unstyled across all modules; needs a polished search input design (later)
+11. Breadcrumb shows raw T-codes (e.g. `fi_dashboard`) instead of human-readable page names — affects all modules (later)
 
 ## Database access
 

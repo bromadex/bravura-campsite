@@ -7,6 +7,11 @@ import { THEME, ROLE_LABELS, MODULE_COLORS } from '../utils/permissions'
 import { resolveNotifStyle } from '../utils/notify'
 import { supabase } from '../supabaseClient'
 import SiteSwitcher from './SiteSwitcher'
+import { TXN_CODES } from '../utils/txnCodes'
+
+const TXN_PAGE_LABELS = Object.fromEntries(
+  TXN_CODES.map(t => [t.path.split('/').pop(), t.label])
+)
 
 const Icon = ({ name, size = 20, filled = false, style = {} }) => (
   <span
@@ -423,7 +428,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 fontSize: isMobile ? '15px' : '17px', fontWeight: isMobile ? 600 : 400, color: THEME.text,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
-                {PAGE_TITLES[page] || page}
+                {PAGE_TITLES[page] || TXN_PAGE_LABELS[page] || page}
               </span>
             </div>
           </div>

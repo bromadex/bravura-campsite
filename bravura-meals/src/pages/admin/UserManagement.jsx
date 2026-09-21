@@ -136,7 +136,7 @@ export default function UserManagement({ setPage }) {
   async function linkEmployee(profileId, employeeId) {
     setLinkingEmployee(true)
     try {
-      const { error } = await supabase.from('profiles').update({ employee_id: employeeId || null }).eq('id', profileId)
+      const { error } = await supabase.rpc('admin_link_employee', { p_profile_id: profileId, p_employee_id: employeeId || null })
       if (error) throw error
       showToast(employeeId ? 'Employee linked' : 'Employee unlinked', 'green')
       await fetchAll()

@@ -122,6 +122,64 @@ for leave, fuel, POs). Email digest opt-in (daily summary). Connect: group setti
 (rename, add/remove participants), message forwarding between conversations,
 notification sound/badge on mobile PWA.
 
+## Connect Hardening Roadmap (from cross-AI code review, September 2026)
+
+Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers:
+
+### Tier 1 — Quick Fixes (code-only, no migration)
+1. Clear messages on conversation switch (`setMessages([])`) + selectedId ref
+   guard to prevent stale/privacy flash and out-of-order fetch resolution.
+2. `whiteSpace: 'pre-wrap'` on message bubbles — newlines currently collapse.
+3. `e.isComposing` check on Enter keydown — prevents IME users (CJK input)
+   accidentally sending mid-composition.
+4. `100dvh` instead of `100vh` — fixes mobile browser address bar resize.
+5. `behavior: 'auto'` instead of `'smooth'` on initial message scroll —
+   smooth-scrolls through entire history on conversation open.
+6. Memoize reply lookup as a Map (currently O(n²) `messages.find()` per render).
+7. Staleness guard on entity search debounce (request-id to drop late responses).
+
+### Tier 2 — Security & Schema (migration 0168d)
+8. **RLS on all chat tables** — chat_conversations, chat_messages,
+   chat_participants, message_reactions. Participant-based SELECT, sender-based
+   INSERT, own-message UPDATE for edits/deletes, `connect.edit` for pin.
+9. **Private bucket + signed URLs** for connect-files — currently public with
+   unguessable URLs. Switch to private bucket, 60-second signed URLs issued
+   after membership check via RPC.
+10. **`UNIQUE(message_id, user_id, emoji)`** on message_reactions — prevents
+    duplicate reactions from double-click race.
+11. **File upload validation** — client-side size limit (10MB), MIME allowlist
+    (image/*, application/pdf, text/*), UUID file paths instead of raw filenames.
+
+### Tier 3 — Architecture (migration 0168e)
+12. **Denormalize conversation list** — add `last_message_at`, `last_message_id`,
+    `message_count` to chat_conversations, maintained by trigger on chat_messages.
+    Eliminates the 1000-row PostgREST cliff where busy sites show "No messages yet"
+    on older conversations.
+13. **Server-side unread counts** — trigger-maintained `unread_count` on
+    chat_participants (increment on INSERT where sender ≠ participant and
+    created_at > last_read_at; zero on read). Eliminates phantom badge race.
+14. **Payload-based realtime** — append from realtime payload instead of full
+    refetch. Reduces per-event cost from O(conversation) to O(1).
+15. **Cursor pagination for messages** — load newest 50, paginate on scroll-up.
+    `order(created_at, id).limit(50).lt(cursor)` with id tiebreaker.
+16. **`create_or_get_dm()` RPC** — atomic DM creation with serializable
+    transaction to prevent duplicate DM conversations from race conditions.
+
+### Backlog (future)
+17. Reactions realtime subscription (currently half-realtime: your view updates,
+    theirs doesn't until reload).
+18. Keyboard navigation for mention/slash dropdowns (Arrow/Tab/Escape).
+19. Optimistic send with reconciliation (append pending message, reconcile on
+    realtime echo).
+20. Presence/typing indicators (Supabase Presence or heartbeat table).
+21. Mobile panel CSS transform instead of conditional render (preserves scroll
+    position and draft on panel switch).
+22. Server-side unread counts via RPC (alternative to trigger approach).
+23. Edit audit trail (`chat_message_edits` table).
+24. Enhanced soft delete (`deleted_at`, `deleted_by` columns).
+25. ERP entity references as first-class data (`chat_message_entities` table).
+26. URL detection and linkification in messages.
+
 ## Current state (September 2026)
 
 - HR Phase 1 (foundation) and Phase 2 (leave, documents, medical, org chart,
@@ -142,8 +200,10 @@ notification sound/badge on mobile PWA.
 - Phase 5: HR analytics/AI. See TAFARA_PROMPTS.txt.
 - SHEQ Phases 1–7 **built** (0160–0167 applied). Dashboard enriched with
   cross-module views (fleet incident summary, contractor scores, cost impact).
-- Governance, Connect & Notifications: **planned** — migration 0168, 5 phases.
-  See roadmap section above.
+- Governance, Connect & Notifications: Phase 3 (Connect Foundation) **built**.
+  Bug fixes from cross-AI review applied (mention insertion, file upload reply_to,
+  unread counting, DM path). Hardening roadmap defined — see section above.
+  Phases 1-2 (Notifications, Governance) and Phases 4-5 **planned**.
 
 ## Improvement backlog (agreed with user, work top-down)
 

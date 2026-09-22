@@ -156,15 +156,15 @@ export default function ConnectPage({ setPage }) {
   const loadSiteUsers = useCallback(async () => {
     if (!currentSiteId) return
     const { data, error } = await supabase
-      .from('employees')
-      .select('id, name, user_id:profiles(id, full_name)')
-      .eq('site_id', currentSiteId)
-      .eq('status', 'active')
-      .order('name')
+      .from('user_roles')
+      .select('user_id, profile:profiles(id, full_name)')
+      .or(`site_id.eq.${currentSiteId},site_id.is.null`)
     if (error) { console.error(error); return }
+    const seen = new Set()
     const users = (data || [])
-      .filter(e => e.user_id && e.user_id.id)
-      .map(e => ({ id: e.user_id.id, full_name: e.user_id.full_name || e.name }))
+      .filter(r => r.profile && r.profile.id && !seen.has(r.profile.id) && seen.add(r.profile.id))
+      .map(r => ({ id: r.profile.id, full_name: r.profile.full_name || 'Unknown' }))
+      .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
     setSiteUsers(users)
   }, [currentSiteId])
 

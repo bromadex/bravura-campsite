@@ -155,24 +155,32 @@ export default function ConnectPage({ setPage }) {
 
   const loadSiteUsers = useCallback(async () => {
     if (!currentSiteId) return
-    // Get user IDs with roles at this site
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('user_id')
       .or(`site_id.eq.${currentSiteId},site_id.is.null`)
     const roleUserIds = [...new Set((roleData || []).map(r => r.user_id).filter(Boolean))]
     if (!roleUserIds.length) { setSiteUsers([]); return }
-    // Get profiles with employee names
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('id, full_name, username, employee:employees(name, department:departments(name))')
+      .select('id, full_name, username, employee_id')
       .in('id', roleUserIds)
+    // Build employee name + department map
+    const empIds = (profileData || []).map(p => p.employee_id).filter(Boolean)
+    let empMap = {}
+    if (empIds.length) {
+      const { data: empData } = await supabase
+        .from('employees')
+        .select('id, name, department:departments(name)')
+        .in('id', empIds)
+      ;(empData || []).forEach(e => { empMap[e.id] = { name: e.name, department: e.department?.name || null } })
+    }
     const users = (profileData || []).map(p => {
-      const emp = p.employee
+      const emp = empMap[p.employee_id]
       return {
         id: p.id,
         full_name: emp?.name || p.full_name || p.username || 'Unknown',
-        department: emp?.department?.name || null,
+        department: emp?.department || null,
       }
     }).sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
     setSiteUsers(users)

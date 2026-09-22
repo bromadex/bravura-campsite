@@ -177,6 +177,8 @@ export default function HomeLauncher({ onEnterModule }) {
   const [notifOpen,     setNotifOpen]     = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount,   setUnreadCount]   = useState(0)
+  const [chatUnread,    setChatUnread]    = useState(0)
+  const [chatPopup,     setChatPopup]     = useState(null)
 
   useEffect(() => {
     if (!profile?.id) return
@@ -195,6 +197,58 @@ export default function HomeLauncher({ onEnterModule }) {
     load()
     const t = setInterval(load, 20_000)
     return () => clearInterval(t)
+  }, [profile?.id])
+
+  // Unread chat messages count + realtime popup
+  useEffect(() => {
+    if (!profile?.id) return
+    async function loadChatUnread() {
+      const { data: parts } = await supabase
+        .from('chat_participants')
+        .select('conversation_id, last_read_at')
+        .eq('user_id', profile.id)
+      if (!parts?.length) { setChatUnread(0); return }
+      let total = 0
+      for (const p of parts) {
+        const q = supabase
+          .from('chat_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', p.conversation_id)
+          .eq('is_deleted', false)
+          .neq('sender_id', profile.id)
+        if (p.last_read_at) q.gt('created_at', p.last_read_at)
+        const { count } = await q
+        total += (count || 0)
+      }
+      setChatUnread(total)
+    }
+    loadChatUnread()
+    const t = setInterval(loadChatUnread, 30_000)
+
+    const chan = supabase.channel('home-chat-' + profile.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async (payload) => {
+        const msg = payload.new
+        if (msg.sender_id === profile.id) return
+        const { data: part } = await supabase
+          .from('chat_participants')
+          .select('conversation_id')
+          .eq('user_id', profile.id)
+          .eq('conversation_id', msg.conversation_id)
+          .maybeSingle()
+        if (!part) return
+        setChatUnread(prev => prev + 1)
+        const { data: sender } = await supabase
+          .from('profiles')
+          .select('full_name, username, employee:employees(name)')
+          .eq('id', msg.sender_id)
+          .maybeSingle()
+        const senderName = sender?.employee?.name || sender?.full_name || sender?.username || 'Someone'
+        setChatPopup({ name: senderName, text: msg.content?.slice(0, 80) || 'sent a message' })
+        setTimeout(() => setChatPopup(null), 5000)
+      })
+      .subscribe()
+
+    return () => { clearInterval(t); supabase.removeChannel(chan) }
   }, [profile?.id])
 
   function markRead(id) {
@@ -367,7 +421,7 @@ export default function HomeLauncher({ onEnterModule }) {
               width: '100%',
               maxWidth: `${cols * (isMobile ? 160 : 170)}px`,
             }}>
-              {visible.map(mod => <ModuleTile key={mod.id} mod={mod} onClick={() => onEnterModule(mod.id)} />)}
+              {visible.map(mod => <ModuleTile key={mod.id} mod={mod} badge={mod.id === 'connect' ? chatUnread : 0} onClick={() => onEnterModule(mod.id)} />)}
             </div>
           )
         })()}
@@ -439,12 +493,38 @@ export default function HomeLauncher({ onEnterModule }) {
           </div>
         </>
       )}
+
+      {/* Chat message popup */}
+      {chatPopup && (
+        <div onClick={() => { setChatPopup(null); onEnterModule('connect') }} style={{
+          position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
+          background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
+          borderRadius: '14px', padding: '14px 18px', minWidth: '280px', maxWidth: '380px',
+          boxShadow: '0 8px 32px rgba(0,0,0,.18)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '12px',
+          animation: 'slideInUp .3s ease-out',
+        }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+            background: MODULE_COLORS.connect, color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>chat</span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{chatPopup.name}</div>
+            <div style={{ fontSize: '12px', color: THEME.textMed, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{chatPopup.text}</div>
+          </div>
+          <span className="material-symbols-rounded" style={{ fontSize: '16px', color: THEME.textLow }}>close</span>
+        </div>
+      )}
+      <style>{`@keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
     </div>
   )
 }
 
 // ── Module tile — Odoo/SAP-inspired flat card ────────────────────────────────
-function ModuleTile({ mod, onClick }) {
+function ModuleTile({ mod, badge = 0, onClick }) {
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -472,8 +552,19 @@ function ModuleTile({ mod, onClick }) {
         alignItems: 'center',
         justifyContent: 'center',
         gap: '14px',
+        position: 'relative',
       }}
     >
+      {badge > 0 && (
+        <div style={{
+          position: 'absolute', top: '8px', right: '8px',
+          background: THEME.error, color: '#fff', borderRadius: '50px',
+          minWidth: '20px', height: '20px', padding: '0 6px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '11px', fontWeight: 700, lineHeight: 1,
+          boxShadow: '0 2px 6px rgba(220,38,38,.4)',
+        }}>{badge > 99 ? '99+' : badge}</div>
+      )}
       {/* Solid colored icon block — always filled, white icon */}
       <div style={{
         width: '58px', height: '58px',

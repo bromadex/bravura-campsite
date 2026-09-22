@@ -155,16 +155,26 @@ export default function ConnectPage({ setPage }) {
 
   const loadSiteUsers = useCallback(async () => {
     if (!currentSiteId) return
-    const { data, error } = await supabase
+    // Get user IDs with roles at this site
+    const { data: roleData } = await supabase
       .from('user_roles')
-      .select('user_id, profile:profiles(id, full_name)')
+      .select('user_id')
       .or(`site_id.eq.${currentSiteId},site_id.is.null`)
-    if (error) { console.error(error); return }
-    const seen = new Set()
-    const users = (data || [])
-      .filter(r => r.profile && r.profile.id && !seen.has(r.profile.id) && seen.add(r.profile.id))
-      .map(r => ({ id: r.profile.id, full_name: r.profile.full_name || 'Unknown' }))
-      .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
+    const roleUserIds = [...new Set((roleData || []).map(r => r.user_id).filter(Boolean))]
+    if (!roleUserIds.length) { setSiteUsers([]); return }
+    // Get profiles with employee names
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('id, full_name, username, employee:employees(name, department:departments(name))')
+      .in('id', roleUserIds)
+    const users = (profileData || []).map(p => {
+      const emp = p.employee
+      return {
+        id: p.id,
+        full_name: emp?.name || p.full_name || p.username || 'Unknown',
+        department: emp?.department?.name || null,
+      }
+    }).sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
     setSiteUsers(users)
   }, [currentSiteId])
 
@@ -829,7 +839,10 @@ export default function ConnectPage({ setPage }) {
                     background: sel ? `${ACCENT}14` : 'transparent', borderBottom: `1px solid ${THEME.outlineVar}`,
                   }}>
                     <Avatar name={u.full_name} size={26} />
-                    <div style={{ flex: 1, fontSize: '13px', color: THEME.text }}>{u.full_name}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', color: THEME.text }}>{u.full_name}</div>
+                      {u.department && <div style={{ fontSize: '11px', color: THEME.textLow }}>{u.department}</div>}
+                    </div>
                     {sel && <Icon name="check_circle" size={18} style={{ color: ACCENT }} />}
                   </div>
                 )

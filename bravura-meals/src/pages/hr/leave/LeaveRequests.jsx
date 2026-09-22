@@ -6,6 +6,7 @@ import { useSite } from '../../../contexts/SiteContext'
 import { usePermissions } from '../../../contexts/PermissionsContext'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast, fmtDate } from '../../../components/ui'
 import { useRealtimeRefresh } from '../../../hooks/useRealtimeSubscription'
+import { pushNotificationFromTemplate, pushNotificationToPermission } from '../../../utils/notificationEngine'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -124,6 +125,12 @@ export default function LeaveRequests() {
     })
     setSaving(false)
     if (error) { showToast(error.message, 'red'); return }
+    const empName = employees.find(e => e.id === req.employee_id)?.name || 'Employee'
+    const ltName = types.find(t => t.id === req.leave_type_id)?.name || 'Leave'
+    pushNotificationFromTemplate('leave_submitted', {
+      employee_name: empName, leave_type: ltName,
+      start_date: req.start_date, end_date: req.end_date,
+    }, { permission: 'hr.approve' }, currentSiteId)
     showToast('Leave request submitted', 'green')
     setReqOpen(false)
     setReq({ employee_id: '', leave_type_id: '', start_date: '', end_date: '', reason: '' })
@@ -134,6 +141,13 @@ export default function LeaveRequests() {
     if (!window.confirm(`Approve ${r.days_requested} day(s) of ${r.leave_type?.name} for ${r.employee?.name}?`)) return
     const { error } = await supabase.rpc('approve_leave_request', { p_request_id: r.id })
     if (error) { showToast(error.message, 'red'); return }
+    if (r.created_by) {
+      pushNotificationFromTemplate('leave_approved', {
+        leave_type: r.leave_type?.name || 'Leave',
+        start_date: r.start_date, end_date: r.end_date,
+        approver_name: profile?.full_name || 'Manager',
+      }, { userId: r.created_by }, currentSiteId)
+    }
     showToast('Leave approved', 'green'); load()
   }
 
@@ -143,6 +157,13 @@ export default function LeaveRequests() {
     const { error } = await supabase.rpc('reject_leave_request', { p_request_id: rejTarget.id, p_reason: rejReason.trim() })
     setSaving(false)
     if (error) { showToast(error.message, 'red'); return }
+    if (rejTarget.created_by) {
+      pushNotificationFromTemplate('leave_rejected', {
+        leave_type: rejTarget.leave_type?.name || 'Leave',
+        start_date: rejTarget.start_date, end_date: rejTarget.end_date,
+        approver_name: profile?.full_name || 'Manager',
+      }, { userId: rejTarget.created_by }, currentSiteId)
+    }
     showToast('Leave rejected', 'green')
     setRejOpen(false); setRejReason(''); load()
   }

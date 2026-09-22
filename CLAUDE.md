@@ -25,7 +25,8 @@ Supabase (PostgREST + RLS) backend, Vercel auto-deploys from `main` —
 - New tables use meals-pattern RLS: permission + site checked server-side via
   `_has_permission(code, site_id)` (generic) / `_has_hr_permission` — never `USING (true)`.
 - Migration numbering: general range continues from 0169 (0168 reserved for
-  governance/connect/notifications); **0100–0149 reserved for HR (Tafara)**.
+  governance/connect/notifications; 0170–0172 reserved for DocShare);
+  **0100–0149 reserved for HR (Tafara)**.
 - Keep architecture AI-ready: server-side RPCs/views, trigger-written audit events.
 - Build check before commit: `cd bravura-meals && npx vite build`.
 
@@ -55,7 +56,8 @@ Default site on login: Kamativi.
 ## Module map
 
 meals (ME), fuel (FU), fleet (FL), campsite (CA), workforce/HR (HR),
-admin (AD), procurement (PR), feedback (FB), contractors/CL (CL).
+admin (AD), procurement (PR), feedback (FB), contractors/CL (CL),
+docshare (DS).
 HR pages: `src/pages/hr/` (+ `hr/leave/`). Legacy workforce pages still in
 `src/pages/workforce/`. Contractor pages: `src/pages/contractors/`.
 
@@ -121,6 +123,75 @@ in app_users metadata). Action buttons on notification cards (Approve/Reject inl
 for leave, fuel, POs). Email digest opt-in (daily summary). Connect: group settings
 (rename, add/remove participants), message forwarding between conversations,
 notification sound/badge on mobile PWA.
+
+## DocShare Module Roadmap (DS — internal document management)
+
+General-purpose internal DMS for mining/camp operations. Two document modes:
+**controlled** (versioned, approval workflow, acknowledgement tracking, expiry)
+and **general** (upload, organize, search, download — shared file storage).
+Permissions: ds.view/create/edit/delete/approve. Migration range: 0170+.
+
+### Phase 1 — Foundation & General Storage (0170)
+Tables: `ds_documents` (id, site_id, title, description, category, doc_mode
+['controlled','general'], folder_id, created_by, created_at, updated_at,
+is_archived, file_path, file_name, file_size, file_type, tags[]),
+`ds_folders` (id, site_id, name, parent_id, created_by, created_at, is_archived),
+`ds_document_access` (document_id, user_id/role_id, access_level ['view','edit']).
+Pages:
+- **Document Library (DS01)**: grid/list view with folder tree sidebar, category
+  filter, search by title/tags/content, sort by date/name/size, bulk actions.
+  Upload with drag-and-drop, multi-file support. File preview (PDF, images).
+  Folder create/rename/move/archive. Document detail drawer with metadata,
+  download, share link (internal), move to folder.
+- **DocShare Settings (DS02)**: categories management, default folder structure
+  per site, file size limits, allowed file types configuration.
+RLS: site-scoped, ds.view for SELECT, ds.create for INSERT, ds.edit for UPDATE.
+Storage bucket: `docshare-files` (private, signed URLs via RPC).
+
+### Phase 2 — Controlled Documents & Versioning (0171)
+Tables: `ds_versions` (id, document_id, version_number, file_path, file_name,
+file_size, change_summary, status ['draft','in_review','approved','superseded'],
+uploaded_by, reviewed_by, approved_by, approved_at, created_at),
+`ds_review_requests` (id, version_id, reviewer_id, status, comments, responded_at),
+`ds_acknowledgements` (id, version_id, user_id, acknowledged_at, required_by).
+Pages:
+- **Document Detail (DS03)**: full page for controlled docs — version history
+  timeline, current approved version prominent, draft/review status badges,
+  side-by-side version comparison (metadata, not content diff), download any
+  version. Review panel: approve/reject with comments, request changes.
+- **My Acknowledgements (DS04)**: list of documents requiring user's acknowledgement,
+  pending/completed tabs, acknowledge button with timestamp, overdue highlighting.
+Workflow: upload new version (draft) → assign reviewers (ds.approve holders or
+specific users) → reviewers approve/reject → on approval, previous version
+becomes 'superseded', new version becomes 'approved' → fire notifications to
+acknowledgement targets → track compliance.
+Wire notificationEngine: new version published → notify relevant users,
+acknowledgement deadline approaching → remind, review requested → notify reviewer.
+
+### Phase 3 — Expiry, Compliance & Reporting (0172)
+Tables: `ds_expiry_rules` (id, document_id, expiry_months, notify_days_before,
+auto_archive), `ds_activity_log` (id, document_id, action, user_id, details, created_at).
+Pages:
+- **Compliance Dashboard (DS05)**: KPI row (total docs, expiring soon, overdue
+  acknowledgements, pending reviews), document status breakdown by category,
+  acknowledgement completion rates by department, expiring documents list with
+  days remaining, activity timeline.
+- **Document Reports (DS06)**: export document register (CSV), acknowledgement
+  compliance report by user/department, version history audit trail, storage
+  usage by site/category.
+Triggers: auto-notify on approaching expiry (30/14/7 days), auto-archive on
+expiry if configured. Cron-friendly: expiry check RPC callable from scheduled task.
+
+### Phase 4 — Cross-Module Integration
+- Link documents to module records: fleet assets (manuals, inspection certs),
+  SHEQ incidents (investigation reports), contractors (contracts, insurance),
+  HR employees (qualifications, certifications), procurement (POs, invoices).
+  Uses `ds_document_links` (document_id, linked_table, linked_id).
+- "Attach Document" button on key detail pages across modules.
+- Connect integration: share document links in chat via `/DS01` slash command,
+  document-linked conversation threads.
+- Governance migration: optionally migrate existing governance_documents into
+  DocShare as controlled documents (one-time migration script).
 
 ## Connect Hardening Roadmap (from cross-AI code review, September 2026)
 
@@ -204,6 +275,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   Bug fixes from cross-AI review applied (mention insertion, file upload reply_to,
   unread counting, DM path). Hardening roadmap defined — see section above.
   Phases 1-2 (Notifications, Governance) and Phases 4-5 **planned**.
+- DocShare (DS): **planned** — migration 0170+, 4 phases. See roadmap above.
 
 ## Improvement backlog (agreed with user, work top-down)
 

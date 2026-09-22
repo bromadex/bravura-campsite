@@ -11,7 +11,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS notifications (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   site_id    uuid REFERENCES sites(id),
-  user_id    uuid NOT NULL REFERENCES app_users(id),
+  user_id    uuid NOT NULL REFERENCES profiles(id),
   type       text NOT NULL,
   title      text NOT NULL,
   message    text,
@@ -65,10 +65,10 @@ CREATE TABLE IF NOT EXISTS governance_documents (
   acknowledge_by    date,
   status            text NOT NULL DEFAULT 'draft'
     CHECK (status IN ('draft','published','archived')),
-  published_by      uuid REFERENCES app_users(id),
+  published_by      uuid REFERENCES profiles(id),
   published_by_name text,
   is_archived       boolean NOT NULL DEFAULT false,
-  created_by        uuid NOT NULL REFERENCES app_users(id),
+  created_by        uuid NOT NULL REFERENCES profiles(id),
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
 );
@@ -83,14 +83,14 @@ CREATE TABLE IF NOT EXISTS governance_versions (
   body        text,
   body_html   text,
   change_notes text,
-  created_by  uuid REFERENCES app_users(id),
+  created_by  uuid REFERENCES profiles(id),
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS governance_responses (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   document_id uuid NOT NULL REFERENCES governance_documents(id) ON DELETE CASCADE,
-  user_id     uuid NOT NULL REFERENCES app_users(id),
+  user_id     uuid NOT NULL REFERENCES profiles(id),
   response    text NOT NULL CHECK (response IN ('accepted','rejected')),
   comment     text,
   created_at  timestamptz NOT NULL DEFAULT now(),
@@ -103,7 +103,7 @@ CREATE INDEX IF NOT EXISTS idx_governance_responses_doc
 CREATE TABLE IF NOT EXISTS announcement_reads (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   document_id uuid NOT NULL REFERENCES governance_documents(id) ON DELETE CASCADE,
-  user_id     uuid NOT NULL REFERENCES app_users(id),
+  user_id     uuid NOT NULL REFERENCES profiles(id),
   read_at     timestamptz NOT NULL DEFAULT now(),
   UNIQUE (document_id, user_id)
 );
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS chat_conversations (
   record_id     uuid,
   record_label  text,
   department_id uuid REFERENCES departments(id),
-  created_by    uuid NOT NULL REFERENCES app_users(id),
+  created_by    uuid NOT NULL REFERENCES profiles(id),
   is_archived   boolean NOT NULL DEFAULT false,
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
@@ -137,7 +137,7 @@ CREATE INDEX IF NOT EXISTS idx_chat_conversations_site
 CREATE TABLE IF NOT EXISTS chat_participants (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id uuid NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
-  user_id         uuid NOT NULL REFERENCES app_users(id),
+  user_id         uuid NOT NULL REFERENCES profiles(id),
   role            text NOT NULL DEFAULT 'member' CHECK (role IN ('admin','member')),
   last_read_at    timestamptz DEFAULT now(),
   is_muted        boolean NOT NULL DEFAULT false,
@@ -151,7 +151,7 @@ CREATE INDEX IF NOT EXISTS idx_chat_participants_user
 CREATE TABLE IF NOT EXISTS chat_messages (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id uuid NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
-  sender_id       uuid NOT NULL REFERENCES app_users(id),
+  sender_id       uuid NOT NULL REFERENCES profiles(id),
   content         text NOT NULL,
   message_type    text NOT NULL DEFAULT 'text'
     CHECK (message_type IN ('text','file','system')),
@@ -176,7 +176,7 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_sender
 CREATE TABLE IF NOT EXISTS message_reactions (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   message_id uuid NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
-  user_id    uuid NOT NULL REFERENCES app_users(id),
+  user_id    uuid NOT NULL REFERENCES profiles(id),
   emoji      text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (message_id, user_id, emoji)
@@ -188,7 +188,7 @@ CREATE INDEX IF NOT EXISTS idx_message_reactions_msg
 CREATE TABLE IF NOT EXISTS message_reads (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   message_id uuid NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
-  user_id    uuid NOT NULL REFERENCES app_users(id),
+  user_id    uuid NOT NULL REFERENCES profiles(id),
   read_at    timestamptz NOT NULL DEFAULT now(),
   UNIQUE (message_id, user_id)
 );
@@ -379,8 +379,8 @@ INSERT INTO permissions (id, code, module, action, description) VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- Grant all new permissions to System Administrator
-INSERT INTO role_permissions (id, role_id, permission_id)
-SELECT gen_random_uuid(), '85928d6a-e1f8-45e4-95c0-b467b6baeef8', p.id
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT '85928d6a-e1f8-45e4-95c0-b467b6baeef8', p.id
 FROM permissions p
 WHERE p.code IN (
   'governance.view','governance.create','governance.edit','governance.delete','governance.approve',
@@ -407,7 +407,7 @@ BEGIN
 
   SELECT au.id, COALESCE(ur.site_id, NEW.site_id)
     INTO v_app_user, v_site_id
-    FROM app_users au
+    FROM profiles au
     LEFT JOIN user_roles ur ON ur.user_id = au.id
     WHERE au.employee_id = NEW.id
     LIMIT 1;

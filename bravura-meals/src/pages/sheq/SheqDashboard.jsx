@@ -62,6 +62,9 @@ export default function SheqDashboard({ setPage }) {
   const [capas, setCapas] = useState([])
   const [observations, setObservations] = useState([])
   const [recentIncidents, setRecentIncidents] = useState([])
+  const [fleetSummary, setFleetSummary] = useState([])
+  const [contractorScores, setContractorScores] = useState([])
+  const [costData, setCostData] = useState({ totalEstimated: 0, totalActual: 0, byCategory: [] })
 
   useEffect(() => {
     if (currentSiteId && can('sheq.view')) fetchAll()
@@ -70,10 +73,10 @@ export default function SheqDashboard({ setPage }) {
   async function fetchAll() {
     setLoading(true)
     try {
-      const [incRes, hazRes, capaRes, obsRes, recentRes] = await Promise.all([
+      const [incRes, hazRes, capaRes, obsRes, recentRes, fleetRes, contrRes] = await Promise.all([
         supabase
           .from('sheq_incidents')
-          .select('id, incident_number, incident_date, incident_type, severity, status, description, created_at')
+          .select('id, incident_number, incident_date, incident_type, severity, status, description, created_at, estimated_cost, actual_cost, cost_category, days_lost, fleet_asset_id')
           .eq('site_id', currentSiteId)
           .eq('is_archived', false),
         supabase
@@ -98,6 +101,14 @@ export default function SheqDashboard({ setPage }) {
           .eq('is_archived', false)
           .order('incident_date', { ascending: false })
           .limit(10),
+        supabase
+          .from('sheq_fleet_incident_summary')
+          .select('*')
+          .eq('site_id', currentSiteId),
+        supabase
+          .from('sheq_contractor_scores')
+          .select('*')
+          .eq('site_id', currentSiteId),
       ])
 
       if (incRes.error) throw incRes.error
@@ -111,6 +122,25 @@ export default function SheqDashboard({ setPage }) {
       setCapas(capaRes.data || [])
       setObservations(obsRes.data || [])
       setRecentIncidents(recentRes.data || [])
+      setFleetSummary(fleetRes.data || [])
+      setContractorScores(contrRes.data || [])
+
+      // Compute cost data from incidents
+      const allInc = incRes.data || []
+      const totalEstimated = allInc.reduce((s, i) => s + (Number(i.estimated_cost) || 0), 0)
+      const totalActual = allInc.reduce((s, i) => s + (Number(i.actual_cost) || 0), 0)
+      const totalDaysLost = allInc.reduce((s, i) => s + (Number(i.days_lost) || 0), 0)
+      const catMap = {}
+      allInc.forEach(i => {
+        if (i.cost_category) {
+          if (!catMap[i.cost_category]) catMap[i.cost_category] = { estimated: 0, actual: 0, count: 0 }
+          catMap[i.cost_category].estimated += Number(i.estimated_cost) || 0
+          catMap[i.cost_category].actual += Number(i.actual_cost) || 0
+          catMap[i.cost_category].count++
+        }
+      })
+      const byCategory = Object.entries(catMap).map(([k, v]) => ({ category: k, ...v })).sort((a, b) => b.actual - a.actual)
+      setCostData({ totalEstimated, totalActual, totalDaysLost, byCategory })
     } catch (err) {
       console.error('SheqDashboard fetch failed:', err)
       showToast('Failed to load SHEQ dashboard', 'red')
@@ -339,8 +369,44 @@ export default function SheqDashboard({ setPage }) {
         </DashCard>
       </div>
 
-      {/* Recent incidents */}
-      <div style={{ marginBottom: '16px' }}>
+      {/* Cost Impact + Recent Incidents side by side */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.5fr)', gap: '16px', marginBottom: '16px' }}>
+        <DashCard>
+          <SectionTitle title="Cost Impact" subtitle="Financial impact of incidents" />
+          {loading ? (
+            <div style={{ color: THEME.textLow, fontSize: '13px' }}>Loading...</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                {[
+                  { label: 'Estimated', value: `$${costData.totalEstimated.toLocaleString()}`, color: CLR.amber },
+                  { label: 'Actual', value: `$${costData.totalActual.toLocaleString()}`, color: CLR.red },
+                  { label: 'Days Lost', value: costData.totalDaysLost || 0, color: CLR.purple },
+                ].map(c => (
+                  <div key={c.label} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: 700, color: c.color }}>{c.value}</div>
+                    <div style={{ fontSize: '11px', color: THEME.textLow }}>{c.label}</div>
+                  </div>
+                ))}
+              </div>
+              {costData.byCategory.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, marginBottom: '2px' }}>By Category</div>
+                  {costData.byCategory.map(c => (
+                    <div key={c.category} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0', borderBottom: `1px solid ${THEME.border}` }}>
+                      <span style={{ color: THEME.text }}>{(c.category || '').replaceAll('_', ' ')}</span>
+                      <span style={{ color: THEME.textMed, fontWeight: 600 }}>${c.actual.toLocaleString()} ({c.count})</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {costData.byCategory.length === 0 && (
+                <div style={{ textAlign: 'center', color: THEME.textLow, fontSize: '12px', padding: '10px 0' }}>No cost data recorded yet</div>
+              )}
+            </div>
+          )}
+        </DashCard>
+
         <DashCard>
           <SectionTitle title="Recent Incidents" subtitle="Last 10 reported incidents" />
           {loading ? (
@@ -363,6 +429,73 @@ export default function SheqDashboard({ setPage }) {
                   isLast={i === recentIncidents.length - 1}
                 />
               ))}
+            </div>
+          )}
+        </DashCard>
+      </div>
+
+      {/* Cross-Module: Fleet Incidents + Contractor Scores */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+        <DashCard>
+          <SectionTitle title="Fleet Incident Summary" subtitle="Incidents involving fleet assets" />
+          {loading ? (
+            <div style={{ color: THEME.textLow, fontSize: '13px' }}>Loading...</div>
+          ) : fleetSummary.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px 0', color: THEME.textLow, fontSize: '12px' }}>No fleet-related incidents</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              {fleetSummary.slice(0, 8).map((f, i) => (
+                <div key={f.asset_id || i} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 0', borderBottom: i < fleetSummary.length - 1 ? `1px solid ${THEME.border}` : 'none',
+                }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{f.asset_number || 'Unknown'}</div>
+                    <div style={{ fontSize: '11px', color: THEME.textLow }}>{f.description || ''}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: CLR.red }}>{f.incident_count}</div>
+                    <div style={{ fontSize: '10px', color: THEME.textLow }}>
+                      ${(Number(f.total_actual_cost) || 0).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DashCard>
+
+        <DashCard>
+          <SectionTitle title="Contractor SHEQ Scores" subtitle="Compliance scores by contractor" />
+          {loading ? (
+            <div style={{ color: THEME.textLow, fontSize: '13px' }}>Loading...</div>
+          ) : contractorScores.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px 0', color: THEME.textLow, fontSize: '12px' }}>No contractor compliance data</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              {contractorScores.slice(0, 8).map((c, i) => {
+                const score = Number(c.compliance_score) || 0
+                const scoreColor = score >= 80 ? CLR.green : score >= 60 ? CLR.amber : CLR.red
+                return (
+                  <div key={c.contractor_id || i} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '8px 0', borderBottom: i < contractorScores.length - 1 ? `1px solid ${THEME.border}` : 'none',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{c.company_name || 'Unknown'}</div>
+                      <div style={{ fontSize: '11px', color: THEME.textLow }}>
+                        {c.total_incidents || 0} incidents · {c.open_findings || 0} open findings
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: '14px', fontWeight: 700, color: scoreColor,
+                      background: `${scoreColor}18`, borderRadius: '8px', padding: '3px 10px',
+                    }}>
+                      {score.toFixed(0)}%
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </DashCard>

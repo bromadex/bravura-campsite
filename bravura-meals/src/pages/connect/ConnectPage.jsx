@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../auth/AuthContext'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { TXN_CODES, searchCodes } from '../../utils/txnCodes'
+import { TXN_CODES, searchCodes, resolveCode } from '../../utils/txnCodes'
+import { searchEntities, SEARCH_CATEGORIES } from '../../utils/searchEngine'
 import { Icon, Button, Modal, SectionLabel, showToast, initials, fmtDate } from '../../components/ui'
 import Denied from '../../components/Denied'
 
@@ -60,7 +62,33 @@ function dayLabel(iso) {
   return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined })
 }
 
+function RenderContent({ text, navigate }) {
+  if (!text) return null
+  const parts = text.split(/(\[[A-Z]{2}\d{2}\])/)
+  return parts.map((part, i) => {
+    const match = part.match(/^\[([A-Z]{2}\d{2})\]$/)
+    if (match) {
+      const entry = resolveCode(match[1])
+      if (entry) {
+        const c = MODULE_COLORS[entry.module] || THEME.primary
+        return (
+          <span key={i} onClick={(e) => { e.stopPropagation(); navigate(entry.path) }} style={{
+            display: 'inline-flex', alignItems: 'center', gap: '3px',
+            padding: '1px 8px', borderRadius: '6px', cursor: 'pointer',
+            background: c + '22', color: c, fontSize: '12px', fontWeight: 700,
+            fontFamily: 'monospace', verticalAlign: 'middle', margin: '0 2px',
+          }}>
+            {match[1]} {entry.label}
+          </span>
+        )
+      }
+    }
+    return <span key={i}>{part}</span>
+  })
+}
+
 export default function ConnectPage({ setPage }) {
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const { currentSiteId, currentSite } = useSite()
   const { can } = usePermissions()
@@ -86,6 +114,7 @@ export default function ConnectPage({ setPage }) {
   const [newChatType, setNewChatType] = useState('dm')
   const [newChatName, setNewChatName] = useState('')
   const [newChatUserSearch, setNewChatUserSearch] = useState('')
+  const [newChatDeptFilter, setNewChatDeptFilter] = useState('')
   const [newChatSelected, setNewChatSelected] = useState([])
   const [creating, setCreating] = useState(false)
 
@@ -99,6 +128,8 @@ export default function ConnectPage({ setPage }) {
   const [mentionQuery, setMentionQuery] = useState('')
   const [slashOpen, setSlashOpen] = useState(false)
   const [slashQuery, setSlashQuery] = useState('')
+  const [slashEntityResults, setSlashEntityResults] = useState([])
+  const slashDebounceRef = useRef(null)
 
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -273,14 +304,15 @@ export default function ConnectPage({ setPage }) {
   const visibleConvos = useMemo(() => {
     const q = convoSearch.trim().toLowerCase()
     return conversations
-      .filter(c => convoFilter === 'all' || c.type === convoFilter)
+      .filter(c => convoFilter === 'all' || convoFilter === 'unread' || c.type === convoFilter)
+      .filter(c => convoFilter !== 'unread' || (unreadCounts[c.id] || 0) > 0)
       .filter(c => !q || convoName(c).toLowerCase().includes(q))
       .sort((a, b) => {
         const ta = lastMessages[a.id]?.created_at || a.created_at
         const tb = lastMessages[b.id]?.created_at || b.created_at
         return new Date(tb) - new Date(ta)
       })
-  }, [conversations, convoSearch, convoFilter, lastMessages])
+  }, [conversations, convoSearch, convoFilter, lastMessages, unreadCounts])
 
   const selectedConvo = conversations.find(c => c.id === selectedId) || null
 
@@ -308,13 +340,19 @@ export default function ConnectPage({ setPage }) {
 
   // ── New conversation ─────────────────────────────────────────────────────
   function openNewChat() {
-    setNewChatType('dm'); setNewChatName(''); setNewChatUserSearch(''); setNewChatSelected([])
+    setNewChatType('dm'); setNewChatName(''); setNewChatUserSearch(''); setNewChatDeptFilter(''); setNewChatSelected([])
     setNewChatOpen(true)
   }
 
+  const departments = useMemo(() => {
+    const depts = new Set()
+    siteUsers.forEach(u => { if (u.department) depts.add(u.department) })
+    return [...depts].sort()
+  }, [siteUsers])
+
   const filteredNewChatUsers = useMemo(() => {
     const q = newChatUserSearch.trim().toLowerCase()
-    return siteUsers.filter(u => u.id !== profile?.id && (!q || u.full_name.toLowerCase().includes(q)))
+    return siteUsers.filter(u => u.id !== profile?.id && (!q || u.full_name.toLowerCase().includes(q)) && (!newChatDeptFilter || u.department === newChatDeptFilter))
   }, [siteUsers, newChatUserSearch, profile?.id])
 
   function toggleNewChatUser(u) {
@@ -434,6 +472,16 @@ export default function ConnectPage({ setPage }) {
     if (!slashOpen) return []
     return searchCodes(slashQuery).slice(0, 6)
   }, [slashOpen, slashQuery])
+
+  useEffect(() => {
+    if (!slashOpen || slashQuery.trim().length < 2) { setSlashEntityResults([]); return }
+    clearTimeout(slashDebounceRef.current)
+    slashDebounceRef.current = setTimeout(async () => {
+      const results = await searchEntities(slashQuery, currentSiteId)
+      setSlashEntityResults(results.slice(0, 5))
+    }, 300)
+    return () => clearTimeout(slashDebounceRef.current)
+  }, [slashQuery, slashOpen, currentSiteId])
 
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey && !mentionOpen && !slashOpen) {
@@ -572,7 +620,7 @@ export default function ConnectPage({ setPage }) {
               onChange={e => setConvoSearch(e.target.value)}
             />
             <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
-              {[['all', 'All'], ['dm', 'DMs'], ['group', 'Groups'], ['department', 'Departments']].map(([k, label]) => (
+              {[['all', 'All'], ['unread', 'Unread'], ['dm', 'DMs'], ['group', 'Groups'], ['department', 'Departments']].map(([k, label]) => (
                 <button key={k} onClick={() => setConvoFilter(k)} style={{
                   padding: '4px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600,
                   border: `1px solid ${convoFilter === k ? ACCENT : THEME.outline}`,
@@ -719,7 +767,7 @@ export default function ConnectPage({ setPage }) {
                               color: mine ? '#fff' : THEME.text,
                               fontSize: '13.5px', lineHeight: 1.45, wordBreak: 'break-word', position: 'relative',
                             }}>
-                              {m.content}
+                              <RenderContent text={m.content} navigate={navigate} />
                               {m.attachment_url && (
                                 <div style={{ marginTop: '6px' }}>
                                   <a href={m.attachment_url} target="_blank" rel="noreferrer" style={{ color: mine ? '#fff' : ACCENT, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'underline' }}>
@@ -806,15 +854,36 @@ export default function ConnectPage({ setPage }) {
                     ))}
                   </div>
                 )}
-                {slashOpen && slashMatches.length > 0 && (
-                  <div style={{ position: 'absolute', bottom: '100%', left: 14, marginBottom: 4, background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', boxShadow: THEME.shadow2, zIndex: 20, width: 260, maxHeight: 220, overflowY: 'auto' }}>
-                    {slashMatches.map(t => (
-                      <div key={t.code} onClick={() => insertTxnCode(t)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '12px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}
-                        onMouseDown={e => e.preventDefault()}>
-                        <span style={{ fontWeight: 700, color: ACCENT }}>{t.code}</span>
-                        <span style={{ color: THEME.textMed, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
-                      </div>
-                    ))}
+                {slashOpen && (slashMatches.length > 0 || slashEntityResults.length > 0) && (
+                  <div style={{ position: 'absolute', bottom: '100%', left: 14, marginBottom: 4, background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', boxShadow: THEME.shadow2, zIndex: 20, width: 300, maxHeight: 280, overflowY: 'auto' }}>
+                    {slashMatches.length > 0 && (
+                      <>
+                        <div style={{ padding: '6px 12px 2px', fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.06em' }}>Screens</div>
+                        {slashMatches.map(t => (
+                          <div key={t.code} onClick={() => insertTxnCode(t)} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: '12px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}
+                            onMouseDown={e => e.preventDefault()}>
+                            <span style={{ fontWeight: 700, color: MODULE_COLORS[t.module] || ACCENT }}>{t.code}</span>
+                            <span style={{ color: THEME.textMed, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {slashEntityResults.length > 0 && (
+                      <>
+                        <div style={{ padding: '6px 12px 2px', fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.06em', borderTop: slashMatches.length ? `1px solid ${THEME.outlineVar}` : 'none', marginTop: slashMatches.length ? 4 : 0 }}>Records</div>
+                        {slashEntityResults.map((r, i) => {
+                          const cat = SEARCH_CATEGORIES.find(c => c.type === r.type) || {}
+                          return (
+                            <div key={r.type + '-' + i} onClick={() => { navigate(r.path); setSlashOpen(false) }} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                              onMouseDown={e => e.preventDefault()}>
+                              <Icon name={r.icon || cat.icon || 'search'} size={14} style={{ color: r.color || cat.color || THEME.textLow }} />
+                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: THEME.text }}>{r.label}</span>
+                              <span style={{ fontSize: '10px', color: r.color || cat.color || THEME.textLow, fontWeight: 600 }}>{cat.label}</span>
+                            </div>
+                          )
+                        })}
+                      </>
+                    )}
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
@@ -880,7 +949,16 @@ export default function ConnectPage({ setPage }) {
           )}
           <div>
             <SectionLabel>{newChatType === 'dm' ? 'Select Person *' : 'Add Members *'}</SectionLabel>
-            <input style={{ ...inputStyle, marginBottom: '8px' }} value={newChatUserSearch} onChange={e => setNewChatUserSearch(e.target.value)} placeholder="Search people…" />
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <input style={{ ...inputStyle, flex: 1 }} value={newChatUserSearch} onChange={e => setNewChatUserSearch(e.target.value)} placeholder="Search people…" />
+              <select value={newChatDeptFilter} onChange={e => setNewChatDeptFilter(e.target.value)} style={{
+                ...inputStyle, width: 'auto', minWidth: 120, padding: '8px 10px', fontSize: '12px',
+                color: newChatDeptFilter ? THEME.text : THEME.textLow,
+              }}>
+                <option value="">All Depts</option>
+                {departments.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
             <div style={{ maxHeight: 220, overflowY: 'auto', border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px' }}>
               {filteredNewChatUsers.length === 0 ? (
                 <div style={{ padding: '16px', textAlign: 'center', color: THEME.textLow, fontSize: '12px' }}>No users found</div>

@@ -184,7 +184,7 @@ export default function HomeLauncher({ onEnterModule }) {
       supabase
         .from('notifications')
         .select('*')
-        .eq('recipient_id', profile.id)
+        .eq('user_id', profile.id)
         .order('created_at', { ascending: false })
         .limit(20)
         .then(({ data }) => {

@@ -154,6 +154,7 @@ export const SHEQ_PILLS = [
   { id: 'sq_emergency_plans',     label: 'Emergency Plans', icon: 'emergency',      color: '#B71C1C' },
   { id: 'sq_emergency_drills',    label: 'Drills',          icon: 'fire_truck',     color: '#D32F2F' },
   { id: 'sq_mgmt_review',        label: 'Mgmt Review',    icon: 'supervisor_account', color: '#37474F' },
+  { id: 'sq_analytics',          label: 'Analytics',      icon: 'analytics',      color: '#6A1B9A' },
   { id: 'sq_reports',         label: 'Reports',         icon: 'bar_chart',      color: '#6A1B9A' },
   { id: 'sq_settings',        label: 'Settings',        icon: 'settings',       color: '#546E7A' },
 ]

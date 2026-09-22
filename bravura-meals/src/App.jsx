@@ -274,6 +274,7 @@ const SheqContractorCompliance = lazy(() => import('./pages/sheq/SheqContractorC
 const SheqEmergencyPlans   = lazy(() => import('./pages/sheq/SheqEmergencyPlans'))
 const SheqEmergencyDrills  = lazy(() => import('./pages/sheq/SheqEmergencyDrills'))
 const SheqMgmtReview       = lazy(() => import('./pages/sheq/SheqMgmtReview'))
+const SheqAnalytics        = lazy(() => import('./pages/sheq/SheqAnalytics'))
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
@@ -691,6 +692,7 @@ function getSheqPage(page, can, setPage) {
     case 'sq_emergency_plans':  return <SheqEmergencyPlans setPage={setPage} />
     case 'sq_emergency_drills': return <SheqEmergencyDrills setPage={setPage} />
     case 'sq_mgmt_review':      return <SheqMgmtReview setPage={setPage} />
+    case 'sq_analytics':        return <SheqAnalytics setPage={setPage} />
     case 'sq_settings':         return can('sheq.edit') ? <SheqSettings setPage={setPage} /> : null
     default:                    return <SheqDashboard setPage={setPage} />
   }

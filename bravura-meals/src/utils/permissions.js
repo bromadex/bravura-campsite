@@ -378,6 +378,7 @@ export function sheqNav(role, can) {
     { id: 'sq_emergency_plans',    label: 'Emergency Plans',       section: 'Emergency',      icon: 'emergency' },
     { id: 'sq_emergency_drills',   label: 'Emergency Drills',      section: 'Emergency',      icon: 'fire_truck' },
     { id: 'sq_mgmt_review',       label: 'Management Review',     section: 'Management',     icon: 'supervisor_account' },
+    { id: 'sq_analytics',         label: 'SHEQ Analytics',        section: 'Reports',        icon: 'analytics' },
     { id: 'sq_reports',        label: 'Reports',             section: 'Reports',        icon: 'bar_chart' },
     { id: 'sq_settings',       label: 'Settings',            section: 'Admin',          icon: 'settings' },
   ]

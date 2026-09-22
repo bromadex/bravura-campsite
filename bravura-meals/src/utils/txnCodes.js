@@ -260,6 +260,7 @@ export const TXN_CODES = [
   { code: 'SQ33', path: '/sheq/sq_emergency_plans',     label: 'Emergency Plans',           module: 'sheq' },
   { code: 'SQ34', path: '/sheq/sq_emergency_drills',    label: 'Emergency Drills',          module: 'sheq' },
   { code: 'SQ35', path: '/sheq/sq_mgmt_review',         label: 'Management Review',         module: 'sheq' },
+  { code: 'SQ36', path: '/sheq/sq_analytics',           label: 'SHEQ Analytics',            module: 'sheq' },
 
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },

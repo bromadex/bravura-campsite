@@ -235,6 +235,73 @@ DROP POLICY IF EXISTS sheq_resource_consumption_policy ON sheq_resource_consumpt
 CREATE POLICY sheq_resource_consumption_policy ON sheq_resource_consumption
   USING (_has_permission('sheq.view', site_id));
 
+-- ── Full INSERT/UPDATE/DELETE policies ──────────────────────────────────────
+-- sheq_environmental_aspects
+DROP POLICY IF EXISTS sheq_environmental_aspects_insert ON sheq_environmental_aspects;
+CREATE POLICY sheq_environmental_aspects_insert ON sheq_environmental_aspects FOR INSERT WITH CHECK (_has_permission('sheq.create', site_id));
+DROP POLICY IF EXISTS sheq_environmental_aspects_update ON sheq_environmental_aspects;
+CREATE POLICY sheq_environmental_aspects_update ON sheq_environmental_aspects FOR UPDATE USING (_has_permission('sheq.edit', site_id));
+DROP POLICY IF EXISTS sheq_environmental_aspects_delete ON sheq_environmental_aspects;
+CREATE POLICY sheq_environmental_aspects_delete ON sheq_environmental_aspects FOR DELETE USING (_has_permission('sheq.delete', site_id));
+
+-- sheq_waste_records
+DROP POLICY IF EXISTS sheq_waste_records_insert ON sheq_waste_records;
+CREATE POLICY sheq_waste_records_insert ON sheq_waste_records FOR INSERT WITH CHECK (_has_permission('sheq.create', site_id));
+DROP POLICY IF EXISTS sheq_waste_records_update ON sheq_waste_records;
+CREATE POLICY sheq_waste_records_update ON sheq_waste_records FOR UPDATE USING (_has_permission('sheq.edit', site_id));
+DROP POLICY IF EXISTS sheq_waste_records_delete ON sheq_waste_records;
+CREATE POLICY sheq_waste_records_delete ON sheq_waste_records FOR DELETE USING (_has_permission('sheq.delete', site_id));
+
+-- sheq_spill_incidents
+DROP POLICY IF EXISTS sheq_spill_incidents_insert ON sheq_spill_incidents;
+CREATE POLICY sheq_spill_incidents_insert ON sheq_spill_incidents FOR INSERT WITH CHECK (_has_permission('sheq.create', site_id));
+DROP POLICY IF EXISTS sheq_spill_incidents_update ON sheq_spill_incidents;
+CREATE POLICY sheq_spill_incidents_update ON sheq_spill_incidents FOR UPDATE USING (_has_permission('sheq.edit', site_id));
+DROP POLICY IF EXISTS sheq_spill_incidents_delete ON sheq_spill_incidents;
+CREATE POLICY sheq_spill_incidents_delete ON sheq_spill_incidents FOR DELETE USING (_has_permission('sheq.delete', site_id));
+
+-- sheq_env_monitoring
+DROP POLICY IF EXISTS sheq_env_monitoring_insert ON sheq_env_monitoring;
+CREATE POLICY sheq_env_monitoring_insert ON sheq_env_monitoring FOR INSERT WITH CHECK (_has_permission('sheq.create', site_id));
+DROP POLICY IF EXISTS sheq_env_monitoring_update ON sheq_env_monitoring;
+CREATE POLICY sheq_env_monitoring_update ON sheq_env_monitoring FOR UPDATE USING (_has_permission('sheq.edit', site_id));
+DROP POLICY IF EXISTS sheq_env_monitoring_delete ON sheq_env_monitoring;
+CREATE POLICY sheq_env_monitoring_delete ON sheq_env_monitoring FOR DELETE USING (_has_permission('sheq.delete', site_id));
+
+-- sheq_ppe_items
+DROP POLICY IF EXISTS sheq_ppe_items_insert ON sheq_ppe_items;
+CREATE POLICY sheq_ppe_items_insert ON sheq_ppe_items FOR INSERT WITH CHECK (_has_permission('sheq.create', site_id));
+DROP POLICY IF EXISTS sheq_ppe_items_update ON sheq_ppe_items;
+CREATE POLICY sheq_ppe_items_update ON sheq_ppe_items FOR UPDATE USING (_has_permission('sheq.edit', site_id));
+DROP POLICY IF EXISTS sheq_ppe_items_delete ON sheq_ppe_items;
+CREATE POLICY sheq_ppe_items_delete ON sheq_ppe_items FOR DELETE USING (_has_permission('sheq.delete', site_id));
+
+-- sheq_ppe_issues
+DROP POLICY IF EXISTS sheq_ppe_issues_insert ON sheq_ppe_issues;
+CREATE POLICY sheq_ppe_issues_insert ON sheq_ppe_issues FOR INSERT WITH CHECK (_has_permission('sheq.create', site_id));
+DROP POLICY IF EXISTS sheq_ppe_issues_update ON sheq_ppe_issues;
+CREATE POLICY sheq_ppe_issues_update ON sheq_ppe_issues FOR UPDATE USING (_has_permission('sheq.edit', site_id));
+DROP POLICY IF EXISTS sheq_ppe_issues_delete ON sheq_ppe_issues;
+CREATE POLICY sheq_ppe_issues_delete ON sheq_ppe_issues FOR DELETE USING (_has_permission('sheq.delete', site_id));
+
+-- sheq_resource_consumption
+DROP POLICY IF EXISTS sheq_resource_consumption_insert ON sheq_resource_consumption;
+CREATE POLICY sheq_resource_consumption_insert ON sheq_resource_consumption FOR INSERT WITH CHECK (_has_permission('sheq.create', site_id));
+DROP POLICY IF EXISTS sheq_resource_consumption_update ON sheq_resource_consumption;
+CREATE POLICY sheq_resource_consumption_update ON sheq_resource_consumption FOR UPDATE USING (_has_permission('sheq.edit', site_id));
+DROP POLICY IF EXISTS sheq_resource_consumption_delete ON sheq_resource_consumption;
+CREATE POLICY sheq_resource_consumption_delete ON sheq_resource_consumption FOR DELETE USING (_has_permission('sheq.delete', site_id));
+
+-- ── Indexes ────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_sheq_environmental_aspects_site ON sheq_environmental_aspects(site_id);
+CREATE INDEX IF NOT EXISTS idx_sheq_waste_records_site ON sheq_waste_records(site_id);
+CREATE INDEX IF NOT EXISTS idx_sheq_spill_incidents_site ON sheq_spill_incidents(site_id);
+CREATE INDEX IF NOT EXISTS idx_sheq_env_monitoring_site ON sheq_env_monitoring(site_id);
+CREATE INDEX IF NOT EXISTS idx_sheq_ppe_items_site ON sheq_ppe_items(site_id);
+CREATE INDEX IF NOT EXISTS idx_sheq_ppe_issues_site ON sheq_ppe_issues(site_id);
+CREATE INDEX IF NOT EXISTS idx_sheq_ppe_issues_item ON sheq_ppe_issues(ppe_item_id);
+CREATE INDEX IF NOT EXISTS idx_sheq_resource_consumption_site ON sheq_resource_consumption(site_id);
+
 INSERT INTO schema_migrations (filename) VALUES ('0164_sheq_environment_ppe.sql') ON CONFLICT DO NOTHING;
 
 COMMIT;

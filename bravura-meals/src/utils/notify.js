@@ -94,8 +94,8 @@ export async function sendNotification({ recipientId, userId, type, title, body,
 export async function notifyApprovers({ siteId, permissionCode, type, title, body, message, actionUrl, link, category }) {
   const { data: roles, error: rolesErr } = await supabase
     .from('user_roles')
-    .select('user_id, role_id, role_permissions!inner(permission_id, permissions!inner(code))')
-    .eq('site_id', siteId)
+    .select('user_id, role_id, site_id, role_permissions!inner(permission_id, permissions!inner(code))')
+    .or(`site_id.eq.${siteId},site_id.is.null`)
     .eq('role_permissions.permissions.code', permissionCode)
 
   if (rolesErr) {

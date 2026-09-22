@@ -59,7 +59,7 @@ export async function pushNotificationToPermission(permissionCode, siteId, notif
         .from('user_roles')
         .select('user_id')
         .in('role_id', roleIds)
-        .eq('site_id', siteId)
+        .or(`site_id.eq.${siteId},site_id.is.null`)
       if (!userRoles?.length) return
 
       await pushNotificationToGroup(userRoles.map(ur => ur.user_id), siteId, notif)

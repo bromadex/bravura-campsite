@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader, showToast } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
+import { pushNotificationFromTemplate, pushNotification } from '../../utils/notificationEngine'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -550,6 +551,13 @@ export default function FuelRequests({ setPage }) {
         .eq('id', approveTarget.id)
       if (error) throw error
       showToast(`Request ${approveTarget.request_number} approved`, 'green')
+      if (approveTarget.requested_by) {
+        pushNotificationFromTemplate('fuel_approved', {
+          request_number: approveTarget.request_number,
+          vehicle: approveTarget.fleet_asset?.description || approveTarget.fleet_asset?.registration_number || 'N/A',
+          approver_name: profile?.full_name || 'Manager',
+        }, { userId: approveTarget.requested_by }, currentSiteId)
+      }
       setApproveTarget(null); setDetailReq(null)
       await load()
     } catch (err) {
@@ -567,6 +575,13 @@ export default function FuelRequests({ setPage }) {
         .eq('id', rejectTarget.id)
       if (error) throw error
       showToast(`Request ${rejectTarget.request_number} rejected`, 'red')
+      if (rejectTarget.requested_by) {
+        pushNotification(rejectTarget.requested_by, currentSiteId, {
+          type: 'fuel_rejected', title: 'Fuel Request Rejected',
+          message: `Your fuel request ${rejectTarget.request_number} was rejected${reason ? ': ' + reason : ''}.`,
+          link: '/fuel/fuel_requests', category: 'approvals',
+        })
+      }
       setRejectTarget(null); setDetailReq(null)
       await load()
     } catch (err) {

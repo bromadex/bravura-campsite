@@ -7,6 +7,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, showToast } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
+import { pushNotificationToPermission } from '../../utils/notificationEngine'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 
@@ -303,6 +304,11 @@ export default function FuelRequestForm({ setPage }) {
       const { error } = await supabase.from('fuel_requests').insert([payload])
       if (error) throw error
 
+      pushNotificationToPermission('fuel.approve', currentSiteId, {
+        type: 'fuel_submitted', title: 'New Fuel Request',
+        message: `Fuel request ${reqNum} submitted and awaiting approval.`,
+        link: '/fuel/fuel_requests', category: 'approvals',
+      })
       setDone({ requestNumber: reqNum, priority: form.priority })
     } catch (err) {
       showToast(err.message || 'Failed to submit request', 'red')

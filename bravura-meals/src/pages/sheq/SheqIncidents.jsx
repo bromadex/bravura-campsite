@@ -8,6 +8,7 @@ import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
 import QuickNav, { SHEQ_PILLS } from '../../components/QuickNav'
 import { exportCsv } from '../../utils/csv'
+import { pushNotificationToPermission } from '../../utils/notificationEngine'
 
 const ACCENT = MODULE_COLORS.sheq || '#D32F2F'
 
@@ -235,6 +236,11 @@ function IncidentModal({ incident, categories, profiles, siteId, userId, canAppr
         const { error } = await supabase.from('sheq_incidents').insert(payload)
         if (error) throw error
         showToast(`Incident ${numData} created`)
+        pushNotificationToPermission('sheq.approve', siteId, {
+          type: 'incident_reported', title: 'New SHEQ Incident',
+          message: `Incident ${numData} (${form.incident_type}, ${form.severity} severity) reported.`,
+          link: '/sheq/sheq_incidents', category: 'general',
+        })
       }
       onSaved()
     } catch (err) {

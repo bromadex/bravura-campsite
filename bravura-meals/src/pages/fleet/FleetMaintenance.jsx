@@ -7,6 +7,7 @@ import FleetQuickNav from './FleetQuickNav'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
+import { pushNotificationToPermission } from '../../utils/notificationEngine'
 
 const color = MODULE_COLORS.fleet
 
@@ -303,6 +304,12 @@ export default function FleetMaintenance({ setPage }) {
       } else {
         const { error: err } = await supabase.from('fleet_work_orders').insert(payload)
         if (err) throw err
+        const assetName = assets.find(a => a.id === form.asset_id)?.description || form.work_order_number
+        pushNotificationToPermission('fleet.approve', currentSiteId, {
+          type: 'maintenance_created', title: 'New Work Order',
+          message: `Work order ${form.work_order_number} created for ${assetName} (${form.priority} priority).`,
+          link: '/fleet/fleet_maintenance', category: 'general',
+        })
       }
 
       // If closing, also create a maintenance record

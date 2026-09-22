@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
@@ -131,6 +132,12 @@ function IncidentModal({ incident, categories, profiles, siteId, userId, canAppr
       fishbone_management: incident.fishbone_management || '',
       root_cause: incident.root_cause || '',
       status: incident.status || 'reported',
+      fleet_asset_id: incident.fleet_asset_id || '',
+      estimated_cost: incident.estimated_cost ?? '',
+      actual_cost: incident.actual_cost ?? '',
+      cost_category: incident.cost_category || '',
+      insurance_claim: incident.insurance_claim || false,
+      days_lost: incident.days_lost ?? '',
     }
     return {
       incident_date: new Date().toISOString().slice(0, 10),
@@ -142,10 +149,19 @@ function IncidentModal({ incident, categories, profiles, siteId, userId, canAppr
       five_why_4: '', five_why_5: '', fishbone_people: '', fishbone_process: '',
       fishbone_equipment: '', fishbone_materials: '', fishbone_environment: '',
       fishbone_management: '', root_cause: '', status: 'reported',
+      fleet_asset_id: '', estimated_cost: '', actual_cost: '',
+      cost_category: '', insurance_claim: false, days_lost: '',
     }
   })
 
   const [saving, setSaving] = useState(false)
+  const [fleetAssets, setFleetAssets] = useState([])
+
+  useEffect(() => {
+    supabase.from('fleet_assets').select('id, asset_number, description').eq('site_id', siteId).order('asset_number').then(({ data }) => {
+      if (data) setFleetAssets(data)
+    })
+  }, [siteId])
 
   function set(k, v) { setForm(prev => ({ ...prev, [k]: v })) }
 
@@ -184,6 +200,12 @@ function IncidentModal({ incident, categories, profiles, siteId, userId, canAppr
         fishbone_management: form.fishbone_management || null,
         root_cause: form.root_cause || null,
         status: form.status,
+        fleet_asset_id: form.fleet_asset_id || null,
+        estimated_cost: form.estimated_cost !== '' ? Number(form.estimated_cost) : null,
+        actual_cost: form.actual_cost !== '' ? Number(form.actual_cost) : null,
+        cost_category: form.cost_category || null,
+        insurance_claim: form.insurance_claim || false,
+        days_lost: form.days_lost !== '' ? Number(form.days_lost) : null,
       }
 
       if (isEdit) {
@@ -315,6 +337,42 @@ function IncidentModal({ incident, categories, profiles, siteId, userId, canAppr
             </Field>
           </div>
 
+          {/* ── Fleet & Cost ── */}
+          <SectionLabel>Fleet & Cost Impact</SectionLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <Field label="Fleet Asset">
+              <select style={selectStyle} value={form.fleet_asset_id} onChange={e => set('fleet_asset_id', e.target.value)}>
+                <option value="">None</option>
+                {fleetAssets.map(a => (
+                  <option key={a.id} value={a.id}>{a.asset_number} — {a.description}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Cost Category">
+              <select style={selectStyle} value={form.cost_category} onChange={e => set('cost_category', e.target.value)}>
+                <option value="">Select...</option>
+                {['property_damage', 'vehicle_damage', 'medical', 'environmental', 'production_loss', 'legal', 'other'].map(c => (
+                  <option key={c} value={c}>{fmtType(c)}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+            <Field label="Estimated Cost ($)">
+              <input style={inputStyle} type="number" min="0" step="0.01" value={form.estimated_cost} onChange={e => set('estimated_cost', e.target.value)} />
+            </Field>
+            <Field label="Actual Cost ($)">
+              <input style={inputStyle} type="number" min="0" step="0.01" value={form.actual_cost} onChange={e => set('actual_cost', e.target.value)} />
+            </Field>
+            <Field label="Days Lost">
+              <input style={inputStyle} type="number" min="0" value={form.days_lost} onChange={e => set('days_lost', e.target.value)} />
+            </Field>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: THEME.textMed, cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.insurance_claim} onChange={e => set('insurance_claim', e.target.checked)} />
+            Insurance claim filed
+          </label>
+
           {/* ── Description ── */}
           <SectionLabel>Description</SectionLabel>
           <Field label="Description" required>
@@ -401,6 +459,7 @@ function IncidentModal({ incident, categories, profiles, siteId, userId, canAppr
 export default function SheqIncidents({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_incidents', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [incidents, setIncidents] = useState([])
@@ -449,7 +508,7 @@ export default function SheqIncidents({ setPage }) {
     setProfiles(profs.data || [])
   }
 
-  useEffect(() => { fetchIncidents(); fetchRefData() }, [currentSiteId])
+  useEffect(() => { fetchIncidents(); fetchRefData() }, [currentSiteId, rt])
 
   const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 

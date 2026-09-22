@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
@@ -126,6 +127,7 @@ function DataTable({ columns, rows, emptyMsg }) {
 export default function SheqAnalytics({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_incidents', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [tab, setTab] = useState('overview')
@@ -151,7 +153,7 @@ export default function SheqAnalytics({ setPage }) {
 
   useEffect(() => {
     if (currentSiteId && can('sheq.view')) fetchData()
-  }, [currentSiteId, tab])
+  }, [currentSiteId, tab, rt])
 
   async function fetchData() {
     setLoading(true)

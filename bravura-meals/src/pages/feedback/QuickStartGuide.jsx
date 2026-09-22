@@ -61,6 +61,7 @@ export default function QuickStartGuide() {
       workforce:  can('hr.view')      || can('hr.edit'),
       admin:      can('admin.manage_users'),
       procurement: can('procurement.view'),
+      sheq:       can('sheq.view')  || can('sheq.create'),
       feedback:   true,
     }
     return TXN_CODES.filter(t => moduleAllowed[t.module])
@@ -185,6 +186,22 @@ export default function QuickStartGuide() {
             <>Compliance: Medical Surveillance (<Code>HR32</Code>) tracks fitness-for-work exams due and overdue, and the Document Expiry register (<Code>HR33</Code>) lists every expiring ID, licence and contract in one place.</>,
             <>PPE Tracking (<Code>HR34</Code>) records protective equipment issued to each employee — replacement dates flag automatically when kit is due or overdue.</>,
             <>HR Analytics (<Code>HR35</Code>) provides cross-module workforce analytics: headcount trends, department breakdowns, tenure distribution, meal costs, accommodation, fleet usage, leave days, and skills gap analysis per employee. Uses server-side RPCs for efficient aggregation.</>,
+          ]} />
+        </Section>
+      )}
+
+      {/* SHEQ */}
+      {(can('sheq.view') || can('sheq.create')) && (
+        <Section icon="health_and_safety" color={MODULE_COLORS.sheq} title="SHEQ — Safety, Health, Environment & Quality">
+          <Steps items={[
+            <><b>Phase 1 — Core Safety:</b> The Dashboard (<Code>SQ01</Code>) shows incident trends, open CAPAs and observation counts. Log incidents in <Code>SQ02</Code>, hazards/near-misses in <Code>SQ03</Code>, and safety observations in <Code>SQ04</Code>. Every incident gets a CAPA item (<Code>SQ05</Code>) to track corrective actions to closure.</>,
+            <><b>Phase 2 — Risk &amp; Permits:</b> The Risk Register (<Code>SQ08</Code>) catalogues site risks with likelihood/severity scores. Run formal Risk Assessments (<Code>SQ09</Code>) and configure the matrix in <Code>SQ13</Code>. Issue Permits to Work (<Code>SQ10</Code>) for high-risk tasks — the PTW Board (<Code>SQ11</Code>) shows all active permits. LOTO isolations live in <Code>SQ12</Code>.</>,
+            <><b>Phase 3 — Inspections &amp; Audits:</b> Build reusable checklists in Inspection Templates (<Code>SQ21</Code>), then run Inspections (<Code>SQ20</Code>) against them. Plan the Audit Programme (<Code>SQ22</Code>), record findings in <Code>SQ23</Code>, and view everything on the SHEQ Calendar (<Code>SQ24</Code>).</>,
+            <><b>Phase 4 — Training &amp; Medical:</b> The Training Matrix (<Code>SQ25</Code>) tracks competencies and gaps. Medical Fitness (<Code>SQ26</Code>) records fitness-for-work exams. Log Toolbox Talks (<Code>SQ27</Code>) with attendees. Each employee's SHEQ Profile (<Code>SQ28</Code>) consolidates their safety record, and the Induction Register (<Code>SQ29</Code>) tracks site inductions.</>,
+            <><b>Phase 5 — Environment &amp; PPE:</b> The Environmental Register (<Code>SQ14</Code>) lists environmental aspects and impacts. Waste Management (<Code>SQ15</Code>), Spill Management (<Code>SQ16</Code>) and Environmental Monitoring (<Code>SQ17</Code>) handle day-to-day tracking. PPE Register (<Code>SQ18</Code>) records issuance per employee. Resource Consumption (<Code>SQ19</Code>) monitors water, electricity and other utilities.</>,
+            <><b>Phase 6 — Compliance &amp; Documents:</b> The Legal Register (<Code>SQ30</Code>) tracks applicable legislation and compliance status. Document Control (<Code>SQ31</Code>) manages SHEQ policies and procedures with version control. Contractor Compliance (<Code>SQ32</Code>) scores contractor safety performance. Emergency Plans (<Code>SQ33</Code>) and Drills (<Code>SQ34</Code>) ensure preparedness. Management Review (<Code>SQ35</Code>) records periodic SHEQ reviews.</>,
+            <><b>Phase 7 — Analytics:</b> SHEQ Analytics (<Code>SQ36</Code>) aggregates data across modules — incident rates, CAPA closure trends, audit scores, training coverage and environmental KPIs in one view.</>,
+            <>SHEQ Reports (<Code>SQ06</Code>) exports filtered data for regulatory submissions. Module settings live in <Code>SQ07</Code>.</>,
           ]} />
         </Section>
       )}

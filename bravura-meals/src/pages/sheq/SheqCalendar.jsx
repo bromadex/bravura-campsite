@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { SHEQ_PILLS } from '../../components/QuickNav'
@@ -19,6 +20,7 @@ const EVENT_TYPES = {
 export default function SheqCalendar({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_incidents', { column: 'site_id', value: currentSiteId })
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [viewDate, setViewDate] = useState(() => new Date())
@@ -50,7 +52,7 @@ export default function SheqCalendar({ setPage }) {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [currentSiteId, year, month])
+  useEffect(() => { load() }, [currentSiteId, year, month, rt])
 
   const filteredEvents = filterType === 'all' ? events : events.filter(e => e.type === filterType)
 

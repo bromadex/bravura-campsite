@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
@@ -245,6 +246,7 @@ function DocModal({ item, profiles, departments, siteId, userId, onClose, onSave
 export default function SheqDocControl({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_document_control', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [items, setItems] = useState([])
@@ -285,7 +287,7 @@ export default function SheqDocControl({ setPage }) {
     }
   }
 
-  useEffect(() => { fetchData() }, [currentSiteId])
+  useEffect(() => { fetchData() }, [currentSiteId, rt])
 
   const filtered = useMemo(() => {
     let list = items

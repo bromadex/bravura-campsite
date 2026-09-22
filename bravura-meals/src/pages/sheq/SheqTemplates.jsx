@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
@@ -186,6 +187,7 @@ function TemplateModal({ template, siteId, userId, onClose, onSaved }) {
 export default function SheqTemplates({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_inspection_templates', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -206,7 +208,7 @@ export default function SheqTemplates({ setPage }) {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [currentSiteId])
+  useEffect(() => { load() }, [currentSiteId, rt])
 
   const filtered = rows.filter(r => {
     if (!search) return true

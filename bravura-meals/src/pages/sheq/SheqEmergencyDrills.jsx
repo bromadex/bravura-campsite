@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
@@ -268,6 +269,7 @@ function DrillModal({ item, profiles, plans, siteId, userId, onClose, onSaved })
 export default function SheqEmergencyDrills({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_emergency_drills', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [items, setItems] = useState([])
@@ -312,7 +314,7 @@ export default function SheqEmergencyDrills({ setPage }) {
     }
   }
 
-  useEffect(() => { fetchData() }, [currentSiteId])
+  useEffect(() => { fetchData() }, [currentSiteId, rt])
 
   const filtered = useMemo(() => {
     let list = items

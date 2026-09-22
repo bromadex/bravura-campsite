@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
@@ -195,6 +196,7 @@ function TrainingModal({ rec, profiles, siteId, userId, onClose, onSaved }) {
 export default function SheqTraining({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_training_matrix', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [rows, setRows] = useState([])
@@ -229,7 +231,7 @@ export default function SheqTraining({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { fetchData() }, [fetchData, rt])
 
   const kpis = useMemo(() => {
     const valid = rows.filter(r => r.status === 'valid').length

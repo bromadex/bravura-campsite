@@ -5,6 +5,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useAuth } from '../../auth/AuthContext'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, showToast, initials, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
+import { friendlyError } from '../../utils/friendlyError'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const MODULE_COLOR = '#5C6BC0'
@@ -141,7 +142,7 @@ export default function UserManagement({ setPage }) {
       showToast(employeeId ? 'Employee linked' : 'Employee unlinked', 'green')
       await fetchAll()
     } catch (err) {
-      showToast(err.message, 'red')
+      showToast(friendlyError(err), 'red')
     } finally {
       setLinkingEmployee(false)
     }

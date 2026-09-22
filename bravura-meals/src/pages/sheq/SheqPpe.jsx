@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
@@ -234,6 +235,7 @@ function IssueModal({ issue, ppeItems, profiles, siteId, userId, onClose, onSave
 export default function SheqPpe({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_ppe_items', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
   const [tab, setTab] = useState('items')
   const [items, setItems] = useState([])
@@ -259,7 +261,7 @@ export default function SheqPpe({ setPage }) {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [currentSiteId])
+  useEffect(() => { load() }, [currentSiteId, rt])
 
   const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 

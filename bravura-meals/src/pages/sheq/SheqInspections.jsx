@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
@@ -155,6 +156,7 @@ function InspectionModal({ record, templates, profiles, departments, projects, s
 export default function SheqInspections({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_inspections', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [templates, setTemplates] = useState([])
@@ -185,7 +187,7 @@ export default function SheqInspections({ setPage }) {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [currentSiteId])
+  useEffect(() => { load() }, [currentSiteId, rt])
 
   const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 

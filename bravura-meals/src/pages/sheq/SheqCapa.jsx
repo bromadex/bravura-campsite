@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
@@ -309,6 +310,7 @@ function CapaModal({ capa, profiles, siteId, userId, canApprove, onClose, onSave
 export default function SheqCapa({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_capa', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [rows, setRows] = useState([])
@@ -342,7 +344,7 @@ export default function SheqCapa({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { fetchData() }, [fetchData, rt])
 
   const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 

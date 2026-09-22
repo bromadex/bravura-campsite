@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
@@ -270,6 +271,7 @@ function SpillModal({ spill, siteId, userId, onClose, onSaved }) {
 export default function SheqSpills({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_spill_incidents', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [spills, setSpills] = useState([])
@@ -304,7 +306,7 @@ export default function SheqSpills({ setPage }) {
     }
   }
 
-  useEffect(() => { fetchSpills() }, [currentSiteId])
+  useEffect(() => { fetchSpills() }, [currentSiteId, rt])
 
   const filtered = useMemo(() => {
     let list = spills

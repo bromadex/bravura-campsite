@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
@@ -216,6 +217,7 @@ function ComplianceModal({ item, profiles, contractors, siteId, userId, onClose,
 export default function SheqContractorCompliance({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_contractor_compliance', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [items, setItems] = useState([])
@@ -256,7 +258,7 @@ export default function SheqContractorCompliance({ setPage }) {
     }
   }
 
-  useEffect(() => { fetchData() }, [currentSiteId])
+  useEffect(() => { fetchData() }, [currentSiteId, rt])
 
   const filtered = useMemo(() => {
     let list = items

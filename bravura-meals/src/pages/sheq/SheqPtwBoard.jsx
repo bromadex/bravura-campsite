@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, PageHeader } from '../../components/ui'
 import QuickNav, { SHEQ_PILLS } from '../../components/QuickNav'
@@ -52,6 +53,7 @@ function getTypeColor(typeId, typeMap) {
 export default function SheqPtwBoard({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_permits', { column: 'site_id', value: currentSiteId })
 
   const [permits, setPermits] = useState([])
   const [loading, setLoading] = useState(true)
@@ -89,7 +91,7 @@ export default function SheqPtwBoard({ setPage }) {
   }
 
   useEffect(() => { fetchTypes() }, [currentSiteId])
-  useEffect(() => { setLoading(true); fetchPermits() }, [currentSiteId, dateFilter])
+  useEffect(() => { setLoading(true); fetchPermits() }, [currentSiteId, dateFilter, rt])
 
   // Auto-refresh every 30s
   useEffect(() => {

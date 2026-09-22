@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
@@ -385,6 +386,7 @@ function RiskModal({ risk, profiles, departments, projects, matrix, siteId, user
 export default function SheqRiskRegister({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_risk_register', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [risks, setRisks] = useState([])
@@ -439,7 +441,7 @@ export default function SheqRiskRegister({ setPage }) {
     setMatrix(mat.data || [])
   }
 
-  useEffect(() => { fetchRisks(); fetchRefData() }, [currentSiteId])
+  useEffect(() => { fetchRisks(); fetchRefData() }, [currentSiteId, rt])
 
   const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 

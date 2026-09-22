@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { Card, Icon, PageHeader, Button, showToast, fmtDate } from '../../components/ui'
 import { DashCard, KpiCard, AreaChart, DonutGauge, ActivityRow, SectionTitle, ProgressRow } from '../../components/dash'
 import QuickNav, { SHEQ_PILLS } from '../../components/QuickNav'
@@ -53,6 +54,7 @@ const statusColor = s => {
 export default function SheqDashboard({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
+  const rt = useRealtimeRefresh('sheq_incidents', { column: 'site_id', value: currentSiteId })
 
   const [loading, setLoading] = useState(true)
   const [incidents, setIncidents] = useState([])
@@ -63,7 +65,7 @@ export default function SheqDashboard({ setPage }) {
 
   useEffect(() => {
     if (currentSiteId && can('sheq.view')) fetchAll()
-  }, [currentSiteId])
+  }, [currentSiteId, rt])
 
   async function fetchAll() {
     setLoading(true)

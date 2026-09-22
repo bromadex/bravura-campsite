@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
@@ -474,6 +475,7 @@ function PermitModal({ permit, permitTypes, projects, profiles, siteId, userId, 
 export default function SheqPermits({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_permits', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [permits, setPermits] = useState([])
@@ -525,7 +527,7 @@ export default function SheqPermits({ setPage }) {
     setProfiles(profs.data || [])
   }
 
-  useEffect(() => { fetchPermits(); fetchRefData() }, [currentSiteId])
+  useEffect(() => { fetchPermits(); fetchRefData() }, [currentSiteId, rt])
 
   // Derive effective statuses
   const permitsWithEff = useMemo(() =>

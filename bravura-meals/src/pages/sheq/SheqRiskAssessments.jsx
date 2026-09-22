@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../components/ui'
@@ -449,6 +450,7 @@ function AssessmentModal({ assessment, profiles, departments, projects, siteId, 
 export default function SheqRiskAssessments({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_risk_assessments', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [assessments, setAssessments] = useState([])
@@ -500,7 +502,7 @@ export default function SheqRiskAssessments({ setPage }) {
     setProjects(projs.data || [])
   }
 
-  useEffect(() => { fetchAssessments(); fetchRefData() }, [currentSiteId])
+  useEffect(() => { fetchAssessments(); fetchRefData() }, [currentSiteId, rt])
 
   const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 

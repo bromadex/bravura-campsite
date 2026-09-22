@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { Card, Icon, Button, PageHeader, showToast } from '../../components/ui'
@@ -245,6 +246,7 @@ function TalkModal({ rec, profiles, departments, siteId, userId, onClose, onSave
 export default function SheqToolboxTalks({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
+  const rt = useRealtimeRefresh('sheq_toolbox_talks', { column: 'site_id', value: currentSiteId })
   const { user } = useAuth()
 
   const [rows, setRows] = useState([])
@@ -281,7 +283,7 @@ export default function SheqToolboxTalks({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { fetchData() }, [fetchData, rt])
 
   const kpis = useMemo(() => {
     const now = new Date()

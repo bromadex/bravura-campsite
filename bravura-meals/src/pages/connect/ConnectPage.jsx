@@ -5,9 +5,9 @@ import { useAuth } from '../../auth/AuthContext'
 import { useSite } from '../../contexts/SiteContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { TXN_CODES, searchCodes, resolveCode } from '../../utils/txnCodes'
+import { searchCodes, resolveCode } from '../../utils/txnCodes'
 import { searchEntities, SEARCH_CATEGORIES } from '../../utils/searchEngine'
-import { Icon, Button, Modal, SectionLabel, showToast, initials, fmtDate } from '../../components/ui'
+import { Icon, Button, Modal, SectionLabel, showToast, initials } from '../../components/ui'
 import Denied from '../../components/Denied'
 
 const ACCENT = MODULE_COLORS.connect
@@ -90,7 +90,7 @@ function RenderContent({ text, navigate }) {
 export default function ConnectPage({ setPage }) {
   const navigate = useNavigate()
   const { profile } = useAuth()
-  const { currentSiteId, currentSite } = useSite()
+  const { currentSiteId } = useSite()
   const { can } = usePermissions()
 
   const [conversations, setConversations] = useState([])
@@ -172,7 +172,8 @@ export default function ConnectPage({ setPage }) {
         readMap[c.id] = part?.last_read_at || null
       })
       for (const m of msgs || []) {
-        if (!lastByConvo[m.conversation_id]) lastByConvo[m.conversation_id] = m
+        if (!lastByConvo[m.conversation_id] && !m.is_deleted) lastByConvo[m.conversation_id] = m
+        if (m.is_deleted) continue
         const lastRead = readMap[m.conversation_id]
         if (m.sender_id !== profile.id && (!lastRead || new Date(m.created_at) > new Date(lastRead))) {
           unread[m.conversation_id] = (unread[m.conversation_id] || 0) + 1
@@ -353,7 +354,7 @@ export default function ConnectPage({ setPage }) {
   const filteredNewChatUsers = useMemo(() => {
     const q = newChatUserSearch.trim().toLowerCase()
     return siteUsers.filter(u => u.id !== profile?.id && (!q || u.full_name.toLowerCase().includes(q)) && (!newChatDeptFilter || u.department === newChatDeptFilter))
-  }, [siteUsers, newChatUserSearch, profile?.id])
+  }, [siteUsers, newChatUserSearch, newChatDeptFilter, profile?.id])
 
   function toggleNewChatUser(u) {
     setNewChatSelected(sel => sel.some(s => s.id === u.id) ? sel.filter(s => s.id !== u.id) : [...sel, u])
@@ -394,7 +395,9 @@ export default function ConnectPage({ setPage }) {
           if (existingDm) {
             setCreating(false)
             setNewChatOpen(false)
+            await loadConversations()
             setSelectedId(existingDm.id)
+            if (isMobile) setMobileShowThread(true)
             showToast('Opened existing conversation', 'green')
             return
           }
@@ -446,7 +449,7 @@ export default function ConnectPage({ setPage }) {
     const val = input
     const caret = textareaRef.current?.selectionStart ?? val.length
     const upToCaret = val.slice(0, caret)
-    const replaced = upToCaret.replace(/@([\w .]*)$/, `@${user.full_name} `)
+    const replaced = upToCaret.replace(/@([\w .]*)$/, () => `@${user.full_name} `)
     setInput(replaced + val.slice(caret))
     setMentionOpen(false)
     textareaRef.current?.focus()
@@ -563,10 +566,11 @@ export default function ConnectPage({ setPage }) {
       content: input.trim() || file.name,
       attachment_url: urlData?.publicUrl || null,
       attachment_name: file.name,
+      reply_to: replyTo?.id || null,
     })
     setUploading(false)
     if (error) { showToast(error.message, 'red'); return }
-    setInput('')
+    setInput(''); setReplyTo(null)
     loadMessages(selectedId)
     loadConversations()
     if (fileInputRef.current) fileInputRef.current.value = ''

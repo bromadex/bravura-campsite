@@ -242,8 +242,30 @@ export default function ConnectPage({ setPage }) {
   }, [currentSiteId, loadConversations])
 
   // ── Conversation display helpers ─────────────────────────────────────────
+  const [dmNames, setDmNames] = useState({})
+
+  // Resolve DM conversation names to the other participant's name
+  useEffect(() => {
+    if (!profile?.id || !conversations.length) return
+    const dmConvos = conversations.filter(c => c.type === 'dm' && !c.name)
+    if (!dmConvos.length) return
+    ;(async () => {
+      const { data } = await supabase
+        .from('chat_participants')
+        .select('conversation_id, user_id, profile:profiles(full_name, username)')
+        .in('conversation_id', dmConvos.map(c => c.id))
+        .neq('user_id', profile.id)
+      const names = {}
+      ;(data || []).forEach(p => {
+        names[p.conversation_id] = p.profile?.full_name || p.profile?.username || 'Unknown'
+      })
+      setDmNames(names)
+    })()
+  }, [conversations, profile?.id])
+
   function convoName(c) {
     if (c.name) return c.name
+    if (c.type === 'dm' && dmNames[c.id]) return dmNames[c.id]
     if (c.type === 'dm') return 'Direct Message'
     return 'Conversation'
   }
@@ -415,7 +437,7 @@ export default function ConnectPage({ setPage }) {
       conversation_id: selectedId,
       sender_id: profile?.id || null,
       content,
-      reply_to_id: replyTo?.id || null,
+      reply_to: replyTo?.id || null,
     })
     setSending(false)
     if (error) { showToast(error.message, 'red'); return }
@@ -653,7 +675,7 @@ export default function ConnectPage({ setPage }) {
                     {group.items.map(m => {
                       const mine = m.sender_id === profile?.id
                       const reactions = reactionSummary(m)
-                      const replied = m.reply_to_id ? messages.find(x => x.id === m.reply_to_id) : null
+                      const replied = m.reply_to ? messages.find(x => x.id === m.reply_to) : null
                       return (
                         <div key={m.id} style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexDirection: mine ? 'row-reverse' : 'row' }}>
                           {!mine && <Avatar name={m.sender?.full_name} size={28} />}

@@ -24,7 +24,8 @@ Supabase (PostgREST + RLS) backend, Vercel auto-deploys from `main` —
   self-record: `INSERT INTO schema_migrations (filename) VALUES ('...') ON CONFLICT DO NOTHING;`
 - New tables use meals-pattern RLS: permission + site checked server-side via
   `_has_permission(code, site_id)` (generic) / `_has_hr_permission` — never `USING (true)`.
-- Migration numbering: general range continues from 0079; **0100–0149 reserved for HR (Tafara)**.
+- Migration numbering: general range continues from 0169 (0168 reserved for
+  governance/connect/notifications); **0100–0149 reserved for HR (Tafara)**.
 - Keep architecture AI-ready: server-side RPCs/views, trigger-written audit events.
 - Build check before commit: `cd bravura-meals && npx vite build`.
 
@@ -75,7 +76,53 @@ Contractor SHEQ Compliance, Emergency Plans, Emergency Drills, Management Review
 Phase 7 (Cross-Module Integration): Fleet→SHEQ incidents, HR→SHEQ profiles,
 Contractors→compliance scores, Projects→risk registers, Finance→incident costs.
 
-## Current state (July 2026)
+## Governance, Connect & Notifications Roadmap
+
+Phase 1 (Notifications Foundation — 0168a): notifications table, notification_templates
+table, notificationEngine.js utility (pushNotification, pushNotificationToGroup,
+pushNotificationToPermission, pushNotificationFromTemplate), NotificationBell component
+in ModuleLayout header with unread count + dropdown, Notification Center page (NT01)
+with category tabs (All/Approvals/Reminders/Announcements/Escalations/Chat/General),
+date grouping, read/unread filter, mark-all-read, realtime subscription, pagination.
+Permissions: notifications.view/create/edit/delete/approve.
+
+Phase 2 (Governance — 0168b): governance_documents table (doc_type: announcement/policy),
+governance_responses, governance_versions, announcement_reads tables.
+Announcements page (GV01): publish with priority (normal/important/urgent), expiry,
+pinning, target recipients, read receipts dashboard, archive/restore. Fires notifications
+via engine on publish.
+Policies & Compliance page (GV02): versioned policies with category filter, mandatory
+acknowledgement with deadlines, accept/reject flow, compliance dashboard with KPI
+row + employee status table + CSV export. Draft→published workflow with governance.approve.
+Permissions: governance.view/create/edit/delete/approve.
+
+Phase 3 (Connect Foundation — 0168c): chat_conversations, chat_participants,
+chat_messages, message_reactions, message_reads tables.
+Connect page (CN01): two-panel layout (conversation list + message thread), DMs,
+groups, department auto-groups (linked to employee records — auto-join on department
+assignment), record-linked threads (attach conversation to any module record like
+a fleet asset, SHEQ incident, PO). @mention picker (searches site users), /slash
+T-code picker (searches txnCodes.js, inserts clickable reference chips), emoji
+reactions (toggle 👍❤️😂😮👏🔥), reply/quote, edit/delete own messages (soft delete),
+file attachments (supabase storage), pinned messages, message search within
+conversation. Realtime subscription on chat_messages INSERT. Unread badges via
+last_read_at tracking. Mobile responsive (single-panel toggle below 768px).
+Permissions: connect.view/create/edit/delete/approve.
+
+Phase 4 (Cross-Module Wiring): Wire notificationEngine into existing modules —
+leave requests → notify approver, fuel approvals → notify requester, SHEQ incidents
+→ notify safety officer, fleet maintenance due → notify fleet manager, inventory
+low-stock → notify storekeeper, policy acknowledgement deadlines → remind users,
+contractor document expiry → notify procurement. Add record-thread "Discuss" button
+to key detail pages (incident detail, maintenance detail, PO detail).
+
+Phase 5 (Enhancements): Notification preferences per user (mute categories, stored
+in app_users metadata). Action buttons on notification cards (Approve/Reject inline
+for leave, fuel, POs). Email digest opt-in (daily summary). Connect: group settings
+(rename, add/remove participants), message forwarding between conversations,
+notification sound/badge on mobile PWA.
+
+## Current state (September 2026)
 
 - HR Phase 1 (foundation) and Phase 2 (leave, documents, medical, org chart,
   site transfers) are **built and migrated** (0100, 0102, 0103 applied).
@@ -93,6 +140,10 @@ Contractors→compliance scores, Projects→risk registers, Finance→incident c
   dashboard/reports) has placeholder pages, awaits cross-module aggregation
   RPCs. See CONTRACTOR_PROMPTS.txt for the phased plan.
 - Phase 5: HR analytics/AI. See TAFARA_PROMPTS.txt.
+- SHEQ Phases 1–7 **built** (0160–0167 applied). Dashboard enriched with
+  cross-module views (fleet incident summary, contractor scores, cost impact).
+- Governance, Connect & Notifications: **planned** — migration 0168, 5 phases.
+  See roadmap section above.
 
 ## Improvement backlog (agreed with user, work top-down)
 

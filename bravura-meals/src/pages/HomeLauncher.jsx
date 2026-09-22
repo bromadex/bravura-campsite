@@ -25,6 +25,9 @@ const ALL_MODULES = [
   { id: 'concrete',   label: 'Batch Plant Operations', icon: 'factory',              color: MODULE_COLORS.concrete,    access: moduleAccess.concrete    },
   { id: 'sheq',       label: 'SHEQ',                   icon: 'health_and_safety',    color: MODULE_COLORS.sheq,        access: moduleAccess.sheq        },
   { id: 'projects',    label: 'Projects',              icon: 'engineering',          color: MODULE_COLORS.projects,    access: moduleAccess.projects    },
+  { id: 'governance',  label: 'Governance',             icon: 'gavel',                color: MODULE_COLORS.governance,  access: moduleAccess.governance  },
+  { id: 'connect',     label: 'Bravura Connect',       icon: 'chat',                 color: MODULE_COLORS.connect,     access: moduleAccess.connect     },
+  { id: 'notifications', label: 'Notifications',        icon: 'notifications',        color: MODULE_COLORS.notifications, access: moduleAccess.notifications },
   { id: 'admin',       label: 'Administration',        icon: 'admin_panel_settings', color: MODULE_COLORS.admin,       access: moduleAccess.admin       },
   { id: 'feedback',    label: 'Feedback',              icon: 'forum',                color: MODULE_COLORS.feedback,    access: moduleAccess.feedback    },
 ]

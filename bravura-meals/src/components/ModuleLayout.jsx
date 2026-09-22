@@ -135,14 +135,15 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
     sections[sections.length - 1].items.push(item)
   })
 
-  // Load notifications for current user + site
+  // Load notifications for current user + realtime subscription
   useEffect(() => {
     if (!profile?.id) return
     function load() {
       supabase
         .from('notifications')
         .select('*')
-        .eq('recipient_id', profile.id)
+        .eq('user_id', profile.id)
+        .eq('is_archived', false)
         .order('created_at', { ascending: false })
         .limit(20)
         .then(({ data }) => {
@@ -151,13 +152,17 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
         })
     }
     load()
-    // Poll every 60 seconds
-    const t = setInterval(load, 20_000)
-    return () => clearInterval(t)
+    const channel = supabase.channel('notif-bell-' + profile.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + profile.id }, payload => {
+        setNotifications(prev => [payload.new, ...prev].slice(0, 20))
+        setUnreadCount(prev => prev + 1)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
   }, [profile?.id])
 
   function markRead(id) {
-    supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id)
+    supabase.from('notifications').update({ is_read: true }).eq('id', id)
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
     setUnreadCount(prev => Math.max(0, prev - 1))
   }
@@ -165,7 +170,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
   function markAllRead() {
     const unread = notifications.filter(n => !n.is_read).map(n => n.id)
     if (!unread.length) return
-    supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).in('id', unread)
+    supabase.from('notifications').update({ is_read: true }).in('id', unread)
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
     setUnreadCount(0)
   }
@@ -529,14 +534,14 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                       key={n.id}
                       onClick={() => {
                         markRead(n.id)
-                        if (n.action_url && n.action_url.startsWith('/')) {
-                          navigate(n.action_url)
+                        if (n.link && n.link.startsWith('/')) {
+                          navigate(n.link)
                         }
                         setNotifOpen(false)
                       }}
                       style={{
                         padding: '14px 20px', borderBottom: `1px solid ${THEME.outlineVar}`,
-                        cursor: n.action_url ? 'pointer' : 'default',
+                        cursor: n.link ? 'pointer' : 'default',
                         background: n.is_read ? 'transparent' : typeColor + '08',
                         display: 'flex', gap: '12px', alignItems: 'flex-start',
                         transition: 'background .15s',
@@ -552,13 +557,21 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                           <span style={{ fontSize: '13px', fontWeight: n.is_read ? 500 : 700, color: THEME.text }}>{n.title}</span>
                           <span style={{ fontSize: '11px', color: THEME.textLow, flexShrink: 0 }}>{ageStr}</span>
                         </div>
-                        {n.body && <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '3px', lineHeight: 1.5 }}>{n.body}</div>}
+                        {n.message && <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '3px', lineHeight: 1.5 }}>{n.message}</div>}
                         {!n.is_read && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: typeColor, marginTop: '6px' }} />}
                       </div>
                     </div>
                   )
                 })
               )}
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: `1px solid ${THEME.outlineVar}`, flexShrink: 0, textAlign: 'center' }}>
+              <button
+                onClick={() => { navigate('/notifications/notification_center'); setNotifOpen(false) }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color, fontFamily: 'inherit' }}
+              >
+                View all notifications
+              </button>
             </div>
           </div>
         </>

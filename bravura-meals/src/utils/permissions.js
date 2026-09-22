@@ -92,6 +92,9 @@ export const MODULE_COLORS = {
   concrete:    '#EF6C00',  // deep orange  – concrete/batch plant
   sheq:        '#D32F2F',  // red          – safety/health/environment/quality
   dept:        '#37474F',  // blue-grey    – department workspaces
+  governance:  '#6D4C41',  // brown        – governance/policy
+  connect:     '#00838F',  // cyan         – messaging/connect
+  notifications: '#FF6F00', // amber       – alerts/notifications
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -122,6 +125,9 @@ export const moduleAccess = {
   sheq:         r => !!r,
   projects:     (role, can) => can ? can('projects.view') : false,
   admin:        (role, can) => can ? can('users.view') : false,
+  governance:   (role, can) => can ? can('governance.view') : false,
+  connect:      (role, can) => can ? can('connect.view') : false,
+  notifications:(role, can) => can ? can('notifications.view') : false,
   feedback:     r => !!r,
 }
 
@@ -416,5 +422,24 @@ export function inventoryNav(role, can) {
     { id: 'inv_requisitions',  label: 'Requisitions',       section: 'Purchasing', icon: 'request_quote' },
     { id: 'inv_purchase_orders', label: 'Purchase Orders',  section: 'Purchasing', icon: 'shopping_cart' },
     { id: 'inv_settings',     label: 'Settings',           section: 'Admin',      icon: 'settings' },
+  ]
+}
+
+export function governanceNav(role, can) {
+  return [
+    { id: 'gov_announcements', label: 'Announcements',        section: 'Documents', icon: 'campaign' },
+    { id: 'gov_policies',      label: 'Policies & Compliance', section: 'Documents', icon: 'policy' },
+  ]
+}
+
+export function connectNav(role, can) {
+  return [
+    { id: 'connect_chat', label: 'Bravura Connect', section: 'Messaging', icon: 'chat' },
+  ]
+}
+
+export function notificationsNav(role, can) {
+  return [
+    { id: 'notification_center', label: 'Notification Center', section: 'Overview', icon: 'notifications' },
   ]
 }

@@ -262,6 +262,16 @@ export const TXN_CODES = [
   { code: 'SQ35', path: '/sheq/sq_mgmt_review',         label: 'Management Review',         module: 'sheq' },
   { code: 'SQ36', path: '/sheq/sq_analytics',           label: 'SHEQ Analytics',            module: 'sheq' },
 
+  // ── Governance (GV) ──────────────────────────────────────────────────────
+  { code: 'GV01', path: '/governance/gov_announcements',   label: 'Announcements',        module: 'governance' },
+  { code: 'GV02', path: '/governance/gov_policies',        label: 'Policies & Compliance', module: 'governance' },
+
+  // ── Bravura Connect (CN) ───────────────────────────────────────────────
+  { code: 'CN01', path: '/connect/connect_chat',           label: 'Bravura Connect',      module: 'connect' },
+
+  // ── Notifications (NT) ─────────────────────────────────────────────────
+  { code: 'NT01', path: '/notifications/notification_center', label: 'Notification Center', module: 'notifications' },
+
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },
 ]
@@ -280,6 +290,8 @@ export const ALIASES = {
   EMP:  'HR01',
   LEAVE:'HR10',   // leave requests
   HELP: 'FB02',   // quick start guide
+  MSG:  'CN01',   // bravura connect
+  ANNOUNCE: 'GV01',
 }
 
 // Resolve typed input to a single exact entry (code or alias), else null.

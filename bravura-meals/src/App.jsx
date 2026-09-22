@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav, concreteNav, sheqNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav, concreteNav, sheqNav, governanceNav, connectNav, notificationsNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
@@ -280,6 +280,16 @@ const SheqAnalytics        = lazy(() => import('./pages/sheq/SheqAnalytics'))
 const FeedbackBoard            = lazy(() => import('./pages/feedback/FeedbackBoard'))
 const QuickStartGuide          = lazy(() => import('./pages/feedback/QuickStartGuide'))
 
+// ── Governance pages ──────────────────────────────────────────────────────────
+const GovAnnouncements         = lazy(() => import('./pages/governance/Announcements'))
+const GovPolicies              = lazy(() => import('./pages/governance/Policies'))
+
+// ── Connect pages ─────────────────────────────────────────────────────────────
+const ConnectChat              = lazy(() => import('./pages/connect/ConnectPage'))
+
+// ── Notification pages ────────────────────────────────────────────────────────
+const NotificationCenter       = lazy(() => import('./pages/notifications/NotificationCenter'))
+
 const PageLoader = (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -329,6 +339,9 @@ const MODULE_META = {
   concrete:    { label: 'Batch Plant Operations', icon: 'factory',          navFn: concreteNav     },
   sheq:        { label: 'SHEQ',                  icon: 'health_and_safety', navFn: sheqNav        },
   dept:        { label: 'Department Workspaces', icon: 'domain',           navFn: deptNav         },
+  governance:    { label: 'Governance',             icon: 'gavel',            navFn: governanceNav   },
+  connect:       { label: 'Bravura Connect',       icon: 'chat',             navFn: connectNav      },
+  notifications: { label: 'Notifications',          icon: 'notifications',    navFn: notificationsNav },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
 
@@ -698,6 +711,28 @@ function getSheqPage(page, can, setPage) {
   }
 }
 
+function getGovernancePage(page, can, setPage) {
+  switch (page) {
+    case 'gov_announcements': return can('governance.view') ? <GovAnnouncements setPage={setPage} /> : null
+    case 'gov_policies':      return can('governance.view') ? <GovPolicies setPage={setPage} /> : null
+    default:                  return can('governance.view') ? <GovAnnouncements setPage={setPage} /> : null
+  }
+}
+
+function getConnectPage(page, can, setPage) {
+  switch (page) {
+    case 'connect_chat': return can('connect.view') ? <ConnectChat setPage={setPage} /> : null
+    default:             return can('connect.view') ? <ConnectChat setPage={setPage} /> : null
+  }
+}
+
+function getNotificationsPage(page, can, setPage) {
+  switch (page) {
+    case 'notification_center': return can('notifications.view') ? <NotificationCenter setPage={setPage} /> : null
+    default:                    return can('notifications.view') ? <NotificationCenter setPage={setPage} /> : null
+  }
+}
+
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
@@ -722,6 +757,9 @@ const DEFAULT_PAGE = {
   concrete:    'co_dashboard',
   sheq:        'sq_dashboard',
   dept:        'dept_dashboard',
+  governance:    'gov_announcements',
+  connect:       'connect_chat',
+  notifications: 'notification_center',
   feedback:    'feedback_board',
 }
 
@@ -762,6 +800,9 @@ function ModuleShell() {
   if (moduleId === 'concrete')  content = getConcretePage(currentPage, can, setPage)
   if (moduleId === 'sheq')      content = getSheqPage(currentPage, can, setPage)
   if (moduleId === 'dept')      content = getDeptPage(currentPage, can, setPage)
+  if (moduleId === 'governance')    content = getGovernancePage(currentPage, can, setPage)
+  if (moduleId === 'connect')       content = getConnectPage(currentPage, can, setPage)
+  if (moduleId === 'notifications') content = getNotificationsPage(currentPage, can, setPage)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 
   const AccessDenied = (

@@ -147,6 +147,12 @@ CREATE POLICY chat_participants_insert ON chat_participants
     )
   );
 
+DROP POLICY IF EXISTS chat_participants_update ON chat_participants;
+CREATE POLICY chat_participants_update ON chat_participants
+  FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
 DROP POLICY IF EXISTS chat_participants_delete ON chat_participants;
 CREATE POLICY chat_participants_delete ON chat_participants
   FOR DELETE
@@ -255,6 +261,18 @@ WHERE p.code IN ('connect.view','connect.create','connect.edit','connect.delete'
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('connect-files', 'connect-files', false)
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- Storage RLS policies for connect-files
+-- ============================================================
+
+DROP POLICY IF EXISTS connect_files_select ON storage.objects;
+CREATE POLICY connect_files_select ON storage.objects
+  FOR SELECT USING (bucket_id = 'connect-files' AND auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS connect_files_insert ON storage.objects;
+CREATE POLICY connect_files_insert ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'connect-files' AND auth.uid() IS NOT NULL);
 
 -- ============================================================
 -- Self-record migration

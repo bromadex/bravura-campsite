@@ -329,16 +329,39 @@ export default function ConnectPage({ setPage }) {
       showToast('Group name and at least one member are required', 'red'); return
     }
     setCreating(true)
-    // DM dedupe: check for an existing dm between these two users
+    // DM dedupe: find existing DM with this person
     if (newChatType === 'dm') {
-      const other = newChatSelected[0]
-      const existing = conversations.find(c =>
-        c.type === 'dm' &&
-        [c.created_by, other.id].every(() => true) // fallback below via participants check
-      )
-      // Simple check: look through loaded conversations' names isn't reliable for DM;
-      // rely on backend constraint if present, otherwise just create.
-      void existing
+      const otherId = newChatSelected[0].id
+      const { data: myParts } = await supabase
+        .from('chat_participants')
+        .select('conversation_id')
+        .eq('user_id', profile.id)
+      const myConvoIds = (myParts || []).map(p => p.conversation_id)
+      if (myConvoIds.length) {
+        const { data: theirParts } = await supabase
+          .from('chat_participants')
+          .select('conversation_id')
+          .eq('user_id', otherId)
+          .in('conversation_id', myConvoIds)
+        const sharedIds = (theirParts || []).map(p => p.conversation_id)
+        if (sharedIds.length) {
+          const { data: existingDm } = await supabase
+            .from('chat_conversations')
+            .select('id')
+            .in('id', sharedIds)
+            .eq('type', 'dm')
+            .eq('site_id', currentSiteId)
+            .limit(1)
+            .maybeSingle()
+          if (existingDm) {
+            setCreating(false)
+            setNewChatOpen(false)
+            setSelectedId(existingDm.id)
+            showToast('Opened existing conversation', 'green')
+            return
+          }
+        }
+      }
     }
     const { data: convo, error } = await supabase.from('chat_conversations').insert({
       site_id: currentSiteId,

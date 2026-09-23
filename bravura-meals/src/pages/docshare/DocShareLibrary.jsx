@@ -292,102 +292,151 @@ export default function DocShareLibrary({ setPage }) {
         </div>
       ) : (
         <>
-          {/* Sub-folders */}
-          {currentSubFolders.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-              {currentSubFolders.map(f => (
-                <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: THEME.surfaceVariant, borderRadius: 8, cursor: 'pointer', border: `1px solid ${THEME.outline}`, minWidth: 160 }}
-                  onClick={() => setCurrentFolderId(f.id)}>
-                  <span className="material-symbols-rounded" style={{ fontSize: 22, color: '#FFC107' }}>folder</span>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: THEME.text }}>{f.name}</div>
-                    <div style={{ fontSize: 11, color: THEME.textLow }}>{documents.filter(d => d.folder_id === f.id).length} docs</div>
-                  </div>
-                  {can('ds.delete') && (
-                    <button onClick={e => { e.stopPropagation(); handleArchiveFolder(f) }}
-                      style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: 2 }} title="Archive folder">
-                      <span className="material-symbols-rounded" style={{ fontSize: 16 }}>archive</span>
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Documents */}
           {viewMode === 'list' ? (
-            <div style={{ border: `1px solid ${THEME.outline}`, borderRadius: 8, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: THEME.surfaceVariant }}>
-                    {[{ key: 'title', label: 'Name' }, { key: 'category', label: 'Category' }, { key: 'file_size', label: 'Size' }, { key: 'updated_at', label: 'Modified' }].map(col => (
-                      <th key={col.key} onClick={() => { setSortBy(col.key); setSortDesc(sortBy === col.key ? !sortDesc : true) }}
-                        style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: THEME.text, cursor: 'pointer', borderBottom: `1px solid ${THEME.outline}`, whiteSpace: 'nowrap', userSelect: 'none' }}>
-                        {col.label} {sortBy === col.key && (sortDesc ? '↓' : '↑')}
-                      </th>
-                    ))}
-                    <th style={{ padding: '10px 12px', borderBottom: `1px solid ${THEME.outline}`, width: 80 }} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDocs.length === 0 && (
-                    <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: THEME.textLow }}>
-                      {searchQuery ? 'No documents match your search' : 'No documents yet — upload one to get started'}
-                    </td></tr>
-                  )}
-                  {filteredDocs.map(d => (
-                    <tr key={d.id} style={{ borderBottom: `1px solid ${THEME.outline}`, cursor: 'pointer' }}
-                      onClick={() => openViewer(d)}>
-                      <td style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="material-symbols-rounded" style={{ fontSize: 20, color: fileIconColor(d.file_type) }}>{fileIcon(d.file_type)}</span>
-                        <div>
-                          <div style={{ fontWeight: 500, color: THEME.text }}>{d.title}</div>
-                          <div style={{ fontSize: 11, color: THEME.textLow }}>{d.file_name}</div>
-                        </div>
-                        {d.doc_mode === 'controlled' && (
-                          <span style={{ fontSize: 10, padding: '2px 6px', background: '#E3F2FD', color: '#1565C0', borderRadius: 4, fontWeight: 600 }}>CONTROLLED</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '10px 12px', color: THEME.textLow }}>{d.category || '—'}</td>
-                      <td style={{ padding: '10px 12px', color: THEME.textLow, fontVariantNumeric: 'tabular-nums' }}>{formatBytes(d.file_size)}</td>
-                      <td style={{ padding: '10px 12px', color: THEME.textLow }}>{formatDate(d.updated_at)}</td>
-                      <td style={{ padding: '10px 12px' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <button onClick={() => openViewer(d)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.primary, padding: 2 }} title="View">
-                            <span className="material-symbols-rounded" style={{ fontSize: 18 }}>visibility</span>
-                          </button>
-                          {can('ds.delete') && (
-                            <button onClick={() => handleArchiveDoc(d)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: 2 }} title="Archive">
-                              <span className="material-symbols-rounded" style={{ fontSize: 18 }}>archive</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+            <>
+              {/* Sub-folders — list mode */}
+              {currentSubFolders.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                  {currentSubFolders.map(f => (
+                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: THEME.surfaceVariant, borderRadius: 8, cursor: 'pointer', border: `1px solid ${THEME.outline}`, minWidth: 160 }}
+                      onClick={() => setCurrentFolderId(f.id)}>
+                      <span className="material-symbols-rounded" style={{ fontSize: 22, color: '#FFC107' }}>folder</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.text }}>{f.name}</div>
+                        <div style={{ fontSize: 11, color: THEME.textLow }}>{documents.filter(d => d.folder_id === f.id).length} docs</div>
+                      </div>
+                      {can('ds.delete') && (
+                        <button onClick={e => { e.stopPropagation(); handleArchiveFolder(f) }}
+                          style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: 2 }} title="Archive folder">
+                          <span className="material-symbols-rounded" style={{ fontSize: 16 }}>archive</span>
+                        </button>
+                      )}
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-              {filteredDocs.length === 0 && (
-                <div style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: THEME.textLow }}>
-                  {searchQuery ? 'No documents match your search' : 'No documents yet'}
                 </div>
               )}
-              {filteredDocs.map(d => (
-                <div key={d.id} onClick={() => openViewer(d)}
-                  style={{ padding: 14, background: THEME.surface, border: `1px solid ${THEME.outline}`, borderRadius: 8, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="material-symbols-rounded" style={{ fontSize: 28, color: fileIconColor(d.file_type) }}>{fileIcon(d.file_type)}</span>
-                    {d.doc_mode === 'controlled' && (
-                      <span style={{ fontSize: 9, padding: '1px 5px', background: '#E3F2FD', color: '#1565C0', borderRadius: 3, fontWeight: 600 }}>CTRL</span>
+
+              {/* Documents — list mode */}
+              <div style={{ border: `1px solid ${THEME.outline}`, borderRadius: 8, overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: THEME.surfaceVariant }}>
+                      {[{ key: 'title', label: 'Name' }, { key: 'category', label: 'Category' }, { key: 'file_size', label: 'Size' }, { key: 'updated_at', label: 'Modified' }].map(col => (
+                        <th key={col.key} onClick={() => { setSortBy(col.key); setSortDesc(sortBy === col.key ? !sortDesc : true) }}
+                          style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: THEME.text, cursor: 'pointer', borderBottom: `1px solid ${THEME.outline}`, whiteSpace: 'nowrap', userSelect: 'none' }}>
+                          {col.label} {sortBy === col.key && (sortDesc ? '↓' : '↑')}
+                        </th>
+                      ))}
+                      <th style={{ padding: '10px 12px', borderBottom: `1px solid ${THEME.outline}`, width: 80 }} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDocs.length === 0 && (
+                      <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: THEME.textLow }}>
+                        {searchQuery ? 'No documents match your search' : 'No documents yet — upload one to get started'}
+                      </td></tr>
+                    )}
+                    {filteredDocs.map(d => (
+                      <tr key={d.id} style={{ borderBottom: `1px solid ${THEME.outline}`, cursor: 'pointer' }}
+                        onClick={() => openViewer(d)}>
+                        <td style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span className="material-symbols-rounded" style={{ fontSize: 20, color: fileIconColor(d.file_type) }}>{fileIcon(d.file_type)}</span>
+                          <div>
+                            <div style={{ fontWeight: 500, color: THEME.text }}>{d.title}</div>
+                            <div style={{ fontSize: 11, color: THEME.textLow }}>{d.file_name}</div>
+                          </div>
+                          {d.doc_mode === 'controlled' && (
+                            <span style={{ fontSize: 10, padding: '2px 6px', background: '#E3F2FD', color: '#1565C0', borderRadius: 4, fontWeight: 600 }}>CONTROLLED</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 12px', color: THEME.textLow }}>{d.category || '—'}</td>
+                        <td style={{ padding: '10px 12px', color: THEME.textLow, fontVariantNumeric: 'tabular-nums' }}>{formatBytes(d.file_size)}</td>
+                        <td style={{ padding: '10px 12px', color: THEME.textLow }}>{formatDate(d.updated_at)}</td>
+                        <td style={{ padding: '10px 12px' }} onClick={e => e.stopPropagation()}>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button onClick={() => openViewer(d)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.primary, padding: 2 }} title="View">
+                              <span className="material-symbols-rounded" style={{ fontSize: 18 }}>visibility</span>
+                            </button>
+                            {can('ds.delete') && (
+                              <button onClick={() => handleArchiveDoc(d)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: 2 }} title="Archive">
+                                <span className="material-symbols-rounded" style={{ fontSize: 18 }}>archive</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 6 }}>
+              {/* Folders — grid mode (Explorer-style large icons) */}
+              {currentSubFolders.map(f => {
+                const docCount = documents.filter(d => d.folder_id === f.id).length
+                return (
+                  <div key={f.id}
+                    onClick={() => setCurrentFolderId(f.id)}
+                    style={{ position: 'relative', padding: '12px 8px 10px', borderRadius: 6, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVariant}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    {/* Folder SVG icon */}
+                    <svg width="72" height="60" viewBox="0 0 72 60" fill="none">
+                      <path d="M4 10C4 6.686 6.686 4 10 4H24L30 12H62C65.314 12 68 14.686 68 18V50C68 53.314 65.314 56 62 56H10C6.686 56 4 53.314 4 50V10Z" fill="#FFC107" />
+                      <path d="M4 18H68V50C68 53.314 65.314 56 62 56H10C6.686 56 4 53.314 4 50V18Z" fill="#FFD54F" />
+                      <path d="M4 18H68V22H4V18Z" fill="#FFCA28" opacity="0.5" />
+                    </svg>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: THEME.text, textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '16px' }}>
+                      {f.name}
+                    </div>
+                    <div style={{ fontSize: 10, color: THEME.textLow }}>{docCount} {docCount === 1 ? 'item' : 'items'}</div>
+                    {can('ds.delete') && (
+                      <button onClick={e => { e.stopPropagation(); handleArchiveFolder(f) }}
+                        style={{ position: 'absolute', top: 4, right: 4, background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: 2, opacity: 0.5 }} title="Archive folder">
+                        <span className="material-symbols-rounded" style={{ fontSize: 14 }}>archive</span>
+                      </button>
                     )}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</div>
-                  <div style={{ fontSize: 11, color: THEME.textLow }}>{formatBytes(d.file_size)} · {formatDate(d.updated_at)}</div>
+                )
+              })}
+
+              {/* Documents — grid mode (Explorer-style file icons) */}
+              {filteredDocs.map(d => (
+                <div key={d.id} onClick={() => openViewer(d)}
+                  style={{ position: 'relative', padding: '12px 8px 10px', borderRadius: 6, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, transition: 'background 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVariant}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  {/* File icon — large page with colored type badge */}
+                  <div style={{ position: 'relative', width: 72, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="56" height="60" viewBox="0 0 56 60" fill="none">
+                      <path d="M4 4C4 1.79 5.79 0 8 0H34L52 18V56C52 58.21 50.21 60 48 60H8C5.79 60 4 58.21 4 56V4Z" fill="#E8E8E8" />
+                      <path d="M34 0L52 18H38C35.79 18 34 16.21 34 14V0Z" fill="#BDBDBD" />
+                    </svg>
+                    <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', background: fileIconColor(d.file_type), color: '#fff', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3, letterSpacing: '0.5px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                      {d.file_type === 'application/pdf' ? 'PDF'
+                        : d.file_type?.startsWith('image/') ? 'IMG'
+                        : (d.file_type?.includes('word') || d.file_type?.includes('document')) ? 'DOCX'
+                        : (d.file_type?.includes('sheet') || d.file_type?.includes('excel')) ? 'XLS'
+                        : (d.file_type?.includes('dwg') || d.file_type?.includes('acad')) ? 'DWG'
+                        : d.file_name?.split('.').pop()?.toUpperCase()?.slice(0, 4) || 'FILE'}
+                    </div>
+                    {d.doc_mode === 'controlled' && (
+                      <div style={{ position: 'absolute', top: 2, right: -4, background: '#1565C0', color: '#fff', fontSize: 7, fontWeight: 700, padding: '1px 4px', borderRadius: 3 }}>CTRL</div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: THEME.text, textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '16px' }}>
+                    {d.title}
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.textLow }}>{formatBytes(d.file_size)}</div>
                 </div>
               ))}
+
+              {currentSubFolders.length === 0 && filteredDocs.length === 0 && (
+                <div style={{ gridColumn: '1 / -1', padding: 60, textAlign: 'center', color: THEME.textLow }}>
+                  {searchQuery ? 'No documents match your search' : 'No documents yet — upload one to get started'}
+                </div>
+              )}
             </div>
           )}
         </>

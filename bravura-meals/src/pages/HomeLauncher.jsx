@@ -660,16 +660,16 @@ export default function HomeLauncher({ onEnterModule }) {
 // ── Umbrella grid — shows top-level standalone tiles + group tiles ───────────
 function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, chatUnread, isMobile, isTablet }) {
   const totalItems = topLevel.length + groups.length
-  const perRow = isMobile ? 3 : isTablet ? 4 : 5
+  const perRow = isMobile ? 2 : isTablet ? 3 : 4
   const cols = Math.min(totalItems, perRow)
 
   return (
     <div style={{
       display: 'grid',
       gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-      gap: isMobile ? '24px 16px' : '32px 24px',
+      gap: isMobile ? '12px' : '16px',
       width: '100%',
-      maxWidth: `${cols * (isMobile ? 100 : 120)}px`,
+      maxWidth: `${cols * (isMobile ? 160 : 180)}px`,
     }}>
       {/* Top-level standalone modules (e.g. Fuel) — rendered as direct-click tiles */}
       {topLevel.map(mod => (
@@ -697,7 +697,7 @@ function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, ch
   )
 }
 
-// ── Group tile — ERPNext-style icon + label ──────────────────────────────────
+// ── Group tile — an umbrella card on the home grid ──────────────────────────
 function GroupTile({ group, badge = 0, onClick, direct = false }) {
   const [hovered, setHovered] = useState(false)
 
@@ -707,56 +707,67 @@ function GroupTile({ group, badge = 0, onClick, direct = false }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: 'transparent',
+        background: THEME.surface,
         border: 'none',
-        padding: 0,
+        borderRadius: '14px',
+        padding: '24px 16px 20px',
         cursor: 'pointer',
+        boxShadow: hovered
+          ? `0 12px 28px ${group.color}20, 0 4px 10px rgba(0,0,0,.06)`
+          : '0 1px 3px rgba(0,0,0,.06)',
+        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
+        transition: 'transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s, border-color .18s',
         fontFamily: 'inherit',
         textAlign: 'center',
+        width: '100%',
+        aspectRatio: '1 / 1',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '10px',
+        justifyContent: 'center',
+        gap: '14px',
         position: 'relative',
       }}
     >
-      <div style={{ position: 'relative' }}>
+      {badge > 0 && (
         <div style={{
-          width: '56px', height: '56px',
-          borderRadius: '14px',
-          background: '#982329',
+          position: 'absolute', top: '8px', right: '8px',
+          background: THEME.error, color: '#fff', borderRadius: '50px',
+          minWidth: '20px', height: '20px', padding: '0 6px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transform: hovered ? 'scale(1.08)' : 'scale(1)',
-          transition: 'transform .15s ease',
-        }}>
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: '28px', color: '#fff', lineHeight: 1 }}
-          >
-            {group.icon}
-          </span>
-        </div>
-        {badge > 0 && (
-          <span style={{
-            position: 'absolute', top: '-4px', right: '-4px',
-            minWidth: '18px', height: '18px', borderRadius: '50px',
-            background: '#EF4444', color: '#fff',
-            fontSize: '10px', fontWeight: 700, lineHeight: 1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '0 4px', border: `2px solid ${THEME.bg}`,
-          }}>{badge > 99 ? '99+' : badge}</span>
-        )}
+          fontSize: '11px', fontWeight: 700, lineHeight: 1,
+          boxShadow: '0 2px 6px rgba(220,38,38,.4)',
+        }}>{badge > 99 ? '99+' : badge}</div>
+      )}
+
+      <div style={{
+        width: '58px', height: '58px',
+        borderRadius: '14px',
+        background: '#982329',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: hovered
+          ? '0 8px 20px #98232955, inset 0 -3px 0 rgba(0,0,0,.10)'
+          : '0 4px 10px #98232930, inset 0 -3px 0 rgba(0,0,0,.08)',
+        transition: 'box-shadow .18s',
+      }}>
+        <span
+          className="material-symbols-rounded filled"
+          style={{ fontSize: '30px', color: '#fff', lineHeight: 1 }}
+        >
+          {group.icon}
+        </span>
       </div>
 
       <div style={{
-        fontSize: '12px',
-        fontWeight: 500,
+        fontSize: '13.5px',
+        fontWeight: 600,
         color: THEME.text,
-        lineHeight: 1.3,
-        maxWidth: '90px',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
+        lineHeight: 1.25,
+        letterSpacing: '-.005em',
+        wordBreak: 'break-word',
+        hyphens: 'auto',
+        padding: '0 4px',
+        width: '100%',
       }}>
         {group.label}
       </div>
@@ -803,7 +814,7 @@ function ExpandedGroupView({ group, onBack, onChildClick, chatUnread, isMobile, 
       <div style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-        gap: isMobile ? '24px 16px' : '32px 24px',
+        gap: isMobile ? '12px' : '16px',
       }}>
         {group.children.map(child => {
           const badge = child.id === 'connect' ? chatUnread : 0
@@ -821,7 +832,7 @@ function ExpandedGroupView({ group, onBack, onChildClick, chatUnread, isMobile, 
   )
 }
 
-// ── Child tile — ERPNext-style icon + label ──────────────────────────────────
+// ── Child tile — a module within an expanded group ──────────────────────────
 function ChildTile({ child, badge = 0, onClick }) {
   const [hovered, setHovered] = useState(false)
   const isComing = child.coming
@@ -833,65 +844,79 @@ function ChildTile({ child, badge = 0, onClick }) {
       onMouseLeave={() => setHovered(false)}
       disabled={isComing}
       style={{
-        background: 'transparent',
+        background: THEME.surface,
         border: 'none',
-        padding: 0,
+        borderRadius: '14px',
+        padding: '24px 16px 20px',
         cursor: isComing ? 'default' : 'pointer',
-        opacity: isComing ? 0.45 : 1,
+        opacity: isComing ? 0.5 : 1,
+        boxShadow: hovered && !isComing
+          ? `0 12px 28px ${child.color}20, 0 4px 10px rgba(0,0,0,.06)`
+          : '0 1px 3px rgba(0,0,0,.06)',
+        transform: hovered && !isComing ? 'translateY(-4px)' : 'translateY(0)',
+        transition: 'transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s, border-color .18s',
         fontFamily: 'inherit',
         textAlign: 'center',
+        width: '100%',
+        aspectRatio: '1 / 1',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '10px',
+        justifyContent: 'center',
+        gap: '14px',
         position: 'relative',
       }}
     >
-      <div style={{ position: 'relative' }}>
+      {badge > 0 && (
         <div style={{
-          width: '56px', height: '56px',
-          borderRadius: '14px',
-          background: '#982329',
+          position: 'absolute', top: '8px', right: '8px',
+          background: THEME.error, color: '#fff', borderRadius: '50px',
+          minWidth: '20px', height: '20px', padding: '0 6px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transform: hovered && !isComing ? 'scale(1.08)' : 'scale(1)',
-          transition: 'transform .15s ease',
+          fontSize: '11px', fontWeight: 700, lineHeight: 1,
+          boxShadow: '0 2px 6px rgba(220,38,38,.4)',
+        }}>{badge > 99 ? '99+' : badge}</div>
+      )}
+
+      {isComing && (
+        <div style={{
+          position: 'absolute', top: '8px', right: '8px',
+          fontSize: '9px', fontWeight: 600, color: THEME.textLow,
+          background: THEME.surfaceVar, borderRadius: '4px',
+          padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '.04em',
         }}>
-          <span
-            className="material-symbols-rounded"
-            style={{ fontSize: '28px', color: '#fff', lineHeight: 1 }}
-          >
-            {child.icon}
-          </span>
+          Soon
         </div>
-        {badge > 0 && (
-          <span style={{
-            position: 'absolute', top: '-4px', right: '-4px',
-            minWidth: '18px', height: '18px', borderRadius: '50px',
-            background: '#EF4444', color: '#fff',
-            fontSize: '10px', fontWeight: 700, lineHeight: 1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '0 4px', border: `2px solid ${THEME.bg}`,
-          }}>{badge > 99 ? '99+' : badge}</span>
-        )}
-        {isComing && (
-          <span style={{
-            position: 'absolute', top: '-6px', right: '-10px',
-            fontSize: '8px', fontWeight: 700, color: THEME.textLow,
-            background: THEME.surfaceVar, borderRadius: '3px',
-            padding: '1px 4px', textTransform: 'uppercase', letterSpacing: '.04em',
-          }}>Soon</span>
-        )}
+      )}
+
+      <div style={{
+        width: '58px', height: '58px',
+        borderRadius: '14px',
+        background: '#982329',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: hovered && !isComing
+          ? '0 8px 20px #98232955, inset 0 -3px 0 rgba(0,0,0,.10)'
+          : '0 4px 10px #98232930, inset 0 -3px 0 rgba(0,0,0,.08)',
+        transition: 'box-shadow .18s',
+      }}>
+        <span
+          className="material-symbols-rounded filled"
+          style={{ fontSize: '30px', color: '#fff', lineHeight: 1 }}
+        >
+          {child.icon}
+        </span>
       </div>
 
       <div style={{
-        fontSize: '12px',
-        fontWeight: 500,
+        fontSize: '13.5px',
+        fontWeight: 600,
         color: isComing ? THEME.textLow : THEME.text,
-        lineHeight: 1.3,
-        maxWidth: '90px',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
+        lineHeight: 1.25,
+        letterSpacing: '-.005em',
+        wordBreak: 'break-word',
+        hyphens: 'auto',
+        padding: '0 4px',
+        width: '100%',
       }}>
         {child.label}
       </div>

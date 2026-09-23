@@ -261,6 +261,18 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* Cross-Module Integration */}
+      <Section icon="hub" color="#455A64" title="Cross-Module Integration">
+        <Steps items={[
+          <><b>Project tagging</b> — Fuel issues, fleet maintenance, contractor contracts, and purchase orders can be tagged to a project via an optional Project dropdown on their forms. Costs roll up to the project's Costs & EVM view.</>,
+          <><b>Linked documents</b> — Detail pages across Fleet, SHEQ, HR, Contractors, and Procurement show linked DocVault documents. Use the "Attach Document" button to link existing documents to any record.</>,
+          <><b>Discuss button</b> — Key detail pages have a "Discuss" button that creates (or opens) a Connect chat thread linked to that record, so conversations stay attached to the asset, incident, or order they're about.</>,
+          <><b>Notifications</b> — The notification engine fires across modules: fleet maintenance schedules notify fleet managers, SHEQ incidents notify safety officers, contractor document expiry alerts procurement, and inventory low-stock alerts storekeepers.</>,
+          <><b>Project Dashboard</b> aggregates cross-module data — safety incidents, fuel costs, and linked documents per project — alongside the existing budget and task KPIs.</>,
+          <><b>Realtime guards</b> — Approval pages (fuel requests, leave requests, purchase orders) subscribe to realtime changes so stale data doesn't cause conflicting approvals.</>,
+        ]} />
+      </Section>
+
       {/* Inventory */}
       {can('inventory.view') && (
         <Section icon="inventory_2" color={MODULE_COLORS.inventory} title="Inventory — items, stock & warehouses">

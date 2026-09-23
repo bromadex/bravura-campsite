@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader, showToast } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
+import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { pushNotificationFromTemplate, pushNotification } from '../../utils/notificationEngine'
 
 const FUEL_CLR = MODULE_COLORS.fuel
@@ -472,6 +473,7 @@ export default function FuelRequests({ setPage }) {
   const { can }           = usePermissions()
   const { currentSiteId, currentSite } = useSite()
   const { profile }       = useAuth()
+  const rt = useRealtimeRefresh('fuel_requests', { column: 'site_id', value: currentSiteId })
 
   const [requests,      setRequests]      = useState([])
   const [loading,       setLoading]       = useState(true)
@@ -511,7 +513,7 @@ export default function FuelRequests({ setPage }) {
     setLoading(false)
   }, [currentSiteId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, rt])
 
   // Apply global filters to all requests first
   const globalFiltered = useMemo(() => {

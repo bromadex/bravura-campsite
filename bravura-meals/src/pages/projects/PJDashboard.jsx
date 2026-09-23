@@ -206,6 +206,27 @@ export default function PJDashboard({ setPage }) {
           )
         })}
       </DashCard>
+
+      {/* Cross-Module Overview */}
+      {!loading && kpis.active > 0 && (
+        <DashCard style={{ marginTop: '20px' }}>
+          <SectionTitle title="Cross-Module Overview" subtitle="Linked data across active projects" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+            {[
+              { icon: 'warning', label: 'Safety Record', value: crossModule.incidents, sub: 'incidents linked', accent: '#D32F2F' },
+              { icon: 'local_gas_station', label: 'Fuel Usage', value: `${crossModule.fuelCount} txns`, sub: fmtMoney(crossModule.fuelTotal) + ' total', accent: '#E65100' },
+              { icon: 'description', label: 'Documents', value: crossModule.docs, sub: 'linked documents', accent: '#1565C0' },
+            ].map(card => (
+              <div key={card.label} style={{ textAlign: 'center', padding: '16px 12px', borderRadius: '10px', background: card.accent + '0A' }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '24px', color: card.accent, display: 'block', marginBottom: '6px' }}>{card.icon}</span>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: card.accent }}>{card.value}</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.text, marginTop: '2px' }}>{card.label}</div>
+                <div style={{ fontSize: '11px', color: THEME.textLow }}>{card.sub}</div>
+              </div>
+            ))}
+          </div>
+        </DashCard>
+      )}
     </div>
   )
 }

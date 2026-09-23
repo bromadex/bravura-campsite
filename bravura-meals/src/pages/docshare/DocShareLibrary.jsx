@@ -294,25 +294,35 @@ export default function DocShareLibrary({ setPage }) {
         <>
           {viewMode === 'list' ? (
             <>
-              {/* Sub-folders — list mode */}
+              {/* Sub-folders — list mode (Explorer-style large icons) */}
               {currentSubFolders.length > 0 && (
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                  {currentSubFolders.map(f => (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: THEME.surfaceVariant, borderRadius: 8, cursor: 'pointer', border: `1px solid ${THEME.outline}`, minWidth: 160 }}
-                      onClick={() => setCurrentFolderId(f.id)}>
-                      <span className="material-symbols-rounded" style={{ fontSize: 22, color: '#FFC107' }}>folder</span>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.text }}>{f.name}</div>
-                        <div style={{ fontSize: 11, color: THEME.textLow }}>{documents.filter(d => d.folder_id === f.id).length} docs</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 6, marginBottom: 16 }}>
+                  {currentSubFolders.map(f => {
+                    const docCount = documents.filter(d => d.folder_id === f.id).length
+                    return (
+                      <div key={f.id}
+                        onClick={() => setCurrentFolderId(f.id)}
+                        style={{ position: 'relative', padding: '12px 8px 10px', borderRadius: 6, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, transition: 'background 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVariant}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <svg width="72" height="60" viewBox="0 0 72 60" fill="none">
+                          <path d="M4 10C4 6.686 6.686 4 10 4H24L30 12H62C65.314 12 68 14.686 68 18V50C68 53.314 65.314 56 62 56H10C6.686 56 4 53.314 4 50V10Z" fill="#FFC107" />
+                          <path d="M4 18H68V50C68 53.314 65.314 56 62 56H10C6.686 56 4 53.314 4 50V18Z" fill="#FFD54F" />
+                          <path d="M4 18H68V22H4V18Z" fill="#FFCA28" opacity="0.5" />
+                        </svg>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: THEME.text, textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '16px' }}>
+                          {f.name}
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.textLow }}>{docCount} {docCount === 1 ? 'item' : 'items'}</div>
+                        {can('ds.delete') && (
+                          <button onClick={e => { e.stopPropagation(); handleArchiveFolder(f) }}
+                            style={{ position: 'absolute', top: 4, right: 4, background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: 2, opacity: 0.5 }} title="Archive folder">
+                            <span className="material-symbols-rounded" style={{ fontSize: 14 }}>archive</span>
+                          </button>
+                        )}
                       </div>
-                      {can('ds.delete') && (
-                        <button onClick={e => { e.stopPropagation(); handleArchiveFolder(f) }}
-                          style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: THEME.textLow, padding: 2 }} title="Archive folder">
-                          <span className="material-symbols-rounded" style={{ fontSize: 16 }}>archive</span>
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 

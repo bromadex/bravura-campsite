@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MODULE_COLORS, THEME, moduleAccess } from '../utils/permissions'
+
+const ConnectChat = lazy(() => import('./connect/ConnectPage'))
 import { resolveNotifStyle } from '../utils/notify'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
@@ -250,6 +252,7 @@ export default function HomeLauncher({ onEnterModule }) {
   const [unreadCount,   setUnreadCount]   = useState(0)
   const [chatUnread,    setChatUnread]    = useState(0)
   const [chatPopup,     setChatPopup]     = useState(null)
+  const [chatPanelOpen, setChatPanelOpen] = useState(false)
 
   useEffect(() => {
     if (!profile?.id) return
@@ -598,12 +601,39 @@ export default function HomeLauncher({ onEnterModule }) {
         </>
       )}
 
+      {/* ── Floating Chat Panel ── */}
+      {chatPanelOpen && (
+        <div style={{
+          position: 'fixed',
+          bottom: '96px',
+          right: '28px',
+          zIndex: 150,
+          width: isMobile ? 'calc(100vw - 16px)' : '420px',
+          height: isMobile ? 'calc(100dvh - 120px)' : '600px',
+          maxHeight: 'calc(100dvh - 120px)',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          boxShadow: '0 12px 48px rgba(0,0,0,.25), 0 4px 16px rgba(0,0,0,.12)',
+          border: `1px solid ${THEME.outlineVar}`,
+          background: THEME.surface,
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'chatPanelIn .25s ease-out',
+        }}>
+          <Suspense fallback={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: THEME.textLow, fontSize: '13px' }}>Loading…</div>
+          }>
+            <ConnectChat floatingPanel />
+          </Suspense>
+        </div>
+      )}
+
       {/* Connect FAB */}
       <button
-        onClick={() => onEnterModule('connect')}
+        onClick={() => setChatPanelOpen(v => !v)}
         title="Bravura Connect"
         style={{
-          position: 'fixed', bottom: '28px', right: '28px', zIndex: 100,
+          position: 'fixed', bottom: '28px', right: '28px', zIndex: 160,
           width: '56px', height: '56px', borderRadius: '50%',
           background: '#982329',
           border: 'none', cursor: 'pointer',
@@ -614,7 +644,7 @@ export default function HomeLauncher({ onEnterModule }) {
         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(152,35,41,.55), 0 3px 8px rgba(0,0,0,.22)' }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(152,35,41,.45), 0 2px 6px rgba(0,0,0,.18)' }}
       >
-        <span className="material-symbols-rounded filled" style={{ fontSize: '26px', color: '#fff' }}>chat</span>
+        <span className="material-symbols-rounded filled" style={{ fontSize: '26px', color: '#fff' }}>{chatPanelOpen ? 'close' : 'chat'}</span>
         {chatUnread > 0 && (
           <span style={{
             position: 'absolute', top: '-2px', right: '-2px',
@@ -629,8 +659,8 @@ export default function HomeLauncher({ onEnterModule }) {
       </button>
 
       {/* Chat message popup */}
-      {chatPopup && (
-        <div onClick={() => { setChatPopup(null); onEnterModule('connect') }} style={{
+      {chatPopup && !chatPanelOpen && (
+        <div onClick={() => { setChatPopup(null); setChatPanelOpen(true) }} style={{
           position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
           background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
           borderRadius: '14px', padding: '14px 18px', minWidth: '280px', maxWidth: '380px',
@@ -652,7 +682,10 @@ export default function HomeLauncher({ onEnterModule }) {
           <span className="material-symbols-rounded" style={{ fontSize: '16px', color: THEME.textLow }}>close</span>
         </div>
       )}
-      <style>{`@keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+      <style>{`
+        @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes chatPanelIn { from { transform: translateY(16px) scale(.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+      `}</style>
     </div>
   )
 }

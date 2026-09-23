@@ -87,7 +87,7 @@ function RenderContent({ text, navigate }) {
   })
 }
 
-export default function ConnectPage({ setPage }) {
+export default function ConnectPage({ setPage, floatingPanel = false }) {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const { currentSiteId } = useSite()
@@ -108,7 +108,7 @@ export default function ConnectPage({ setPage }) {
   const [msgSearch, setMsgSearch] = useState('')
 
   const [mobileShowThread, setMobileShowThread] = useState(false)
-  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768)
+  const [isMobile, setIsMobile] = useState(floatingPanel || (typeof window !== 'undefined' && window.innerWidth < 768))
 
   const [newChatOpen, setNewChatOpen] = useState(false)
   const [newChatType, setNewChatType] = useState('dm')
@@ -137,7 +137,7 @@ export default function ConnectPage({ setPage }) {
   const channelRef = useRef(null)
 
   useEffect(() => {
-    function onResize() { setIsMobile(window.innerWidth < 768) }
+    function onResize() { setIsMobile(floatingPanel || window.innerWidth < 768) }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
@@ -599,7 +599,7 @@ export default function ConnectPage({ setPage }) {
   const showThread = !isMobile || mobileShowThread
 
   return (
-    <div style={{ height: 'calc(100vh - 96px)', minHeight: 480, display: 'flex', border: `1px solid ${THEME.outlineVar}`, borderRadius: '14px', overflow: 'hidden', background: THEME.surface }}>
+    <div style={{ height: floatingPanel ? '100%' : 'calc(100vh - 96px)', minHeight: floatingPanel ? 0 : 480, display: 'flex', border: floatingPanel ? 'none' : `1px solid ${THEME.outlineVar}`, borderRadius: floatingPanel ? 0 : '14px', overflow: 'hidden', background: THEME.surface }}>
       {/* ── Left: conversation list ── */}
       {showList && (
         <div style={{

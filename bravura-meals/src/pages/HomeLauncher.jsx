@@ -703,7 +703,7 @@ function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = f
         background: card ? '#fff' : 'transparent',
         border: card ? '1px solid #eee' : 'none',
         borderRadius: card ? '12px' : 0,
-        padding: card ? '16px 12px' : 0,
+        padding: card ? '24px 16px 20px' : 0,
         cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.45 : 1,
         fontFamily: 'inherit',
@@ -715,13 +715,13 @@ function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = f
         boxShadow: card ? (hovered ? '0 4px 16px rgba(0,0,0,.12)' : '0 2px 8px rgba(0,0,0,.07)') : 'none',
         transform: card && hovered && !disabled ? 'translateY(-2px)' : 'none',
         transition: 'box-shadow .15s ease, transform .15s ease',
-        minWidth: card ? '100px' : 'auto',
+        minWidth: card ? '130px' : 'auto',
       }}
     >
       <div style={{ position: 'relative' }}>
         <div style={{
-          width: '56px', height: '56px',
-          borderRadius: '14px',
+          width: card ? '64px' : '56px', height: card ? '64px' : '56px',
+          borderRadius: card ? '16px' : '14px',
           background: glass ? 'rgba(255,255,255,.18)' : '#982329',
           border: glass ? '1px solid rgba(255,255,255,.2)' : 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -737,7 +737,7 @@ function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = f
               }}>{ci}</span>
             ))
           ) : (
-            <span className="material-symbols-rounded" style={{ fontSize: '28px', color: '#fff', lineHeight: 1 }}>
+            <span className="material-symbols-rounded" style={{ fontSize: card ? '32px' : '28px', color: '#fff', lineHeight: 1 }}>
               {icon}
             </span>
           )}
@@ -754,9 +754,10 @@ function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = f
         )}
       </div>
       <div style={{
-        fontSize: '12px', fontWeight: 500, color: glass ? 'rgba(255,255,255,.9)' : THEME.text,
-        lineHeight: 1.3, maxWidth: card ? '110px' : '90px',
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        fontSize: card ? '13px' : '12px', fontWeight: 500, color: glass ? 'rgba(255,255,255,.9)' : THEME.text,
+        lineHeight: 1.3, maxWidth: card ? '120px' : '90px',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: card ? 'normal' : 'nowrap',
+        textAlign: 'center',
       }}>
         {label}
       </div>
@@ -788,7 +789,7 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
         borderRadius: '16px',
         padding: isMobile ? '28px 20px' : '36px 40px',
         boxShadow: '0 20px 60px rgba(0,0,0,.2)',
-        maxWidth: '560px',
+        maxWidth: '640px',
         width: isMobile ? 'calc(100% - 32px)' : 'auto',
         minWidth: isMobile ? 'auto' : '400px',
         maxHeight: '80vh',
@@ -802,7 +803,7 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
         <div style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gap: isMobile ? '24px 16px' : '28px 24px',
+          gap: isMobile ? '12px' : '16px',
           justifyItems: 'center',
         }}>
           {group.children.map((child, i) => {
@@ -815,6 +816,7 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
                 badge={badge}
                 disabled={child.coming}
                 onClick={() => !child.coming && onChildClick(child)}
+                card
               />
             )
           })}

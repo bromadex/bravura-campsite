@@ -220,10 +220,24 @@ function DwgViewer({ url, fileName }) {
           canvasWidth: containerRef.current.clientWidth || 800,
           canvasHeight: containerRef.current.clientHeight || 600,
           autoResize: true,
-          colorCorrection: false,
+          colorCorrection: true,
           clearColor: new three.Color('#1e1e1e'),
         })
         viewerRef.current = viewer
+
+        viewer.Subscribe('loaded', () => {
+          const bounds = viewer.GetBounds()
+          console.log('DXF bounds:', bounds)
+          console.log('DXF canvas:', containerRef.current?.clientWidth, containerRef.current?.clientHeight)
+          console.log('DXF camera:', viewer.GetCamera()?.toJSON?.())
+          const renderer = viewer.renderer
+          if (renderer) {
+            const ctx = renderer.getContext()
+            console.log('WebGL context lost?', ctx?.isContextLost?.())
+            console.log('WebGL drawing buffer:', renderer.domElement?.width, renderer.domElement?.height)
+          }
+          setTimeout(() => viewer.Render(), 100)
+        })
 
         await viewer.Load({ url: dxfUrl })
         if (cancelled) return

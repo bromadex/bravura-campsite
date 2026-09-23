@@ -669,10 +669,10 @@ function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, ch
       gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
       gap: isMobile ? '28px 20px' : '36px 32px',
       width: '100%',
-      maxWidth: `${cols * (isMobile ? 100 : 120)}px`,
+      maxWidth: `${cols * (isMobile ? 120 : 160)}px`,
     }}>
       {topLevel.map(mod => (
-        <IconTile key={mod.id} icon={mod.icon} label={mod.label} onClick={() => onTopLevelClick(mod)} />
+        <IconTile key={mod.id} icon={mod.icon} label={mod.label} onClick={() => onTopLevelClick(mod)} card />
       ))}
       {groups.map(group => (
         <IconTile
@@ -682,6 +682,7 @@ function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, ch
           badge={group.children.some(c => c.id === 'connect') ? chatUnread : 0}
           onClick={() => onGroupClick(group)}
           childIcons={group.children.slice(0, 4).map(c => c.icon)}
+          card
         />
       ))}
     </div>

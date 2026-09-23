@@ -845,9 +845,15 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                               <RenderContent text={m.content} navigate={navigate} />
                               {m.file_url && (
                                 <div style={{ marginTop: '6px' }}>
-                                  <a href={m.file_url} target="_blank" rel="noreferrer" style={{ color: mine ? '#fff' : ACCENT, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'underline' }}>
-                                    <Icon name="attach_file" size={14} />{m.file_name || 'Attachment'}
-                                  </a>
+                                  {(m.file_type?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(m.file_name || '')) ? (
+                                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
+                                      <img src={m.file_url} alt={m.file_name || 'Image'} style={{ maxWidth: '240px', maxHeight: '280px', borderRadius: '8px', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
+                                    </a>
+                                  ) : (
+                                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{ color: mine ? '#fff' : ACCENT, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'underline' }}>
+                                      <Icon name="attach_file" size={14} />{m.file_name || 'Attachment'}
+                                    </a>
+                                  )}
                                 </div>
                               )}
                               {m.is_edited && <span style={{ fontSize: '10px', opacity: 0.7, marginLeft: '6px' }}>(edited)</span>}

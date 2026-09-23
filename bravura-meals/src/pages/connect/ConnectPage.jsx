@@ -139,6 +139,8 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   const fileInputRef = useRef(null)
   const messagesEndRef = useRef(null)
   const channelRef = useRef(null)
+  const selectedIdRef = useRef(null)
+  const entitySearchIdRef = useRef(0)
 
   useEffect(() => {
     function onResize() { setIsMobile(floatingPanel || window.innerWidth < 768) }
@@ -235,6 +237,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
       .eq('conversation_id', convoId)
       .eq('is_deleted', false)
       .order('created_at', { ascending: true })
+    if (selectedIdRef.current !== convoId) return
     if (error) { console.error(error); showToast('Failed to load messages', 'red'); setLoadingMessages(false); return }
     setMessages(data || [])
     setLoadingMessages(false)
@@ -250,8 +253,11 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     if (selectedId) loadMessages(selectedId)
   }, [selectedId, loadMessages])
 
+  const prevSelectedIdRef = useRef(null)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const isConvoSwitch = prevSelectedIdRef.current !== selectedId
+    prevSelectedIdRef.current = selectedId
+    messagesEndRef.current?.scrollIntoView({ behavior: isConvoSwitch ? 'auto' : 'smooth' })
   }, [messages.length, selectedId])
 
   // ── Realtime: messages on selected conversation ─────────────────────────
@@ -340,6 +346,12 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     if (!q) return messages
     return messages.filter(m => (m.content || '').toLowerCase().includes(q))
   }, [messages, msgSearch])
+
+  const messageById = useMemo(() => {
+    const map = new Map()
+    for (const m of filteredMessages) map.set(m.id, m)
+    return map
+  }, [filteredMessages])
 
   const groupedMessages = useMemo(() => {
     const groups = []
@@ -497,15 +509,17 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   useEffect(() => {
     if (!slashOpen || slashQuery.trim().length < 2) { setSlashEntityResults([]); return }
     clearTimeout(slashDebounceRef.current)
+    const requestId = ++entitySearchIdRef.current
     slashDebounceRef.current = setTimeout(async () => {
       const results = await searchEntities(slashQuery, currentSiteId)
+      if (entitySearchIdRef.current !== requestId) return
       setSlashEntityResults(results.slice(0, 5))
     }, 300)
     return () => clearTimeout(slashDebounceRef.current)
   }, [slashQuery, slashOpen, currentSiteId])
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey && !mentionOpen && !slashOpen) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !mentionOpen && !slashOpen) {
       e.preventDefault()
       sendMessage()
     }
@@ -595,6 +609,8 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   }
 
   function selectConvo(id) {
+    setMessages([])
+    selectedIdRef.current = id
     setSelectedId(id)
     setEditingId(null); setReplyTo(null); setInput(''); setMsgSearch(''); setShowMembers(false)
     if (isMobile) setMobileShowThread(true)
@@ -617,7 +633,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   const showThread = !isMobile || mobileShowThread
 
   return (
-    <div style={{ height: floatingPanel ? '100%' : 'calc(100vh - 96px)', minHeight: floatingPanel ? 0 : 480, display: 'flex', border: floatingPanel ? 'none' : `1px solid ${THEME.outlineVar}`, borderRadius: floatingPanel ? 0 : '14px', overflow: 'hidden', background: THEME.surface }}>
+    <div style={{ height: floatingPanel ? '100%' : 'calc(100dvh - 96px)', minHeight: floatingPanel ? 0 : 480, display: 'flex', border: floatingPanel ? 'none' : `1px solid ${THEME.outlineVar}`, borderRadius: floatingPanel ? 0 : '14px', overflow: 'hidden', background: THEME.surface }}>
       {/* ── Left: conversation list ── */}
       {showList && (
         <div style={{
@@ -800,7 +816,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                     {group.items.map(m => {
                       const mine = m.sender_id === profile?.id
                       const reactions = reactionSummary(m)
-                      const replied = m.reply_to ? messages.find(x => x.id === m.reply_to) : null
+                      const replied = m.reply_to ? messageById.get(m.reply_to) || null : null
                       return (
                         <div key={m.id} style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexDirection: mine ? 'row-reverse' : 'row' }}>
                           {!mine && <Avatar name={m.sender?.full_name} size={28} />}
@@ -819,7 +835,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                               padding: '9px 13px', borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                               background: mine ? ACCENT : THEME.surfaceVar,
                               color: mine ? '#fff' : THEME.text,
-                              fontSize: '13.5px', lineHeight: 1.45, wordBreak: 'break-word', position: 'relative',
+                              fontSize: '13.5px', lineHeight: 1.45, wordBreak: 'break-word', whiteSpace: 'pre-wrap', position: 'relative',
                             }}>
                               <RenderContent text={m.content} navigate={navigate} />
                               {m.attachment_url && (

@@ -124,6 +124,10 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
 
+  const [showMembers, setShowMembers] = useState(false)
+  const [members, setMembers] = useState([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
+
   const [mentionOpen, setMentionOpen] = useState(false)
   const [mentionQuery, setMentionQuery] = useState('')
   const [slashOpen, setSlashOpen] = useState(false)
@@ -301,6 +305,20 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     if (c.type === 'dm') return 'Direct Message'
     return 'Conversation'
   }
+
+  const loadMembers = useCallback(async (convoId) => {
+    if (!convoId) return
+    setLoadingMembers(true)
+    const { data } = await supabase
+      .from('chat_participants')
+      .select('user_id, profile:profiles(full_name, username)')
+      .eq('conversation_id', convoId)
+    setMembers((data || []).map(p => ({
+      id: p.user_id,
+      name: p.profile?.full_name || p.profile?.username || 'Unknown',
+    })))
+    setLoadingMembers(false)
+  }, [])
 
   const visibleConvos = useMemo(() => {
     const q = convoSearch.trim().toLowerCase()
@@ -578,7 +596,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
 
   function selectConvo(id) {
     setSelectedId(id)
-    setEditingId(null); setReplyTo(null); setInput(''); setMsgSearch('')
+    setEditingId(null); setReplyTo(null); setInput(''); setMsgSearch(''); setShowMembers(false)
     if (isMobile) setMobileShowThread(true)
   }
 
@@ -711,13 +729,45 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                     {selectedConvo.type === 'dm' ? 'Direct message' : `${selectedConvo.type} conversation`}
                   </div>
                 </div>
-                <input
-                  style={{ ...inputStyle, width: 160, padding: '6px 10px', fontSize: '12px' }}
-                  placeholder="Search messages…"
-                  value={msgSearch}
-                  onChange={e => setMsgSearch(e.target.value)}
-                />
+                {!floatingPanel && (
+                  <input
+                    style={{ ...inputStyle, width: 160, padding: '6px 10px', fontSize: '12px' }}
+                    placeholder="Search messages…"
+                    value={msgSearch}
+                    onChange={e => setMsgSearch(e.target.value)}
+                  />
+                )}
+                {selectedConvo && selectedConvo.type !== 'dm' && (
+                  <button onClick={() => { setShowMembers(v => !v); if (!showMembers) loadMembers(selectedConvo.id) }} style={{
+                    background: showMembers ? ACCENT + '18' : 'none', border: `1px solid ${showMembers ? ACCENT : THEME.outline}`,
+                    borderRadius: '8px', cursor: 'pointer', padding: '5px 8px', display: 'flex', alignItems: 'center', gap: '4px',
+                    color: showMembers ? ACCENT : THEME.textMed, fontSize: '12px', fontWeight: 600,
+                  }}>
+                    <Icon name="group" size={16} />
+                    <span>Members</span>
+                  </button>
+                )}
               </div>
+
+              {/* Members panel */}
+              {showMembers && selectedConvo && selectedConvo.type !== 'dm' && (
+                <div style={{
+                  borderBottom: `1px solid ${THEME.outlineVar}`, background: THEME.surfaceVar,
+                  padding: '10px 16px', maxHeight: '180px', overflowY: 'auto',
+                }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: THEME.textLow, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    {loadingMembers ? 'Loading…' : `${members.length} member${members.length !== 1 ? 's' : ''}`}
+                  </div>
+                  {members.map(m => (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                      <Avatar name={m.name} size={26} />
+                      <span style={{ fontSize: '13px', color: THEME.text, fontWeight: m.id === profile?.id ? 700 : 500 }}>
+                        {m.name}{m.id === profile?.id ? ' (you)' : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Pinned messages */}
               {messages.some(m => m.is_pinned) && (

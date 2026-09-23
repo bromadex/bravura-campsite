@@ -303,13 +303,11 @@ export function contractorsNav(role, can) {
 
 export function projectsNav(role, can) {
   return [
-    { id: 'pj_dashboard',     label: 'Dashboard',      section: 'Overview',       icon: 'dashboard' },
-    { id: 'pj_projects',      label: 'Projects',       section: 'Projects',       icon: 'folder_open' },
-    { id: 'pj_tasks',         label: 'My Tasks',       section: 'Projects',       icon: 'task_alt' },
-    { id: 'pj_timeline',      label: 'Timeline',       section: 'Projects',       icon: 'timeline' },
-    { id: 'pj_areas',         label: 'Area Codes',     section: 'Document Control', icon: 'location_city' },
+    { id: 'pj_dashboard',     label: 'Dashboard',      section: 'Overview',         icon: 'dashboard' },
+    { id: 'pj_projects',      label: 'Projects',       section: 'Projects',         icon: 'folder_open' },
+    { id: 'pj_tasks',         label: 'My Tasks',       section: 'Projects',         icon: 'task_alt' },
+    { id: 'pj_timeline',      label: 'Timeline',       section: 'Projects',         icon: 'timeline' },
     { id: 'pj_documents',     label: 'Documents',      section: 'Document Control', icon: 'description' },
-    { id: 'pj_transmittals',  label: 'Transmittals',   section: 'Document Control', icon: 'send' },
     { id: 'pj_costs',         label: 'Costs & EVM',    section: 'Cost Management',  icon: 'payments' },
     { id: 'pj_changes',       label: 'Change Orders',  section: 'Cost Management',  icon: 'swap_horiz' },
   ]
@@ -448,7 +446,11 @@ export function notificationsNav(role, can) {
 
 export function docshareNav(role, can) {
   return [
-    { id: 'ds_library',  label: 'Document Library', section: 'Documents', icon: 'folder_shared' },
-    { id: 'ds_settings', label: 'Settings',         section: 'Admin',     icon: 'settings' },
+    { id: 'ds_library',          label: 'Document Library',     section: 'Documents', icon: 'folder_shared' },
+    { id: 'ds_detail',           label: 'Document Detail',      section: 'Documents', icon: 'description' },
+    { id: 'ds_acknowledgements', label: 'My Acknowledgements',  section: 'Documents', icon: 'task_alt' },
+    { id: 'ds_compliance',       label: 'Compliance Dashboard', section: 'Reports',   icon: 'verified' },
+    { id: 'ds_reports',          label: 'Document Reports',     section: 'Reports',   icon: 'summarize' },
+    { id: 'ds_settings',         label: 'Settings',             section: 'Admin',     icon: 'settings' },
   ]
 }

@@ -160,15 +160,13 @@ export const SHEQ_PILLS = [
 ]
 
 export const PROJECT_PILLS = [
-  { id: 'pj_dashboard', label: 'Dashboard',  icon: 'dashboard',      color: '#1B5E20' },
-  { id: 'pj_projects',  label: 'Projects',   icon: 'folder_open',    color: '#2E7D32' },
-  { id: 'pj_areas',     label: 'Area Codes', icon: 'location_city',  color: '#00695C' },
-  { id: 'pj_documents',    label: 'Documents',    icon: 'description',    color: '#E65100' },
-  { id: 'pj_transmittals', label: 'Transmittals', icon: 'send',            color: '#4527A0' },
-  { id: 'pj_tasks',       label: 'My Tasks',     icon: 'task_alt',        color: '#1565C0' },
-  { id: 'pj_timeline',    label: 'Timeline',     icon: 'timeline',        color: '#6A1B9A' },
-  { id: 'pj_costs',       label: 'Costs & EVM', icon: 'payments',        color: '#AD1457' },
-  { id: 'pj_changes',     label: 'Change Orders', icon: 'swap_horiz',    color: '#00838F' },
+  { id: 'pj_dashboard', label: 'Dashboard',      icon: 'dashboard',   color: '#1B5E20' },
+  { id: 'pj_projects',  label: 'Projects',       icon: 'folder_open', color: '#2E7D32' },
+  { id: 'pj_tasks',     label: 'Tasks',          icon: 'task_alt',    color: '#1565C0' },
+  { id: 'pj_timeline',  label: 'Timeline',       icon: 'timeline',    color: '#6A1B9A' },
+  { id: 'pj_documents', label: 'Documents',      icon: 'description', color: '#E65100' },
+  { id: 'pj_costs',     label: 'Costs & EVM',    icon: 'payments',    color: '#AD1457' },
+  { id: 'pj_changes',   label: 'Change Orders',  icon: 'swap_horiz',  color: '#00838F' },
 ]
 
 export const ADMIN_PILLS = [

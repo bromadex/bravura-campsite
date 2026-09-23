@@ -32,6 +32,8 @@ export default function PJTasks({ setPage }) {
   const [filterAssignee, setFilterAssignee] = useState('')
   const [viewMode, setViewMode] = useState('all')
   const [sortBy, setSortBy] = useState('due_date')
+  const [displayMode, setDisplayMode] = useState('grid')
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
 
   useEffect(() => {
     if (!currentSiteId) return
@@ -43,7 +45,7 @@ export default function PJTasks({ setPage }) {
     const [pRes, tRes, cRes, eRes] = await Promise.all([
       supabase.from('projects').select('id, name, project_code, status').eq('site_id', currentSiteId).eq('is_archived', false),
       supabase.from('project_tasks').select('*').eq('is_archived', false),
-      supabase.from('project_board_columns').select('id, project_id, name, is_done_column'),
+      supabase.from('project_board_columns').select('id, project_id, name, is_done_column, position'),
       supabase.from('employees').select('id, name').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
     ])
     if (pRes.error) showToast(pRes.error.message, 'red')
@@ -129,6 +131,43 @@ export default function PJTasks({ setPage }) {
     return employees.filter(e => ids.has(e.id))
   }, [tasks, employees])
 
+  // Board view: group filtered tasks by column
+  const boardColumns = useMemo(() => {
+    // Gather unique columns used by filtered tasks, sorted by position
+    const colIds = new Set(filtered.map(t => t.column_id).filter(Boolean))
+    const cols = columns.filter(c => colIds.has(c.id)).sort((a, b) => (a.position || 0) - (b.position || 0))
+    // Add an "Unassigned" pseudo column for tasks without column_id
+    const noCol = filtered.filter(t => !t.column_id)
+    const result = cols.map(c => ({
+      id: c.id, name: c.name, isDone: c.is_done_column,
+      tasks: filtered.filter(t => t.column_id === c.id),
+    }))
+    if (noCol.length > 0) result.unshift({ id: '__none', name: 'Unassigned', isDone: false, tasks: noCol })
+    return result
+  }, [filtered, columns])
+
+  // Calendar view helpers
+  const calDays = useMemo(() => {
+    const year = calMonth.getFullYear(), month = calMonth.getMonth()
+    const firstDay = new Date(year, month, 1).getDay()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const days = []
+    for (let i = 0; i < firstDay; i++) days.push(null)
+    for (let d = 1; d <= daysInMonth; d++) days.push(d)
+    return days
+  }, [calMonth])
+
+  const tasksByDate = useMemo(() => {
+    const map = {}
+    filtered.forEach(t => {
+      if (!t.due_date) return
+      const key = t.due_date.slice(0, 10)
+      if (!map[key]) map[key] = []
+      map[key].push(t)
+    })
+    return map
+  }, [filtered])
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px', color: THEME.textLow }}>
@@ -153,6 +192,20 @@ export default function PJTasks({ setPage }) {
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Display mode toggle */}
+          <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${THEME.outlineVar}` }}>
+            {[{ id: 'grid', label: 'Grid', icon: 'table_rows' }, { id: 'board', label: 'Board', icon: 'view_kanban' }, { id: 'calendar', label: 'Calendar', icon: 'calendar_month' }].map(v => (
+              <button key={v.id} onClick={() => setDisplayMode(v.id)} style={{
+                display: 'inline-flex', alignItems: 'center', gap: '3px',
+                padding: '5px 10px', fontSize: '12px', fontWeight: 600,
+                background: displayMode === v.id ? color : 'transparent', color: displayMode === v.id ? '#fff' : THEME.textMed,
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>{v.icon}</span>{v.label}
+              </button>
+            ))}
+          </div>
+          {/* All / My Tasks toggle */}
           <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${THEME.outlineVar}` }}>
             {[{ id: 'all', label: 'All Tasks' }, { id: 'mine', label: 'My Tasks' }].map(v => (
               <button key={v.id} onClick={() => setViewMode(v.id)} style={{
@@ -184,12 +237,14 @@ export default function PJTasks({ setPage }) {
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={inp}>
-            <option value="due_date">Sort: Due Date</option>
-            <option value="priority">Sort: Priority</option>
-            <option value="percent">Sort: % Complete</option>
-            <option value="position">Sort: Position</option>
-          </select>
+          {displayMode === 'grid' && (
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={inp}>
+              <option value="due_date">Sort: Due Date</option>
+              <option value="priority">Sort: Priority</option>
+              <option value="percent">Sort: % Complete</option>
+              <option value="position">Sort: Position</option>
+            </select>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <span style={{ fontSize: '12px', color: THEME.textLow }}>{filtered.length} task{filtered.length !== 1 ? 's' : ''}</span>
@@ -203,66 +258,183 @@ export default function PJTasks({ setPage }) {
         </div>
       </div>
 
-      {/* Table */}
-      <DashCard>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-            <thead>
-              <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
-                {['#', 'Project', 'Task Description', 'Status', 'Duration', 'Start', 'Finish', '% Complete', 'Assigned To', 'Priority'].map(h => (
-                  <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: THEME.textMed, whiteSpace: 'nowrap', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No tasks found.</td></tr>
-              ) : filtered.map((t, i) => {
-                const col = colMap[t.column_id]
-                const colName = col?.name || '—'
-                const isOverdue = t.due_date && new Date(t.due_date) < new Date() && !t.completed_date
-                const pct = t.percent_complete || 0
-                const isDone = col?.is_done_column || pct === 100
-                const statusColor = isDone ? '#2E7D32' : pct > 0 ? '#1565C0' : isOverdue ? '#C62828' : THEME.textLow
-                const proj = projMap[t.project_id]
-                return (
-                  <tr key={t.id} onClick={() => setPage('pj_detail_' + t.project_id + ':board:' + t.id)}
-                    style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', background: isDone ? '#F1F8E9' : isOverdue ? '#FFF8E1' : 'transparent' }}>
-                    <td style={{ padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px' }}>{i + 1}</td>
-                    <td style={{ padding: '8px 10px', color: color, fontWeight: 600, fontSize: '11px', whiteSpace: 'nowrap' }}>{proj?.project_code || '—'}</td>
-                    <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 600, maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</td>
-                    <td style={{ padding: '8px 10px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: statusColor + '18', color: statusColor, whiteSpace: 'nowrap' }}>{colName}</span>
-                    </td>
-                    <td style={{ padding: '8px 10px', color: THEME.textMed, textAlign: 'center' }}>{t.planned_duration ? `${t.planned_duration}d` : '—'}</td>
-                    <td style={{ padding: '8px 10px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{t.start_date || '—'}</td>
-                    <td style={{ padding: '8px 10px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{t.due_date || '—'}</td>
-                    <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '70px' }}>
-                        <div style={{ flex: 1, height: '5px', borderRadius: '3px', background: THEME.outlineVar, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? '#2E7D32' : pct >= 50 ? '#1565C0' : '#FF9800', borderRadius: '3px' }} />
+      {/* Grid view (existing table) */}
+      {displayMode === 'grid' && (
+        <DashCard>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${THEME.outlineVar}` }}>
+                  {['#', 'Project', 'Task Description', 'Status', 'Duration', 'Start', 'Finish', '% Complete', 'Assigned To', 'Priority'].map(h => (
+                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: THEME.textMed, whiteSpace: 'nowrap', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: THEME.textLow }}>No tasks found.</td></tr>
+                ) : filtered.map((t, i) => {
+                  const col = colMap[t.column_id]
+                  const colName = col?.name || '—'
+                  const isOverdue = t.due_date && new Date(t.due_date) < new Date() && !t.completed_date
+                  const pct = t.percent_complete || 0
+                  const isDone = col?.is_done_column || pct === 100
+                  const statusColor = isDone ? '#2E7D32' : pct > 0 ? '#1565C0' : isOverdue ? '#C62828' : THEME.textLow
+                  const proj = projMap[t.project_id]
+                  return (
+                    <tr key={t.id} onClick={() => setPage('pj_detail_' + t.project_id + ':board:' + t.id)}
+                      style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', background: isDone ? '#F1F8E9' : isOverdue ? '#FFF8E1' : 'transparent' }}>
+                      <td style={{ padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px' }}>{i + 1}</td>
+                      <td style={{ padding: '8px 10px', color: color, fontWeight: 600, fontSize: '11px', whiteSpace: 'nowrap' }}>{proj?.project_code || '—'}</td>
+                      <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 600, maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: statusColor + '18', color: statusColor, whiteSpace: 'nowrap' }}>{colName}</span>
+                      </td>
+                      <td style={{ padding: '8px 10px', color: THEME.textMed, textAlign: 'center' }}>{t.planned_duration ? `${t.planned_duration}d` : '—'}</td>
+                      <td style={{ padding: '8px 10px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{t.start_date || '—'}</td>
+                      <td style={{ padding: '8px 10px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{t.due_date || '—'}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '70px' }}>
+                          <div style={{ flex: 1, height: '5px', borderRadius: '3px', background: THEME.outlineVar, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? '#2E7D32' : pct >= 50 ? '#1565C0' : '#FF9800', borderRadius: '3px' }} />
+                          </div>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: pct >= 100 ? '#2E7D32' : THEME.text, minWidth: '28px' }}>{pct}%</span>
                         </div>
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: pct >= 100 ? '#2E7D32' : THEME.text, minWidth: '28px' }}>{pct}%</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
-                      {t.assigned_to ? (
-                        <span onClick={e => { e.stopPropagation(); setPage('wf_employee_detail:' + t.assigned_to) }}
-                          style={{ fontSize: '12px', fontWeight: 600, color: color, cursor: 'pointer', textDecoration: 'underline' }}>
-                          {empMap[t.assigned_to] || 'Unknown'}
+                      </td>
+                      <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                        {t.assigned_to ? (
+                          <span onClick={e => { e.stopPropagation(); setPage('wf_employee_detail:' + t.assigned_to) }}
+                            style={{ fontSize: '12px', fontWeight: 600, color: color, cursor: 'pointer', textDecoration: 'underline' }}>
+                            {empMap[t.assigned_to] || 'Unknown'}
+                          </span>
+                        ) : <span style={{ color: THEME.textLow }}>{'—'}</span>}
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: (PRIORITY_COLORS[t.priority] || PRIORITY_COLORS.medium) + '18', color: PRIORITY_COLORS[t.priority] || PRIORITY_COLORS.medium, textTransform: 'capitalize' }}>{t.priority || 'medium'}</span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </DashCard>
+      )}
+
+      {/* Board view (Kanban) */}
+      {displayMode === 'board' && (
+        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '12px', minHeight: '300px' }}>
+          {boardColumns.length === 0 ? (
+            <div style={{ flex: 1, textAlign: 'center', padding: '60px', color: THEME.textLow, fontSize: '13px',
+              background: THEME.surface, borderRadius: '14px', border: `1px solid ${THEME.outlineVar}` }}>
+              No tasks found.
+            </div>
+          ) : boardColumns.map(col => (
+            <div key={col.id} style={{ minWidth: '240px', maxWidth: '300px', flex: '1 0 240px',
+              background: THEME.surfaceVar, borderRadius: '12px', padding: '10px', display: 'flex', flexDirection: 'column' }}>
+              {/* Column header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', padding: '4px 6px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: THEME.text }}>{col.name}</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: THEME.textLow, background: THEME.surface,
+                  borderRadius: '10px', padding: '1px 7px', minWidth: '20px', textAlign: 'center' }}>{col.tasks.length}</span>
+              </div>
+              {/* Cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflowY: 'auto' }}>
+                {col.tasks.map(t => {
+                  const isOverdue = t.due_date && new Date(t.due_date) < new Date() && !t.completed_date
+                  const pct = t.percent_complete || 0
+                  const priColor = PRIORITY_COLORS[t.priority] || PRIORITY_COLORS.medium
+                  return (
+                    <div key={t.id} onClick={() => setPage('pj_detail_' + t.project_id + ':board:' + t.id)}
+                      style={{ background: THEME.surface, borderRadius: '10px', padding: '10px 12px', cursor: 'pointer',
+                        border: `1px solid ${THEME.outlineVar}`, borderLeft: `3px solid ${priColor}`,
+                        transition: 'box-shadow 0.15s', }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: THEME.text, marginBottom: '6px',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        {/* Assignee initial */}
+                        {t.assigned_to && empMap[t.assigned_to] && (
+                          <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: color,
+                            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '10px', fontWeight: 700, flexShrink: 0 }}>
+                            {empMap[t.assigned_to].charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        {/* Priority badge */}
+                        <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px',
+                          background: priColor + '18', color: priColor, textTransform: 'uppercase' }}>
+                          {t.priority || 'med'}
                         </span>
-                      ) : <span style={{ color: THEME.textLow }}>—</span>}
-                    </td>
-                    <td style={{ padding: '8px 10px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: (PRIORITY_COLORS[t.priority] || PRIORITY_COLORS.medium) + '18', color: PRIORITY_COLORS[t.priority] || PRIORITY_COLORS.medium, textTransform: 'capitalize' }}>{t.priority || 'medium'}</span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                        {/* Due date */}
+                        {t.due_date && (
+                          <span style={{ fontSize: '10px', color: isOverdue ? '#C62828' : THEME.textLow, fontWeight: isOverdue ? 700 : 400 }}>
+                            {new Date(t.due_date).toLocaleDateString('en', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
+                        {/* Progress */}
+                        {pct > 0 && (
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: pct >= 100 ? '#2E7D32' : '#1565C0', marginLeft: 'auto' }}>{pct}%</span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
-      </DashCard>
+      )}
+
+      {/* Calendar view */}
+      {displayMode === 'calendar' && (
+        <DashCard>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.text, fontSize: '18px', fontFamily: 'inherit', padding: '4px 8px' }}>
+              <span className="material-symbols-rounded">chevron_left</span>
+            </button>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: THEME.text }}>
+              {calMonth.toLocaleDateString('en', { month: 'long', year: 'numeric' })}
+            </span>
+            <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.text, fontSize: '18px', fontFamily: 'inherit', padding: '4px 8px' }}>
+              <span className="material-symbols-rounded">chevron_right</span>
+            </button>
+          </div>
+          {/* Day headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+              <div key={d} style={{ padding: '6px', textAlign: 'center', fontSize: '11px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase' }}>{d}</div>
+            ))}
+            {calDays.map((day, i) => {
+              if (day === null) return <div key={'e' + i} style={{ minHeight: '80px' }} />
+              const dateStr = `${calMonth.getFullYear()}-${String(calMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+              const dayTasks = tasksByDate[dateStr] || []
+              const isToday = dateStr === new Date().toISOString().slice(0, 10)
+              return (
+                <div key={i} style={{ minHeight: '80px', padding: '4px', border: `1px solid ${THEME.outlineVar}`,
+                  background: isToday ? color + '0A' : 'transparent', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: isToday ? 800 : 500, color: isToday ? color : THEME.textMed, marginBottom: '2px' }}>{day}</div>
+                  {dayTasks.slice(0, 3).map(t => {
+                    const priColor = PRIORITY_COLORS[t.priority] || PRIORITY_COLORS.medium
+                    return (
+                      <div key={t.id} onClick={() => setPage('pj_detail_' + t.project_id + ':board:' + t.id)}
+                        style={{ fontSize: '10px', padding: '2px 4px', marginBottom: '2px', borderRadius: '3px', cursor: 'pointer',
+                          background: priColor + '18', color: priColor, fontWeight: 600, overflow: 'hidden',
+                          textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderLeft: `2px solid ${priColor}` }}>
+                        {t.title}
+                      </div>
+                    )
+                  })}
+                  {dayTasks.length > 3 && (
+                    <div style={{ fontSize: '9px', color: THEME.textLow, fontWeight: 600, padding: '1px 4px' }}>+{dayTasks.length - 3} more</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </DashCard>
+      )}
     </div>
   )
 }

@@ -155,7 +155,7 @@ export default function PJList({ setPage }) {
         const { data: created, error: err } = await supabase.from('projects').insert(payload).select('id, name').single()
         if (err) throw err
         // Auto-create DocVault project folder with numbered sub-folders
-        try {
+        if (can('ds.create')) try {
           const { data: rootFolder } = await supabase.from('ds_folders').insert({
             site_id: currentSiteId,
             name: created.name,

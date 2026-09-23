@@ -42,8 +42,7 @@ const MODULE_GROUPS = [
     children: [
       { id: 'projects',   label: 'Project Register',   icon: 'engineering',      color: MODULE_COLORS.projects, access: moduleAccess.projects },
       { id: 'dept',        label: 'Departments',        icon: 'domain',           color: MODULE_COLORS.dept,     access: moduleAccess.dept },
-      { id: '_schedule',   label: 'Bravura Schedule',   icon: 'calendar_month',   color: '#546E7A', coming: true },
-      { id: '_gantt',      label: 'Gantt View',         icon: 'view_timeline',    color: '#546E7A', coming: true },
+      { id: 'projects',   label: 'Bravura Schedule',   icon: 'calendar_month',   color: MODULE_COLORS.projects, access: moduleAccess.projects, deepPage: 'pj_tasks' },
     ],
   },
   {

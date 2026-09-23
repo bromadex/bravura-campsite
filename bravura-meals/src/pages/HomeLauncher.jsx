@@ -755,9 +755,8 @@ function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = f
       </div>
       <div style={{
         fontSize: card ? '13px' : '12px', fontWeight: 500, color: glass ? 'rgba(255,255,255,.9)' : THEME.text,
-        lineHeight: 1.3, maxWidth: card ? '120px' : '90px',
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: card ? 'normal' : 'nowrap',
-        textAlign: 'center',
+        lineHeight: 1.3, maxWidth: '120px',
+        whiteSpace: 'normal', textAlign: 'center',
       }}>
         {label}
       </div>

@@ -26,7 +26,6 @@ const MODULE_GROUPS = [
     children: [
       { id: 'campsite',  label: 'Campsite',     icon: 'holiday_village', color: MODULE_COLORS.campsite, access: moduleAccess.campsite },
       { id: 'meals',     label: 'Meals',         icon: 'restaurant',      color: MODULE_COLORS.meals,    access: moduleAccess.meals },
-      { id: 'concrete',  label: 'Batch Plant',   icon: 'factory',         color: MODULE_COLORS.concrete, access: moduleAccess.concrete },
     ],
   },
   {

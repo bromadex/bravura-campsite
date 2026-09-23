@@ -857,7 +857,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{convoName(selectedConvo)}</div>
                   <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.7)' }}>
-                    {selectedConvo.type === 'dm' ? 'online' : `${selectedConvo.type} · tap for info`}
+                    {selectedConvo.type === 'dm' ? 'Direct message' : `${selectedConvo.type} conversation`}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>

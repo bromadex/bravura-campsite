@@ -61,7 +61,7 @@ export default function DocShareLibrary({ setPage }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [currentFolderId, setCurrentFolderId] = useState(null)
-  const [viewMode, setViewMode] = useState('list')
+  const [viewMode, setViewMode] = useState('grid')
   const [sortBy, setSortBy] = useState('updated_at')
   const [sortDesc, setSortDesc] = useState(true)
 

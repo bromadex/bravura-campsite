@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { THEME } from '../utils/permissions'
 
 const VIEWER_TYPES = {
@@ -161,17 +161,116 @@ function XlsxViewer({ url }) {
 }
 
 function DwgViewer({ url, fileName }) {
+  const containerRef = useRef(null)
+  const viewerRef = useRef(null)
+  const [loading, setLoading] = useState(true)
+  const [status, setStatus] = useState('Loading CAD file...')
+  const [error, setError] = useState(null)
+  const [layers, setLayers] = useState([])
+  const [hiddenLayers, setHiddenLayers] = useState(new Set())
+  const [showLayers, setShowLayers] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    let blobUrl = null
+
+    async function render() {
+      try {
+        const resp = await fetch(url)
+        if (!resp.ok) throw new Error('Failed to fetch file')
+        const buf = await resp.arrayBuffer()
+        const ext = (fileName || '').split('.').pop().toLowerCase()
+
+        let dxfUrl = url
+        if (ext === 'dwg') {
+          setStatus('Converting DWG to DXF (WASM)...')
+          const { LibreDwg } = await import('@mlightcad/libredwg-web')
+          const libredwg = await LibreDwg.create('/')
+          const dxfData = libredwg.dwg_write_dxf(buf)
+          if (!dxfData) throw new Error('Failed to convert DWG — file may be corrupted or unsupported version')
+          const blob = new Blob([dxfData], { type: 'text/plain' })
+          blobUrl = URL.createObjectURL(blob)
+          dxfUrl = blobUrl
+        }
+
+        if (cancelled) return
+        setStatus('Rendering drawing...')
+        const { DxfViewer } = await import('dxf-viewer')
+        if (cancelled || !containerRef.current) return
+
+        const viewer = new DxfViewer(containerRef.current, {
+          canvasWidth: containerRef.current.clientWidth,
+          canvasHeight: containerRef.current.clientHeight,
+          autoResize: true,
+          colorCorrection: true,
+        })
+        viewerRef.current = viewer
+
+        await viewer.Load({ url: dxfUrl })
+        if (cancelled) return
+
+        const lyrs = viewer.GetLayers() || []
+        setLayers(lyrs.map(l => typeof l === 'string' ? l : l.name || String(l)))
+        setLoading(false)
+      } catch (e) {
+        if (!cancelled) setError(e.message)
+      }
+    }
+    render()
+    return () => {
+      cancelled = true
+      if (viewerRef.current) {
+        try { viewerRef.current.Destroy() } catch {}
+        viewerRef.current = null
+      }
+      if (blobUrl) URL.revokeObjectURL(blobUrl)
+    }
+  }, [url, fileName])
+
+  function toggleLayer(name) {
+    const viewer = viewerRef.current
+    if (!viewer) return
+    const next = new Set(hiddenLayers)
+    if (next.has(name)) {
+      next.delete(name)
+      viewer.ShowLayer(name, true)
+    } else {
+      next.add(name)
+      viewer.ShowLayer(name, false)
+    }
+    setHiddenLayers(next)
+  }
+
+  if (error) return <ViewerError message={error} />
+
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: THEME.textLow, background: THEME.surfaceVariant }}>
-      <span className="material-symbols-rounded" style={{ fontSize: 56, color: THEME.outline }}>architecture</span>
-      <div style={{ fontSize: 15, fontWeight: 600, color: THEME.text }}>CAD Drawing</div>
-      <div style={{ fontSize: 13 }}>{fileName || 'DWG file'}</div>
-      <div style={{ fontSize: 12, maxWidth: 360, textAlign: 'center', lineHeight: 1.5 }}>
-        DWG viewer requires Autodesk Forge integration. Download the file to view in your CAD application.
-      </div>
-      <a href={url} download style={{ marginTop: 8, padding: '8px 20px', background: THEME.primary, color: '#fff', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-        Download DWG
-      </a>
+    <div style={{ width: '100%', height: '100%', position: 'relative', background: '#1a1a2e' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      {loading && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#ccc', background: '#1a1a2e' }}>
+          <span className="material-symbols-rounded" style={{ fontSize: 24, animation: 'spin 1s linear infinite' }}>progress_activity</span>
+          <span style={{ fontSize: 13 }}>{status}</span>
+        </div>
+      )}
+      {!loading && layers.length > 0 && (
+        <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 2 }}>
+          <button onClick={() => setShowLayers(s => !s)}
+            style={{ padding: '6px 10px', background: 'rgba(0,0,0,.6)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span className="material-symbols-rounded" style={{ fontSize: 16 }}>layers</span>
+            Layers ({layers.length})
+          </button>
+          {showLayers && (
+            <div style={{ marginTop: 4, background: 'rgba(0,0,0,.8)', borderRadius: 6, padding: 8, maxHeight: 300, overflowY: 'auto', minWidth: 180 }}>
+              {layers.map(name => (
+                <label key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', cursor: 'pointer', fontSize: 11, color: hiddenLayers.has(name) ? '#666' : '#ddd' }}>
+                  <input type="checkbox" checked={!hiddenLayers.has(name)} onChange={() => toggleLayer(name)} style={{ accentColor: THEME.primary }} />
+                  {name}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

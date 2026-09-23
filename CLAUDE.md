@@ -126,12 +126,14 @@ notification sound/badge on mobile PWA.
 
 ## DocShare Module Roadmap (DS — internal document management)
 
-General-purpose internal DMS for mining/camp operations. Two document modes:
-**controlled** (versioned, approval workflow, acknowledgement tracking, expiry)
-and **general** (upload, organize, search, download — shared file storage).
+**Viewer-first** internal DMS for mining/camp operations. Core differentiator:
+inline browser viewing of PDF, DOCX, Excel, and DWG files — **no editing,
+view-only**. Two document modes: **controlled** (versioned, approval workflow,
+acknowledgement tracking, expiry) and **general** (upload, organize, search,
+download — shared file storage).
 Permissions: ds.view/create/edit/delete/approve. Migration range: 0170+.
 
-### Phase 1 — Foundation & General Storage (0170)
+### Phase 1 — Foundation, Storage & Document Viewer (0170)
 Tables: `ds_documents` (id, site_id, title, description, category, doc_mode
 ['controlled','general'], folder_id, created_by, created_at, updated_at,
 is_archived, file_path, file_name, file_size, file_type, tags[]),
@@ -140,13 +142,27 @@ is_archived, file_path, file_name, file_size, file_type, tags[]),
 Pages:
 - **Document Library (DS01)**: grid/list view with folder tree sidebar, category
   filter, search by title/tags/content, sort by date/name/size, bulk actions.
-  Upload with drag-and-drop, multi-file support. File preview (PDF, images).
-  Folder create/rename/move/archive. Document detail drawer with metadata,
-  download, share link (internal), move to folder.
-- **DocShare Settings (DS02)**: categories management, default folder structure
+  Upload with drag-and-drop, multi-file support. Folder create/rename/move/archive.
+  Document detail drawer with metadata, download, share link (internal), move
+  to folder.
+- **Document Viewer (DS02)**: full-screen inline viewer, no editing. Formats:
+  - **PDF**: native browser `<iframe>` / `<object>` embed with signed URL.
+  - **DOCX**: render via `mammoth.js` (converts DOCX → HTML for display).
+  - **Excel (XLSX/XLS)**: render via `SheetJS` (xlsx) — parse to JSON, render
+    as HTML table with sheet tabs, column sorting, frozen headers. Read-only.
+  - **DWG**: render via `three-dxf` or Autodesk Forge viewer embed (free tier)
+    for 2D/3D CAD drawings. Fallback: convert server-side to SVG/PDF if viewer
+    unavailable.
+  - **Images**: native `<img>` with zoom/pan controls.
+  Viewer toolbar: zoom in/out, fit-to-width, page navigation (PDF), sheet tabs
+  (Excel), layer toggle (DWG), download original, print, fullscreen toggle.
+  Mobile responsive — pinch-to-zoom on touch devices.
+- **DocShare Settings (DS03)**: categories management, default folder structure
   per site, file size limits, allowed file types configuration.
 RLS: site-scoped, ds.view for SELECT, ds.create for INSERT, ds.edit for UPDATE.
 Storage bucket: `docshare-files` (private, signed URLs via RPC).
+Libraries: `mammoth` (DOCX→HTML), `xlsx`/SheetJS (Excel parse), viewer for DWG
+(evaluate Autodesk Forge free tier vs `three-dxf` vs LibreCAD WASM).
 
 ### Phase 2 — Controlled Documents & Versioning (0171)
 Tables: `ds_versions` (id, document_id, version_number, file_path, file_name,
@@ -155,12 +171,14 @@ uploaded_by, reviewed_by, approved_by, approved_at, created_at),
 `ds_review_requests` (id, version_id, reviewer_id, status, comments, responded_at),
 `ds_acknowledgements` (id, version_id, user_id, acknowledged_at, required_by).
 Pages:
-- **Document Detail (DS03)**: full page for controlled docs — version history
-  timeline, current approved version prominent, draft/review status badges,
-  side-by-side version comparison (metadata, not content diff), download any
-  version. Review panel: approve/reject with comments, request changes.
-- **My Acknowledgements (DS04)**: list of documents requiring user's acknowledgement,
+- **Document Detail (DS04)**: full page for controlled docs — version history
+  timeline, current approved version prominent with inline viewer, draft/review
+  status badges, side-by-side version comparison (metadata, not content diff),
+  view/download any version. Review panel: approve/reject with comments, request
+  changes.
+- **My Acknowledgements (DS05)**: list of documents requiring user's acknowledgement,
   pending/completed tabs, acknowledge button with timestamp, overdue highlighting.
+  Clicking a document opens the viewer inline before acknowledging.
 Workflow: upload new version (draft) → assign reviewers (ds.approve holders or
 specific users) → reviewers approve/reject → on approval, previous version
 becomes 'superseded', new version becomes 'approved' → fire notifications to
@@ -172,11 +190,11 @@ acknowledgement deadline approaching → remind, review requested → notify rev
 Tables: `ds_expiry_rules` (id, document_id, expiry_months, notify_days_before,
 auto_archive), `ds_activity_log` (id, document_id, action, user_id, details, created_at).
 Pages:
-- **Compliance Dashboard (DS05)**: KPI row (total docs, expiring soon, overdue
+- **Compliance Dashboard (DS06)**: KPI row (total docs, expiring soon, overdue
   acknowledgements, pending reviews), document status breakdown by category,
   acknowledgement completion rates by department, expiring documents list with
   days remaining, activity timeline.
-- **Document Reports (DS06)**: export document register (CSV), acknowledgement
+- **Document Reports (DS07)**: export document register (CSV), acknowledgement
   compliance report by user/department, version history audit trail, storage
   usage by site/category.
 Triggers: auto-notify on approaching expiry (30/14/7 days), auto-archive on
@@ -188,6 +206,7 @@ expiry if configured. Cron-friendly: expiry check RPC callable from scheduled ta
   HR employees (qualifications, certifications), procurement (POs, invoices).
   Uses `ds_document_links` (document_id, linked_table, linked_id).
 - "Attach Document" button on key detail pages across modules.
+- "View" button on linked documents opens the inline viewer (DS02) directly.
 - Connect integration: share document links in chat via `/DS01` slash command,
   document-linked conversation threads.
 - Governance migration: optionally migrate existing governance_documents into

@@ -681,6 +681,7 @@ function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, ch
           label={group.label}
           badge={group.children.some(c => c.id === 'connect') ? chatUnread : 0}
           onClick={() => onGroupClick(group)}
+          childIcons={group.children.slice(0, 4).map(c => c.icon)}
         />
       ))}
     </div>
@@ -688,8 +689,9 @@ function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, ch
 }
 
 // ── Icon tile — clean rounded-square icon + label (ERPNext style) ───────────
-function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = false }) {
+function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = false, childIcons }) {
   const [hovered, setHovered] = useState(false)
+  const isGroup = childIcons && childIcons.length > 1
 
   return (
     <button
@@ -720,10 +722,20 @@ function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = f
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           transform: hovered && !disabled ? 'scale(1.08)' : 'scale(1)',
           transition: 'transform .15s ease',
+          ...(isGroup ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', padding: '8px' } : {}),
         }}>
-          <span className="material-symbols-rounded" style={{ fontSize: '28px', color: '#fff', lineHeight: 1 }}>
-            {icon}
-          </span>
+          {isGroup ? (
+            childIcons.slice(0, 4).map((ci, idx) => (
+              <span key={idx} className="material-symbols-rounded" style={{
+                fontSize: '16px', color: '#fff', lineHeight: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{ci}</span>
+            ))
+          ) : (
+            <span className="material-symbols-rounded" style={{ fontSize: '28px', color: '#fff', lineHeight: 1 }}>
+              {icon}
+            </span>
+          )}
         </div>
         {badge > 0 && (
           <span style={{

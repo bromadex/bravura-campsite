@@ -31,6 +31,10 @@ export default function DeptSettings({ setPage }) {
     if (!form.name.trim() || !form.code.trim()) return
     setSaving(true)
     const payload = { name: form.name, code: form.code, icon: form.icon, color: form.color, custom_buckets: form.custom_buckets, custom_labels: form.custom_labels, document_categories: form.document_categories, site_id: currentSiteId }
+    if (!editId) {
+      const { data: dup } = await supabase.from('departments').select('id').eq('site_id', currentSiteId).ilike('name', form.name.trim()).maybeSingle()
+      if (dup) { setSaving(false); alert('A department with this name already exists at this site.'); return }
+    }
     if (editId) {
       await supabase.from('departments').update(payload).eq('id', editId)
     } else {

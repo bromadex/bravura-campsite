@@ -125,6 +125,10 @@ export default function Departments({ setPage }) {
         department_head_id: form.department_head_id || null,
         description: form.description.trim() || null,
       }
+      if (!editing) {
+        const { data: dup } = await supabase.from('departments').select('id').eq('site_id', currentSiteId).ilike('name', form.name.trim()).maybeSingle()
+        if (dup) { showToast('A department with this name already exists at this site', 'red'); return }
+      }
       if (editing) {
         const { error } = await supabase.from('departments').update(payload).eq('id', editing.id)
         if (error) throw error

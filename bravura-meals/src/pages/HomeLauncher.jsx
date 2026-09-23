@@ -19,6 +19,7 @@ const TOP_LEVEL_MODULES = [
   { id: 'finance', label: 'Finance', icon: 'account_balance', color: MODULE_COLORS.finance, access: moduleAccess.finance },
   { id: 'procurement', label: 'Procurement', icon: 'storefront', color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
   { id: 'inventory', label: 'Inventory', icon: 'inventory_2', color: MODULE_COLORS.inventory, access: moduleAccess.inventory },
+  { id: 'concrete', label: 'Batch Plant', icon: 'factory', color: MODULE_COLORS.concrete, access: moduleAccess.concrete },
 ]
 
 // Umbrella groups that expand to show sub-module tiles
@@ -42,7 +43,6 @@ const MODULE_GROUPS = [
       { id: 'projects',   label: 'Project Register',   icon: 'engineering',      color: MODULE_COLORS.projects, access: moduleAccess.projects },
       { id: 'dept',        label: 'Departments',        icon: 'domain',           color: MODULE_COLORS.dept,     access: moduleAccess.dept },
       { id: '_schedule',   label: 'Bravura Schedule',   icon: 'calendar_month',   color: '#546E7A', coming: true },
-      { id: '_dashboard',  label: 'Project Dashboard',  icon: 'dashboard',        color: '#546E7A', coming: true },
       { id: '_gantt',      label: 'Gantt View',         icon: 'view_timeline',    color: '#546E7A', coming: true },
     ],
   },

@@ -93,7 +93,6 @@ const MODULE_GROUPS = [
     children: [
       { id: 'docshare',   label: 'DocVault',       icon: 'folder_shared',  color: MODULE_COLORS.docshare,   access: moduleAccess.docshare },
       { id: 'governance',  label: 'Governance',     icon: 'gavel',          color: MODULE_COLORS.governance,  access: moduleAccess.governance },
-      { id: 'connect',     label: 'Connect',        icon: 'chat',           color: MODULE_COLORS.connect,     access: moduleAccess.connect },
     ],
   },
   {
@@ -598,6 +597,36 @@ export default function HomeLauncher({ onEnterModule }) {
           </div>
         </>
       )}
+
+      {/* Connect FAB */}
+      <button
+        onClick={() => onEnterModule('connect')}
+        title="Bravura Connect"
+        style={{
+          position: 'fixed', bottom: '28px', right: '28px', zIndex: 100,
+          width: '56px', height: '56px', borderRadius: '50%',
+          background: '#982329',
+          border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 14px rgba(152,35,41,.45), 0 2px 6px rgba(0,0,0,.18)',
+          transition: 'transform .18s, box-shadow .18s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(152,35,41,.55), 0 3px 8px rgba(0,0,0,.22)' }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(152,35,41,.45), 0 2px 6px rgba(0,0,0,.18)' }}
+      >
+        <span className="material-symbols-rounded filled" style={{ fontSize: '26px', color: '#fff' }}>chat</span>
+        {chatUnread > 0 && (
+          <span style={{
+            position: 'absolute', top: '-2px', right: '-2px',
+            minWidth: '20px', height: '20px', borderRadius: '50px',
+            background: '#EF4444', color: '#fff',
+            fontSize: '11px', fontWeight: 700, lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 5px', border: '2px solid #fff',
+            boxShadow: '0 2px 6px rgba(220,38,38,.4)',
+          }}>{chatUnread > 99 ? '99+' : chatUnread}</span>
+        )}
+      </button>
 
       {/* Chat message popup */}
       {chatPopup && (

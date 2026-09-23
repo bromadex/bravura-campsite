@@ -8,32 +8,88 @@ import { useSite } from '../contexts/SiteContext'
 import { supabase } from '../supabaseClient'
 import SiteSwitcher from '../components/SiteSwitcher'
 
-// ── Module definitions ────────────────────────────────────────────────────────
-// Order: business cycle (Finance → Procurement → Inventory → Fuel → Fleet →
-// HR → Contractors → Departments → Campsite → Meals → Projects), then Admin, Feedback.
-const ALL_MODULES = [
-  { id: 'finance',     label: 'Finance',              icon: 'account_balance',      color: MODULE_COLORS.finance,     access: moduleAccess.finance     },
-  { id: 'procurement', label: 'Procurement',          icon: 'storefront',           color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
-  { id: 'inventory',   label: 'Inventory',            icon: 'inventory_2',          color: MODULE_COLORS.inventory,   access: moduleAccess.inventory   },
-  { id: 'fuel',        label: 'Fuel Management',      icon: 'local_gas_station',    color: MODULE_COLORS.fuel,        access: moduleAccess.fuel        },
-  { id: 'fleet',       label: 'Fleet Management',     icon: 'directions_car',       color: MODULE_COLORS.fleet,       access: moduleAccess.fleet       },
-  { id: 'workforce',   label: 'HR Management',        icon: 'badge',                color: MODULE_COLORS.workforce,   access: moduleAccess.workforce   },
-  { id: 'contractors', label: 'Contractors',           icon: 'handshake',            color: MODULE_COLORS.contractors, access: moduleAccess.contractors },
-  { id: 'dept',        label: 'Departments',           icon: 'domain',               color: MODULE_COLORS.dept,        access: moduleAccess.dept        },
-  { id: 'campsite',    label: 'Campsite',              icon: 'holiday_village',      color: MODULE_COLORS.campsite,    access: moduleAccess.campsite    },
-  { id: 'meals',       label: 'Meal Management',       icon: 'restaurant',           color: MODULE_COLORS.meals,       access: moduleAccess.meals       },
-  { id: 'concrete',   label: 'Batch Plant Operations', icon: 'factory',              color: MODULE_COLORS.concrete,    access: moduleAccess.concrete    },
-  { id: 'sheq',       label: 'SHEQ',                   icon: 'health_and_safety',    color: MODULE_COLORS.sheq,        access: moduleAccess.sheq        },
-  { id: 'projects',    label: 'Projects',              icon: 'engineering',          color: MODULE_COLORS.projects,    access: moduleAccess.projects    },
-  { id: 'governance',  label: 'Governance',             icon: 'gavel',                color: MODULE_COLORS.governance,  access: moduleAccess.governance  },
-  { id: 'connect',     label: 'Bravura Connect',       icon: 'chat',                 color: MODULE_COLORS.connect,     access: moduleAccess.connect     },
-  { id: 'docshare',    label: 'Bravura DocVault',      icon: 'folder_shared',        color: MODULE_COLORS.docshare,    access: moduleAccess.docshare    },
-  { id: 'admin',       label: 'Administration',        icon: 'admin_panel_settings', color: MODULE_COLORS.admin,       access: moduleAccess.admin       },
-  { id: 'feedback',    label: 'Feedback',              icon: 'forum',                color: MODULE_COLORS.feedback,    access: moduleAccess.feedback    },
+// ── Umbrella groups for the home grid ────────────────────────────────────────
+// Each group has an id, label, icon, color, and children (actual modules).
+// Children with `coming: true` render as greyed-out "Coming Soon" tiles.
+const MODULE_GROUPS = [
+  {
+    id: 'work',
+    label: 'Work Management',
+    icon: 'account_tree',
+    color: MODULE_COLORS.projects,
+    children: [
+      { id: 'projects',  label: 'Projects',       icon: 'engineering',  color: MODULE_COLORS.projects, access: moduleAccess.projects },
+      { id: 'dept',      label: 'Departments',    icon: 'domain',       color: MODULE_COLORS.dept,     access: moduleAccess.dept },
+      { id: 'concrete',  label: 'Batch Plant',    icon: 'factory',      color: MODULE_COLORS.concrete, access: moduleAccess.concrete },
+      { id: '_schedule',  label: 'Bravura Schedule', icon: 'calendar_month', color: '#546E7A', coming: true },
+      { id: '_tasks',     label: 'Tasks',            icon: 'task_alt',       color: '#546E7A', coming: true },
+    ],
+  },
+  {
+    id: 'people',
+    label: 'People',
+    icon: 'groups',
+    color: MODULE_COLORS.workforce,
+    children: [
+      { id: 'workforce',   label: 'Employees',    icon: 'badge',     color: MODULE_COLORS.workforce,   access: moduleAccess.workforce },
+      { id: 'contractors', label: 'Contractors',   icon: 'handshake', color: MODULE_COLORS.contractors, access: moduleAccess.contractors },
+    ],
+  },
+  {
+    id: 'siteops',
+    label: 'Site Operations',
+    icon: 'holiday_village',
+    color: MODULE_COLORS.campsite,
+    children: [
+      { id: 'campsite',  label: 'Campsite',       icon: 'holiday_village',   color: MODULE_COLORS.campsite,  access: moduleAccess.campsite },
+      { id: 'meals',     label: 'Meals',           icon: 'restaurant',        color: MODULE_COLORS.meals,     access: moduleAccess.meals },
+      { id: 'fuel',      label: 'Fuel',             icon: 'local_gas_station', color: MODULE_COLORS.fuel,      access: moduleAccess.fuel },
+      { id: 'fleet',     label: 'Fleet',            icon: 'directions_car',    color: MODULE_COLORS.fleet,     access: moduleAccess.fleet },
+      { id: 'inventory', label: 'Stores',           icon: 'inventory_2',       color: MODULE_COLORS.inventory, access: moduleAccess.inventory },
+    ],
+  },
+  {
+    id: 'commercial',
+    label: 'Commercial',
+    icon: 'payments',
+    color: MODULE_COLORS.finance,
+    children: [
+      { id: 'finance',     label: 'Finance',      icon: 'account_balance', color: MODULE_COLORS.finance,     access: moduleAccess.finance },
+      { id: 'procurement', label: 'Procurement',  icon: 'storefront',      color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
+    ],
+  },
+  {
+    id: 'safety',
+    label: 'Safety & Compliance',
+    icon: 'health_and_safety',
+    color: MODULE_COLORS.sheq,
+    children: [
+      { id: 'sheq', label: 'SHEQ', icon: 'health_and_safety', color: MODULE_COLORS.sheq, access: moduleAccess.sheq },
+    ],
+  },
+  {
+    id: 'info',
+    label: 'Information',
+    icon: 'hub',
+    color: MODULE_COLORS.docshare,
+    children: [
+      { id: 'docshare',   label: 'DocVault',     icon: 'folder_shared', color: MODULE_COLORS.docshare,   access: moduleAccess.docshare },
+      { id: 'governance',  label: 'Governance',   icon: 'gavel',         color: MODULE_COLORS.governance,  access: moduleAccess.governance },
+      { id: 'connect',     label: 'Connect',      icon: 'chat',          color: MODULE_COLORS.connect,     access: moduleAccess.connect },
+    ],
+  },
+  {
+    id: 'system',
+    label: 'Admin',
+    icon: 'admin_panel_settings',
+    color: MODULE_COLORS.admin,
+    children: [
+      { id: 'admin',    label: 'Administration', icon: 'admin_panel_settings', color: MODULE_COLORS.admin,    access: moduleAccess.admin },
+      { id: 'feedback', label: 'Feedback',        icon: 'forum',                color: MODULE_COLORS.feedback, access: moduleAccess.feedback },
+    ],
+  },
 ]
 
-// Simple viewport tracker so inline styles can respond to breakpoints.
-// mobile < 640, tablet 640–1023, desktop ≥ 1024.
 function useViewport() {
   const get = () => {
     if (typeof window === 'undefined') return 'desktop'
@@ -63,7 +119,6 @@ function KpiSummaryRow({ currentSiteId, can }) {
       try {
         const results = {}
 
-        // Pending approvals (leave + procurement)
         if (can('hr.view') || can('procurement.view')) {
           let approvalCount = 0
           if (can('hr.view')) {
@@ -85,7 +140,6 @@ function KpiSummaryRow({ currentSiteId, can }) {
           results.pendingApprovals = approvalCount
         }
 
-        // Low stock items
         if (can('inventory.view')) {
           const { data } = await supabase
             .from('stock_balances')
@@ -95,7 +149,6 @@ function KpiSummaryRow({ currentSiteId, can }) {
           results.lowStock = lowStock.length
         }
 
-        // Expiring documents (within 30 days)
         if (can('hr.view')) {
           const thirtyDays = new Date()
           thirtyDays.setDate(thirtyDays.getDate() + 30)
@@ -108,7 +161,6 @@ function KpiSummaryRow({ currentSiteId, can }) {
           results.expiringDocs = count || 0
         }
 
-        // Active employees
         if (can('hr.view')) {
           const { count } = await supabase
             .from('employees')
@@ -120,7 +172,7 @@ function KpiSummaryRow({ currentSiteId, can }) {
 
         if (!cancelled) setStats(results)
       } catch (e) {
-        // graceful degradation — show nothing
+        // graceful degradation
       }
     }
     load()
@@ -175,6 +227,7 @@ export default function HomeLauncher({ onEnterModule }) {
   const isMobile = vp === 'mobile'
   const isTablet = vp === 'tablet'
 
+  const [expandedGroup, setExpandedGroup] = useState(null)
   const [notifOpen,     setNotifOpen]     = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount,   setUnreadCount]   = useState(0)
@@ -200,7 +253,6 @@ export default function HomeLauncher({ onEnterModule }) {
     return () => clearInterval(t)
   }, [profile?.id])
 
-  // Unread chat messages count + realtime popup
   useEffect(() => {
     if (!profile?.id) return
     async function loadChatUnread() {
@@ -267,7 +319,31 @@ export default function HomeLauncher({ onEnterModule }) {
   }
 
   const { isHQ } = useSite()
-  const visible = ALL_MODULES.filter(m => m.access(role, can) && (!m.hqOnly || isHQ))
+
+  // Filter groups: only show groups that have at least one accessible child
+  function childAccessible(child) {
+    if (child.coming) return true
+    if (!child.access) return true
+    return child.access(role, can)
+  }
+  const visibleGroups = MODULE_GROUPS
+    .map(g => ({ ...g, children: g.children.filter(childAccessible) }))
+    .filter(g => g.children.length > 0)
+
+  function handleGroupClick(group) {
+    // If only one non-coming child, go straight to it
+    const real = group.children.filter(c => !c.coming)
+    if (real.length === 1) {
+      onEnterModule(real[0].id)
+      return
+    }
+    setExpandedGroup(prev => prev === group.id ? null : group.id)
+  }
+
+  function handleChildClick(child) {
+    if (child.coming) return
+    onEnterModule(child.id)
+  }
 
   const iconBtn = {
     background: 'transparent', border: 'none', cursor: 'pointer',
@@ -378,7 +454,7 @@ export default function HomeLauncher({ onEnterModule }) {
 
           {!isMobile && <div style={{ width: '1px', height: '22px', background: 'rgba(255,255,255,.10)', margin: '0 8px' }} />}
 
-          {/* Avatar + name pill (name hidden on mobile) */}
+          {/* Avatar + name pill */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: isMobile ? '4px' : '4px 10px 4px 4px', borderRadius: '999px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)' }}>
             <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: `linear-gradient(135deg, ${MODULE_COLORS.workforce || '#6366F1'}, ${MODULE_COLORS.fuel || '#D97706'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
               {(profile?.full_name || profile?.username || '?').charAt(0).toUpperCase()}
@@ -401,7 +477,7 @@ export default function HomeLauncher({ onEnterModule }) {
       </div>
 
       {/* ── Body ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 20px' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 20px' }}>
 
         {/* Welcome */}
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
@@ -410,25 +486,28 @@ export default function HomeLauncher({ onEnterModule }) {
           </h1>
         </div>
 
-        {/* Module tiles — responsive: 2 cols mobile, 3 tablet, 5 desktop */}
-        {(() => {
-          const perRow = isMobile ? 2 : isTablet ? 3 : 5
-          const cols   = Math.min(visible.length, perRow)
-          return (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-              gap: isMobile ? '12px' : '14px',
-              width: '100%',
-              maxWidth: `${cols * (isMobile ? 160 : 170)}px`,
-            }}>
-              {visible.map(mod => <ModuleTile key={mod.id} mod={mod} badge={mod.id === 'connect' ? chatUnread : 0} onClick={() => onEnterModule(mod.id)} />)}
-            </div>
-          )
-        })()}
+        {/* Umbrella groups OR expanded sub-module grid */}
+        {expandedGroup ? (
+          <ExpandedGroupView
+            group={visibleGroups.find(g => g.id === expandedGroup)}
+            onBack={() => setExpandedGroup(null)}
+            onChildClick={handleChildClick}
+            chatUnread={chatUnread}
+            isMobile={isMobile}
+            isTablet={isTablet}
+          />
+        ) : (
+          <UmbrellaGrid
+            groups={visibleGroups}
+            onGroupClick={handleGroupClick}
+            chatUnread={chatUnread}
+            isMobile={isMobile}
+            isTablet={isTablet}
+          />
+        )}
 
         {/* KPI summary row */}
-        <KpiSummaryRow currentSiteId={currentSite?.id} can={can} />
+        {!expandedGroup && <KpiSummaryRow currentSiteId={currentSite?.id} can={can} />}
       </div>
 
       {/* ── Footer ── */}
@@ -524,9 +603,39 @@ export default function HomeLauncher({ onEnterModule }) {
   )
 }
 
-// ── Module tile — Odoo/SAP-inspired flat card ────────────────────────────────
-function ModuleTile({ mod, badge = 0, onClick }) {
+// ── Umbrella grid — shows the top-level group tiles ─────────────────────────
+function UmbrellaGrid({ groups, onGroupClick, chatUnread, isMobile, isTablet }) {
+  const perRow = isMobile ? 2 : isTablet ? 3 : 4
+  const cols = Math.min(groups.length, perRow)
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+      gap: isMobile ? '12px' : '16px',
+      width: '100%',
+      maxWidth: `${cols * (isMobile ? 160 : 180)}px`,
+    }}>
+      {groups.map(group => {
+        const chatBadge = group.children.some(c => c.id === 'connect') ? chatUnread : 0
+        return (
+          <GroupTile
+            key={group.id}
+            group={group}
+            badge={chatBadge}
+            onClick={() => onGroupClick(group)}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Group tile — an umbrella card on the home grid ──────────────────────────
+function GroupTile({ group, badge = 0, onClick }) {
   const [hovered, setHovered] = useState(false)
+  const childCount = group.children.filter(c => !c.coming).length
+  const hasMultiple = childCount > 1
 
   return (
     <button
@@ -535,12 +644,12 @@ function ModuleTile({ mod, badge = 0, onClick }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         background: THEME.surface,
-        border: `1px solid ${hovered ? mod.color + '40' : THEME.outlineVar}`,
+        border: `1px solid ${hovered ? group.color + '40' : THEME.outlineVar}`,
         borderRadius: '14px',
         padding: '24px 16px 20px',
         cursor: 'pointer',
         boxShadow: hovered
-          ? `0 12px 28px ${mod.color}20, 0 4px 10px rgba(0,0,0,.06)`
+          ? `0 12px 28px ${group.color}20, 0 4px 10px rgba(0,0,0,.06)`
           : '0 1px 2px rgba(0,0,0,.04)',
         transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
         transition: 'transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s, border-color .18s',
@@ -566,26 +675,37 @@ function ModuleTile({ mod, badge = 0, onClick }) {
           boxShadow: '0 2px 6px rgba(220,38,38,.4)',
         }}>{badge > 99 ? '99+' : badge}</div>
       )}
-      {/* Solid colored icon block — always filled, white icon */}
+
+      {/* Expand indicator */}
+      {hasMultiple && (
+        <div style={{
+          position: 'absolute', top: '10px', left: '10px',
+          fontSize: '10px', color: THEME.textLow, fontWeight: 600,
+          background: THEME.surfaceVar, borderRadius: '4px',
+          padding: '1px 5px',
+        }}>
+          {childCount}
+        </div>
+      )}
+
       <div style={{
         width: '58px', height: '58px',
         borderRadius: '14px',
-        background: mod.color,
+        background: group.color,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: hovered
-          ? `0 8px 20px ${mod.color}55, inset 0 -3px 0 rgba(0,0,0,.10)`
-          : `0 4px 10px ${mod.color}30, inset 0 -3px 0 rgba(0,0,0,.08)`,
+          ? `0 8px 20px ${group.color}55, inset 0 -3px 0 rgba(0,0,0,.10)`
+          : `0 4px 10px ${group.color}30, inset 0 -3px 0 rgba(0,0,0,.08)`,
         transition: 'box-shadow .18s',
       }}>
         <span
           className="material-symbols-rounded filled"
           style={{ fontSize: '30px', color: '#fff', lineHeight: 1 }}
         >
-          {mod.icon}
+          {group.icon}
         </span>
       </div>
 
-      {/* Label */}
       <div style={{
         fontSize: '13.5px',
         fontWeight: 600,
@@ -597,7 +717,156 @@ function ModuleTile({ mod, badge = 0, onClick }) {
         padding: '0 4px',
         width: '100%',
       }}>
-        {mod.label}
+        {group.label}
+      </div>
+    </button>
+  )
+}
+
+// ── Expanded group view — shows the sub-module tiles within a group ──────────
+function ExpandedGroupView({ group, onBack, onChildClick, chatUnread, isMobile, isTablet }) {
+  if (!group) return null
+  const perRow = isMobile ? 2 : isTablet ? 3 : 4
+  const cols = Math.min(group.children.length, perRow)
+
+  return (
+    <div style={{ width: '100%', maxWidth: `${cols * (isMobile ? 160 : 180)}px` }}>
+      {/* Back button + group name */}
+      <button
+        onClick={onBack}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: '14px', fontWeight: 600,
+          color: THEME.textMed, marginBottom: '20px', padding: '4px 0',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = THEME.text }}
+        onMouseLeave={e => { e.currentTarget.style.color = THEME.textMed }}
+      >
+        <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>arrow_back</span>
+        Back
+      </button>
+
+      {/* Group header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+        <div style={{
+          width: '42px', height: '42px', borderRadius: '12px',
+          background: group.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span className="material-symbols-rounded filled" style={{ fontSize: '22px', color: '#fff' }}>{group.icon}</span>
+        </div>
+        <div style={{ fontSize: '22px', fontWeight: 600, color: THEME.text }}>{group.label}</div>
+      </div>
+
+      {/* Sub-module tiles */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        gap: isMobile ? '12px' : '16px',
+      }}>
+        {group.children.map(child => {
+          const badge = child.id === 'connect' ? chatUnread : 0
+          return (
+            <ChildTile
+              key={child.id}
+              child={child}
+              badge={badge}
+              onClick={() => onChildClick(child)}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Child tile — a module within an expanded group ──────────────────────────
+function ChildTile({ child, badge = 0, onClick }) {
+  const [hovered, setHovered] = useState(false)
+  const isComing = child.coming
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      disabled={isComing}
+      style={{
+        background: THEME.surface,
+        border: `1px solid ${isComing ? THEME.outlineVar : hovered ? child.color + '40' : THEME.outlineVar}`,
+        borderRadius: '14px',
+        padding: '24px 16px 20px',
+        cursor: isComing ? 'default' : 'pointer',
+        opacity: isComing ? 0.5 : 1,
+        boxShadow: hovered && !isComing
+          ? `0 12px 28px ${child.color}20, 0 4px 10px rgba(0,0,0,.06)`
+          : '0 1px 2px rgba(0,0,0,.04)',
+        transform: hovered && !isComing ? 'translateY(-4px)' : 'translateY(0)',
+        transition: 'transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s, border-color .18s',
+        fontFamily: 'inherit',
+        textAlign: 'center',
+        width: '100%',
+        aspectRatio: '1 / 1',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '14px',
+        position: 'relative',
+      }}
+    >
+      {badge > 0 && (
+        <div style={{
+          position: 'absolute', top: '8px', right: '8px',
+          background: THEME.error, color: '#fff', borderRadius: '50px',
+          minWidth: '20px', height: '20px', padding: '0 6px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '11px', fontWeight: 700, lineHeight: 1,
+          boxShadow: '0 2px 6px rgba(220,38,38,.4)',
+        }}>{badge > 99 ? '99+' : badge}</div>
+      )}
+
+      {isComing && (
+        <div style={{
+          position: 'absolute', top: '8px', right: '8px',
+          fontSize: '9px', fontWeight: 600, color: THEME.textLow,
+          background: THEME.surfaceVar, borderRadius: '4px',
+          padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '.04em',
+        }}>
+          Soon
+        </div>
+      )}
+
+      <div style={{
+        width: '58px', height: '58px',
+        borderRadius: '14px',
+        background: child.color,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: hovered && !isComing
+          ? `0 8px 20px ${child.color}55, inset 0 -3px 0 rgba(0,0,0,.10)`
+          : `0 4px 10px ${child.color}30, inset 0 -3px 0 rgba(0,0,0,.08)`,
+        transition: 'box-shadow .18s',
+      }}>
+        <span
+          className="material-symbols-rounded filled"
+          style={{ fontSize: '30px', color: '#fff', lineHeight: 1 }}
+        >
+          {child.icon}
+        </span>
+      </div>
+
+      <div style={{
+        fontSize: '13.5px',
+        fontWeight: 600,
+        color: isComing ? THEME.textLow : THEME.text,
+        lineHeight: 1.25,
+        letterSpacing: '-.005em',
+        wordBreak: 'break-word',
+        hyphens: 'auto',
+        padding: '0 4px',
+        width: '100%',
+      }}>
+        {child.label}
       </div>
     </button>
   )

@@ -297,6 +297,7 @@ const mkBlank = () => ({
   odometer_km:      '',
   litres_manual:    '',
   docket_number:    '',
+  project_id:       '',
   notes:            '',
   authorised_by_name:   '',
   authorisation_reason: '',
@@ -343,6 +344,20 @@ export default function FuelIssuance({ setPage }) {
       .eq('site_id', currentSiteId)
       .maybeSingle()
       .then(({ data }) => setRequireApproval(Boolean(data?.require_approval)))
+  }, [currentSiteId])
+
+  // Load active projects for optional project tagging
+  const [projects, setProjects] = useState([])
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase
+      .from('projects')
+      .select('id, name, project_code')
+      .eq('site_id', currentSiteId)
+      .in('status', ['planning', 'active'])
+      .eq('is_archived', false)
+      .order('name')
+      .then(({ data }) => setProjects(data || []))
   }, [currentSiteId])
 
   // Check sessionStorage for a request prefill (set by FuelRequests "Issue" button).
@@ -547,6 +562,7 @@ export default function FuelIssuance({ setPage }) {
         meter_end:   form.use_meter && form.meter_end   ? Number(form.meter_end)   : null,
         odometer_km: form.asset_type === 'vehicle' && form.odometer_km ? Number(form.odometer_km) : null,
         docket_number:     form.docket_number.trim() || null,
+        project_id:        form.project_id || null,
         notes:             form.notes.trim() || null,
         // Acknowledgement fields — pending review when unlinked.
         authorised_by_name:     isManual ? form.authorised_by_name.trim() : null,
@@ -1535,6 +1551,22 @@ export default function FuelIssuance({ setPage }) {
               style={inp()}
             />
           </FieldWrap>
+
+          {/* ── 6b. Project (optional) ──────────────────────────────────── */}
+          {projects.length > 0 && (
+            <FieldWrap label="Project" hint="Tag this issuance to a project for cost tracking">
+              <select
+                value={form.project_id}
+                onChange={e => set('project_id', e.target.value)}
+                style={inp()}
+              >
+                <option value="">— None —</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>{p.project_code} — {p.name}</option>
+                ))}
+              </select>
+            </FieldWrap>
+          )}
 
           {/* ── 7. Date ──────────────────────────────────────────────────── */}
           <FieldWrap label="Date">

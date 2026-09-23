@@ -152,8 +152,38 @@ export default function PJList({ setPage }) {
         showToast('Project updated', 'green')
       } else {
         payload.project_code = await generateCode()
-        const { error: err } = await supabase.from('projects').insert(payload)
+        const { data: created, error: err } = await supabase.from('projects').insert(payload).select('id, name').single()
         if (err) throw err
+        // Auto-create DocVault project folder with numbered sub-folders
+        try {
+          const { data: rootFolder } = await supabase.from('ds_folders').insert({
+            site_id: currentSiteId,
+            name: created.name,
+            project_id: created.id,
+          }).select('id').single()
+          if (rootFolder) {
+            const subFolders = [
+              '01 - Budgets & Estimates',
+              '02 - Schedules & Programmes',
+              '03 - Drawings & Designs',
+              '04 - Reports & Minutes',
+              '05 - Correspondence',
+              '06 - Contracts & Agreements',
+              '07 - Permits & Approvals',
+              '08 - Safety & SHEQ',
+              '09 - Photos & Media',
+              '10 - Closeout & Handover',
+            ]
+            await supabase.from('ds_folders').insert(
+              subFolders.map(name => ({
+                site_id: currentSiteId,
+                name,
+                parent_id: rootFolder.id,
+                project_id: created.id,
+              }))
+            )
+          }
+        } catch (_) { /* DocVault folder creation is best-effort */ }
         showToast('Project created', 'green')
       }
       await fetchProjects()

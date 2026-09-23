@@ -774,6 +774,7 @@ const DEFAULT_PAGE = {
   governance:    'gov_announcements',
   connect:       'connect_chat',
   notifications: 'notification_center',
+  docshare:      'ds_library',
   feedback:    'feedback_board',
 }
 

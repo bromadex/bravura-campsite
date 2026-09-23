@@ -62,7 +62,7 @@ const MODULE_GROUPS = [
   },
   {
     id: 'assets',
-    label: 'Assets & Logistics',
+    label: 'Fleet',
     icon: 'local_shipping',
     color: MODULE_COLORS.fleet,
     children: [

@@ -11,14 +11,14 @@ import { Icon, Button, Modal, SectionLabel, showToast, initials } from '../../co
 import Denied from '../../components/Denied'
 
 const ACCENT = MODULE_COLORS.connect
-const WA_GREEN = '#25D366'
-const WA_SENT_BG = '#DCF8C6'
-const WA_RECV_BG = '#FFFFFF'
-const WA_HEADER_BG = '#075E54'
-const WA_LIGHT_GREEN = '#128C7E'
-const WA_CHAT_BG = '#ECE5DD'
-const WA_TIME = '#667781'
-const WA_TICK = '#53BDEB'
+const MR_PRIMARY = '#800020'
+const MR_SENT_BG = '#F2D5DC'
+const MR_RECV_BG = '#FFFFFF'
+const MR_HEADER_BG = '#5C0015'
+const MR_LIGHT = '#9B1B30'
+const MR_CHAT_BG = '#F5EDED'
+const MR_TIME = '#667781'
+const MR_TICK = '#9B1B30'
 
 const REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🔥']
 const EMOJI_QUICK = ['😀', '😂', '😍', '🥰', '😎', '🤔', '😢', '😡', '👍', '👎', '❤️', '🔥', '🎉', '👏', '🙏', '💯', '✅', '❌', '👋', '🤝', '💪', '🫡', '😮', '🤣']
@@ -85,13 +85,13 @@ function ReadReceipt({ mine, isRead }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '3px' }}>
       {isRead ? (
         <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
-          <path d="M11.07 0.73L4.54 7.26L2.41 5.13L1 6.54L4.54 10.08L12.48 2.14L11.07 0.73Z" fill={WA_TICK} />
-          <path d="M14.07 0.73L7.54 7.26L6.88 6.6L5.47 8.01L7.54 10.08L15.48 2.14L14.07 0.73Z" fill={WA_TICK} />
+          <path d="M11.07 0.73L4.54 7.26L2.41 5.13L1 6.54L4.54 10.08L12.48 2.14L11.07 0.73Z" fill={MR_TICK} />
+          <path d="M14.07 0.73L7.54 7.26L6.88 6.6L5.47 8.01L7.54 10.08L15.48 2.14L14.07 0.73Z" fill={MR_TICK} />
         </svg>
       ) : (
         <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
-          <path d="M11.07 0.73L4.54 7.26L2.41 5.13L1 6.54L4.54 10.08L12.48 2.14L11.07 0.73Z" fill={WA_TIME} />
-          <path d="M14.07 0.73L7.54 7.26L6.88 6.6L5.47 8.01L7.54 10.08L15.48 2.14L14.07 0.73Z" fill={WA_TIME} />
+          <path d="M11.07 0.73L4.54 7.26L2.41 5.13L1 6.54L4.54 10.08L12.48 2.14L11.07 0.73Z" fill={MR_TIME} />
+          <path d="M14.07 0.73L7.54 7.26L6.88 6.6L5.47 8.01L7.54 10.08L15.48 2.14L14.07 0.73Z" fill={MR_TIME} />
         </svg>
       )}
     </span>
@@ -726,7 +726,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   }
 
   return (
-    <div style={{ height: floatingPanel ? '100%' : 'calc(100dvh - 96px)', minHeight: floatingPanel ? 0 : 480, display: 'flex', borderRadius: floatingPanel ? 0 : '14px', overflow: 'hidden', background: WA_CHAT_BG }}>
+    <div style={{ height: floatingPanel ? '100%' : 'calc(100dvh - 96px)', minHeight: floatingPanel ? 0 : 480, display: 'flex', borderRadius: floatingPanel ? 0 : '14px', overflow: 'hidden', background: MR_CHAT_BG }}>
       {/* ── Left: conversation list ── */}
       {showList && (
         <div style={{
@@ -735,7 +735,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
           display: 'flex', flexDirection: 'column', background: THEME.surface,
         }}>
           {/* Header bar — WhatsApp teal */}
-          <div style={{ padding: '10px 14px', background: WA_HEADER_BG, color: '#fff' }}>
+          <div style={{ padding: '10px 14px', background: MR_HEADER_BG, color: '#fff' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Icon name="chat" style={{ color: '#fff' }} />
@@ -744,7 +744,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 {can('connect.create') && (
                   <button onClick={openNewChat} style={{
-                    background: WA_GREEN, border: 'none', borderRadius: '50%', width: 36, height: 36,
+                    background: MR_PRIMARY, border: 'none', borderRadius: '50%', width: 36, height: 36,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff',
                     boxShadow: '0 2px 8px rgba(0,0,0,.25)',
                   }} title="New chat">
@@ -766,7 +766,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
               <button key={k} onClick={() => setConvoFilter(k)} style={{
                 padding: '4px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 600,
                 border: 'none',
-                background: convoFilter === k ? WA_LIGHT_GREEN : THEME.surfaceVar,
+                background: convoFilter === k ? MR_LIGHT : THEME.surfaceVar,
                 color: convoFilter === k ? '#fff' : THEME.textMed,
                 cursor: 'pointer',
               }}>{label}</button>
@@ -782,7 +782,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 <div style={{ fontSize: '13px', marginBottom: '12px' }}>Start a conversation</div>
                 {can('connect.create') && (
                   <button onClick={openNewChat} style={{
-                    background: WA_GREEN, border: 'none', borderRadius: '24px', padding: '8px 20px',
+                    background: MR_PRIMARY, border: 'none', borderRadius: '24px', padding: '8px 20px',
                     color: '#fff', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
                   }}>
                     <Icon name="add" size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
@@ -806,11 +806,11 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                       <div style={{ fontSize: '15px', fontWeight: unread ? 700 : 500, color: THEME.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {convoName(c)}
                       </div>
-                      <div style={{ fontSize: '11px', color: unread ? WA_GREEN : WA_TIME, flexShrink: 0, fontWeight: unread ? 600 : 400 }}>{timeAgo(last?.created_at || c.created_at)}</div>
+                      <div style={{ fontSize: '11px', color: unread ? MR_PRIMARY : MR_TIME, flexShrink: 0, fontWeight: unread ? 600 : 400 }}>{timeAgo(last?.created_at || c.created_at)}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '2px', alignItems: 'center' }}>
                       <div style={{
-                        fontSize: '13px', color: unread ? THEME.text : WA_TIME, fontWeight: unread ? 500 : 400,
+                        fontSize: '13px', color: unread ? THEME.text : MR_TIME, fontWeight: unread ? 500 : 400,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         display: 'flex', alignItems: 'center', gap: '2px',
                       }}>
@@ -821,7 +821,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                       </div>
                       {unread > 0 && (
                         <div style={{
-                          background: WA_GREEN, color: '#fff', borderRadius: '50%', fontSize: '11px', fontWeight: 700,
+                          background: MR_PRIMARY, color: '#fff', borderRadius: '50%', fontSize: '11px', fontWeight: 700,
                           minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', flexShrink: 0,
                         }}>{unread > 99 ? '99+' : unread}</div>
                       )}
@@ -847,7 +847,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
           ) : (
             <>
               {/* Header */}
-              <div style={{ padding: '10px 16px', background: WA_HEADER_BG, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ padding: '10px 16px', background: MR_HEADER_BG, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 {isMobile && (
                   <button onClick={() => setMobileShowThread(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fff' }}>
                     <Icon name="arrow_back" />
@@ -914,7 +914,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
               {/* Messages area — WhatsApp-style chat wallpaper */}
               <div style={{
                 flex: 1, overflowY: 'auto', padding: '14px 60px', display: 'flex', flexDirection: 'column', gap: '2px',
-                background: `${WA_CHAT_BG} url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='p' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='%23c8c3ba' opacity='.3'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='400' height='400' fill='url(%23p)'/%3E%3C/svg%3E")`,
+                background: `${MR_CHAT_BG} url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='p' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='%23c8c3ba' opacity='.3'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='400' height='400' fill='url(%23p)'/%3E%3C/svg%3E")`,
               }}>
                 {loadingMessages ? (
                   <div style={{ textAlign: 'center', color: THEME.textLow, padding: '32px' }}>Loading…</div>
@@ -928,7 +928,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                     {/* Date divider */}
                     <div style={{ textAlign: 'center', margin: '12px 0 8px' }}>
                       <span style={{
-                        fontSize: '12px', fontWeight: 500, color: THEME.text, background: '#E1F2FB',
+                        fontSize: '12px', fontWeight: 500, color: THEME.text, background: '#F2D5DC',
                         padding: '5px 14px', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,.08)',
                       }}>
                         {group.label}
@@ -962,9 +962,9 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                             )}
                             {replied && (
                               <div style={{
-                                fontSize: '12px', color: THEME.textMed, borderLeft: `3px solid ${WA_LIGHT_GREEN}`, paddingLeft: '8px',
+                                fontSize: '12px', color: THEME.textMed, borderLeft: `3px solid ${MR_LIGHT}`, paddingLeft: '8px',
                                 marginBottom: '2px', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                background: mine ? '#c8e6c9' : '#f0f0f0', borderRadius: '6px', padding: '4px 8px 4px 10px',
+                                background: mine ? '#f0d0d8' : '#f0f0f0', borderRadius: '6px', padding: '4px 8px 4px 10px',
                               }}>
                                 {replied.is_deleted ? 'Message deleted' : replied.content}
                               </div>
@@ -974,7 +974,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                               borderRadius: mine
                                 ? (sameSender ? '8px' : '8px 0 8px 8px')
                                 : (sameSender ? '8px' : '0 8px 8px 8px'),
-                              background: mine ? WA_SENT_BG : WA_RECV_BG,
+                              background: mine ? MR_SENT_BG : MR_RECV_BG,
                               color: '#303030',
                               fontSize: '14px', lineHeight: 1.4, wordBreak: 'break-word', whiteSpace: 'pre-wrap',
                               boxShadow: '0 1px 1px rgba(0,0,0,.06)',
@@ -990,15 +990,15 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                                     </a>
                                   ) : (
                                     <a href={m.file_url} target="_blank" rel="noreferrer" style={{
-                                      color: WA_LIGHT_GREEN, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px',
-                                      textDecoration: 'none', background: mine ? '#b8dfb3' : '#f5f5f5', padding: '8px 10px', borderRadius: '6px',
+                                      color: MR_LIGHT, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px',
+                                      textDecoration: 'none', background: mine ? '#e8bfc7' : '#f5f5f5', padding: '8px 10px', borderRadius: '6px',
                                     }}>
-                                      <Icon name="description" size={20} style={{ color: WA_LIGHT_GREEN }} />
+                                      <Icon name="description" size={20} style={{ color: MR_LIGHT }} />
                                       <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontWeight: 600, fontSize: '13px', color: '#303030', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.file_name || 'Document'}</div>
-                                        <div style={{ fontSize: '11px', color: WA_TIME }}>PDF · Download</div>
+                                        <div style={{ fontSize: '11px', color: MR_TIME }}>PDF · Download</div>
                                       </div>
-                                      <Icon name="download" size={18} style={{ color: WA_TIME }} />
+                                      <Icon name="download" size={18} style={{ color: MR_TIME }} />
                                     </a>
                                   )}
                                 </div>
@@ -1008,8 +1008,8 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                                 display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px',
                                 marginTop: '2px',
                               }}>
-                                {m.is_edited && <span style={{ fontSize: '10px', color: WA_TIME, marginRight: '2px' }}>edited</span>}
-                                <span style={{ fontSize: '11px', color: WA_TIME }}>{formatTime(m.created_at)}</span>
+                                {m.is_edited && <span style={{ fontSize: '10px', color: MR_TIME, marginRight: '2px' }}>edited</span>}
+                                <span style={{ fontSize: '11px', color: MR_TIME }}>{formatTime(m.created_at)}</span>
                                 {mine && <ReadReceipt mine isRead />}
                               </div>
                             </div>
@@ -1020,8 +1020,8 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                                 {Object.entries(reactions).map(([emoji, info]) => (
                                   <button key={emoji} onClick={() => toggleReaction(m, emoji)} style={{
                                     fontSize: '12px', padding: '1px 6px', borderRadius: '999px', cursor: 'pointer',
-                                    border: `1px solid ${info.mine ? WA_LIGHT_GREEN : THEME.outline}`,
-                                    background: info.mine ? `${WA_LIGHT_GREEN}22` : '#fff',
+                                    border: `1px solid ${info.mine ? MR_LIGHT : THEME.outline}`,
+                                    background: info.mine ? `${MR_LIGHT}22` : '#fff',
                                   }}>
                                     {emoji} {info.count}
                                   </button>
@@ -1030,26 +1030,26 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                             )}
 
                             {/* Row actions — compact, appears below bubble */}
-                            <div style={{ display: 'flex', gap: '6px', marginTop: '1px', fontSize: '10px', color: WA_TIME, alignItems: 'center', opacity: 0.8 }}>
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '1px', fontSize: '10px', color: MR_TIME, alignItems: 'center', opacity: 0.8 }}>
                               <div style={{ display: 'flex', gap: '1px' }}>
                                 {REACTIONS.slice(0, 3).map(emo => (
                                   <button key={emo} onClick={() => toggleReaction(m, emo)} title="React" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', padding: '1px 2px' }}>{emo}</button>
                                 ))}
                               </div>
-                              <button onClick={() => setReplyTo(m)} title="Reply" style={{ background: 'none', border: 'none', cursor: 'pointer', color: WA_TIME, padding: 0 }}>
+                              <button onClick={() => setReplyTo(m)} title="Reply" style={{ background: 'none', border: 'none', cursor: 'pointer', color: MR_TIME, padding: 0 }}>
                                 <Icon name="reply" size={14} />
                               </button>
                               {can('connect.edit') && (
-                                <button onClick={() => togglePin(m)} title="Pin" style={{ background: 'none', border: 'none', cursor: 'pointer', color: WA_TIME, padding: 0 }}>
+                                <button onClick={() => togglePin(m)} title="Pin" style={{ background: 'none', border: 'none', cursor: 'pointer', color: MR_TIME, padding: 0 }}>
                                   <Icon name="push_pin" size={14} />
                                 </button>
                               )}
                               {mine && (
                                 <>
-                                  <button onClick={() => startEdit(m)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: WA_TIME, padding: 0 }}>
+                                  <button onClick={() => startEdit(m)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: MR_TIME, padding: 0 }}>
                                     <Icon name="edit" size={14} />
                                   </button>
-                                  <button onClick={() => deleteMessage(m)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: WA_TIME, padding: 0 }}>
+                                  <button onClick={() => deleteMessage(m)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: MR_TIME, padding: 0 }}>
                                     <Icon name="delete" size={14} />
                                   </button>
                                 </>
@@ -1068,9 +1068,9 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
               {(replyTo || editingId) && (
                 <div style={{ padding: '8px 16px', background: THEME.surface, borderTop: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: THEME.textMed, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <div style={{ width: 3, height: 28, background: WA_LIGHT_GREEN, borderRadius: 2, flexShrink: 0 }} />
+                    <div style={{ width: 3, height: 28, background: MR_LIGHT, borderRadius: 2, flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: WA_LIGHT_GREEN }}>{editingId ? 'Edit message' : 'Reply'}</div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: MR_LIGHT }}>{editingId ? 'Edit message' : 'Reply'}</div>
                       <div style={{ fontSize: '12px', color: THEME.textLow }}>{editingId ? '' : replyTo?.content?.slice(0, 60)}</div>
                     </div>
                   </div>
@@ -1187,14 +1187,14 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                       {/* Emoji button */}
                       <button onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false) }} title="Emoji" style={{
                         background: 'none', border: 'none', width: 38, height: 38,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: WA_TIME, flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: MR_TIME, flexShrink: 0,
                       }}>
                         <Icon name="emoji_emotions" size={24} />
                       </button>
                       {/* Attach button */}
                       <button onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false) }} disabled={uploading} title="Attach" style={{
                         background: 'none', border: 'none', width: 38, height: 38,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: WA_TIME, flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: MR_TIME, flexShrink: 0,
                         transform: 'rotate(45deg)',
                       }}>
                         <Icon name={uploading ? 'hourglass_empty' : 'attach_file'} size={24} />
@@ -1216,7 +1216,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                   />
                   {can('connect.create') && (
                     <button onClick={sendMessage} disabled={sending || !input.trim()} style={{
-                      background: WA_LIGHT_GREEN, border: 'none', borderRadius: '50%', width: 42, height: 42,
+                      background: MR_LIGHT, border: 'none', borderRadius: '50%', width: 42, height: 42,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0,
                       opacity: (sending || !input.trim()) ? 0.5 : 1,
                     }}>
@@ -1245,9 +1245,9 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
               {[['dm', 'Direct Message'], ['group', 'Group']].map(([k, label]) => (
                 <button key={k} onClick={() => { setNewChatType(k); setNewChatSelected([]) }} style={{
                   flex: 1, padding: '10px', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                  border: `1px solid ${newChatType === k ? WA_LIGHT_GREEN : THEME.outline}`,
-                  background: newChatType === k ? `${WA_LIGHT_GREEN}18` : 'transparent',
-                  color: newChatType === k ? WA_LIGHT_GREEN : THEME.textMed,
+                  border: `1px solid ${newChatType === k ? MR_LIGHT : THEME.outline}`,
+                  background: newChatType === k ? `${MR_LIGHT}18` : 'transparent',
+                  color: newChatType === k ? MR_LIGHT : THEME.textMed,
                 }}>{label}</button>
               ))}
             </div>
@@ -1278,14 +1278,14 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 return (
                   <div key={u.id} onClick={() => toggleNewChatUser(u)} style={{
                     display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', cursor: 'pointer',
-                    background: sel ? `${WA_LIGHT_GREEN}14` : 'transparent', borderBottom: `1px solid ${THEME.outlineVar}`,
+                    background: sel ? `${MR_LIGHT}14` : 'transparent', borderBottom: `1px solid ${THEME.outlineVar}`,
                   }}>
                     <Avatar name={u.full_name} size={26} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '13px', color: THEME.text }}>{u.full_name}</div>
                       {u.department && <div style={{ fontSize: '11px', color: THEME.textLow }}>{u.department}</div>}
                     </div>
-                    {sel && <Icon name="check_circle" size={18} style={{ color: WA_LIGHT_GREEN }} />}
+                    {sel && <Icon name="check_circle" size={18} style={{ color: MR_LIGHT }} />}
                   </div>
                 )
               })}

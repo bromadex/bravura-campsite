@@ -62,6 +62,7 @@ export default function QuickStartGuide() {
       admin:      can('admin.manage_users'),
       procurement: can('procurement.view'),
       sheq:       can('sheq.view')  || can('sheq.create'),
+      notifications: can('notifications.view'),
       feedback:   true,
     }
     return TXN_CODES.filter(t => moduleAllowed[t.module])
@@ -274,6 +275,19 @@ export default function QuickStartGuide() {
             <>Orders (<Code>PR04</Code>) — view all purchase orders with delivery status, priority, and current location filters.</>,
             <>Tracking (<Code>PR05</Code>) — track goods in transit with a timeline of events (dispatched, at customs, delivered, etc.). Adding events auto-updates the PO status and location.</>,
             <>Reports (<Code>PR06</Code>) — spend by supplier, monthly trends, average lead time, and priority breakdown.</>,
+          ]} />
+        </Section>
+      )}
+
+      {/* Notifications */}
+      {can('notifications.view') && (
+        <Section icon="notifications" color="#5C6BC0" title="Notifications">
+          <Steps items={[
+            <>The bell icon in every module header shows your latest unread notifications — click to preview, or click <b>View all notifications</b> to open the full Notification Center (<Code>NT01</Code>).</>,
+            <>Filter by category (Approvals, Reminders, Announcements, Escalations, Chat, General) using the tabs at the top.</>,
+            <>Switch between All, Unread, and Read views. Use <b>Mark all read</b> to clear the badge in one click.</>,
+            <>Notifications arrive in real time — no need to refresh the page.</>,
+            <>Archive old notifications with the archive button on each card to keep your list tidy.</>,
           ]} />
         </Section>
       )}

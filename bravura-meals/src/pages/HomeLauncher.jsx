@@ -689,20 +689,21 @@ function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, ch
 }
 
 // ── Icon tile — clean rounded-square icon + label (ERPNext style) ───────────
-function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = false, childIcons }) {
+function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = false, card = false, childIcons }) {
   const [hovered, setHovered] = useState(false)
   const isGroup = childIcons && childIcons.length > 1
 
-  return (
+  const tile = (
     <button
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       disabled={disabled}
       style={{
-        background: 'transparent',
-        border: 'none',
-        padding: 0,
+        background: card ? '#fff' : 'transparent',
+        border: card ? '1px solid #eee' : 'none',
+        borderRadius: card ? '12px' : 0,
+        padding: card ? '16px 12px' : 0,
         cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.45 : 1,
         fontFamily: 'inherit',
@@ -711,6 +712,10 @@ function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = f
         flexDirection: 'column',
         alignItems: 'center',
         gap: '10px',
+        boxShadow: card ? (hovered ? '0 4px 16px rgba(0,0,0,.12)' : '0 2px 8px rgba(0,0,0,.07)') : 'none',
+        transform: card && hovered && !disabled ? 'translateY(-2px)' : 'none',
+        transition: 'box-shadow .15s ease, transform .15s ease',
+        minWidth: card ? '100px' : 'auto',
       }}
     >
       <div style={{ position: 'relative' }}>
@@ -720,7 +725,7 @@ function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = f
           background: glass ? 'rgba(255,255,255,.18)' : '#982329',
           border: glass ? '1px solid rgba(255,255,255,.2)' : 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transform: hovered && !disabled ? 'scale(1.08)' : 'scale(1)',
+          transform: !card && hovered && !disabled ? 'scale(1.08)' : 'scale(1)',
           transition: 'transform .15s ease',
           ...(isGroup ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', padding: '8px' } : {}),
         }}>
@@ -750,13 +755,14 @@ function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = f
       </div>
       <div style={{
         fontSize: '12px', fontWeight: 500, color: glass ? 'rgba(255,255,255,.9)' : THEME.text,
-        lineHeight: 1.3, maxWidth: '90px',
+        lineHeight: 1.3, maxWidth: card ? '110px' : '90px',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {label}
       </div>
     </button>
   )
+  return tile
 }
 
 // ── Group modal — popup card with sub-module icons (ERPNext style) ──────────
@@ -796,7 +802,7 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
         <div style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gap: isMobile ? '24px 16px' : '28px 24px',
+          gap: isMobile ? '12px' : '16px',
           justifyItems: 'center',
         }}>
           {group.children.map((child, i) => {
@@ -809,6 +815,7 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
                 badge={badge}
                 disabled={child.coming}
                 onClick={() => !child.coming && onChildClick(child)}
+                card
               />
             )
           })}

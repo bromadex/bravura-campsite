@@ -84,6 +84,7 @@ export default function DocShareLibrary({ setPage }) {
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
   const loadDocuments = useCallback(async () => {
+    if (!currentSiteId) return
     setLoading(true)
     const [docRes, folderRes] = await Promise.all([
       supabase.from('ds_documents').select('*')

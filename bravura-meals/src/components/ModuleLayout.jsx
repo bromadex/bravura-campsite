@@ -372,7 +372,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
                 {profile?.full_name || profile?.username}
               </div>
               <div style={{ color: 'rgba(255,255,255,.35)', fontSize: '10px', marginTop: '1px' }}>
-                {ROLE_LABELS[role]}
+                {profile?.job_title || ROLE_LABELS[role]}
               </div>
             </div>
           )}

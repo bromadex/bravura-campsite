@@ -37,6 +37,14 @@ export function AuthProvider({ children }) {
         return
       }
       suspendedAlertShown.current = false
+      if (data.employee_id) {
+        const { data: emp } = await supabase
+          .from('employees')
+          .select('designation_id, designations(name)')
+          .eq('id', data.employee_id)
+          .maybeSingle()
+        if (emp?.designations?.name) data.job_title = emp.designations.name
+      }
       setProfile(data)
     }
   }

@@ -75,7 +75,14 @@ const MODULE_GROUPS = [
     icon: 'health_and_safety',
     color: MODULE_COLORS.sheq,
     children: [
-      { id: 'sheq', label: 'SHEQ', icon: 'health_and_safety', color: MODULE_COLORS.sheq, access: moduleAccess.sheq },
+      { id: 'sheq', label: 'SHEQ Dashboard',    icon: 'health_and_safety', color: MODULE_COLORS.sheq, access: moduleAccess.sheq },
+      { id: 'sheq', label: 'Incidents',          icon: 'report',            color: MODULE_COLORS.sheq, access: moduleAccess.sheq, deepPage: 'sq_incidents' },
+      { id: 'sheq', label: 'Hazard Reports',     icon: 'warning',           color: MODULE_COLORS.sheq, access: moduleAccess.sheq, deepPage: 'sq_hazards' },
+      { id: 'sheq', label: 'Permit to Work',     icon: 'assignment',        color: MODULE_COLORS.sheq, access: moduleAccess.sheq, deepPage: 'sq_permits' },
+      { id: 'sheq', label: 'Risk Register',      icon: 'shield',            color: MODULE_COLORS.sheq, access: moduleAccess.sheq, deepPage: 'sq_risk_register' },
+      { id: 'sheq', label: 'Inspections',        icon: 'checklist',         color: MODULE_COLORS.sheq, access: moduleAccess.sheq, deepPage: 'sq_inspections' },
+      { id: 'sheq', label: 'PPE Register',       icon: 'construction',      color: MODULE_COLORS.sheq, access: moduleAccess.sheq, deepPage: 'sq_ppe' },
+      { id: 'sheq', label: 'Training Matrix',    icon: 'school',            color: MODULE_COLORS.sheq, access: moduleAccess.sheq, deepPage: 'sq_training' },
     ],
   },
   {

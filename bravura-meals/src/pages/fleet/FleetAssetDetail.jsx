@@ -6,6 +6,8 @@ import { StatusBadge } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
 import { useFleet } from '../../contexts/FleetContext'
+import LinkedDocuments from '../../components/LinkedDocuments'
+import DiscussButton from '../../components/DiscussButton'
 
 const CLR = MODULE_COLORS.fleet
 
@@ -53,7 +55,7 @@ function StatCard({ label, value, sub, icon }) {
   )
 }
 
-export default function FleetAssetDetail({ asset, onClose }) {
+export default function FleetAssetDetail({ asset, onClose, setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const { inspections, workOrders, trips, compliance, assignments } = useFleet()
@@ -223,7 +225,7 @@ export default function FleetAssetDetail({ asset, onClose }) {
 
         {/* Tab Content */}
         <div style={{ flex: 1, padding: '20px 24px', overflowY: 'auto' }}>
-          {tab === 0 && <OverviewTab asset={asset} assignments={assetAssignments} />}
+          {tab === 0 && <OverviewTab asset={asset} assignments={assetAssignments} setPage={setPage} />}
           {tab === 1 && <FuelTab txns={fuelTxns} stats={fuelStats} loading={fuelLoading} />}
           {tab === 2 && <MaintenanceTab workOrders={assetWorkOrders} />}
           {tab === 3 && <InspectionsTab inspections={assetInspections} />}
@@ -235,7 +237,8 @@ export default function FleetAssetDetail({ asset, onClose }) {
   )
 }
 
-function OverviewTab({ asset, assignments }) {
+function OverviewTab({ asset, assignments, setPage }) {
+  const { can } = usePermissions()
   const activeAssign = assignments.find(a => a.is_active)
   const rows = [
     ['Registration', asset.registration],
@@ -300,6 +303,12 @@ function OverviewTab({ asset, assignments }) {
           })}
         </div>
       </div>
+
+      {/* Cross-module: linked documents & discuss */}
+      <div style={{ marginTop: 20, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <DiscussButton linkedTable="fleet_assets" linkedId={asset.id} label={`Fleet: ${asset.fleet_number || asset.registration || 'Asset'}`} setPage={setPage} />
+      </div>
+      <LinkedDocuments linkedTable="fleet_assets" linkedId={asset.id} canAttach={can('ds.create')} />
     </div>
   )
 }

@@ -8,6 +8,8 @@ import { exportCsv } from '../../utils/csv'
 import { nextCode } from '../../utils/autoCode'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
+import LinkedDocuments from '../../components/LinkedDocuments'
+import DiscussButton from '../../components/DiscussButton'
 import { pushNotificationToPermission } from '../../utils/notificationEngine'
 
 const color = MODULE_COLORS.contractors
@@ -406,6 +408,10 @@ export default function CLCompanies({ setPage }) {
                             <DetailField label="Bank Branch" value={d.bank_branch} />
                             <DetailField label="Notes" value={d.notes} />
                           </div>
+                          <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <DiscussButton linkedTable="contractors" linkedId={d.id} label={`Contractor: ${d.name}`} setPage={setPage} />
+                          </div>
+                          <LinkedDocuments linkedTable="contractors" linkedId={d.id} canAttach={can('ds.create')} />
                         </td>
                       </tr>
                     )}

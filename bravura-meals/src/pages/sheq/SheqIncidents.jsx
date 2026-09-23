@@ -9,6 +9,8 @@ import { Card, Icon, Button, PageHeader, SectionLabel, showToast } from '../../c
 import QuickNav, { SHEQ_PILLS } from '../../components/QuickNav'
 import { exportCsv } from '../../utils/csv'
 import { pushNotificationToPermission } from '../../utils/notificationEngine'
+import LinkedDocuments from '../../components/LinkedDocuments'
+import DiscussButton from '../../components/DiscussButton'
 
 const ACCENT = MODULE_COLORS.sheq || '#D32F2F'
 
@@ -102,7 +104,8 @@ const STATUS_FLOW = {
 
 // ── Create/Edit Modal ──────────────────────────────────────────────────────
 
-function IncidentModal({ incident, categories, profiles, siteId, userId, canApprove, onClose, onSaved }) {
+function IncidentModal({ incident, categories, profiles, siteId, userId, canApprove, onClose, onSaved, setPage }) {
+  const { can: canPerm } = usePermissions()
   const isEdit = !!incident
 
   const [form, setForm] = useState(() => {
@@ -439,6 +442,9 @@ function IncidentModal({ incident, categories, profiles, siteId, userId, canAppr
           )}
         </div>
 
+        {/* Linked documents */}
+        {isEdit && <LinkedDocuments linkedTable="sheq_incidents" linkedId={incident.id} canAttach={canPerm('ds.create')} />}
+
         {/* Actions */}
         <div style={{ display: 'flex', gap: '10px', marginTop: '24px', justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <div>
@@ -447,6 +453,7 @@ function IncidentModal({ incident, categories, profiles, siteId, userId, canAppr
                 Advance to {STATUS_META[STATUS_FLOW[incident.status]]?.label}
               </Button>
             )}
+            {isEdit && <DiscussButton linkedTable="sheq_incidents" linkedId={incident.id} label={`Incident: ${incident.incident_number || ''}`} setPage={setPage} />}
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -722,6 +729,7 @@ export default function SheqIncidents({ setPage }) {
           canApprove={canApprove}
           onClose={() => { setShowCreate(false); setEditIncident(null) }}
           onSaved={onSaved}
+          setPage={setPage}
         />
       )}
     </div>

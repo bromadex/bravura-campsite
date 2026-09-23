@@ -676,7 +676,7 @@ export default function FleetDashboard({ setPage }) {
         ))}
       </Section>
 
-      {detailAsset && <FleetAssetDetail asset={detailAsset} onClose={() => setDetailAsset(null)} />}
+      {detailAsset && <FleetAssetDetail asset={detailAsset} onClose={() => setDetailAsset(null)} setPage={setPage} />}
     </div>
   )
 }

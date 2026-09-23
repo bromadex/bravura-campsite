@@ -215,19 +215,18 @@ function DwgViewer({ url, fileName }) {
         const { DxfViewer } = await import('dxf-viewer')
         if (cancelled || !containerRef.current) return
 
+        const three = await import('three')
         const viewer = new DxfViewer(containerRef.current, {
-          canvasWidth: containerRef.current.clientWidth,
-          canvasHeight: containerRef.current.clientHeight,
+          canvasWidth: containerRef.current.clientWidth || 800,
+          canvasHeight: containerRef.current.clientHeight || 600,
           autoResize: true,
-          colorCorrection: true,
-          clearColor: new (await import('three')).Color('#1e1e1e'),
+          colorCorrection: false,
+          clearColor: new three.Color('#1e1e1e'),
         })
         viewerRef.current = viewer
 
         await viewer.Load({ url: dxfUrl })
         if (cancelled) return
-
-        viewer.FitView()
         const lyrs = viewer.GetLayers() || []
         setLayers(lyrs.map(l => typeof l === 'string' ? l : l.name || String(l)))
         setLoading(false)

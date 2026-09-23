@@ -272,10 +272,10 @@ export const TXN_CODES = [
   // ── Notifications (NT) ─────────────────────────────────────────────────
   { code: 'NT01', path: '/notifications/notification_center', label: 'Notification Center', module: 'notifications' },
 
-  // ── DocShare (DS) ──────────────────────────────────────────────────────
+  // ── DocVault (DS) ──────────────────────────────────────────────────────
   { code: 'DS01', path: '/docshare/ds_library',     label: 'Document Library',   module: 'docshare' },
   { code: 'DS02', path: '/docshare/ds_viewer',      label: 'Document Viewer',    module: 'docshare' },
-  { code: 'DS03', path: '/docshare/ds_settings',    label: 'DocShare Settings',  module: 'docshare' },
+  { code: 'DS03', path: '/docshare/ds_settings',    label: 'DocVault Settings',  module: 'docshare' },
 
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },

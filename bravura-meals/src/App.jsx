@@ -347,7 +347,7 @@ const MODULE_META = {
   governance:    { label: 'Governance',             icon: 'gavel',            navFn: governanceNav   },
   connect:       { label: 'Bravura Connect',       icon: 'chat',             navFn: connectNav      },
   notifications: { label: 'Notifications',        icon: 'notifications',    navFn: notificationsNav },
-  docshare:      { label: 'DocShare',             icon: 'folder_shared',    navFn: docshareNav     },
+  docshare:      { label: 'DocVault',             icon: 'folder_shared',    navFn: docshareNav     },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
 

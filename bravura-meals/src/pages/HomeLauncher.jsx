@@ -775,9 +775,9 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
     <>
       <div onClick={onClose} style={{
         position: 'fixed', inset: 0, zIndex: 300,
-        background: 'rgba(122,27,32,.45)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
+        background: 'rgba(122,27,32,.35)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         animation: 'fadeIn .15s ease',
       }} />
       <div style={{
@@ -802,7 +802,7 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
         <div style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gap: isMobile ? '12px' : '16px',
+          gap: isMobile ? '24px 16px' : '28px 24px',
           justifyItems: 'center',
         }}>
           {group.children.map((child, i) => {
@@ -815,7 +815,6 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
                 badge={badge}
                 disabled={child.coming}
                 onClick={() => !child.coming && onChildClick(child)}
-                card
               />
             )
           })}

@@ -31,6 +31,7 @@ export default function PJDashboard({ setPage }) {
   const [phases, setPhases] = useState([])
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [crossModule, setCrossModule] = useState({ incidents: 0, fuelCount: 0, fuelTotal: 0, docs: 0 })
 
   async function fetchAll() {
     if (!currentSiteId) return
@@ -44,6 +45,26 @@ export default function PJDashboard({ setPage }) {
     setProjects(pRes.data || [])
     setPhases(phRes.data || [])
     setMembers(mRes.data || [])
+
+    // Cross-module overview
+    const activeIds = (pRes.data || []).filter(p => p.status === 'active').map(p => p.id)
+    if (activeIds.length > 0) {
+      const [incRes, fuelRes, docRes] = await Promise.all([
+        supabase.from('sheq_incidents').select('id', { count: 'exact', head: true }).in('project_id', activeIds).eq('is_archived', false),
+        supabase.from('fuel_transactions').select('id, total_cost').in('project_id', activeIds).eq('is_archived', false),
+        supabase.from('ds_document_links').select('id', { count: 'exact', head: true }).eq('linked_table', 'projects').in('linked_id', activeIds),
+      ])
+      const fuelRows = fuelRes.data || []
+      setCrossModule({
+        incidents: incRes.count || 0,
+        fuelCount: fuelRows.length,
+        fuelTotal: fuelRows.reduce((s, r) => s + (Number(r.total_cost) || 0), 0),
+        docs: docRes.count || 0,
+      })
+    } else {
+      setCrossModule({ incidents: 0, fuelCount: 0, fuelTotal: 0, docs: 0 })
+    }
+
     setLoading(false)
   }
 

@@ -95,6 +95,7 @@ export const MODULE_COLORS = {
   governance:  '#6D4C41',  // brown        – governance/policy
   connect:     '#00838F',  // cyan         – messaging/connect
   notifications: '#FF6F00', // amber       – alerts/notifications
+  docshare:      '#4527A0', // deep purple – document management
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -128,6 +129,7 @@ export const moduleAccess = {
   governance:   (role, can) => can ? can('governance.view') : false,
   connect:      (role, can) => can ? can('connect.view') : false,
   notifications:(role, can) => can ? can('notifications.view') : false,
+  docshare:     (role, can) => can ? can('ds.view') : false,
   feedback:     r => !!r,
 }
 
@@ -441,5 +443,12 @@ export function connectNav(role, can) {
 export function notificationsNav(role, can) {
   return [
     { id: 'notification_center', label: 'Notification Center', section: 'Overview', icon: 'notifications' },
+  ]
+}
+
+export function docshareNav(role, can) {
+  return [
+    { id: 'ds_library',  label: 'Document Library', section: 'Documents', icon: 'folder_shared' },
+    { id: 'ds_settings', label: 'Settings',         section: 'Admin',     icon: 'settings' },
   ]
 }

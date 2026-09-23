@@ -272,6 +272,11 @@ export const TXN_CODES = [
   // ── Notifications (NT) ─────────────────────────────────────────────────
   { code: 'NT01', path: '/notifications/notification_center', label: 'Notification Center', module: 'notifications' },
 
+  // ── DocShare (DS) ──────────────────────────────────────────────────────
+  { code: 'DS01', path: '/docshare/ds_library',     label: 'Document Library',   module: 'docshare' },
+  { code: 'DS02', path: '/docshare/ds_viewer',      label: 'Document Viewer',    module: 'docshare' },
+  { code: 'DS03', path: '/docshare/ds_settings',    label: 'DocShare Settings',  module: 'docshare' },
+
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },
 ]
@@ -292,6 +297,7 @@ export const ALIASES = {
   HELP: 'FB02',   // quick start guide
   MSG:  'CN01',   // bravura connect
   ANNOUNCE: 'GV01',
+  DOCS: 'DS01',  // docshare library
 }
 
 // Resolve typed input to a single exact entry (code or alias), else null.

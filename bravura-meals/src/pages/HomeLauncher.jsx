@@ -27,6 +27,7 @@ const ALL_MODULES = [
   { id: 'projects',    label: 'Projects',              icon: 'engineering',          color: MODULE_COLORS.projects,    access: moduleAccess.projects    },
   { id: 'governance',  label: 'Governance',             icon: 'gavel',                color: MODULE_COLORS.governance,  access: moduleAccess.governance  },
   { id: 'connect',     label: 'Bravura Connect',       icon: 'chat',                 color: MODULE_COLORS.connect,     access: moduleAccess.connect     },
+  { id: 'docshare',    label: 'DocShare',              icon: 'folder_shared',        color: MODULE_COLORS.docshare,    access: moduleAccess.docshare    },
   { id: 'admin',       label: 'Administration',        icon: 'admin_panel_settings', color: MODULE_COLORS.admin,       access: moduleAccess.admin       },
   { id: 'feedback',    label: 'Feedback',              icon: 'forum',                color: MODULE_COLORS.feedback,    access: moduleAccess.feedback    },
 ]

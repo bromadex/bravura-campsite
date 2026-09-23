@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav, concreteNav, sheqNav, governanceNav, connectNav, notificationsNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav, concreteNav, sheqNav, governanceNav, connectNav, notificationsNav, docshareNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
@@ -290,6 +290,10 @@ const ConnectChat              = lazy(() => import('./pages/connect/ConnectPage'
 // ── Notifications pages ───────────────────────────────────────────────────────
 const NotificationCenter       = lazy(() => import('./pages/notifications/NotificationCenter'))
 
+// ── DocShare pages ───────────────────────────────────────────────────────────
+const DocShareLibrary          = lazy(() => import('./pages/docshare/DocShareLibrary'))
+const DocShareSettings         = lazy(() => import('./pages/docshare/DocShareSettings'))
+
 
 const PageLoader = (
   <div style={{
@@ -343,6 +347,7 @@ const MODULE_META = {
   governance:    { label: 'Governance',             icon: 'gavel',            navFn: governanceNav   },
   connect:       { label: 'Bravura Connect',       icon: 'chat',             navFn: connectNav      },
   notifications: { label: 'Notifications',        icon: 'notifications',    navFn: notificationsNav },
+  docshare:      { label: 'DocShare',             icon: 'folder_shared',    navFn: docshareNav     },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
 
@@ -734,6 +739,14 @@ function getNotificationsPage(page, can, setPage) {
   }
 }
 
+function getDocsharePage(page, can, setPage) {
+  switch (page) {
+    case 'ds_library':  return can('ds.view') ? <DocShareLibrary setPage={setPage} /> : null
+    case 'ds_settings': return can('ds.view') ? <DocShareSettings setPage={setPage} /> : null
+    default:            return can('ds.view') ? <DocShareLibrary setPage={setPage} /> : null
+  }
+}
+
 function getFeedbackPage(page) {
   switch (page) {
     case 'feedback_board': return <FeedbackBoard />
@@ -804,6 +817,7 @@ function ModuleShell() {
   if (moduleId === 'governance')    content = getGovernancePage(currentPage, can, setPage)
   if (moduleId === 'connect')       content = getConnectPage(currentPage, can, setPage)
   if (moduleId === 'notifications') content = getNotificationsPage(currentPage, can, setPage)
+  if (moduleId === 'docshare')      content = getDocsharePage(currentPage, can, setPage)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 
   const AccessDenied = (

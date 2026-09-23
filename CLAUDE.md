@@ -128,7 +128,12 @@ notification sound/badge on mobile PWA.
 
 **Viewer-first** internal DMS for mining/camp operations. Core differentiator:
 inline browser viewing of PDF, DOCX, Excel, and DWG files — **no editing,
-view-only**. Two document modes: **controlled** (versioned, approval workflow,
+view-only**. The viewer is a **shared component** (`components/DocumentViewer.jsx`)
+reusable across the entire ERP — anywhere a document exists (fleet manuals,
+SHEQ investigation reports, HR certifications, contractor insurance docs,
+procurement POs, governance policies), clicking "View" opens the same inline
+viewer without leaving the system. No module needs its own file preview logic.
+Two document modes: **controlled** (versioned, approval workflow,
 acknowledgement tracking, expiry) and **general** (upload, organize, search,
 download — shared file storage).
 Permissions: ds.view/create/edit/delete/approve. Migration range: 0170+.
@@ -200,17 +205,27 @@ Pages:
 Triggers: auto-notify on approaching expiry (30/14/7 days), auto-archive on
 expiry if configured. Cron-friendly: expiry check RPC callable from scheduled task.
 
-### Phase 4 — Cross-Module Integration
-- Link documents to module records: fleet assets (manuals, inspection certs),
-  SHEQ incidents (investigation reports), contractors (contracts, insurance),
-  HR employees (qualifications, certifications), procurement (POs, invoices).
-  Uses `ds_document_links` (document_id, linked_table, linked_id).
-- "Attach Document" button on key detail pages across modules.
-- "View" button on linked documents opens the inline viewer (DS02) directly.
-- Connect integration: share document links in chat via `/DS01` slash command,
-  document-linked conversation threads.
-- Governance migration: optionally migrate existing governance_documents into
-  DocShare as controlled documents (one-time migration script).
+### Phase 4 — Cross-Module Viewer Wiring
+Wire `DocumentViewer` into every module that already has file attachments or
+document references. Every "View" button across the ERP opens the same viewer:
+- **Fleet**: vehicle manuals, inspection certificates, insurance docs on
+  fleet asset detail page.
+- **SHEQ**: investigation reports, incident photos, PTW attachments, audit
+  evidence on incident/inspection detail pages.
+- **HR**: employee qualifications, certifications, medical fitness docs,
+  training certificates on employee profile.
+- **Contractors**: contracts, insurance policies, SHEQ compliance docs on
+  contractor detail page.
+- **Procurement**: purchase orders, invoices, delivery notes, quotations on
+  PO detail page.
+- **Governance**: policy documents, announcements with attachments — viewer
+  replaces current download-only flow.
+- **Campsite**: room inspection reports, maintenance docs.
+Uses `ds_document_links` (document_id, linked_table, linked_id) for cross-ref.
+"Attach Document" button on key detail pages to link existing DocShare docs.
+Connect integration: share document links in chat, preview card in message.
+Governance migration: optionally migrate existing governance_documents into
+DocShare as controlled documents (one-time migration script).
 
 ## Connect Hardening Roadmap (from cross-AI code review, September 2026)
 

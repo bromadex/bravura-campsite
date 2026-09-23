@@ -205,15 +205,10 @@ export default function DocShareLibrary({ setPage }) {
   }
 
   async function openViewer(doc) {
-    const { data } = await supabase.rpc('ds_signed_url', { p_document_id: doc.id })
-    if (data) {
-      setViewerDoc(doc)
-      setViewerUrl(data)
-    } else {
-      const { data: pubData } = supabase.storage.from('docshare-files').getPublicUrl(doc.file_path)
-      setViewerDoc(doc)
-      setViewerUrl(pubData?.publicUrl)
-    }
+    const { data, error } = await supabase.storage.from('docshare-files').createSignedUrl(doc.file_path, 300)
+    if (error || !data?.signedUrl) return showToast('Could not open file')
+    setViewerDoc(doc)
+    setViewerUrl(data.signedUrl)
   }
 
   function handleDrop(e) {

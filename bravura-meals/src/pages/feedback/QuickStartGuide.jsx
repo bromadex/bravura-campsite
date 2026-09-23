@@ -307,6 +307,18 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* Governance */}
+      {can('governance.view') && (
+        <Section icon="gavel" color="#6D4C41" title="Governance — announcements & policies">
+          <Steps items={[
+            <><b>Announcements</b> (<Code>GV01</Code>) — publish company-wide or site-specific announcements with priority levels (normal, important, urgent). Pin important ones to the top. Read receipts track who has seen each announcement.</>,
+            <><b>Policies & Compliance</b> (<Code>GV02</Code>) — create versioned policies with mandatory acknowledgement deadlines. Employees accept or reject each policy; the compliance dashboard shows KPIs and per-employee response status.</>,
+            <>Draft policies and announcements are only visible to creators. Use <b>Publish</b> (requires governance.approve permission) to make them live — this fires a notification to all users with governance.view access.</>,
+            <>Export compliance reports as CSV from the Policies page to track acknowledgement rates by employee and department.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* Notifications */}
       {can('notifications.view') && (
         <Section icon="notifications" color="#5C6BC0" title="Notifications">

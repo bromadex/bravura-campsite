@@ -9,6 +9,7 @@ import { PageHeader, Icon, fmtDate, TableWrap, THead, Th, TRow, Td } from '../..
 const FUEL_CLR = MODULE_COLORS.fuel
 
 export default function FuelLedger() {
+  const { can } = usePermissions()
   const { currentSite } = useSite()
   const { tanks, receipts, issues, loading } = useFuel()
 
@@ -80,6 +81,7 @@ export default function FuelLedger() {
 
   const selectedTank = tanks.find(t => t.id === tankId)
 
+  if (!can('fuel.view')) return <Denied />
   if (loading) return null
 
   return (

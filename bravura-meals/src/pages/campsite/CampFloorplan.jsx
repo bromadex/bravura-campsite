@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import { Card, Icon, showToast, PageHeader } from '../../components/ui'
 import FloorplanCanvas from './floorplan/FloorplanCanvas'
 import FloorplanLegend from './floorplan/FloorplanLegend'
@@ -12,6 +14,7 @@ import { getRoomOccupancyStatus } from './floorplan/geometry'
 import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 
 export default function CampFloorplan({ setPage }) {
+  const { can } = usePermissions()
   const { profile } = useAuth()
   const {
     blocks, rooms, fixtures, assignments, employees, contractors,
@@ -26,6 +29,8 @@ export default function CampFloorplan({ setPage }) {
   const [draggingInfo,    setDraggingInfo]    = useState(null)
 
   const activeAssignments = assignments.filter(a => a.status === 'active')
+
+  if (!can('campsite.view')) return <Denied />
 
   // ── Block picker screen ──
   if (!selectedBlockId) {

@@ -9,6 +9,7 @@ import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 const EMPTY = { name: '', description: '', is_active: true }
 
 export default function CampBlocks({ setPage }) {
+  const { can } = usePermissions()
   const { blocks, rooms, addBlock, updateBlock, deleteBlock, loading } = useCampsite()
   const [modal,   setModal]   = useState(false)
   const [editing, setEditing] = useState(null)
@@ -42,6 +43,8 @@ export default function CampBlocks({ setPage }) {
       setDelTarget(null)
     } catch (err) { showToast(err.message, 'red'); setDelTarget(null) }
   }
+
+  if (!can('campsite.view')) return <Denied />
 
   return (
     <div>

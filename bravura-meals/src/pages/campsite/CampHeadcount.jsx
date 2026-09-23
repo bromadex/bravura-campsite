@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import { Card, Icon, PageHeader } from '../../components/ui'
 import {
   computeViewBox,
@@ -188,6 +190,7 @@ function BlockMinimap({ block, rooms, assignments, onRoomHover, onRoomLeave }) {
 
 // ── Main dashboard ────────────────────────────────────────────────────────────
 export default function CampHeadcount({ setPage }) {
+  const { can } = usePermissions()
   const { currentSite } = useSite()
   const { kpis, blocks, employees, contractors, rooms, assignments, loading } = useCampsite()
 
@@ -226,6 +229,8 @@ export default function CampHeadcount({ setPage }) {
 
   const occupancyBar   = Math.min(kpis.occupancyPct, 100)
   const occupancyColor = occupancyBar > 90 ? THEME.error : occupancyBar > 70 ? THEME.warning : THEME.success
+
+  if (!can('campsite.view')) return <Denied />
 
   return (
     <div className="print-page">

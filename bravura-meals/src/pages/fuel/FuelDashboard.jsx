@@ -274,6 +274,8 @@ export default function FuelDashboard({ setPage }) {
 
   const maxConsumer = topConsumers.length ? topConsumers[0].litres : 1
 
+  if (!can('fuel.view')) return <Denied />
+
   return (
     <div style={{ maxWidth: '1100px' }}>
       <FuelQuickNav setPage={setPage} current="fuel_dashboard" />

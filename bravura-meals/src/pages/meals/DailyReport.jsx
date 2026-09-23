@@ -92,6 +92,8 @@ export default function DailyReport({ setPage }) {
   const totL = rows.reduce((a,r) => a+r.l, 0)
   const totS = rows.reduce((a,r) => a+r.s, 0)
 
+  if (!can('meals.view')) return <Denied />
+
   return (
     <div className="print-page">
       <PrintHeader title="Daily Meal Report" subtitle={`Date: ${fmtDate(date)}`} site={currentSite} />

@@ -18,6 +18,8 @@ const PLANNED_REPORTS = [
 ]
 
 export default function CLReports({ setPage }) {
+  const { can } = usePermissions()
+  if (!can('contractors.view')) return <Denied />
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_reports" />

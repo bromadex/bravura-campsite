@@ -205,6 +205,8 @@ export default function Dashboard({ setPage }) {
     </div>
   )
 
+  if (!can('meals.view')) return <Denied />
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_dashboard" />

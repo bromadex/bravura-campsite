@@ -104,7 +104,7 @@ export default function FleetInspections({ setPage }) {
         site_id: currentSiteId,
       }
       if (editId) {
-        const { error: err } = await supabase.from('fleet_inspections').update(payload).eq('id', editId)
+        const { error: err } = await supabase.from('fleet_inspections').update(payload).eq('id', editId).eq('site_id', currentSiteId)
         if (err) throw err
       } else {
         const { error: err } = await supabase.from('fleet_inspections').insert(payload)

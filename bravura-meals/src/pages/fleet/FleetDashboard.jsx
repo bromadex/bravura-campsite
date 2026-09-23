@@ -69,6 +69,7 @@ function expiryStatus(dateStr) {
 }
 
 export default function FleetDashboard({ setPage }) {
+  const { can } = usePermissions()
   const {
     assets, assetTypes, assetsByStatus, activeAssignments, expiringCompliance,
     workOrders, inspections, trips, loading,
@@ -314,6 +315,8 @@ export default function FleetDashboard({ setPage }) {
   const operationalCount = assetsByStatus.operational || 0
   const availability = totalAssets ? Math.round((operationalCount / totalAssets) * 100) : 0
   const criticalWo = sortedWorkOrders.filter(w => w.priority === 'critical').length
+
+  if (!can('fleet.view')) return <Denied />
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>

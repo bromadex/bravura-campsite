@@ -18,8 +18,6 @@ const MonthlyConsumptionReport = lazy(() => import('./reports/MonthlyConsumption
 const DeliveryReport           = lazy(() => import('./reports/DeliveryReport'))
 
 const FUEL_CLR = MODULE_COLORS.fuel
-const LINE_CLR = '#1565C0'   // issuance-by-day line
-const TANK_CLR = '#00897B'   // tank level line
 
 // ── SVG chart primitives ──────────────────────────────────────────────────────
 
@@ -238,6 +236,7 @@ function ChartCard({ title, legend, legendColor, children, right }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function FuelReports({ setPage }) {
+  const { can } = usePermissions()
   const navigate = useNavigate()
   const { currentSite } = useSite()
   const { tanks, transactions, dipReadings, tankBalance, loading } = useFuel()
@@ -369,6 +368,7 @@ export default function FuelReports({ setPage }) {
     { id: 'delivery',  label: 'Delivery Report',      icon: 'local_shipping' },
   ]
 
+  if (!can('fuel.view')) return <Denied />
   if (loading) return null
 
   const assetLabel = tx => tx.fleet_asset

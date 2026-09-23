@@ -186,7 +186,7 @@ export default function FleetDrivers({ setPage }) {
     try {
       const { error: err } = await supabase.from('fleet_drivers')
         .update({ is_archived: true, archived_at: new Date().toISOString() })
-        .eq('id', editId)
+        .eq('id', editId).eq('site_id', currentSiteId)
       if (err) throw err
       await fetchDrivers()
       setModalOpen(false)

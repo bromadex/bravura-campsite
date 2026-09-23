@@ -66,6 +66,7 @@ export default function ProcTracking({ setPage }) {
     setSaving(true)
     const { error } = await supabase.from('po_tracking_events').insert({
       po_id: selectedPO,
+      site_id: currentSiteId,
       event_type: eventForm.event_type,
       location: eventForm.location || null,
       notes: eventForm.notes || null,

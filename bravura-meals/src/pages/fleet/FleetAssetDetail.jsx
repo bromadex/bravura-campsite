@@ -54,6 +54,7 @@ function StatCard({ label, value, sub, icon }) {
 }
 
 export default function FleetAssetDetail({ asset, onClose }) {
+  const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const { inspections, workOrders, trips, compliance, assignments } = useFleet()
   const [tab, setTab] = useState(0)
@@ -172,6 +173,8 @@ export default function FleetAssetDetail({ asset, onClose }) {
     overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,.15)',
     display: 'flex', flexDirection: 'column',
   }
+
+  if (!can('fleet.view')) return <Denied />
 
   return (
     <div style={overlayStyle} onClick={onClose}>

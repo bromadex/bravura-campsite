@@ -158,7 +158,7 @@ export default function FleetAccidents({ setPage }) {
         asset_id: form.asset_id || null,
       }
       if (editId) {
-        const { error: err } = await supabase.from('fleet_accidents').update(payload).eq('id', editId)
+        const { error: err } = await supabase.from('fleet_accidents').update(payload).eq('id', editId).eq('site_id', currentSiteId)
         if (err) throw err
       } else {
         const { error: err } = await supabase.from('fleet_accidents').insert([payload])

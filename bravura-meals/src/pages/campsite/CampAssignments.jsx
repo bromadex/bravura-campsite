@@ -10,6 +10,7 @@ import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 const tabs = ['Active', 'History', 'On Leave']
 
 export default function CampAssignments({ setPage }) {
+  const { can } = usePermissions()
   const { profile } = useAuth()
   const { rooms, blocks, employees, assignments, returnFromLeave,
           assignRoom, transferRoom, releaseRoom, loading } = useCampsite()
@@ -126,6 +127,8 @@ export default function CampAssignments({ setPage }) {
   }
 
   const leaveLabel = { on_leave: 'On Leave', long_leave: 'Long Leave' }
+
+  if (!can('campsite.view')) return <Denied />
 
   return (
     <div>

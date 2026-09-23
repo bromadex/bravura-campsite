@@ -360,6 +360,8 @@ export default function DailyEntry({ setPage }) {
   const hStyleTintL  = { ...hStyle, background: THEME.lunchClr     + '18' }
   const hStyleTintS  = { ...hStyle, background: THEME.supperClr    + '18' }
 
+  if (!can('meals.view')) return <Denied />
+
   return (
     <div>
       <QuickNav pills={MEALS_PILLS} setPage={setPage} current="meals_entry" />

@@ -34,6 +34,7 @@ function avgDailyRate(issuances, days) {
 const addDays = d => new Date(Date.now() + d * DAY_MS)
 
 export default function Forecasting({ setPage }) {
+  const { can } = usePermissions()
   const { currentSite, currentSiteId } = useSite()
   const { tanks, transactions, loading } = useFuel()
   const [rateWindow, setRateWindow] = useState('14d')
@@ -169,6 +170,8 @@ export default function Forecasting({ setPage }) {
   const trendRising = smart && smart.trendPerWeek > 0.05
   const trendFalling = smart && smart.trendPerWeek < -0.05
   const confClr = smart?.confidence === 'High' ? THEME.success : smart?.confidence === 'Medium' ? THEME.warning : THEME.error
+
+  if (!can('fuel.view')) return <Denied />
 
   return (
     <div style={{ maxWidth: '1100px' }}>

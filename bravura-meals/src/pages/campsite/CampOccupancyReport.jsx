@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import { Icon, PageHeader } from '../../components/ui'
 import { DashCard, KpiCard, SectionTitle, DonutGauge, ProgressRow } from '../../components/dash'
 import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
@@ -9,6 +11,7 @@ import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 const CLR = MODULE_COLORS.campsite
 
 export default function CampOccupancyReport({ setPage }) {
+  const { can } = usePermissions()
   const { currentSite } = useSite()
   const { blocks, rooms, assignments, loading } = useCampsite()
 
@@ -57,6 +60,8 @@ export default function CampOccupancyReport({ setPage }) {
     color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.05em',
     borderBottom: `1px solid ${THEME.outlineVar}`,
   })
+
+  if (!can('campsite.view')) return <Denied />
 
   return (
     <div className="print-page">

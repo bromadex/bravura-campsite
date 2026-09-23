@@ -53,6 +53,7 @@ function friendlyError(err) {
 }
 
 export default function CampRooms({ setPage }) {
+  const { can } = usePermissions()
   const { rooms, blocks, assignments, addRoom, updateRoom, deleteRoom, setMaintenance, loading } = useCampsite()
 
   const [modal,        setModal]        = useState(false)
@@ -156,6 +157,8 @@ export default function CampRooms({ setPage }) {
   const occupiedRooms  = occupiableRoomsList.filter(r => r.status === 'occupied').length
   const maintRooms     = occupiableRoomsList.filter(r => r.status === 'maintenance').length
   const nonOccupiableCount = rooms.length - occupiableRoomsList.length
+
+  if (!can('campsite.view')) return <Denied />
 
   return (
     <div>

@@ -127,6 +127,7 @@ function GaugeChart({ pct, color: gaugeColor, label, size = 130 }) {
 
 export default function CLDashboard({ setPage }) {
   const { currentSiteId } = useSite()
+  const { can } = usePermissions()
   const [tick, setTick] = useState(0)
   useRealtimeSubscription('contractors', { column: 'site_id', value: currentSiteId }, () => setTick(t => t + 1))
   const [loading, setLoading] = useState(true)

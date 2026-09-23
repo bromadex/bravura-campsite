@@ -220,12 +220,14 @@ function DwgViewer({ url, fileName }) {
           canvasHeight: containerRef.current.clientHeight,
           autoResize: true,
           colorCorrection: true,
+          clearColor: new (await import('three')).Color('#1e1e1e'),
         })
         viewerRef.current = viewer
 
         await viewer.Load({ url: dxfUrl })
         if (cancelled) return
 
+        viewer.FitView()
         const lyrs = viewer.GetLayers() || []
         setLayers(lyrs.map(l => typeof l === 'string' ? l : l.name || String(l)))
         setLoading(false)

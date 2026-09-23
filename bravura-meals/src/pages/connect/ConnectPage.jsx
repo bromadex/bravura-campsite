@@ -600,8 +600,9 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
       conversation_id: selectedId,
       sender_id: profile?.id || null,
       content: input.trim() || file.name,
-      attachment_url: urlData?.publicUrl || null,
-      attachment_name: file.name,
+      file_url: urlData?.publicUrl || null,
+      file_name: file.name,
+      file_type: file.type || null,
       reply_to: replyTo?.id || null,
     })
     setUploading(false)
@@ -842,10 +843,10 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                               fontSize: '13.5px', lineHeight: 1.45, wordBreak: 'break-word', whiteSpace: 'pre-wrap', position: 'relative',
                             }}>
                               <RenderContent text={m.content} navigate={navigate} />
-                              {m.attachment_url && (
+                              {m.file_url && (
                                 <div style={{ marginTop: '6px' }}>
-                                  <a href={m.attachment_url} target="_blank" rel="noreferrer" style={{ color: mine ? '#fff' : ACCENT, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'underline' }}>
-                                    <Icon name="attach_file" size={14} />{m.attachment_name || 'Attachment'}
+                                  <a href={m.file_url} target="_blank" rel="noreferrer" style={{ color: mine ? '#fff' : ACCENT, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'underline' }}>
+                                    <Icon name="attach_file" size={14} />{m.file_name || 'Attachment'}
                                   </a>
                                 </div>
                               )}

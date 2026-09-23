@@ -769,20 +769,19 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
     <>
       <div onClick={onClose} style={{
         position: 'fixed', inset: 0, zIndex: 300,
-        background: 'rgba(0,0,0,.35)',
+        background: 'rgba(122,27,32,.45)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
         animation: 'fadeIn .15s ease',
       }} />
       <div style={{
         position: 'fixed', zIndex: 301,
         top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        background: 'linear-gradient(135deg, rgba(152,35,41,.88) 0%, rgba(122,27,32,.92) 100%)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderRadius: '20px',
-        border: '1px solid rgba(255,255,255,.15)',
+        background: '#fff',
+        borderRadius: '16px',
         padding: isMobile ? '28px 20px' : '36px 40px',
-        boxShadow: '0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.12)',
+        boxShadow: '0 20px 60px rgba(0,0,0,.2)',
         maxWidth: '560px',
         width: isMobile ? 'calc(100% - 32px)' : 'auto',
         minWidth: isMobile ? 'auto' : '400px',
@@ -791,7 +790,7 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
         animation: 'scaleIn .2s ease',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: '#fff', letterSpacing: '.01em' }}>{group.label}</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: THEME.text }}>{group.label}</div>
         </div>
 
         <div style={{
@@ -810,7 +809,6 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
                 badge={badge}
                 disabled={child.coming}
                 onClick={() => !child.coming && onChildClick(child)}
-                glass
               />
             )
           })}

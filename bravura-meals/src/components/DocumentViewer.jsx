@@ -183,10 +183,27 @@ function DwgViewer({ url, fileName }) {
 
         let dxfUrl = url
         if (ext === 'dwg') {
-          setStatus('Converting DWG to DXF (WASM)...')
-          const { LibreDwg } = await import('@mlightcad/libredwg-web')
-          const libredwg = await LibreDwg.create('/')
-          const dxfData = libredwg.dwg_write_dxf(buf)
+          setStatus('Loading DWG converter...')
+          const wasmResp = await fetch('/libredwg-web.wasm')
+          if (!wasmResp.ok) throw new Error('Failed to load DWG converter')
+          const wasmBinary = await wasmResp.arrayBuffer()
+          setStatus('Converting DWG to DXF...')
+          const glueUrl = new URL('/libredwg-web.js', window.location.origin).href
+          const glue = await import(/* @vite-ignore */ glueUrl)
+          const createMod = glue.default || glue.createModule || glue
+          const wasmInstance = await createMod({
+            wasmBinary,
+            locateFile: (path) => '/' + path,
+          })
+          wasmInstance.FS.writeFile('in.dwg', new Uint8Array(buf))
+          const err = wasmInstance.dwg_write_dxf('in.dwg', 'out.dxf')
+          if (err !== 0) {
+            try { wasmInstance.FS.unlink('in.dwg') } catch {}
+            throw new Error('Failed to convert DWG — file may be corrupted or unsupported version')
+          }
+          const dxfData = wasmInstance.FS.readFile('out.dxf')
+          try { wasmInstance.FS.unlink('in.dwg') } catch {}
+          try { wasmInstance.FS.unlink('out.dxf') } catch {}
           if (!dxfData) throw new Error('Failed to convert DWG — file may be corrupted or unsupported version')
           const blob = new Blob([dxfData], { type: 'text/plain' })
           blobUrl = URL.createObjectURL(blob)

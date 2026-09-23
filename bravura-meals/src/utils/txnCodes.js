@@ -273,9 +273,13 @@ export const TXN_CODES = [
   { code: 'NT01', path: '/notifications/notification_center', label: 'Notification Center', module: 'notifications' },
 
   // ── DocVault (DS) ──────────────────────────────────────────────────────
-  { code: 'DS01', path: '/docshare/ds_library',     label: 'Document Library',   module: 'docshare' },
-  { code: 'DS02', path: '/docshare/ds_viewer',      label: 'Document Viewer',    module: 'docshare' },
-  { code: 'DS03', path: '/docshare/ds_settings',    label: 'DocVault Settings',  module: 'docshare' },
+  { code: 'DS01', path: '/docshare/ds_library',         label: 'Document Library',       module: 'docshare' },
+  { code: 'DS02', path: '/docshare/ds_viewer',          label: 'Document Viewer',        module: 'docshare' },
+  { code: 'DS03', path: '/docshare/ds_settings',        label: 'DocVault Settings',      module: 'docshare' },
+  { code: 'DS04', path: '/docshare/ds_detail',          label: 'Document Detail',        module: 'docshare' },
+  { code: 'DS05', path: '/docshare/ds_acknowledgements',label: 'My Acknowledgements',    module: 'docshare' },
+  { code: 'DS06', path: '/docshare/ds_compliance',      label: 'Compliance Dashboard',   module: 'docshare' },
+  { code: 'DS07', path: '/docshare/ds_reports',         label: 'Document Reports',       module: 'docshare' },
 
   { code: 'FB01', path: '/feedback/feedback_board',    label: 'Feedback Board',    module: 'feedback' },
   { code: 'FB02', path: '/feedback/feedback_help',     label: 'Quick Start Guide', module: 'feedback' },

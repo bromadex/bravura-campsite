@@ -245,6 +245,22 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* DocVault */}
+      {can('ds.view') && (
+        <Section icon="folder_shared" color={MODULE_COLORS.docshare} title="DocVault — document management & compliance">
+          <Steps items={[
+            <><b>Document Library</b> (<Code>DS01</Code>) is the central repository — upload, organise into folders, search by title/tags, and switch between list and grid views. Drag-and-drop upload supported.</>,
+            <>Every document is either <b>General</b> (simple upload and share) or <b>Controlled</b> (versioned with approval workflow and acknowledgement tracking).</>,
+            <><b>Document Viewer</b> (<Code>DS02</Code>) opens files inline — PDF, DOCX, Excel and images all render in the browser without downloading. The viewer is shared across the entire ERP.</>,
+            <><b>Document Detail</b> (<Code>DS04</Code>) shows the full lifecycle of controlled documents — version history, review status, approve/reject panel, and upload new versions with change summaries.</>,
+            <><b>My Acknowledgements</b> (<Code>DS05</Code>) lists documents you need to formally acknowledge — pending items with deadlines, and a completed history.</>,
+            <><b>Compliance Dashboard</b> (<Code>DS06</Code>) tracks KPIs — total documents, expiring soon, overdue acknowledgements, pending reviews — with status breakdowns by category.</>,
+            <><b>Document Reports</b> (<Code>DS07</Code>) exports the document register, acknowledgement compliance, version audit trail and storage usage as CSV.</>,
+            <>Settings (<Code>DS03</Code>) manages categories, default folder structures and file type allowlists.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* Inventory */}
       {can('inventory.view') && (
         <Section icon="inventory_2" color={MODULE_COLORS.inventory} title="Inventory — items, stock & warehouses">

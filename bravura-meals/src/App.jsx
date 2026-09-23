@@ -293,6 +293,10 @@ const NotificationCenter       = lazy(() => import('./pages/notifications/Notifi
 // ── DocShare pages ───────────────────────────────────────────────────────────
 const DocShareLibrary          = lazy(() => import('./pages/docshare/DocShareLibrary'))
 const DocShareSettings         = lazy(() => import('./pages/docshare/DocShareSettings'))
+const DocShareDetail           = lazy(() => import('./pages/docshare/DocShareDetail'))
+const DocShareAcknowledgements = lazy(() => import('./pages/docshare/DocShareAcknowledgements'))
+const DocShareCompliance       = lazy(() => import('./pages/docshare/DocShareCompliance'))
+const DocShareReports          = lazy(() => import('./pages/docshare/DocShareReports'))
 
 
 const PageLoader = (
@@ -741,9 +745,13 @@ function getNotificationsPage(page, can, setPage) {
 
 function getDocsharePage(page, can, setPage) {
   switch (page) {
-    case 'ds_library':  return can('ds.view') ? <DocShareLibrary setPage={setPage} /> : null
-    case 'ds_settings': return can('ds.view') ? <DocShareSettings setPage={setPage} /> : null
-    default:            return can('ds.view') ? <DocShareLibrary setPage={setPage} /> : null
+    case 'ds_library':          return can('ds.view') ? <DocShareLibrary setPage={setPage} /> : null
+    case 'ds_settings':         return can('ds.view') ? <DocShareSettings setPage={setPage} /> : null
+    case 'ds_detail':           return can('ds.view') ? <DocShareDetail setPage={setPage} docId={window.__dsSelectedDocId} /> : null
+    case 'ds_acknowledgements': return can('ds.view') ? <DocShareAcknowledgements setPage={setPage} /> : null
+    case 'ds_compliance':       return can('ds.view') ? <DocShareCompliance setPage={setPage} /> : null
+    case 'ds_reports':          return can('ds.view') ? <DocShareReports setPage={setPage} /> : null
+    default:                    return can('ds.view') ? <DocShareLibrary setPage={setPage} /> : null
   }
 }
 

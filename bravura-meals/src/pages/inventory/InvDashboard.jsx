@@ -7,6 +7,7 @@ import { Card, Icon, PageHeader, StatusBadge, showToast } from '../../components
 import { DashCard, KpiCard, SectionTitle } from '../../components/dash'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
+import { pushNotificationToPermission } from '../../utils/notificationEngine'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -167,6 +168,21 @@ export default function InvDashboard({ setPage }) {
       setCategories(catRes.data || [])
       setPendingReqs(reqRes.data || [])
       setPendingPOs(poRes.data || [])
+      // Check for low-stock items and notify storekeepers
+      const allItems = itemRes.data || []
+      const allBals = (balRes.data || []).filter(b => b.warehouse?.site_id === currentSiteId)
+      const itemBals = {}
+      allBals.forEach(b => { itemBals[b.item_id] = (itemBals[b.item_id] || 0) + b.on_hand_qty })
+      const lowItems = allItems.filter(i => i.reorder_level && (itemBals[i.id] || 0) <= i.reorder_level)
+      if (lowItems.length > 0) {
+        const names = lowItems.slice(0, 3).map(i => i.description || i.item_code).join(', ')
+        const suffix = lowItems.length > 3 ? ` and ${lowItems.length - 3} more` : ''
+        pushNotificationToPermission('inventory.view', currentSiteId, {
+          type: 'inventory_low_stock', title: 'Low Stock Alert',
+          message: `${lowItems.length} item(s) below reorder level: ${names}${suffix}`,
+          link: '/inventory/balances', category: 'reminders',
+        })
+      }
     } catch (err) {
       console.error('InvDashboard fetch:', err)
       showToast('Failed to load inventory data', 'red')

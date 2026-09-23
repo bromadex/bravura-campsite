@@ -8,6 +8,7 @@ import { exportCsv } from '../../utils/csv'
 import { nextCode } from '../../utils/autoCode'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
+import { pushNotificationToPermission } from '../../utils/notificationEngine'
 
 const color = MODULE_COLORS.contractors
 
@@ -90,6 +91,23 @@ export default function CLCompanies({ setPage }) {
         setContractCounts(counts)
       } else {
         setContractCounts({})
+      }
+      // Check for contractors with insurance expiring within 30 days
+      const now = new Date()
+      const in30 = new Date(now.getTime() + 30 * 86400000)
+      const expiring = (data || []).filter(d => {
+        if (!d.insurance_expiry) return false
+        const exp = new Date(d.insurance_expiry)
+        return exp >= now && exp <= in30
+      })
+      if (expiring.length > 0) {
+        const names = expiring.slice(0, 3).map(d => d.name).join(', ')
+        const suffix = expiring.length > 3 ? ` and ${expiring.length - 3} more` : ''
+        pushNotificationToPermission('procurement.view', currentSiteId, {
+          type: 'contractor_doc_expiry', title: 'Contractor Insurance Expiring',
+          message: `${expiring.length} contractor(s) with insurance expiring within 30 days: ${names}${suffix}`,
+          link: '/contractors', category: 'reminders',
+        })
       }
     } else {
       showToast(err.message || 'Failed to load contractors', 'error')

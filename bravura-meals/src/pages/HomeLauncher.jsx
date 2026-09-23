@@ -527,8 +527,6 @@ export default function HomeLauncher({ onEnterModule }) {
           />
         )}
 
-        {/* KPI summary row */}
-        {!expandedGroup && <KpiSummaryRow currentSiteId={currentSite?.id} can={can} />}
       </div>
 
       {/* ── Footer ── */}

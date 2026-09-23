@@ -587,8 +587,12 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   async function handleFileUpload(e) {
     const file = e.target.files?.[0]
     if (!file || !selectedId) return
+    if (file.size > 10 * 1024 * 1024) { showToast('File too large — 10 MB limit', 'red'); return }
+    const allowed = ['image/', 'application/pdf', 'text/']
+    if (!allowed.some(t => file.type.startsWith(t))) { showToast('File type not allowed', 'red'); return }
     setUploading(true)
-    const path = `${currentSiteId}/${selectedId}/${Date.now()}_${file.name}`
+    const safeName = crypto.randomUUID() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const path = `${currentSiteId}/${selectedId}/${safeName}`
     const { error: upErr } = await supabase.storage.from('connect-files').upload(path, file)
     if (upErr) { setUploading(false); showToast(upErr.message, 'red'); return }
     const { data: urlData } = supabase.storage.from('connect-files').getPublicUrl(path)

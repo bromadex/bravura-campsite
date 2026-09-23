@@ -11,51 +11,63 @@ import SiteSwitcher from '../components/SiteSwitcher'
 // ── Umbrella groups for the home grid ────────────────────────────────────────
 // Each group has an id, label, icon, color, and children (actual modules).
 // Children with `coming: true` render as greyed-out "Coming Soon" tiles.
+// Top-level modules that go straight to their dashboard (no umbrella expand)
+const TOP_LEVEL_MODULES = [
+  { id: 'fuel', label: 'Fuel Management', icon: 'local_gas_station', color: MODULE_COLORS.fuel, access: moduleAccess.fuel },
+]
+
+// Umbrella groups that expand to show sub-module tiles
 const MODULE_GROUPS = [
   {
-    id: 'work',
-    label: 'Work Management',
+    id: 'camp',
+    label: 'Camp Management',
+    icon: 'holiday_village',
+    color: MODULE_COLORS.campsite,
+    children: [
+      { id: 'campsite',  label: 'Campsite',     icon: 'holiday_village', color: MODULE_COLORS.campsite, access: moduleAccess.campsite },
+      { id: 'meals',     label: 'Meals',         icon: 'restaurant',      color: MODULE_COLORS.meals,    access: moduleAccess.meals },
+      { id: 'concrete',  label: 'Batch Plant',   icon: 'factory',         color: MODULE_COLORS.concrete, access: moduleAccess.concrete },
+    ],
+  },
+  {
+    id: 'projects',
+    label: 'Projects & Planning',
     icon: 'account_tree',
     color: MODULE_COLORS.projects,
     children: [
-      { id: 'projects',  label: 'Projects',       icon: 'engineering',  color: MODULE_COLORS.projects, access: moduleAccess.projects },
-      { id: 'dept',      label: 'Departments',    icon: 'domain',       color: MODULE_COLORS.dept,     access: moduleAccess.dept },
-      { id: 'concrete',  label: 'Batch Plant',    icon: 'factory',      color: MODULE_COLORS.concrete, access: moduleAccess.concrete },
-      { id: '_schedule',  label: 'Bravura Schedule', icon: 'calendar_month', color: '#546E7A', coming: true },
-      { id: '_tasks',     label: 'Tasks',            icon: 'task_alt',       color: '#546E7A', coming: true },
+      { id: 'projects',   label: 'Project Register',   icon: 'engineering',      color: MODULE_COLORS.projects, access: moduleAccess.projects },
+      { id: 'dept',        label: 'Departments',        icon: 'domain',           color: MODULE_COLORS.dept,     access: moduleAccess.dept },
+      { id: '_schedule',   label: 'Bravura Schedule',   icon: 'calendar_month',   color: '#546E7A', coming: true },
+      { id: '_dashboard',  label: 'Project Dashboard',  icon: 'dashboard',        color: '#546E7A', coming: true },
+      { id: '_gantt',      label: 'Gantt View',         icon: 'view_timeline',    color: '#546E7A', coming: true },
     ],
   },
   {
     id: 'people',
-    label: 'People',
+    label: 'People & Workforce',
     icon: 'groups',
     color: MODULE_COLORS.workforce,
     children: [
-      { id: 'workforce',   label: 'Employees',    icon: 'badge',     color: MODULE_COLORS.workforce,   access: moduleAccess.workforce },
-      { id: 'contractors', label: 'Contractors',   icon: 'handshake', color: MODULE_COLORS.contractors, access: moduleAccess.contractors },
+      { id: 'workforce',   label: 'Employees',          icon: 'badge',        color: MODULE_COLORS.workforce,   access: moduleAccess.workforce },
+      { id: 'contractors', label: 'Contractors',         icon: 'handshake',    color: MODULE_COLORS.contractors, access: moduleAccess.contractors },
+      // Deep-link tiles into HR sub-pages
+      { id: 'workforce',   label: 'Leave Management',   icon: 'event_busy',   color: '#E07B39', access: moduleAccess.workforce, deepPage: 'wf_leave_requests' },
+      { id: 'workforce',   label: 'Attendance & Shifts', icon: 'schedule',    color: '#E07B39', access: moduleAccess.workforce, deepPage: 'wf_attendance' },
+      { id: 'workforce',   label: 'Training & Skills',  icon: 'school',       color: '#E07B39', access: moduleAccess.workforce, deepPage: 'wf_training' },
+      { id: 'workforce',   label: 'Payroll',            icon: 'payments',     color: '#E07B39', access: moduleAccess.workforce, deepPage: 'wf_payroll' },
+      { id: 'workforce',   label: 'Org Chart',          icon: 'account_tree', color: '#E07B39', access: moduleAccess.workforce, deepPage: 'wf_org_chart' },
     ],
   },
   {
-    id: 'siteops',
-    label: 'Site Operations',
-    icon: 'holiday_village',
-    color: MODULE_COLORS.campsite,
+    id: 'assets',
+    label: 'Assets & Logistics',
+    icon: 'local_shipping',
+    color: MODULE_COLORS.fleet,
     children: [
-      { id: 'campsite',  label: 'Campsite',       icon: 'holiday_village',   color: MODULE_COLORS.campsite,  access: moduleAccess.campsite },
-      { id: 'meals',     label: 'Meals',           icon: 'restaurant',        color: MODULE_COLORS.meals,     access: moduleAccess.meals },
-      { id: 'fuel',      label: 'Fuel',             icon: 'local_gas_station', color: MODULE_COLORS.fuel,      access: moduleAccess.fuel },
-      { id: 'fleet',     label: 'Fleet',            icon: 'directions_car',    color: MODULE_COLORS.fleet,     access: moduleAccess.fleet },
-      { id: 'inventory', label: 'Stores',           icon: 'inventory_2',       color: MODULE_COLORS.inventory, access: moduleAccess.inventory },
-    ],
-  },
-  {
-    id: 'commercial',
-    label: 'Commercial',
-    icon: 'payments',
-    color: MODULE_COLORS.finance,
-    children: [
-      { id: 'finance',     label: 'Finance',      icon: 'account_balance', color: MODULE_COLORS.finance,     access: moduleAccess.finance },
-      { id: 'procurement', label: 'Procurement',  icon: 'storefront',      color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
+      { id: 'fleet',       label: 'Fleet',         icon: 'directions_car',  color: MODULE_COLORS.fleet,       access: moduleAccess.fleet },
+      { id: 'procurement', label: 'Procurement',   icon: 'storefront',      color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
+      { id: 'inventory',   label: 'Stores',         icon: 'inventory_2',     color: MODULE_COLORS.inventory,   access: moduleAccess.inventory },
+      { id: 'finance',     label: 'Finance',        icon: 'account_balance', color: MODULE_COLORS.finance,     access: moduleAccess.finance },
     ],
   },
   {
@@ -73,9 +85,9 @@ const MODULE_GROUPS = [
     icon: 'hub',
     color: MODULE_COLORS.docshare,
     children: [
-      { id: 'docshare',   label: 'DocVault',     icon: 'folder_shared', color: MODULE_COLORS.docshare,   access: moduleAccess.docshare },
-      { id: 'governance',  label: 'Governance',   icon: 'gavel',         color: MODULE_COLORS.governance,  access: moduleAccess.governance },
-      { id: 'connect',     label: 'Connect',      icon: 'chat',          color: MODULE_COLORS.connect,     access: moduleAccess.connect },
+      { id: 'docshare',   label: 'DocVault',       icon: 'folder_shared',  color: MODULE_COLORS.docshare,   access: moduleAccess.docshare },
+      { id: 'governance',  label: 'Governance',     icon: 'gavel',          color: MODULE_COLORS.governance,  access: moduleAccess.governance },
+      { id: 'connect',     label: 'Connect',        icon: 'chat',           color: MODULE_COLORS.connect,     access: moduleAccess.connect },
     ],
   },
   {
@@ -320,6 +332,9 @@ export default function HomeLauncher({ onEnterModule }) {
 
   const { isHQ } = useSite()
 
+  // Filter top-level modules by access
+  const visibleTopLevel = TOP_LEVEL_MODULES.filter(m => !m.access || m.access(role, can))
+
   // Filter groups: only show groups that have at least one accessible child
   function childAccessible(child) {
     if (child.coming) return true
@@ -333,7 +348,7 @@ export default function HomeLauncher({ onEnterModule }) {
   function handleGroupClick(group) {
     // If only one non-coming child, go straight to it
     const real = group.children.filter(c => !c.coming)
-    if (real.length === 1) {
+    if (real.length === 1 && !real[0].deepPage) {
       onEnterModule(real[0].id)
       return
     }
@@ -342,6 +357,10 @@ export default function HomeLauncher({ onEnterModule }) {
 
   function handleChildClick(child) {
     if (child.coming) return
+    if (child.deepPage) {
+      navigate(`/${child.id}/${child.deepPage}`)
+      return
+    }
     onEnterModule(child.id)
   }
 
@@ -499,7 +518,9 @@ export default function HomeLauncher({ onEnterModule }) {
         ) : (
           <UmbrellaGrid
             groups={visibleGroups}
+            topLevel={visibleTopLevel}
             onGroupClick={handleGroupClick}
+            onTopLevelClick={m => onEnterModule(m.id)}
             chatUnread={chatUnread}
             isMobile={isMobile}
             isTablet={isTablet}
@@ -603,10 +624,11 @@ export default function HomeLauncher({ onEnterModule }) {
   )
 }
 
-// ── Umbrella grid — shows the top-level group tiles ─────────────────────────
-function UmbrellaGrid({ groups, onGroupClick, chatUnread, isMobile, isTablet }) {
+// ── Umbrella grid — shows top-level standalone tiles + group tiles ───────────
+function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, chatUnread, isMobile, isTablet }) {
+  const totalItems = topLevel.length + groups.length
   const perRow = isMobile ? 2 : isTablet ? 3 : 4
-  const cols = Math.min(groups.length, perRow)
+  const cols = Math.min(totalItems, perRow)
 
   return (
     <div style={{
@@ -616,6 +638,17 @@ function UmbrellaGrid({ groups, onGroupClick, chatUnread, isMobile, isTablet }) 
       width: '100%',
       maxWidth: `${cols * (isMobile ? 160 : 180)}px`,
     }}>
+      {/* Top-level standalone modules (e.g. Fuel) — rendered as direct-click tiles */}
+      {topLevel.map(mod => (
+        <GroupTile
+          key={mod.id}
+          group={{ ...mod, children: [] }}
+          badge={0}
+          onClick={() => onTopLevelClick(mod)}
+          direct
+        />
+      ))}
+      {/* Umbrella groups */}
       {groups.map(group => {
         const chatBadge = group.children.some(c => c.id === 'connect') ? chatUnread : 0
         return (
@@ -632,9 +665,9 @@ function UmbrellaGrid({ groups, onGroupClick, chatUnread, isMobile, isTablet }) 
 }
 
 // ── Group tile — an umbrella card on the home grid ──────────────────────────
-function GroupTile({ group, badge = 0, onClick }) {
+function GroupTile({ group, badge = 0, onClick, direct = false }) {
   const [hovered, setHovered] = useState(false)
-  const childCount = group.children.filter(c => !c.coming).length
+  const childCount = direct ? 0 : group.children.filter(c => !c.coming).length
   const hasMultiple = childCount > 1
 
   return (

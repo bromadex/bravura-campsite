@@ -256,6 +256,8 @@ export default function CLDashboard({ setPage }) {
     )
   }
 
+  if (!can('contractors.view')) return <Denied />
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <QuickNav pills={CONTRACTOR_PILLS} setPage={setPage} current="cl_dashboard" />

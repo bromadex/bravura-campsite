@@ -388,7 +388,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   }
   async function deletePhase() {
     if (!confirm('Remove this phase?')) return
-    await supabase.from('project_phases').delete().eq('id', editPhaseId)
+    await supabase.from('project_phases').update({ is_archived: true }).eq('id', editPhaseId)
     showToast('Phase removed', 'green')
     await fetchAll()
     setPhaseModal(false)
@@ -440,7 +440,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   }
   async function removeLabel(id) {
     if (!confirm('Remove this label?')) return
-    await supabase.from('project_labels').delete().eq('id', id)
+    await supabase.from('project_labels').update({ is_archived: true }).eq('id', id)
     showToast('Label removed', 'green')
     await fetchAll()
   }
@@ -730,7 +730,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   }
 
   async function deleteChecklistItem(id) {
-    const { error } = await supabase.from('project_task_checklist').delete().eq('id', id)
+    const { error } = await supabase.from('project_task_checklist').update({ is_archived: true }).eq('id', id)
     if (error) { showToast(error.message, 'red'); return }
     setTaskForm(f => ({ ...f, _checklist: (f._checklist || []).filter(c => c.id !== id) }))
     await fetchBoard()
@@ -852,7 +852,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   }
   async function removeArea(areaId) {
     if (!confirm('Remove this area from the project?')) return
-    const { error } = await supabase.from('project_areas').delete().eq('id', areaId)
+    const { error } = await supabase.from('project_areas').update({ is_archived: true }).eq('id', areaId)
     if (error) showToast(error.message, 'red')
     else { showToast('Area removed', 'green'); fetchAreas() }
   }

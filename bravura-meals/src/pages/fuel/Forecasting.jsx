@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import { primaryTank } from '../../utils/tanks'
 import { buildForecast, daysUntil, simulateLevelCurve } from '../../utils/forecast'
 import { useFuel } from '../../contexts/FuelContext'

@@ -152,7 +152,7 @@ export default function FleetCompliance({ setPage }) {
         notes: form.notes || null,
       }
       if (editId) {
-        const { error: err } = await supabase.from('fleet_compliance').update(payload).eq('id', editId)
+        const { error: err } = await supabase.from('fleet_compliance').update(payload).eq('id', editId).eq('site_id', currentSiteId)
         if (err) throw err
       } else {
         const { error: err } = await supabase.from('fleet_compliance').insert(payload)
@@ -172,7 +172,7 @@ export default function FleetCompliance({ setPage }) {
     try {
       const { error: err } = await supabase.from('fleet_compliance')
         .update({ is_archived: true, archived_at: new Date().toISOString() })
-        .eq('id', editId)
+        .eq('id', editId).eq('site_id', currentSiteId)
       if (err) throw err
       await fetchAll()
       setModalOpen(false)

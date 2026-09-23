@@ -128,7 +128,7 @@ export default function ProcInvoices({ setPage }) {
     const updates = { status, updated_at: new Date().toISOString() }
     if (status === 'approved') updates.approved_by = user.id
     if (status === 'paid') updates.paid_at = new Date().toISOString()
-    const { error } = await supabase.from('purchase_invoices').update(updates).eq('id', id)
+    const { error } = await supabase.from('purchase_invoices').update(updates).eq('id', id).eq('site_id', currentSiteId)
     if (error) showToast(error.message, 'red')
     else { showToast(`Invoice ${status.replace('_', ' ')}`); setDetail(null); fetchAll() }
   }

@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import { StatusBadge } from '../../components/ui'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'

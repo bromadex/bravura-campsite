@@ -9,6 +9,8 @@ import { friendlyError } from '../../utils/friendlyError'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 
 const MODULE_COLOR = '#5C6BC0'
+// Safety-net: the role name whose last grant must never be removed (prevents total lockout)
+const LOCKOUT_GUARD_ROLE = 'System Administrator'
 
 export default function UserManagement({ setPage }) {
   const { can } = usePermissions()
@@ -81,7 +83,7 @@ export default function UserManagement({ setPage }) {
   // used to block removing the very last one and locking everyone out.
   function systemAdminGrantCount(excludingRowId = null) {
     return userRoles.filter(ur =>
-      ur.role?.name === 'System Administrator' && ur.id !== excludingRowId
+      ur.role?.name === LOCKOUT_GUARD_ROLE && ur.id !== excludingRowId
     ).length
   }
 
@@ -119,7 +121,7 @@ export default function UserManagement({ setPage }) {
     // Safety net: never allow removing the last System Administrator grant
     // in the whole system — that would lock everyone out with no way back
     // in except direct database access.
-    if (revokeTarget.role?.name === 'System Administrator' && systemAdminGrantCount(revokeTarget.id) === 0) {
+    if (revokeTarget.role?.name === LOCKOUT_GUARD_ROLE && systemAdminGrantCount(revokeTarget.id) === 0) {
       showToast('Cannot remove the last System Administrator — this would lock everyone out.', 'red')
       setRevokeTarget(null)
       return
@@ -171,9 +173,9 @@ export default function UserManagement({ setPage }) {
       const theirGrants = userRoles.filter(ur => ur.user_id === target.id)
       // Same safety net as single-role revoke: never remove the last
       // System Administrator grant in the whole system.
-      const removesSysAdmin = theirGrants.some(ur => ur.role?.name === 'System Administrator')
+      const removesSysAdmin = theirGrants.some(ur => ur.role?.name === LOCKOUT_GUARD_ROLE)
       const remainingSysAdmins = userRoles.filter(ur =>
-        ur.role?.name === 'System Administrator' && ur.user_id !== target.id
+        ur.role?.name === LOCKOUT_GUARD_ROLE && ur.user_id !== target.id
       ).length
       if (removesSysAdmin && remainingSysAdmins === 0) {
         showToast('Cannot deactivate the last System Administrator — this would lock everyone out.', 'red')

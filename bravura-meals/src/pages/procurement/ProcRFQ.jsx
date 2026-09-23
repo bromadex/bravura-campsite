@@ -74,7 +74,7 @@ export default function ProcRFQ({ setPage }) {
   }
 
   async function updateStatus(id, status) {
-    const { error } = await supabase.from('rfqs').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+    const { error } = await supabase.from('rfqs').update({ status, updated_at: new Date().toISOString() }).eq('id', id).eq('site_id', currentSiteId)
     if (error) showToast(error.message, 'red')
     else { showToast(`RFQ ${status}`); fetchRfqs() }
   }
@@ -145,7 +145,7 @@ export default function ProcRFQ({ setPage }) {
                   {r.rfq_responses?.length > 0 && (
                     <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {r.rfq_responses.map(resp => (
-                        <span key={resp.id} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: ACCENT + '14', color: ACCENT }}>
+                        <span key={resp.id} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: CLR + '14', color: CLR }}>
                           {resp.supplier?.supplier_name} — ${resp.total_amount?.toLocaleString()}
                         </span>
                       ))}

@@ -1,4 +1,6 @@
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 
 const color = MODULE_COLORS.contractors

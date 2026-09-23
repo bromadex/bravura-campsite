@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'

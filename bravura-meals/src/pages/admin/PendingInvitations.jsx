@@ -74,7 +74,7 @@ export default function PendingInvitations({ setPage }) {
 
   async function handleRevoke() {
     if (!revokeTarget) return
-    const { error } = await supabase.from('pending_role_assignments').delete().eq('id', revokeTarget.id)
+    const { error } = await supabase.from('pending_role_assignments').update({ is_archived: true }).eq('id', revokeTarget.id)
     if (error) { showToast(error.message, 'red'); setRevokeTarget(null); return }
     showToast('Invitation revoked', 'red')
     setRevokeTarget(null)

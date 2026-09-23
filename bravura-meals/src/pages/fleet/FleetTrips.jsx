@@ -114,7 +114,7 @@ export default function FleetTrips({ setPage }) {
         notes: form.notes || null,
       }
       if (editId) {
-        const { error: err } = await supabase.from('fleet_trips').update(payload).eq('id', editId)
+        const { error: err } = await supabase.from('fleet_trips').update(payload).eq('id', editId).eq('site_id', currentSiteId)
         if (err) throw err
       } else {
         const { error: err } = await supabase.from('fleet_trips').insert(payload)

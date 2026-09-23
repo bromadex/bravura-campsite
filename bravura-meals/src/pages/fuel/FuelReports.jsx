@@ -1,4 +1,6 @@
 import { useState, useMemo, lazy, Suspense } from 'react'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import { primaryTank } from '../../utils/tanks'
 import { useNavigate } from 'react-router-dom'
 import { useFuel } from '../../contexts/FuelContext'

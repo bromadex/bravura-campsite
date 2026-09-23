@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useCampsite } from '../../contexts/CampsiteContext'
 import { THEME } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import { Card, Button, Modal, ConfirmModal, Icon, SectionLabel, StatusBadge, showToast, PageHeader } from '../../components/ui'
 import QuickNav, { CAMPSITE_PILLS } from '../../components/QuickNav'
 

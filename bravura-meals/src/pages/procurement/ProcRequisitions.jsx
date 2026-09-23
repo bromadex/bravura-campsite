@@ -94,7 +94,7 @@ export default function ProcRequisitions({ setPage }) {
   async function updateStatus(id, status) {
     const updates = { status, updated_at: new Date().toISOString() }
     if (status === 'approved') { updates.approved_by = user.id; updates.approved_at = new Date().toISOString() }
-    const { error } = await supabase.from('purchase_requisitions').update(updates).eq('id', id)
+    const { error } = await supabase.from('purchase_requisitions').update(updates).eq('id', id).eq('site_id', currentSiteId)
     if (error) showToast(error.message, 'red')
     else { showToast(`Requisition ${status}`); setDetail(null); fetchReqs() }
   }

@@ -81,7 +81,7 @@ export default function ProcTracking({ setPage }) {
     if (eventForm.location) updates.current_location = eventForm.location
     if (eventForm.event_type === 'delivered') updates.delivered_at = new Date().toISOString()
     if (eventForm.event_type === 'dispatched') updates.shipped_at = new Date().toISOString()
-    if (Object.keys(updates).length) await supabase.from('purchase_orders').update(updates).eq('id', selectedPO)
+    if (Object.keys(updates).length) await supabase.from('purchase_orders').update(updates).eq('id', selectedPO).eq('site_id', currentSiteId)
 
     showToast('Event recorded')
     setShowAddEvent(false)

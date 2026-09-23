@@ -145,7 +145,7 @@ export default function FleetContractors({ setPage }) {
         notes: form.notes || null,
       }
       if (editId) {
-        const { error: err } = await supabase.from('fleet_contractor_equipment').update(payload).eq('id', editId)
+        const { error: err } = await supabase.from('fleet_contractor_equipment').update(payload).eq('id', editId).eq('site_id', currentSiteId)
         if (err) throw err
       } else {
         const { error: err } = await supabase.from('fleet_contractor_equipment').insert(payload)
@@ -163,7 +163,7 @@ export default function FleetContractors({ setPage }) {
   async function handleArchive() {
     if (!confirm('Archive this equipment record?')) return
     try {
-      const { error: err } = await supabase.from('fleet_contractor_equipment').update({ is_archived: true }).eq('id', editId)
+      const { error: err } = await supabase.from('fleet_contractor_equipment').update({ is_archived: true }).eq('id', editId).eq('site_id', currentSiteId)
       if (err) throw err
       await fetchItems()
       setModalOpen(false)
@@ -178,7 +178,7 @@ export default function FleetContractors({ setPage }) {
       const { error: err } = await supabase.from('fleet_contractor_equipment').update({
         status: 'returned',
         hire_end_date: new Date().toISOString().split('T')[0],
-      }).eq('id', id)
+      }).eq('id', id).eq('site_id', currentSiteId)
       if (err) throw err
       await fetchItems()
     } catch (err) {

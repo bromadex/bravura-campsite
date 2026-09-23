@@ -1,6 +1,8 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { usePermissions } from '../../contexts/PermissionsContext'
+import Denied from '../../components/Denied'
 import { useFleet } from '../../contexts/FleetContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'

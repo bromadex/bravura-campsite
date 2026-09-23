@@ -112,7 +112,7 @@ export default function ProcGRN({ setPage }) {
   }
 
   async function updateStatus(id, status) {
-    const { error } = await supabase.from('goods_received_notes').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+    const { error } = await supabase.from('goods_received_notes').update({ status, updated_at: new Date().toISOString() }).eq('id', id).eq('site_id', currentSiteId)
     if (error) showToast(error.message, 'red')
     else { showToast(`GRN ${status}`); setDetail(null); fetchAll() }
   }

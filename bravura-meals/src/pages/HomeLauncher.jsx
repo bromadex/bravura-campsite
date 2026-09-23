@@ -510,25 +510,25 @@ export default function HomeLauncher({ onEnterModule }) {
           </h1>
         </div>
 
-        {/* Umbrella groups OR expanded sub-module grid */}
-        {expandedGroup ? (
-          <ExpandedGroupView
+        {/* Icon grid — always visible */}
+        <UmbrellaGrid
+          groups={visibleGroups}
+          topLevel={visibleTopLevel}
+          onGroupClick={handleGroupClick}
+          onTopLevelClick={m => onEnterModule(m.id)}
+          chatUnread={chatUnread}
+          isMobile={isMobile}
+          isTablet={isTablet}
+        />
+
+        {/* Modal overlay for expanded group */}
+        {expandedGroup && (
+          <GroupModal
             group={visibleGroups.find(g => g.id === expandedGroup)}
-            onBack={() => setExpandedGroup(null)}
-            onChildClick={handleChildClick}
+            onClose={() => setExpandedGroup(null)}
+            onChildClick={child => { setExpandedGroup(null); handleChildClick(child) }}
             chatUnread={chatUnread}
             isMobile={isMobile}
-            isTablet={isTablet}
-          />
-        ) : (
-          <UmbrellaGrid
-            groups={visibleGroups}
-            topLevel={visibleTopLevel}
-            onGroupClick={handleGroupClick}
-            onTopLevelClick={m => onEnterModule(m.id)}
-            chatUnread={chatUnread}
-            isMobile={isMobile}
-            isTablet={isTablet}
           />
         )}
 
@@ -657,48 +657,38 @@ export default function HomeLauncher({ onEnterModule }) {
   )
 }
 
-// ── Umbrella grid — shows top-level standalone tiles + group tiles ───────────
+// ── Umbrella grid — ERPNext-style icon + label ──────────────────────────────
 function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, chatUnread, isMobile, isTablet }) {
   const totalItems = topLevel.length + groups.length
-  const perRow = isMobile ? 2 : isTablet ? 3 : 4
+  const perRow = isMobile ? 3 : isTablet ? 4 : 5
   const cols = Math.min(totalItems, perRow)
 
   return (
     <div style={{
       display: 'grid',
       gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-      gap: isMobile ? '12px' : '16px',
+      gap: isMobile ? '28px 20px' : '36px 32px',
       width: '100%',
-      maxWidth: `${cols * (isMobile ? 160 : 180)}px`,
+      maxWidth: `${cols * (isMobile ? 100 : 120)}px`,
     }}>
-      {/* Top-level standalone modules (e.g. Fuel) — rendered as direct-click tiles */}
       {topLevel.map(mod => (
-        <GroupTile
-          key={mod.id}
-          group={{ ...mod, children: [] }}
-          badge={0}
-          onClick={() => onTopLevelClick(mod)}
-          direct
+        <IconTile key={mod.id} icon={mod.icon} label={mod.label} onClick={() => onTopLevelClick(mod)} />
+      ))}
+      {groups.map(group => (
+        <IconTile
+          key={group.id}
+          icon={group.icon}
+          label={group.label}
+          badge={group.children.some(c => c.id === 'connect') ? chatUnread : 0}
+          onClick={() => onGroupClick(group)}
         />
       ))}
-      {/* Umbrella groups */}
-      {groups.map(group => {
-        const chatBadge = group.children.some(c => c.id === 'connect') ? chatUnread : 0
-        return (
-          <GroupTile
-            key={group.id}
-            group={group}
-            badge={chatBadge}
-            onClick={() => onGroupClick(group)}
-          />
-        )
-      })}
     </div>
   )
 }
 
-// ── Group tile — an umbrella card on the home grid ──────────────────────────
-function GroupTile({ group, badge = 0, onClick, direct = false }) {
+// ── Icon tile — clean rounded-square icon + label (ERPNext style) ───────────
+function IconTile({ icon, label, badge = 0, onClick, disabled = false, glass = false }) {
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -706,220 +696,118 @@ function GroupTile({ group, badge = 0, onClick, direct = false }) {
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      disabled={disabled}
       style={{
-        background: THEME.surface,
+        background: 'transparent',
         border: 'none',
-        borderRadius: '14px',
-        padding: '24px 16px 20px',
-        cursor: 'pointer',
-        boxShadow: hovered
-          ? `0 12px 28px ${group.color}20, 0 4px 10px rgba(0,0,0,.06)`
-          : '0 1px 3px rgba(0,0,0,.06)',
-        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
-        transition: 'transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s, border-color .18s',
+        padding: 0,
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.45 : 1,
         fontFamily: 'inherit',
         textAlign: 'center',
-        width: '100%',
-        aspectRatio: '1 / 1',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: '14px',
-        position: 'relative',
+        gap: '10px',
       }}
     >
-      {badge > 0 && (
+      <div style={{ position: 'relative' }}>
         <div style={{
-          position: 'absolute', top: '8px', right: '8px',
-          background: THEME.error, color: '#fff', borderRadius: '50px',
-          minWidth: '20px', height: '20px', padding: '0 6px',
+          width: '56px', height: '56px',
+          borderRadius: '14px',
+          background: glass ? 'rgba(255,255,255,.18)' : '#982329',
+          border: glass ? '1px solid rgba(255,255,255,.2)' : 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '11px', fontWeight: 700, lineHeight: 1,
-          boxShadow: '0 2px 6px rgba(220,38,38,.4)',
-        }}>{badge > 99 ? '99+' : badge}</div>
-      )}
-
-      <div style={{
-        width: '58px', height: '58px',
-        borderRadius: '14px',
-        background: '#982329',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: hovered
-          ? '0 8px 20px #98232955, inset 0 -3px 0 rgba(0,0,0,.10)'
-          : '0 4px 10px #98232930, inset 0 -3px 0 rgba(0,0,0,.08)',
-        transition: 'box-shadow .18s',
-      }}>
-        <span
-          className="material-symbols-rounded filled"
-          style={{ fontSize: '30px', color: '#fff', lineHeight: 1 }}
-        >
-          {group.icon}
-        </span>
+          transform: hovered && !disabled ? 'scale(1.08)' : 'scale(1)',
+          transition: 'transform .15s ease',
+        }}>
+          <span className="material-symbols-rounded" style={{ fontSize: '28px', color: '#fff', lineHeight: 1 }}>
+            {icon}
+          </span>
+        </div>
+        {badge > 0 && (
+          <span style={{
+            position: 'absolute', top: '-4px', right: '-4px',
+            minWidth: '18px', height: '18px', borderRadius: '50px',
+            background: '#EF4444', color: '#fff',
+            fontSize: '10px', fontWeight: 700, lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 4px', border: glass ? '2px solid rgba(152,35,41,.9)' : `2px solid ${THEME.bg}`,
+          }}>{badge > 99 ? '99+' : badge}</span>
+        )}
       </div>
-
       <div style={{
-        fontSize: '13.5px',
-        fontWeight: 600,
-        color: THEME.text,
-        lineHeight: 1.25,
-        letterSpacing: '-.005em',
-        wordBreak: 'break-word',
-        hyphens: 'auto',
-        padding: '0 4px',
-        width: '100%',
+        fontSize: '12px', fontWeight: 500, color: glass ? 'rgba(255,255,255,.9)' : THEME.text,
+        lineHeight: 1.3, maxWidth: '90px',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
-        {group.label}
+        {label}
       </div>
     </button>
   )
 }
 
-// ── Expanded group view — shows the sub-module tiles within a group ──────────
-function ExpandedGroupView({ group, onBack, onChildClick, chatUnread, isMobile, isTablet }) {
+// ── Group modal — popup card with sub-module icons (ERPNext style) ──────────
+function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
   if (!group) return null
-  const perRow = isMobile ? 2 : isTablet ? 3 : 4
+  const perRow = isMobile ? 3 : 4
   const cols = Math.min(group.children.length, perRow)
 
   return (
-    <div style={{ width: '100%', maxWidth: `${cols * (isMobile ? 160 : 180)}px` }}>
-      {/* Back button + group name */}
-      <button
-        onClick={onBack}
-        style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          background: 'none', border: 'none', cursor: 'pointer',
-          fontFamily: 'inherit', fontSize: '14px', fontWeight: 600,
-          color: THEME.textMed, marginBottom: '20px', padding: '4px 0',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.color = THEME.text }}
-        onMouseLeave={e => { e.currentTarget.style.color = THEME.textMed }}
-      >
-        <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>arrow_back</span>
-        Back
-      </button>
-
-      {/* Group header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <div style={{
-          width: '42px', height: '42px', borderRadius: '12px',
-          background: '#982329', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <span className="material-symbols-rounded filled" style={{ fontSize: '22px', color: '#fff' }}>{group.icon}</span>
+    <>
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, zIndex: 300,
+        background: 'rgba(0,0,0,.35)',
+        animation: 'fadeIn .15s ease',
+      }} />
+      <div style={{
+        position: 'fixed', zIndex: 301,
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        background: 'linear-gradient(135deg, rgba(152,35,41,.88) 0%, rgba(122,27,32,.92) 100%)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderRadius: '20px',
+        border: '1px solid rgba(255,255,255,.15)',
+        padding: isMobile ? '28px 20px' : '36px 40px',
+        boxShadow: '0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.12)',
+        maxWidth: '560px',
+        width: isMobile ? 'calc(100% - 32px)' : 'auto',
+        minWidth: isMobile ? 'auto' : '400px',
+        maxHeight: '80vh',
+        overflowY: 'auto',
+        animation: 'scaleIn .2s ease',
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: '#fff', letterSpacing: '.01em' }}>{group.label}</div>
         </div>
-        <div style={{ fontSize: '22px', fontWeight: 600, color: THEME.text }}>{group.label}</div>
-      </div>
 
-      {/* Sub-module tiles */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-        gap: isMobile ? '12px' : '16px',
-      }}>
-        {group.children.map(child => {
-          const badge = child.id === 'connect' ? chatUnread : 0
-          return (
-            <ChildTile
-              key={child.id}
-              child={child}
-              badge={badge}
-              onClick={() => onChildClick(child)}
-            />
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// ── Child tile — a module within an expanded group ──────────────────────────
-function ChildTile({ child, badge = 0, onClick }) {
-  const [hovered, setHovered] = useState(false)
-  const isComing = child.coming
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      disabled={isComing}
-      style={{
-        background: THEME.surface,
-        border: 'none',
-        borderRadius: '14px',
-        padding: '24px 16px 20px',
-        cursor: isComing ? 'default' : 'pointer',
-        opacity: isComing ? 0.5 : 1,
-        boxShadow: hovered && !isComing
-          ? `0 12px 28px ${child.color}20, 0 4px 10px rgba(0,0,0,.06)`
-          : '0 1px 3px rgba(0,0,0,.06)',
-        transform: hovered && !isComing ? 'translateY(-4px)' : 'translateY(0)',
-        transition: 'transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s, border-color .18s',
-        fontFamily: 'inherit',
-        textAlign: 'center',
-        width: '100%',
-        aspectRatio: '1 / 1',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '14px',
-        position: 'relative',
-      }}
-    >
-      {badge > 0 && (
         <div style={{
-          position: 'absolute', top: '8px', right: '8px',
-          background: THEME.error, color: '#fff', borderRadius: '50px',
-          minWidth: '20px', height: '20px', padding: '0 6px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '11px', fontWeight: 700, lineHeight: 1,
-          boxShadow: '0 2px 6px rgba(220,38,38,.4)',
-        }}>{badge > 99 ? '99+' : badge}</div>
-      )}
-
-      {isComing && (
-        <div style={{
-          position: 'absolute', top: '8px', right: '8px',
-          fontSize: '9px', fontWeight: 600, color: THEME.textLow,
-          background: THEME.surfaceVar, borderRadius: '4px',
-          padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '.04em',
+          display: 'grid',
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gap: isMobile ? '24px 16px' : '28px 24px',
+          justifyItems: 'center',
         }}>
-          Soon
+          {group.children.map((child, i) => {
+            const badge = child.id === 'connect' ? chatUnread : 0
+            return (
+              <IconTile
+                key={child.label + i}
+                icon={child.icon}
+                label={child.label}
+                badge={badge}
+                disabled={child.coming}
+                onClick={() => !child.coming && onChildClick(child)}
+                glass
+              />
+            )
+          })}
         </div>
-      )}
-
-      <div style={{
-        width: '58px', height: '58px',
-        borderRadius: '14px',
-        background: '#982329',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: hovered && !isComing
-          ? '0 8px 20px #98232955, inset 0 -3px 0 rgba(0,0,0,.10)'
-          : '0 4px 10px #98232930, inset 0 -3px 0 rgba(0,0,0,.08)',
-        transition: 'box-shadow .18s',
-      }}>
-        <span
-          className="material-symbols-rounded filled"
-          style={{ fontSize: '30px', color: '#fff', lineHeight: 1 }}
-        >
-          {child.icon}
-        </span>
       </div>
-
-      <div style={{
-        fontSize: '13.5px',
-        fontWeight: 600,
-        color: isComing ? THEME.textLow : THEME.text,
-        lineHeight: 1.25,
-        letterSpacing: '-.005em',
-        wordBreak: 'break-word',
-        hyphens: 'auto',
-        padding: '0 4px',
-        width: '100%',
-      }}>
-        {child.label}
-      </div>
-    </button>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes scaleIn { from { opacity: 0; transform: translate(-50%,-50%) scale(.95) } to { opacity: 1; transform: translate(-50%,-50%) scale(1) } }
+      `}</style>
+    </>
   )
 }

@@ -707,11 +707,11 @@ function GroupTile({ group, badge = 0, onClick, direct = false }) {
       <div style={{
         width: '58px', height: '58px',
         borderRadius: '14px',
-        background: group.color,
+        background: '#982329',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: hovered
-          ? `0 8px 20px ${group.color}55, inset 0 -3px 0 rgba(0,0,0,.10)`
-          : `0 4px 10px ${group.color}30, inset 0 -3px 0 rgba(0,0,0,.08)`,
+          ? '0 8px 20px #98232955, inset 0 -3px 0 rgba(0,0,0,.10)'
+          : '0 4px 10px #98232930, inset 0 -3px 0 rgba(0,0,0,.08)',
         transition: 'box-shadow .18s',
       }}>
         <span
@@ -767,7 +767,7 @@ function ExpandedGroupView({ group, onBack, onChildClick, chatUnread, isMobile, 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
         <div style={{
           width: '42px', height: '42px', borderRadius: '12px',
-          background: group.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#982329', display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <span className="material-symbols-rounded filled" style={{ fontSize: '22px', color: '#fff' }}>{group.icon}</span>
         </div>
@@ -856,11 +856,11 @@ function ChildTile({ child, badge = 0, onClick }) {
       <div style={{
         width: '58px', height: '58px',
         borderRadius: '14px',
-        background: child.color,
+        background: '#982329',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: hovered && !isComing
-          ? `0 8px 20px ${child.color}55, inset 0 -3px 0 rgba(0,0,0,.10)`
-          : `0 4px 10px ${child.color}30, inset 0 -3px 0 rgba(0,0,0,.08)`,
+          ? '0 8px 20px #98232955, inset 0 -3px 0 rgba(0,0,0,.10)'
+          : '0 4px 10px #98232930, inset 0 -3px 0 rgba(0,0,0,.08)',
         transition: 'box-shadow .18s',
       }}>
         <span

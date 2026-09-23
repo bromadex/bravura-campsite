@@ -667,8 +667,6 @@ function UmbrellaGrid({ groups, topLevel = [], onGroupClick, onTopLevelClick, ch
 // ── Group tile — an umbrella card on the home grid ──────────────────────────
 function GroupTile({ group, badge = 0, onClick, direct = false }) {
   const [hovered, setHovered] = useState(false)
-  const childCount = direct ? 0 : group.children.filter(c => !c.coming).length
-  const hasMultiple = childCount > 1
 
   return (
     <button
@@ -677,13 +675,13 @@ function GroupTile({ group, badge = 0, onClick, direct = false }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         background: THEME.surface,
-        border: `1px solid ${hovered ? group.color + '40' : THEME.outlineVar}`,
+        border: 'none',
         borderRadius: '14px',
         padding: '24px 16px 20px',
         cursor: 'pointer',
         boxShadow: hovered
           ? `0 12px 28px ${group.color}20, 0 4px 10px rgba(0,0,0,.06)`
-          : '0 1px 2px rgba(0,0,0,.04)',
+          : '0 1px 3px rgba(0,0,0,.06)',
         transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
         transition: 'transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s, border-color .18s',
         fontFamily: 'inherit',
@@ -707,18 +705,6 @@ function GroupTile({ group, badge = 0, onClick, direct = false }) {
           fontSize: '11px', fontWeight: 700, lineHeight: 1,
           boxShadow: '0 2px 6px rgba(220,38,38,.4)',
         }}>{badge > 99 ? '99+' : badge}</div>
-      )}
-
-      {/* Expand indicator */}
-      {hasMultiple && (
-        <div style={{
-          position: 'absolute', top: '10px', left: '10px',
-          fontSize: '10px', color: THEME.textLow, fontWeight: 600,
-          background: THEME.surfaceVar, borderRadius: '4px',
-          padding: '1px 5px',
-        }}>
-          {childCount}
-        </div>
       )}
 
       <div style={{
@@ -826,14 +812,14 @@ function ChildTile({ child, badge = 0, onClick }) {
       disabled={isComing}
       style={{
         background: THEME.surface,
-        border: `1px solid ${isComing ? THEME.outlineVar : hovered ? child.color + '40' : THEME.outlineVar}`,
+        border: 'none',
         borderRadius: '14px',
         padding: '24px 16px 20px',
         cursor: isComing ? 'default' : 'pointer',
         opacity: isComing ? 0.5 : 1,
         boxShadow: hovered && !isComing
           ? `0 12px 28px ${child.color}20, 0 4px 10px rgba(0,0,0,.06)`
-          : '0 1px 2px rgba(0,0,0,.04)',
+          : '0 1px 3px rgba(0,0,0,.06)',
         transform: hovered && !isComing ? 'translateY(-4px)' : 'translateY(0)',
         transition: 'transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s, border-color .18s',
         fontFamily: 'inherit',

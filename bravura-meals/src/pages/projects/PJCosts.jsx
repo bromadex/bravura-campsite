@@ -25,6 +25,7 @@ export default function PJCosts({ setPage }) {
   const [loading, setLoading] = useState(true)
   const [filterProject, setFilterProject] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
+  const [crossModule, setCrossModule] = useState({ fuel: [], fleet: [], contractor: [] })
 
   useEffect(() => {
     if (!currentSiteId) return
@@ -36,6 +37,24 @@ export default function PJCosts({ setPage }) {
       ])
       setProjects(pRes.data || [])
       setItems(ciRes.data || [])
+
+      // Cross-module cost rollup
+      const projectIds = (pRes.data || []).map(p => p.id)
+      if (projectIds.length > 0) {
+        const [fuelRes, fleetRes, contrRes] = await Promise.all([
+          supabase.from('fuel_transactions').select('project_id, total_cost').in('project_id', projectIds).eq('is_archived', false),
+          supabase.from('fleet_maintenance').select('project_id, actual_cost').in('project_id', projectIds).eq('is_archived', false),
+          supabase.from('contractor_contracts').select('project_id, contract_value').in('project_id', projectIds).eq('is_archived', false),
+        ])
+        setCrossModule({
+          fuel: fuelRes.data || [],
+          fleet: fleetRes.data || [],
+          contractor: contrRes.data || [],
+        })
+      } else {
+        setCrossModule({ fuel: [], fleet: [], contractor: [] })
+      }
+
       setLoading(false)
     }
     fetch()
@@ -57,6 +76,18 @@ export default function PJCosts({ setPage }) {
   }), { budgeted: 0, committed: 0, actual: 0, etc: 0, eac: 0 }), [filtered])
 
   const categories = [...new Set(items.map(i => i.category).filter(Boolean))].sort()
+
+  const crossModuleSummary = useMemo(() => {
+    const fp = filterProject
+    const fuelRows = fp ? crossModule.fuel.filter(r => r.project_id === fp) : crossModule.fuel
+    const fleetRows = fp ? crossModule.fleet.filter(r => r.project_id === fp) : crossModule.fleet
+    const contrRows = fp ? crossModule.contractor.filter(r => r.project_id === fp) : crossModule.contractor
+    return [
+      { module: 'Fuel', icon: 'local_gas_station', items: fuelRows.length, total: fuelRows.reduce((s, r) => s + (Number(r.total_cost) || 0), 0), accent: '#E65100' },
+      { module: 'Fleet Maintenance', icon: 'build', items: fleetRows.length, total: fleetRows.reduce((s, r) => s + (Number(r.actual_cost) || 0), 0), accent: '#1565C0' },
+      { module: 'Contractors', icon: 'engineering', items: contrRows.length, total: contrRows.reduce((s, r) => s + (Number(r.contract_value) || 0), 0), accent: '#6A1B9A' },
+    ]
+  }, [crossModule, filterProject])
 
   if (!can('projects.view')) return null
 
@@ -148,6 +179,40 @@ export default function PJCosts({ setPage }) {
               </tbody>
             </table>
           </div>
+        </DashCard>
+      )}
+
+      {/* Cross-Module Cost Summary */}
+      {!loading && (crossModuleSummary.some(r => r.items > 0)) && (
+        <DashCard style={{ marginTop: '20px' }}>
+          <SectionTitle title="Cross-Module Cost Summary" subtitle="Costs from other modules linked to projects" />
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr>
+                {['Module', 'Items', 'Total Cost'].map((h, i) => (
+                  <th key={h} style={{ padding: '8px 10px', textAlign: i === 2 ? 'right' : 'left', fontWeight: 600, color: THEME.textLow, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.03em' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {crossModuleSummary.map(row => (
+                <tr key={row.module} style={{ borderTop: `1px solid ${THEME.outlineVar}` }}>
+                  <td style={{ padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Icon name={row.icon} size={16} style={{ color: row.accent }} />
+                    <span style={{ fontWeight: 500, color: THEME.text }}>{row.module}</span>
+                  </td>
+                  <td style={{ padding: '8px 10px', color: THEME.textMed }}>{row.items}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: THEME.text }}>{fmtMoney(row.total)}</td>
+                </tr>
+              ))}
+              <tr style={{ borderTop: `2px solid ${THEME.outline}`, fontWeight: 700 }}>
+                <td colSpan={2} style={{ padding: '10px', color: THEME.text }}>Cross-Module Total</td>
+                <td style={{ padding: '10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: THEME.text }}>
+                  {fmtMoney(crossModuleSummary.reduce((s, r) => s + r.total, 0))}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </DashCard>
       )}
     </div>

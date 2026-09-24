@@ -16,6 +16,7 @@ export const ENTITY_LABELS = {
   purchase_invoices:     { label: 'Supplier invoice', unit: '$',    icon: 'receipt_long' },
   fuel_requests:         { label: 'Fuel request',     unit: 'L',    icon: 'local_gas_station' },
   leave_requests:        { label: 'Leave',            unit: 'days', icon: 'flight_takeoff' },
+  expense_claims:        { label: 'Expense claim',    unit: '$',    icon: 'receipt_long' },
 }
 
 const STATUS = {

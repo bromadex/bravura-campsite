@@ -214,6 +214,8 @@ export const TXN_CODES = [
   { code: 'FI11', path: '/finance/fi_cost_report',    label: 'Cost Centre Report',      module: 'finance' },
   { code: 'FI12', path: '/finance/fi_dashboard',      label: 'Finance Dashboard',       module: 'finance' },
   { code: 'FI13', path: '/finance/fi_posting_rules',  label: 'Posting Rules',           module: 'finance' },
+  { code: 'FI14', path: '/finance/fi_expense_claims', label: 'Expense Claims',          module: 'finance' },
+  { code: 'FI15', path: '/finance/fi_petty_cash',      label: 'Petty Cash',              module: 'finance' },
 
   // ── Batch Plant Operations ──
   { code: 'CO01', path: '/concrete/co_dashboard',       label: 'Concrete Dashboard',   module: 'concrete' },
@@ -276,6 +278,11 @@ export const TXN_CODES = [
   { code: 'NT01', path: '/notifications/notification_center', label: 'Notification Center', module: 'notifications' },
   { code: 'NT02', path: '/notifications/approvals_inbox', label: 'Approvals Inbox', module: 'notifications' },
   { code: 'NT03', path: '/notifications/my_preferences', label: 'My Preferences', module: 'notifications' },
+  { code: 'ES01', path: '/me/me_home',       label: 'My Workspace',  module: 'me' },
+  { code: 'ES02', path: '/me/me_payslips',   label: 'My Payslips',   module: 'me' },
+  { code: 'ES03', path: '/me/me_leave',      label: 'My Leave',      module: 'me' },
+  { code: 'ES04', path: '/me/me_attendance', label: 'My Attendance', module: 'me' },
+  { code: 'ES05', path: '/me/me_expenses',   label: 'My Expenses',   module: 'me' },
 
   // ── DocVault (DS) ──────────────────────────────────────────────────────
   { code: 'DS01', path: '/docshare/ds_library',         label: 'Document Library',       module: 'docshare' },

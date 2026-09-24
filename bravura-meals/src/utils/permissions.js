@@ -96,6 +96,7 @@ export const MODULE_COLORS = {
   connect:     '#00838F',  // cyan         – messaging/connect
   notifications: '#FF6F00', // amber       – alerts/notifications
   docshare:      '#4527A0', // deep purple – document management
+  me:            '#00897B', // teal-green  – employee self-service
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -131,6 +132,7 @@ export const moduleAccess = {
   notifications: r => !!r,
   docshare:     (role, can) => can ? can('ds.view') : false,
   feedback:     r => !!r,
+  me:           r => !!r,
 }
 
 // ─── Feedback nav ─────────────────────────────────────────────────────────────
@@ -285,6 +287,8 @@ export function financeNav(role, can) {
     { id: 'fi_cash_flow',         label: 'Cash Flow',         section: 'Reports',        icon: 'water_drop' },
     { id: 'fi_cost_centres',      label: 'Cost Centres',      section: 'Cost Tracking',  icon: 'category' },
     { id: 'fi_cost_report',       label: 'Cost Centre Report',section: 'Cost Tracking',  icon: 'bar_chart' },
+    { id: 'fi_expense_claims',    label: 'Expense Claims',    section: 'Spending',       icon: 'receipt_long' },
+    { id: 'fi_petty_cash',        label: 'Petty Cash',        section: 'Spending',       icon: 'savings' },
   ]
 }
 
@@ -438,6 +442,16 @@ export function governanceNav(role, can) {
 export function connectNav(role, can) {
   return [
     { id: 'connect_chat', label: 'Bravura Connect', section: 'Messaging', icon: 'chat' },
+  ]
+}
+
+export function meNav() {
+  return [
+    { id: 'me_home',       label: 'My Workspace', section: 'Me', icon: 'home' },
+    { id: 'me_payslips',   label: 'Payslips',     section: 'Me', icon: 'payments' },
+    { id: 'me_leave',      label: 'Leave',        section: 'Me', icon: 'beach_access' },
+    { id: 'me_attendance', label: 'Attendance',   section: 'Me', icon: 'schedule' },
+    { id: 'me_expenses',   label: 'Expenses',     section: 'Me', icon: 'receipt_long' },
   ]
 }
 

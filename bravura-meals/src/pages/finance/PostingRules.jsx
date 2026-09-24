@@ -22,7 +22,17 @@ const EVENTS = [
   { code: 'payroll_deductions', group: 'Payroll',     label: 'Payroll approved — other deductions (medical aid etc.)', debit: 'Salaries & wages expense', credit: 'Other deductions payable' },
   { code: 'payroll_paid',       group: 'Payroll',     label: 'Payroll paid to employees',             debit: 'Net pay payable',                  credit: 'Bank' },
   { code: 'meals_approved',     group: 'Meals',       label: 'Daily meals approved',                  debit: 'Catering expense',                 credit: 'Catering provider payable' },
-  { code: 'imtt',               group: 'Bank',        label: 'IMTT on payments (invoices & payroll)', debit: 'Bank charges — IMTT',              credit: 'Bank' },
+  { code: 'expense_approved',   group: 'Expenses',    label: 'Expense claim approved',                debit: 'Staff expenses (by claim)',        credit: 'Employee claims payable' },
+  { code: 'advance_settled',    group: 'Expenses',    label: 'Claim settled against an advance',      debit: 'Employee claims payable',          credit: 'Staff advances (asset)' },
+  { code: 'expense_paid',       group: 'Expenses',    label: 'Expense claim paid by bank',            debit: 'Employee claims payable',          credit: 'Bank' },
+  { code: 'expense_paid_cash',  group: 'Expenses',    label: 'Expense claim paid from petty cash',    debit: 'Employee claims payable',          credit: 'Petty cash (asset)' },
+  { code: 'advance_paid',       group: 'Expenses',    label: 'Advance paid by bank',                  debit: 'Staff advances (asset)',           credit: 'Bank' },
+  { code: 'advance_paid_cash',  group: 'Expenses',    label: 'Advance paid from petty cash',          debit: 'Staff advances (asset)',           credit: 'Petty cash (asset)' },
+  { code: 'petty_cash_topup',   group: 'Petty cash',  label: 'Petty cash topped up',                  debit: 'Petty cash (asset)',               credit: 'Bank' },
+  { code: 'petty_cash_expense', group: 'Petty cash',  label: 'Petty cash spent',                      debit: 'Sundry site expenses',             credit: 'Petty cash (asset)' },
+  { code: 'petty_cash_short',   group: 'Petty cash',  label: 'Cash count short',                      debit: 'Cash shortages (expense)',         credit: 'Petty cash (asset)' },
+  { code: 'petty_cash_over',    group: 'Petty cash',  label: 'Cash count over',                       debit: 'Petty cash (asset)',               credit: 'Cash shortages (reduces the expense — not revenue)' },
+  { code: 'imtt',               group: 'Bank',        label: 'IMTT on payments (invoices, payroll, claims)', debit: 'Bank charges — IMTT',        credit: 'Bank' },
 ]
 const EVENT_LABEL = Object.fromEntries(EVENTS.map(e => [e.code, e.label]))
 

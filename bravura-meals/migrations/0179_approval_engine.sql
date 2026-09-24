@@ -599,14 +599,24 @@ CREATE POLICY ars_select ON approval_route_steps FOR SELECT USING (EXISTS (SELEC
 CREATE POLICY ars_insert ON approval_route_steps FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM approval_routes r WHERE r.id = route_id AND _has_permission('approvals.edit', r.site_id)));
 CREATE POLICY ars_update ON approval_route_steps FOR UPDATE USING (EXISTS (SELECT 1 FROM approval_routes r WHERE r.id = route_id AND _has_permission('approvals.edit', r.site_id)));
 
+-- Visibility lives in one SECURITY DEFINER function so the two policies don't
+-- reference each other (that recursed and broke every read).
+CREATE OR REPLACE FUNCTION _approval_request_visible(p_request_id UUID)
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM approval_requests r
+     WHERE r.id = p_request_id AND (
+       r.requested_by = auth.uid()
+       OR _has_permission('approvals.view', r.site_id)
+       OR approval_can_act(r.id)
+       OR EXISTS (SELECT 1 FROM approval_actions a WHERE a.request_id = r.id AND a.actor_id = auth.uid())))
+$$;
+
 DROP POLICY IF EXISTS areq_select ON approval_requests;
-CREATE POLICY areq_select ON approval_requests FOR SELECT USING (
-  requested_by = auth.uid() OR _has_permission('approvals.view', site_id) OR approval_can_act(approval_requests.id)
-  OR EXISTS (SELECT 1 FROM approval_actions a WHERE a.request_id = approval_requests.id AND a.actor_id = auth.uid()));
+CREATE POLICY areq_select ON approval_requests FOR SELECT USING (_approval_request_visible(id));
 
 DROP POLICY IF EXISTS aact_select ON approval_actions;
-CREATE POLICY aact_select ON approval_actions FOR SELECT USING (
-  EXISTS (SELECT 1 FROM approval_requests r WHERE r.id = approval_actions.request_id));   -- inherits request visibility
+CREATE POLICY aact_select ON approval_actions FOR SELECT USING (_approval_request_visible(request_id));
 -- Requests and actions are written only by SECURITY DEFINER functions.
 
 -- Named FKs so the app can embed requester / approver profiles; live inbox updates.

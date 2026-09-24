@@ -19,6 +19,7 @@ const NOTIFICATION_CATEGORIES = [
 
 const LANDING_OPTIONS = [
   { value: '', label: 'Home Launcher (default)' },
+  { value: 'me', label: 'My Workspace' },
   { value: 'meals', label: 'Meals' },
   { value: 'fuel', label: 'Fuel' },
   { value: 'fleet', label: 'Fleet' },

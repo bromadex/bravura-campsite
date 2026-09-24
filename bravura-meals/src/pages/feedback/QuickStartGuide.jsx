@@ -321,6 +321,28 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* Employee self-service */}
+      <Section icon="person" color={MODULE_COLORS.me || '#00897B'} title="My Workspace — your own HR on your phone">
+        <Steps items={[
+          <>My Workspace (<Code>ES01</Code>) is yours alone: every signed-in employee can open it. If it says your login isn't linked, ask HR to link it to your employee record.</>,
+          <>Payslips (<Code>ES02</Code>) show every approved month with PAYE, AIDS levy and NSSA broken out. Use <b>Print or save as PDF</b> for a copy.</>,
+          <>Leave (<Code>ES03</Code>) shows what you have left and lets you request leave — weekends are not counted. You can cancel while it is still pending, and you are notified when it is decided.</>,
+          <>Attendance (<Code>ES04</Code>) shows the days, hours and overtime your supervisor recorded for each month.</>,
+          <>Expenses (<Code>ES05</Code>): add each item with a photo of the receipt (required over $20), then submit. Need money before a trip? <b>Ask for an advance</b>, then claim your receipts against it afterwards — only the difference is paid out.</>,
+        ]} />
+      </Section>
+
+      {(can('expenses.view') || can('expenses.approve') || can('expenses.edit') || can('pettycash.view') || can('pettycash.edit')) && (
+        <Section icon="savings" color={MODULE_COLORS.finance} title="Finance — expense claims and petty cash">
+          <Steps items={[
+            <>Expense Claims (<Code>FI14</Code>): <b>To approve</b> lists submitted claims and advance requests; open the lines to check receipts. <b>To pay</b> lists approved ones — pay by bank (IMTT is added automatically) or in cash from a petty cash fund.</>,
+            <>Claims against an advance use up the advance first; only the balance is paid. Advances not yet accounted for are listed at the top.</>,
+            <>Petty Cash (<Code>FI15</Code>): create a fund per site with a custodian and a float. Record every cash spend with its receipt, top up to the float from the bank, and count the box regularly — any shortage or overage is booked automatically.</>,
+            <>Entries can't be edited or deleted — void and re-enter. All of it posts to the ledger once the Expenses and Petty cash rules are set in Posting Rules (<Code>FI13</Code>). None of it is revenue.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* Approvals */}
       <Section icon="approval" color="#4527A0" title="Approvals">
         <Steps items={[

@@ -15,6 +15,7 @@ import SiteSwitcher from '../components/SiteSwitcher'
 // Children with `coming: true` render as greyed-out "Coming Soon" tiles.
 // Top-level modules that go straight to their dashboard (no umbrella expand)
 const TOP_LEVEL_MODULES = [
+  { id: 'me', label: 'My Workspace', icon: 'person', color: MODULE_COLORS.me, access: moduleAccess.me },
   { id: 'fuel', label: 'Fuel Management', icon: 'local_gas_station', color: MODULE_COLORS.fuel, access: moduleAccess.fuel },
   { id: 'finance', label: 'Finance', icon: 'account_balance', color: MODULE_COLORS.finance, access: moduleAccess.finance },
   { id: 'procurement', label: 'Procurement', icon: 'storefront', color: MODULE_COLORS.procurement, access: moduleAccess.procurement },

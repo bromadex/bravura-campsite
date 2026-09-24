@@ -17,7 +17,7 @@ import { moduleAccess } from './utils/permissions'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
-import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav, concreteNav, sheqNav, governanceNav, connectNav, notificationsNav, docshareNav } from './utils/permissions'
+import { THEME, workforceNav, campsiteNav, mealsNav, adminNav, fuelNav, fleetNav, procurementNav, feedbackNav, contractorsNav, inventoryNav, projectsNav, deptNav, financeNav, concreteNav, sheqNav, governanceNav, connectNav, notificationsNav, docshareNav, meNav } from './utils/permissions'
 
 // ── Workforce pages ───────────────────────────────────────────────────────────
 const HRMedicalSurveillance = lazy(() => import('./pages/hr/MedicalSurveillance'))
@@ -177,6 +177,13 @@ const FICostCentres        = lazy(() => import('./pages/finance/CostCentres'))
 const FICostCentreReport   = lazy(() => import('./pages/finance/CostCentreReport'))
 const FIDashboard          = lazy(() => import('./pages/finance/FinanceDashboard'))
 const FIPostingRules       = lazy(() => import('./pages/finance/PostingRules'))
+const FIExpenseClaims      = lazy(() => import('./pages/finance/ExpenseClaims'))
+const FIPettyCash          = lazy(() => import('./pages/finance/PettyCash'))
+const MeHome               = lazy(() => import('./pages/me/MeHome'))
+const MyPayslips           = lazy(() => import('./pages/me/MyPayslips'))
+const MyLeave              = lazy(() => import('./pages/me/MyLeave'))
+const MyAttendance         = lazy(() => import('./pages/me/MyAttendance'))
+const MyExpenses           = lazy(() => import('./pages/me/MyExpenses'))
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
@@ -358,6 +365,7 @@ const MODULE_META = {
   connect:       { label: 'Bravura Connect',       icon: 'chat',             navFn: connectNav      },
   notifications: { label: 'Notifications',        icon: 'notifications',    navFn: notificationsNav },
   docshare:      { label: 'DocVault',             icon: 'folder_shared',    navFn: docshareNav     },
+  me:            { label: 'My Workspace',         icon: 'person',           navFn: meNav           },
   feedback:    { label: 'Feedback',              icon: 'forum',            navFn: feedbackNav     },
 }
 
@@ -670,6 +678,8 @@ function getFinancePage(page, can, setPage) {
     case 'fi_cost_report':       return <FICostCentreReport setPage={setPage} />
     case 'fi_dashboard':         return <FIDashboard setPage={setPage} />
     case 'fi_posting_rules':     return <FIPostingRules setPage={setPage} />
+    case 'fi_expense_claims':    return <FIExpenseClaims setPage={setPage} />
+    case 'fi_petty_cash':        return <FIPettyCash setPage={setPage} />
     default:                     return <FIDashboard setPage={setPage} />
   }
 }
@@ -745,6 +755,16 @@ function getConnectPage(page, can, setPage) {
   }
 }
 
+function getMePage(page, setPage) {
+  switch (page) {
+    case 'me_payslips':   return <MyPayslips setPage={setPage} />
+    case 'me_leave':      return <MyLeave setPage={setPage} />
+    case 'me_attendance': return <MyAttendance setPage={setPage} />
+    case 'me_expenses':   return <MyExpenses setPage={setPage} />
+    default:              return <MeHome setPage={setPage} />
+  }
+}
+
 function getNotificationsPage(page, can, setPage) {
   switch (page) {
     case 'notification_center': return <NotificationCenter setPage={setPage} />
@@ -794,6 +814,7 @@ const DEFAULT_PAGE = {
   connect:       'connect_chat',
   notifications: 'notification_center',
   docshare:      'ds_library',
+  me:            'me_home',
   feedback:    'feedback_board',
 }
 
@@ -837,6 +858,7 @@ function ModuleShell() {
   if (moduleId === 'governance')    content = getGovernancePage(currentPage, can, setPage)
   if (moduleId === 'connect')       content = getConnectPage(currentPage, can, setPage)
   if (moduleId === 'notifications') content = getNotificationsPage(currentPage, can, setPage)
+  if (moduleId === 'me')            content = getMePage(currentPage, setPage)
   if (moduleId === 'docshare')      content = getDocsharePage(currentPage, can, setPage)
   if (moduleId === 'feedback')  content = getFeedbackPage(currentPage)
 

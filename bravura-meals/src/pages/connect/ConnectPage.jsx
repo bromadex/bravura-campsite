@@ -105,7 +105,12 @@ async function getSignedUrl(path) {
   const cached = signedUrlCache.get(path)
   if (cached && cached.expires > Date.now()) return cached.url
   const { data, error } = await supabase.storage.from('connect-files').createSignedUrl(path, 60)
-  if (error || !data?.signedUrl) return null
+  if (error || !data?.signedUrl) {
+    // Fallback: bucket may still be public (migration not applied)
+    const { data: pubData } = supabase.storage.from('connect-files').getPublicUrl(path)
+    if (pubData?.publicUrl) return pubData.publicUrl
+    return null
+  }
   signedUrlCache.set(path, { url: data.signedUrl, expires: Date.now() + 50000 })
   return data.signedUrl
 }
@@ -257,18 +262,59 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  // ── Load conversations (denormalized — no separate message fetch) ──────
+  // ── Load conversations (try denormalized columns, fall back if migration not applied) ──
   const loadConversations = useCallback(async () => {
     if (!currentSiteId || !profile?.id) return
     setLoadingConvos(true)
-    const { data, error } = await supabase
+    // Try with denormalized columns first
+    let { data, error } = await supabase
       .from('chat_conversations')
       .select('*, chat_participants!inner(user_id, last_read_at, unread_count)')
       .eq('site_id', currentSiteId)
       .eq('chat_participants.user_id', profile.id)
       .eq('is_archived', false)
       .order('last_message_at', { ascending: false, nullsFirst: false })
-    if (error) { console.error(error); showToast('Failed to load conversations', 'red'); setLoadingConvos(false); return }
+    if (error) {
+      // Fallback: columns don't exist yet (migration not applied)
+      const res = await supabase
+        .from('chat_conversations')
+        .select('*, chat_participants!inner(user_id, last_read_at)')
+        .eq('site_id', currentSiteId)
+        .eq('chat_participants.user_id', profile.id)
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false })
+      if (res.error) { console.error(res.error); showToast('Failed to load conversations', 'red'); setLoadingConvos(false); return }
+      data = res.data || []
+      // Fetch last message for each conversation client-side
+      const convoIds = data.map(c => c.id)
+      if (convoIds.length) {
+        const { data: allMsgs } = await supabase
+          .from('chat_messages')
+          .select('conversation_id, content, created_at, sender_id')
+          .in('conversation_id', convoIds)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+        const lastMsgMap = {}
+        const unreadMap = {}
+        for (const m of allMsgs || []) {
+          if (!lastMsgMap[m.conversation_id]) lastMsgMap[m.conversation_id] = m
+          if (!unreadMap[m.conversation_id]) unreadMap[m.conversation_id] = 0
+        }
+        for (const c of data) {
+          const part = (c.chat_participants || []).find(p => p.user_id === profile.id)
+          const lastRead = part?.last_read_at
+          let count = 0
+          for (const m of allMsgs || []) {
+            if (m.conversation_id === c.id && m.sender_id !== profile.id && (!lastRead || m.created_at > lastRead)) count++
+          }
+          const last = lastMsgMap[c.id]
+          c.last_message_at = last?.created_at || null
+          c.last_message_preview = last?.content ? last.content.slice(0, 100) : null
+          c._unread_count = count
+        }
+        data.sort((a, b) => new Date(b.last_message_at || b.created_at) - new Date(a.last_message_at || a.created_at))
+      }
+    }
     setConversations(data || [])
     setLoadingConvos(false)
   }, [currentSiteId, profile?.id])
@@ -501,6 +547,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   }
 
   function getUnread(c) {
+    if (c._unread_count !== undefined) return c._unread_count
     const part = (c.chat_participants || []).find(p => p.user_id === profile?.id)
     return part?.unread_count || 0
   }
@@ -594,16 +641,66 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
 
     if (newChatType === 'dm') {
       const otherId = newChatSelected[0].id
+      // Try atomic RPC first, fall back to client-side if RPC not deployed
       const { data: dmId, error: rpcErr } = await supabase.rpc('create_or_get_dm', {
         p_other_user_id: otherId,
         p_site_id: currentSiteId,
       })
+      if (!rpcErr && dmId) {
+        setCreating(false)
+        showToast('Conversation ready', 'green')
+        setNewChatOpen(false)
+        await loadConversations()
+        setSelectedId(dmId)
+        if (isMobile) setMobileShowThread(true)
+        return
+      }
+      // Fallback: client-side DM creation
+      const { data: existingConvos } = await supabase
+        .from('chat_participants')
+        .select('conversation_id')
+        .eq('user_id', profile.id)
+      const myConvoIds = (existingConvos || []).map(c => c.conversation_id)
+      let existingDmId = null
+      if (myConvoIds.length) {
+        const { data: otherParts } = await supabase
+          .from('chat_participants')
+          .select('conversation_id')
+          .eq('user_id', otherId)
+          .in('conversation_id', myConvoIds)
+        for (const p of otherParts || []) {
+          const { data: cc } = await supabase
+            .from('chat_conversations')
+            .select('id, type')
+            .eq('id', p.conversation_id)
+            .eq('type', 'dm')
+            .eq('site_id', currentSiteId)
+            .maybeSingle()
+          if (cc) { existingDmId = cc.id; break }
+        }
+      }
+      if (existingDmId) {
+        setCreating(false)
+        showToast('Conversation ready', 'green')
+        setNewChatOpen(false)
+        setSelectedId(existingDmId)
+        if (isMobile) setMobileShowThread(true)
+        return
+      }
+      // Create new DM
+      const { data: convo, error } = await supabase.from('chat_conversations').insert({
+        site_id: currentSiteId, type: 'dm', created_by: profile?.id || null,
+      }).select().single()
+      if (error) { setCreating(false); showToast(error.message, 'red'); return }
+      await supabase.from('chat_participants').insert([
+        { conversation_id: convo.id, user_id: profile.id },
+        { conversation_id: convo.id, user_id: otherId },
+      ])
       setCreating(false)
-      if (rpcErr) { showToast(rpcErr.message, 'red'); return }
-      showToast('Conversation ready', 'green')
+      showToast('Conversation created', 'green')
       setNewChatOpen(false)
       await loadConversations()
-      setSelectedId(dmId)
+      setSelectedId(convo.id)
       if (isMobile) setMobileShowThread(true)
       return
     }

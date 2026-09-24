@@ -40,6 +40,25 @@ export function useChatUnreadCount() {
   return n
 }
 
+// Self-service badges: unread notifications (by page they link to) + approvals waiting + team items.
+let meBadgeValue = { total: 0, unread: 0, approvals: 0, team: 0, byPage: {} }
+const meBadgeListeners = new Set()
+let meBadgeReload = () => {}
+export function useMeBadges() {
+  const [b, setB] = useState(meBadgeValue)
+  useEffect(() => { meBadgeListeners.add(setB); return () => meBadgeListeners.delete(setB) }, [])
+  return b
+}
+export function refreshMeBadges() { meBadgeReload() }
+
+const Badge = ({ n }) => n > 0 ? (
+  <span style={{
+    position: 'absolute', top: '-2px', right: '-2px', minWidth: '20px', height: '20px', borderRadius: '50px',
+    background: '#EF4444', color: '#fff', fontSize: '11px', fontWeight: 700, lineHeight: 1,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', border: '2px solid #fff',
+  }}>{n > 99 ? '99+' : n}</span>
+) : null
+
 function useIsMobile() {
   const [m, setM] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
   useEffect(() => {
@@ -61,6 +80,7 @@ export default function FloatingDock() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const chatUnread = useChatUnreadCount()
+  const meBadges = useMeBadges()
 
   const [panel, setPanel] = useState(null)        // 'chat' | 'me' | null
   const [meTab, setMeTab] = useState('me_home')
@@ -71,6 +91,46 @@ export default function FloatingDock() {
 
   // Close the panels when navigating to a full page.
   useEffect(() => { setPanel(null) }, [location.pathname])
+
+  // Workspace badge counts, kept live by a realtime subscription on my notifications.
+  useEffect(() => {
+    if (!profile?.id) return
+    let alive = true
+    async function load() {
+      const [{ data: notes }, { data: appr }, { data: team }] = await Promise.all([
+        supabase.from('notifications').select('link').eq('user_id', profile.id).eq('is_read', false).neq('category', 'chat').limit(500),
+        supabase.rpc('approval_inbox'),
+        supabase.rpc('ess_team_today'),
+      ])
+      if (!alive) return
+      const byPage = {}
+      for (const n of notes || []) {
+        const m = (n.link || '').match(/^\/me\/(me_[a-z_]+)/)
+        if (m) byPage[m[1]] = (byPage[m[1]] || 0) + 1
+      }
+      const approvals = (appr || []).length
+      const teamN = (team?.timesheets?.length || 0) + (team?.leave?.length || 0)
+      byPage.me_team = teamN
+      const unread = (notes || []).length
+      meBadgeValue = { unread, approvals, team: teamN, byPage, total: unread + approvals + teamN }
+      meBadgeListeners.forEach(fn => fn(meBadgeValue))
+    }
+    meBadgeReload = load
+    load()
+    const t = setInterval(load, 60_000)
+    const chan = supabase.channel('dock-notes-' + profile.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` }, () => load())
+      .subscribe()
+    return () => { alive = false; clearInterval(t); supabase.removeChannel(chan) }
+  }, [profile?.id])
+
+  // Opening a workspace page counts as seeing its notifications.
+  useEffect(() => {
+    if (panel !== 'me' || !profile?.id || !meBadgeValue.byPage[meTab] || meTab === 'me_team') return
+    supabase.from('notifications').update({ is_read: true })
+      .eq('user_id', profile.id).eq('is_read', false).like('link', `/me/${meTab}%`)
+      .then(() => meBadgeReload())
+  }, [panel, meTab, profile?.id])
 
   useEffect(() => {
     if (!profile?.id) return
@@ -190,6 +250,7 @@ export default function FloatingDock() {
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
           <span className="material-symbols-rounded filled" style={{ fontSize: '24px', color: '#fff' }}>{panel === 'me' ? 'close' : 'badge'}</span>
+          {panel !== 'me' && <Badge n={meBadges.total} />}
         </button>
       )}
 
@@ -202,13 +263,7 @@ export default function FloatingDock() {
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
           <span className="material-symbols-rounded filled" style={{ fontSize: '26px', color: '#fff' }}>{panel ? 'close' : 'chat'}</span>
-          {chatUnread > 0 && !panel && (
-            <span style={{
-              position: 'absolute', top: '-2px', right: '-2px', minWidth: '20px', height: '20px', borderRadius: '50px',
-              background: '#EF4444', color: '#fff', fontSize: '11px', fontWeight: 700, lineHeight: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', border: '2px solid #fff',
-            }}>{chatUnread > 99 ? '99+' : chatUnread}</span>
-          )}
+          {!panel && <Badge n={chatUnread} />}
         </button>
       )}
 

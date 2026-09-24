@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { Icon } from '../../components/ui'
-import { useAuth } from '../../auth/AuthContext'
+import { useMeBadges, refreshMeBadges } from '../../components/FloatingDock'
 import { useMe, Loading, NotLinked, ME_COLOR, MONTHS, usd } from './shared'
 
 // Each app: [page, label, icon, tint]. Tints keep icons distinguishable at a glance.
@@ -41,9 +41,7 @@ function App({ icon, label, tint, badge, onClick }) {
 
 export default function MeHome({ setPage }) {
   const { me, loading } = useMe()
-  const { profile } = useAuth()
-  const [unread, setUnread] = useState(0)
-  const [toApprove, setToApprove] = useState(0)
+  const badges = useMeBadges()
   const [leave, setLeave] = useState(null)
   const [team, setTeam] = useState(null)
 
@@ -53,12 +51,7 @@ export default function MeHome({ setPage }) {
     supabase.rpc('ess_team_today').then(({ data }) => setTeam(data))
   }, [me?.linked])
 
-  useEffect(() => {
-    if (!profile?.id) return
-    supabase.from('notifications').select('id', { count: 'exact', head: true })
-      .eq('user_id', profile.id).eq('is_read', false).then(({ count }) => setUnread(count || 0))
-    supabase.rpc('approval_inbox').then(({ data }) => setToApprove((data || []).length))
-  }, [profile?.id])
+  useEffect(() => { refreshMeBadges() }, [])
 
   if (loading) return <Loading />
   if (!me?.linked) return <NotLinked />
@@ -94,12 +87,12 @@ export default function MeHome({ setPage }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', rowGap: '18px', columnGap: '6px' }}>
-        {isLead && <App icon="groups" label="My team" tint={ME_COLOR} badge={teamWaiting} onClick={() => setPage('me_team')} />}
+        {isLead && <App icon="groups" label="My team" tint={ME_COLOR} badge={badges.byPage.me_team ?? teamWaiting} onClick={() => setPage('me_team')} />}
         {APPS.map(([page, label, icon, tint]) => (
-          <App key={page} icon={icon} label={label} tint={tint} badge={page === 'me_leave' ? me.pending_leave : 0} onClick={() => setPage(page)} />
+          <App key={page} icon={icon} label={label} tint={tint} badge={badges.byPage[page] || 0} onClick={() => setPage(page)} />
         ))}
-        <App icon="notifications" label="Notifications" tint="#F57C00" badge={unread} onClick={() => setPage('me_notifications')} />
-        <App icon="approval" label="Approvals" tint="#37474F" badge={toApprove} onClick={() => setPage('me_approvals')} />
+        <App icon="notifications" label="Notifications" tint="#F57C00" badge={badges.unread} onClick={() => setPage('me_notifications')} />
+        <App icon="approval" label="Approvals" tint="#37474F" badge={badges.approvals} onClick={() => setPage('me_approvals')} />
       </div>
 
       {me.manager && <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '20px', textAlign: 'center' }}>Your line manager: {me.manager}</div>}

@@ -1,14 +1,14 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MODULE_COLORS, THEME, moduleAccess } from '../utils/permissions'
 
-const ConnectChat = lazy(() => import('./connect/ConnectPage'))
 import { resolveNotifStyle } from '../utils/notify'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
 import { useSite } from '../contexts/SiteContext'
 import { supabase } from '../supabaseClient'
 import SiteSwitcher from '../components/SiteSwitcher'
+import { useChatUnreadCount } from '../components/FloatingDock'
 
 // ── Umbrella groups for the home grid ────────────────────────────────────────
 // Each group has an id, label, icon, color, and children (actual modules).
@@ -249,10 +249,7 @@ export default function HomeLauncher({ onEnterModule }) {
   const [notifOpen,     setNotifOpen]     = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount,   setUnreadCount]   = useState(0)
-  const [chatUnread,    setChatUnread]    = useState(0)
-  const [chatPopup,     setChatPopup]     = useState(null)
-  const [chatPanelOpen, setChatPanelOpen] = useState(false)
-  const [essOpen, setEssOpen] = useState(false)
+  const chatUnread = useChatUnreadCount()
 
   useEffect(() => {
     if (!profile?.id) return
@@ -271,57 +268,6 @@ export default function HomeLauncher({ onEnterModule }) {
     load()
     const t = setInterval(load, 20_000)
     return () => clearInterval(t)
-  }, [profile?.id])
-
-  useEffect(() => {
-    if (!profile?.id) return
-    async function loadChatUnread() {
-      const { data: parts } = await supabase
-        .from('chat_participants')
-        .select('conversation_id, last_read_at')
-        .eq('user_id', profile.id)
-      if (!parts?.length) { setChatUnread(0); return }
-      let total = 0
-      for (const p of parts) {
-        const q = supabase
-          .from('chat_messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('conversation_id', p.conversation_id)
-          .eq('is_deleted', false)
-          .neq('sender_id', profile.id)
-        if (p.last_read_at) q.gt('created_at', p.last_read_at)
-        const { count } = await q
-        total += (count || 0)
-      }
-      setChatUnread(total)
-    }
-    loadChatUnread()
-    const t = setInterval(loadChatUnread, 30_000)
-
-    const chan = supabase.channel('home-chat-' + profile.id)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async (payload) => {
-        const msg = payload.new
-        if (msg.sender_id === profile.id) return
-        const { data: part } = await supabase
-          .from('chat_participants')
-          .select('conversation_id')
-          .eq('user_id', profile.id)
-          .eq('conversation_id', msg.conversation_id)
-          .maybeSingle()
-        if (!part) return
-        setChatUnread(prev => prev + 1)
-        const { data: sender } = await supabase
-          .from('profiles')
-          .select('full_name, username, employee:employees(name)')
-          .eq('id', msg.sender_id)
-          .maybeSingle()
-        const senderName = sender?.employee?.name || sender?.full_name || sender?.username || 'Someone'
-        setChatPopup({ name: senderName, text: msg.content?.slice(0, 80) || 'sent a message' })
-        setTimeout(() => setChatPopup(null), 5000)
-      })
-      .subscribe()
-
-    return () => { clearInterval(t); supabase.removeChannel(chan) }
   }, [profile?.id])
 
   function markRead(id) {
@@ -601,144 +547,6 @@ export default function HomeLauncher({ onEnterModule }) {
         </>
       )}
 
-      {/* ── Floating Chat Panel ── */}
-      {chatPanelOpen && (
-        <div style={{
-          position: 'fixed',
-          bottom: '96px',
-          right: '28px',
-          zIndex: 150,
-          width: isMobile ? 'calc(100vw - 16px)' : '420px',
-          height: isMobile ? 'calc(100dvh - 120px)' : '600px',
-          maxHeight: 'calc(100dvh - 120px)',
-          borderRadius: '16px',
-          overflow: 'hidden',
-          boxShadow: '0 12px 48px rgba(0,0,0,.25), 0 4px 16px rgba(0,0,0,.12)',
-          border: `1px solid ${THEME.outlineVar}`,
-          background: THEME.surface,
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'chatPanelIn .25s ease-out',
-        }}>
-          <Suspense fallback={
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: THEME.textLow, fontSize: '13px' }}>Loading…</div>
-          }>
-            <ConnectChat floatingPanel />
-          </Suspense>
-        </div>
-      )}
-
-      {/* Self-service quick menu */}
-      {essOpen && !chatPanelOpen && (
-        <>
-          <div onClick={() => setEssOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 155 }} />
-          <div role="menu" aria-label="My Workspace" style={{
-            position: 'fixed', bottom: '152px', right: '28px', zIndex: 161,
-            width: 'min(260px, calc(100vw - 32px))', borderRadius: '14px', overflow: 'hidden',
-            background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-            boxShadow: '0 12px 40px rgba(0,0,0,.2), 0 4px 12px rgba(0,0,0,.1)',
-            animation: 'chatPanelIn .2s ease-out',
-          }}>
-            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, fontSize: '13px', fontWeight: 600, color: THEME.text }}>
-              My Workspace
-            </div>
-            {[
-              ['home', 'Open My Workspace', 'me_home'],
-              ['payments', 'My payslips', 'me_payslips'],
-              ['beach_access', 'Request leave', 'me_leave'],
-              ['schedule', 'My attendance', 'me_attendance'],
-              ['receipt_long', 'Claim expenses', 'me_expenses'],
-            ].map(([icon, text, page]) => (
-              <button key={page} role="menuitem" onClick={() => { setEssOpen(false); navigate(`/me/${page}`) }}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', minHeight: '48px', padding: '10px 16px',
-                  border: 'none', background: 'transparent', color: THEME.text, fontSize: '14px', fontFamily: 'inherit',
-                  cursor: 'pointer', textAlign: 'left' }}
-                onMouseEnter={e => { e.currentTarget.style.background = THEME.surfaceVar }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-                <span className="material-symbols-rounded" style={{ fontSize: '20px', color: MODULE_COLORS.me }}>{icon}</span>
-                {text}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Self-service FAB (sits above Connect) */}
-      {!chatPanelOpen && (
-        <button
-          onClick={() => setEssOpen(v => !v)}
-          title="My Workspace — payslips, leave, expenses"
-          aria-label="My Workspace"
-          aria-expanded={essOpen}
-          style={{
-            position: 'fixed', bottom: '96px', right: '32px', zIndex: 160,
-            width: '48px', height: '48px', borderRadius: '50%',
-            background: MODULE_COLORS.me, border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(0,137,123,.4), 0 2px 6px rgba(0,0,0,.18)',
-            transition: 'transform .18s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
-        >
-          <span className="material-symbols-rounded filled" style={{ fontSize: '24px', color: '#fff' }}>{essOpen ? 'close' : 'badge'}</span>
-        </button>
-      )}
-
-      {/* Connect FAB */}
-      <button
-        onClick={() => { setEssOpen(false); setChatPanelOpen(v => !v) }}
-        title="Bravura Connect"
-        style={{
-          position: 'fixed', bottom: '28px', right: '28px', zIndex: 160,
-          width: '56px', height: '56px', borderRadius: '50%',
-          background: '#982329',
-          border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(152,35,41,.45), 0 2px 6px rgba(0,0,0,.18)',
-          transition: 'transform .18s, box-shadow .18s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(152,35,41,.55), 0 3px 8px rgba(0,0,0,.22)' }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(152,35,41,.45), 0 2px 6px rgba(0,0,0,.18)' }}
-      >
-        <span className="material-symbols-rounded filled" style={{ fontSize: '26px', color: '#fff' }}>{chatPanelOpen ? 'close' : 'chat'}</span>
-        {chatUnread > 0 && (
-          <span style={{
-            position: 'absolute', top: '-2px', right: '-2px',
-            minWidth: '20px', height: '20px', borderRadius: '50px',
-            background: '#EF4444', color: '#fff',
-            fontSize: '11px', fontWeight: 700, lineHeight: 1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '0 5px', border: '2px solid #fff',
-            boxShadow: '0 2px 6px rgba(220,38,38,.4)',
-          }}>{chatUnread > 99 ? '99+' : chatUnread}</span>
-        )}
-      </button>
-
-      {/* Chat message popup */}
-      {chatPopup && !chatPanelOpen && (
-        <div onClick={() => { setChatPopup(null); setChatPanelOpen(true) }} style={{
-          position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
-          background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
-          borderRadius: '14px', padding: '14px 18px', minWidth: '280px', maxWidth: '380px',
-          boxShadow: '0 8px 32px rgba(0,0,0,.18)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: '12px',
-          animation: 'slideInUp .3s ease-out',
-        }}>
-          <div style={{
-            width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
-            background: MODULE_COLORS.connect, color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>chat</span>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{chatPopup.name}</div>
-            <div style={{ fontSize: '12px', color: THEME.textMed, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{chatPopup.text}</div>
-          </div>
-          <span className="material-symbols-rounded" style={{ fontSize: '16px', color: THEME.textLow }}>close</span>
-        </div>
-      )}
       <style>{`
         @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes chatPanelIn { from { transform: translateY(16px) scale(.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }

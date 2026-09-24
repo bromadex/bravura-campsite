@@ -12,6 +12,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import LoginPage    from './auth/LoginPage'
 import ForcePasswordResetModal from './auth/ForcePasswordResetModal'
 import CommandPalette from './components/CommandPalette'
+import FloatingDock from './components/FloatingDock'
 import { getPrefs, subscribePrefs } from './utils/userPrefs'
 import { moduleAccess } from './utils/permissions'
 import HomeLauncher from './pages/HomeLauncher'
@@ -1032,6 +1033,7 @@ function AppContent() {
       </Routes>
       <InstallBanner />
       <IdleSignOut />
+      <FloatingDock />
       <CommandPalette />
       {profile.force_password_reset && <ForcePasswordResetModal />}
     </>

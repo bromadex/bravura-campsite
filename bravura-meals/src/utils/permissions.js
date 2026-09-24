@@ -128,7 +128,7 @@ export const moduleAccess = {
   admin:        (role, can) => can ? can('users.view') : false,
   governance:   (role, can) => can ? can('governance.view') : false,
   connect:      (role, can) => can ? can('connect.view') : false,
-  notifications:(role, can) => can ? can('notifications.view') : false,
+  notifications: r => !!r,
   docshare:     (role, can) => can ? can('ds.view') : false,
   feedback:     r => !!r,
 }
@@ -224,6 +224,7 @@ export function adminNav(role) {
     { id: 'admin_permissions', label: 'Permissions',           section: 'Access Control',  icon: 'verified_user' },
     { id: 'admin_sites',       label: 'Site Management',      section: 'System',          icon: 'location_city' },
     { id: 'admin_invitations', label: 'Pending Invitations',  section: 'System',          icon: 'mail' },
+    { id: 'admin_approval_routes', label: 'Approval Routes',  section: 'System',          icon: 'alt_route' },
     { id: 'admin_settings',    label: 'System Settings',      section: 'System',          icon: 'settings' },
     { id: 'admin_audit',       label: 'Audit Log',            section: 'System',          icon: 'history' },
   ]
@@ -443,6 +444,7 @@ export function connectNav(role, can) {
 export function notificationsNav(role, can) {
   return [
     { id: 'notification_center', label: 'Notification Center', section: 'Overview', icon: 'notifications' },
+    { id: 'approvals_inbox',     label: 'Approvals',           section: 'Overview', icon: 'approval' },
   ]
 }
 

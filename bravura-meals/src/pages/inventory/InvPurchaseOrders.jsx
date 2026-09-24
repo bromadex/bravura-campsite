@@ -14,6 +14,7 @@ const ACCENT = MODULE_COLORS.inventory
 
 const STATUS_COLORS = {
   draft:              { bg: THEME.statusNeutralBg,  text: THEME.statusNeutralText,  label: 'Draft' },
+  pending_approval:   { bg: THEME.statusWarningBg,  text: THEME.statusWarningText,  label: 'Pending approval' },
   sent:               { bg: '#dbeafe',              text: '#1e40af',                label: 'Sent' },
   partially_received: { bg: THEME.statusWarningBg,  text: THEME.statusWarningText,  label: 'Partial' },
   received:           { bg: THEME.statusSuccessBg,  text: THEME.statusSuccessText,  label: 'Received' },

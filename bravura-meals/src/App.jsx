@@ -84,6 +84,8 @@ const AdminDashboard     = lazy(() => import('./pages/admin/AdminDashboard'))
 const RoleManagement     = lazy(() => import('./pages/admin/RoleManagement'))
 const SiteManagement     = lazy(() => import('./pages/admin/SiteManagement'))
 const PendingInvitations = lazy(() => import('./pages/admin/PendingInvitations'))
+const ApprovalRoutes     = lazy(() => import('./pages/admin/ApprovalRoutes'))
+const ApprovalsInbox     = lazy(() => import('./pages/notifications/ApprovalsInbox'))
 const SystemSettings     = lazy(() => import('./pages/admin/SystemSettings'))
 const PermissionsCatalogue = lazy(() => import('./pages/admin/PermissionsCatalogue'))
 const EmployeeLinks        = lazy(() => import('./pages/admin/EmployeeLinks'))
@@ -471,6 +473,7 @@ function getAdminPage(page, can, setPage) {
     case 'admin_roles':       return can('users.view') ? <RoleManagement setPage={setPage} /> : null
     case 'admin_sites':       return can('users.view') ? <SiteManagement setPage={setPage} /> : null
     case 'admin_invitations': return can('users.view') ? <PendingInvitations setPage={setPage} /> : null
+    case 'admin_approval_routes': return (can('approvals.view') || can('approvals.edit')) ? <ApprovalRoutes setPage={setPage} /> : null
     case 'admin_settings':    return can('users.view') ? <SystemSettings setPage={setPage} /> : null
     case 'admin_permissions': return can('users.view') ? <PermissionsCatalogue setPage={setPage} /> : null
     case 'admin_employee_links': return can('users.view') ? <EmployeeLinks setPage={setPage} /> : null
@@ -743,6 +746,7 @@ function getConnectPage(page, can, setPage) {
 function getNotificationsPage(page, can, setPage) {
   switch (page) {
     case 'notification_center': return <NotificationCenter setPage={setPage} />
+    case 'approvals_inbox':     return <ApprovalsInbox setPage={setPage} />
     default:                    return <NotificationCenter setPage={setPage} />
   }
 }

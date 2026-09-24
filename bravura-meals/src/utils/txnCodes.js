@@ -155,6 +155,7 @@ export const TXN_CODES = [
   { code: 'AD08', path: '/admin/admin_audit',       label: 'Audit Log',            module: 'admin' },
   { code: 'AD09', path: '/admin/admin_preferences', label: 'My Preferences',       module: 'admin' },
   { code: 'AD10', path: '/admin/admin_employee_links', label: 'Employee Links',    module: 'admin' },
+  { code: 'AD11', path: '/admin/admin_approval_routes', label: 'Approval Routes', module: 'admin' },
 
   // ── Inventory (IN) ──────────────────────────────────────────────────────
   { code: 'IN01', path: '/inventory/inv_dashboard',   label: 'Inventory Dashboard',  module: 'inventory' },
@@ -273,6 +274,7 @@ export const TXN_CODES = [
 
   // ── Notifications (NT) ─────────────────────────────────────────────────
   { code: 'NT01', path: '/notifications/notification_center', label: 'Notification Center', module: 'notifications' },
+  { code: 'NT02', path: '/notifications/approvals_inbox', label: 'Approvals Inbox', module: 'notifications' },
 
   // ── DocVault (DS) ──────────────────────────────────────────────────────
   { code: 'DS01', path: '/docshare/ds_library',         label: 'Document Library',       module: 'docshare' },

@@ -262,60 +262,24 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  // ── Load conversations (try denormalized columns, fall back if migration not applied) ──
+  // ── Load conversations ─────────────────────────────────────────────────
   const loadConversations = useCallback(async () => {
     if (!currentSiteId || !profile?.id) return
     setLoadingConvos(true)
-    // Try with denormalized columns first
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('chat_conversations')
       .select('*, chat_participants!inner(user_id, last_read_at, unread_count)')
       .eq('site_id', currentSiteId)
       .eq('chat_participants.user_id', profile.id)
       .eq('is_archived', false)
-      .order('last_message_at', { ascending: false, nullsFirst: false })
-    if (error) {
-      // Fallback: columns don't exist yet (migration not applied)
-      const res = await supabase
-        .from('chat_conversations')
-        .select('*, chat_participants!inner(user_id, last_read_at)')
-        .eq('site_id', currentSiteId)
-        .eq('chat_participants.user_id', profile.id)
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false })
-      if (res.error) { console.error(res.error); showToast('Failed to load conversations', 'red'); setLoadingConvos(false); return }
-      data = res.data || []
-      // Fetch last message for each conversation client-side
-      const convoIds = data.map(c => c.id)
-      if (convoIds.length) {
-        const { data: allMsgs } = await supabase
-          .from('chat_messages')
-          .select('conversation_id, content, created_at, sender_id')
-          .in('conversation_id', convoIds)
-          .eq('is_deleted', false)
-          .order('created_at', { ascending: false })
-        const lastMsgMap = {}
-        const unreadMap = {}
-        for (const m of allMsgs || []) {
-          if (!lastMsgMap[m.conversation_id]) lastMsgMap[m.conversation_id] = m
-          if (!unreadMap[m.conversation_id]) unreadMap[m.conversation_id] = 0
-        }
-        for (const c of data) {
-          const part = (c.chat_participants || []).find(p => p.user_id === profile.id)
-          const lastRead = part?.last_read_at
-          let count = 0
-          for (const m of allMsgs || []) {
-            if (m.conversation_id === c.id && m.sender_id !== profile.id && (!lastRead || m.created_at > lastRead)) count++
-          }
-          const last = lastMsgMap[c.id]
-          c.last_message_at = last?.created_at || null
-          c.last_message_preview = last?.content ? last.content.slice(0, 100) : null
-          c._unread_count = count
-        }
-        data.sort((a, b) => new Date(b.last_message_at || b.created_at) - new Date(a.last_message_at || a.created_at))
-      }
-    }
-    setConversations(data || [])
+    if (error) { console.error(error); showToast('Failed to load conversations', 'red'); setLoadingConvos(false); return }
+    // Sort client-side (PostgREST ordering on parent columns with embedded joins can be unreliable)
+    const sorted = (data || []).sort((a, b) => {
+      const ta = a.last_message_at || a.created_at
+      const tb = b.last_message_at || b.created_at
+      return new Date(tb) - new Date(ta)
+    })
+    setConversations(sorted)
     setLoadingConvos(false)
   }, [currentSiteId, profile?.id])
 
@@ -547,7 +511,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   }
 
   function getUnread(c) {
-    if (c._unread_count !== undefined) return c._unread_count
     const part = (c.chat_participants || []).find(p => p.user_id === profile?.id)
     return part?.unread_count || 0
   }

@@ -275,6 +275,7 @@ export const TXN_CODES = [
   // ── Notifications (NT) ─────────────────────────────────────────────────
   { code: 'NT01', path: '/notifications/notification_center', label: 'Notification Center', module: 'notifications' },
   { code: 'NT02', path: '/notifications/approvals_inbox', label: 'Approvals Inbox', module: 'notifications' },
+  { code: 'NT03', path: '/notifications/my_preferences', label: 'My Preferences', module: 'notifications' },
 
   // ── DocVault (DS) ──────────────────────────────────────────────────────
   { code: 'DS01', path: '/docshare/ds_library',         label: 'Document Library',       module: 'docshare' },

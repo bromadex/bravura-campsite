@@ -6,6 +6,7 @@ import { useSite } from '../contexts/SiteContext'
 import { THEME, ROLE_LABELS, MODULE_COLORS } from '../utils/permissions'
 import { resolveNotifStyle } from '../utils/notify'
 import { supabase } from '../supabaseClient'
+import { isMuted, playNotificationSound, subscribePrefs } from '../utils/userPrefs'
 import SiteSwitcher from './SiteSwitcher'
 import { TXN_CODES } from '../utils/txnCodes'
 
@@ -125,6 +126,8 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
   const [notifOpen,      setNotifOpen]      = useState(false)
   const [notifications,  setNotifications]  = useState([])
   const [unreadCount,    setUnreadCount]    = useState(0)
+  const [prefsTick,      setPrefsTick]      = useState(0)
+  useEffect(() => subscribePrefs(() => setPrefsTick(t => t + 1)), [])
   const color = MODULE_COLORS[moduleId] || THEME.primary
 
   // Section grouping
@@ -147,19 +150,22 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
         .order('created_at', { ascending: false })
         .limit(20)
         .then(({ data }) => {
-          setNotifications(data || [])
-          setUnreadCount((data || []).filter(n => !n.is_read).length)
+          const visible = (data || []).filter(n => !isMuted(n.category))
+          setNotifications(visible)
+          setUnreadCount(visible.filter(n => !n.is_read).length)
         })
     }
     load()
     const channel = supabase.channel('notif-bell-' + profile.id)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + profile.id }, payload => {
+        if (isMuted(payload.new.category)) return
         setNotifications(prev => [payload.new, ...prev].slice(0, 20))
         setUnreadCount(prev => prev + 1)
+        playNotificationSound()
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [profile?.id])
+  }, [profile?.id, prefsTick])
 
   function markRead(id) {
     supabase.from('notifications').update({ is_read: true }).eq('id', id)
@@ -376,6 +382,16 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
               </div>
             </div>
           )}
+          <button onClick={() => navigate('/notifications/my_preferences')} title="My preferences" aria-label="My preferences" style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'rgba(255,255,255,.35)', borderRadius: '8px', padding: '5px',
+            display: 'flex', alignItems: 'center', transition: 'color .15s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,.35)'}
+          >
+            <Icon name="tune" size={17} style={{ color: 'inherit' }} />
+          </button>
           <button onClick={signOut} title="Sign out" style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             color: 'rgba(255,255,255,.35)', borderRadius: '8px', padding: '5px',

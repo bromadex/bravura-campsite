@@ -445,6 +445,7 @@ export function notificationsNav(role, can) {
   return [
     { id: 'notification_center', label: 'Notification Center', section: 'Overview', icon: 'notifications' },
     { id: 'approvals_inbox',     label: 'Approvals',           section: 'Overview', icon: 'approval' },
+    { id: 'my_preferences',      label: 'My Preferences',      section: 'Personal', icon: 'tune' },
   ]
 }
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
@@ -12,6 +12,8 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import LoginPage    from './auth/LoginPage'
 import ForcePasswordResetModal from './auth/ForcePasswordResetModal'
 import CommandPalette from './components/CommandPalette'
+import { getPrefs, subscribePrefs } from './utils/userPrefs'
+import { moduleAccess } from './utils/permissions'
 import HomeLauncher from './pages/HomeLauncher'
 import ModuleLayout from './components/ModuleLayout'
 import InstallBanner from './components/InstallBanner'
@@ -747,6 +749,7 @@ function getNotificationsPage(page, can, setPage) {
   switch (page) {
     case 'notification_center': return <NotificationCenter setPage={setPage} />
     case 'approvals_inbox':     return <ApprovalsInbox setPage={setPage} />
+    case 'my_preferences':      return <UserPreferences setPage={setPage} />
     default:                    return <NotificationCenter setPage={setPage} />
   }
 }
@@ -928,8 +931,42 @@ function ModuleDefaultRedirect() {
 
 function HomeLauncherPage() {
   const navigate = useNavigate()
+  const { role } = useAuth()
+  const { can, loading: permsLoading } = usePermissions()
   function enterModule(moduleId) { navigate(`/${moduleId}/${DEFAULT_PAGE[moduleId]}`) }
+
+  // Right after sign-in, open the user's preferred module (once per login).
+  const landing = getPrefs().landing_module
+  let pending = false
+  try { pending = sessionStorage.getItem('bravura_apply_landing') === '1' } catch { /* private mode */ }
+  if (pending && !permsLoading) {
+    try { sessionStorage.removeItem('bravura_apply_landing') } catch { /* private mode */ }
+    const allowed = moduleAccess[landing]?.(role, can)
+    if (landing && DEFAULT_PAGE[landing] && allowed) return <Navigate to={`/${landing}/${DEFAULT_PAGE[landing]}`} replace />
+  }
   return <HomeLauncher onEnterModule={enterModule} />
+}
+
+// Signs the user out after the idle time chosen in My Preferences.
+function IdleSignOut() {
+  const { signOut } = useAuth()
+  useEffect(() => {
+    let timer
+    let minutes = Number(getPrefs().session_timeout) || 60
+    const reset = () => {
+      clearTimeout(timer)
+      timer = setTimeout(async () => {
+        await signOut()
+        alert(`You were signed out after ${minutes} minutes of inactivity.`)
+      }, minutes * 60 * 1000)
+    }
+    const unsub = subscribePrefs(p => { minutes = Number(p.session_timeout) || 60; reset() })
+    const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll']
+    events.forEach(e => window.addEventListener(e, reset, { passive: true }))
+    reset()
+    return () => { clearTimeout(timer); unsub(); events.forEach(e => window.removeEventListener(e, reset)) }
+  }, [signOut])
+  return null
 }
 
 // ── App shell ─────────────────────────────────────────────────────────────────
@@ -972,6 +1009,7 @@ function AppContent() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <InstallBanner />
+      <IdleSignOut />
       <CommandPalette />
       {profile.force_password_reset && <ForcePasswordResetModal />}
     </>

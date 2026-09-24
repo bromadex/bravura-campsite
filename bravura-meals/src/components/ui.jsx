@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatDatePref, getPrefs } from '../utils/userPrefs'
 import { THEME } from '../utils/permissions'
 
 // ── Material Symbol icon helper ───────────────────────────────────────────────
@@ -467,9 +468,7 @@ export function showToast(msg, type = '') {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 export function today() { return new Date().toISOString().slice(0, 10) }
 export function fmtDate(d) {
-  if (!d) return '—'
-  const p = d.split('-')
-  return `${p[2]}/${p[1]}/${p[0]}`
+  return formatDatePref(d)
 }
 export function initials(n) {
   return n.trim().split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -550,7 +549,7 @@ export function THead({ children }) {
 export function Th({ children, align = 'left', style }) {
   return (
     <th style={{
-      padding: '10px 14px', textAlign: align,
+      padding: getPrefs().table_density === 'compact' ? '6px 10px' : '10px 14px', textAlign: align,
       fontWeight: 600, fontSize: '11px',
       textTransform: 'uppercase', letterSpacing: '.06em',
       color: THEME.textMed, whiteSpace: 'nowrap',
@@ -578,7 +577,8 @@ export function TRow({ children, onClick, last, style }) {
   )
 }
 export function Td({ children, align, style }) {
-  return <td style={{ padding: '10px 14px', textAlign: align, color: THEME.text, ...style }}>{children}</td>
+  const pad = getPrefs().table_density === 'compact' ? '6px 10px' : '10px 14px'
+  return <td style={{ padding: pad, textAlign: align, color: THEME.text, ...style }}>{children}</td>
 }
 
 // need useState for useSortState (moved to top of file)

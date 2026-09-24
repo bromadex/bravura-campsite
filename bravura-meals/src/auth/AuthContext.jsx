@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabaseClient'
+import { setPrefsLocal } from '../utils/userPrefs'
 
 const AuthContext = createContext(null)
 
@@ -45,6 +46,7 @@ export function AuthProvider({ children }) {
           .maybeSingle()
         if (emp?.designations?.name) data.job_title = emp.designations.name
       }
+      setPrefsLocal(data.preferences || {})
       setProfile(data)
     }
   }
@@ -88,6 +90,7 @@ export function AuthProvider({ children }) {
     try {
       localStorage.removeItem('bravura_current_site_id')
       sessionStorage.setItem('bravura_just_logged_in', '1')
+      sessionStorage.setItem('bravura_apply_landing', '1')
     } catch { /* private browsing etc — non-fatal */ }
     return data
   }

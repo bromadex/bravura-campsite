@@ -328,6 +328,7 @@ export default function QuickStartGuide() {
           <>Some documents need more than one approver. After you approve, the request moves to the next step automatically and the next approver is notified; the requester is notified when it is fully approved or rejected.</>,
           <>If a document is on an approval route, its own Approve button is locked — the decision has to come from the inbox. A purchase order that needs approval shows <b>Pending approval</b> until the last approver signs it off, then it becomes Sent.</>,
           <>Nobody can approve their own request.</>,
+          <>My Preferences (<Code>NT03</Code>, or the sliders icon next to Sign out) sets the module you open after sign-in, which notification categories show in the bell and whether they make a sound, table density, date format, text size, high contrast, and how long before an idle session signs out. They are saved to your account, so they follow you to any device.</>,
           ...(can('approvals.edit') ? [
             <>Set up routes in Approval Routes (<Code>AD11</Code>): pick the document (requisitions, purchase orders, supplier invoices, fuel requests or leave), an optional department and value band, then add steps — anyone with a permission, a named person, or the requester's line manager.</>,
             <>Documents that match no route keep the normal single-approver flow, so you can switch routes on one document type at a time.</>,

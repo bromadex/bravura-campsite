@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
-import { usePermissions } from '../../contexts/PermissionsContext'
+import { showToast } from '../../components/ui'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
 import { resolveNotifStyle } from '../../utils/notify'
-import Denied from '../../components/Denied'
+import { getPrefs, savePrefs } from '../../utils/userPrefs'
 
 const CATEGORIES = [
   { id: 'all',          label: 'All',           icon: 'notifications' },
@@ -60,7 +60,6 @@ const Icon = ({ name, size = 20, style = {} }) => (
 
 export default function NotificationCenter() {
   const { profile } = useAuth()
-  const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const navigate = useNavigate()
 
@@ -71,31 +70,24 @@ export default function NotificationCenter() {
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [showPrefs, setShowPrefs] = useState(false)
-  const [mutedCategories, setMutedCategories] = useState([])
+  const [mutedCategories, setMutedCategories] = useState(() => getPrefs().muted_notification_categories || [])
   const [savingPrefs, setSavingPrefs] = useState(false)
 
-  useEffect(() => {
-    if (!profile?.id) return
-    supabase.from('profiles').select('preferences').eq('id', profile.id).maybeSingle().then(({ data }) => {
-      if (data?.preferences?.muted_notification_categories) {
-        setMutedCategories(data.preferences.muted_notification_categories)
-      }
-    })
-  }, [profile?.id])
-
+  // Same setting as My Preferences: muted categories stay here but skip the bell and its sound.
   async function toggleMuteCategory(catId) {
     const next = mutedCategories.includes(catId)
       ? mutedCategories.filter(c => c !== catId)
       : [...mutedCategories, catId]
     setMutedCategories(next)
     setSavingPrefs(true)
-    const { data: existing } = await supabase.from('profiles').select('preferences').eq('id', profile.id).maybeSingle()
-    const prefs = existing?.preferences || {}
-    await supabase.from('profiles').update({ preferences: { ...prefs, muted_notification_categories: next } }).eq('id', profile.id)
+    try {
+      await savePrefs({ muted_notification_categories: next })
+    } catch (err) {
+      setMutedCategories(mutedCategories)
+      showToast(err.message || 'Could not save', 'red')
+    }
     setSavingPrefs(false)
   }
-
-  if (!can('notifications.view')) return <Denied />
 
   const fetchNotifications = useCallback(async (reset = false) => {
     if (!profile?.id) return
@@ -198,7 +190,7 @@ export default function NotificationCenter() {
             <Icon name="notifications_off" size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
             Mute Categories
           </div>
-          <p style={{ fontSize: 12, color: THEME.textLow, margin: '0 0 12px' }}>Muted categories will not show new notifications.</p>
+          <p style={{ fontSize: 12, color: THEME.textLow, margin: '0 0 12px' }}>Muted categories stay in this list but don't appear in the bell or play a sound.</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {CATEGORIES.filter(c => c.id !== 'all').map(cat => {
               const muted = mutedCategories.includes(cat.id)

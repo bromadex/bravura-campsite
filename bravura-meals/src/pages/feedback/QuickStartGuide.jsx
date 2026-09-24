@@ -118,6 +118,7 @@ export default function QuickStartGuide() {
           <Steps items={[
             <>Open <Code>ENTRY</Code> (Daily Meal Entry) each day.</>,
             <>Tick breakfast / lunch / supper per employee — or use the "All Breakfast/Lunch/Supper" buttons and untick the exceptions. On Saturdays, supper shows as <b>Special Meal</b>.</>,
+            <>Employees can record their own meals for today/yesterday from My Camp — they show up already ticked. Your save is final, so untick anything that's wrong.</>,
             <>Click <b>Save entries</b>, then <b>Submit for approval</b> when the day is complete.</>,
             <>If the kitchen raises a flag, the day unlocks with an amber banner — fix the entries, save, and resubmit.</>,
           ]} />
@@ -324,13 +325,36 @@ export default function QuickStartGuide() {
       {/* Employee self-service */}
       <Section icon="person" color={MODULE_COLORS.me || '#00897B'} title="My Workspace — your own HR on your phone">
         <Steps items={[
-          <>Open My Workspace (<Code>ES01</Code>) from the round teal button just above the chat button on the home screen. It is yours alone: every signed-in employee can open it. If it says your login isn't linked, ask HR to link it to your employee record.</>,
+          <>Open My Workspace (<Code>ES01</Code>) from the round maroon button just above the teal chat button on the home screen. It is yours alone: every signed-in employee can open it. If it says your login isn't linked, ask HR to link it to your employee record.</>,
           <>Payslips (<Code>ES02</Code>) show every approved month with PAYE, AIDS levy and NSSA broken out. Use <b>Print or save as PDF</b> for a copy.</>,
           <>Leave (<Code>ES03</Code>) shows what you have left and lets you request leave — weekends are not counted. You can cancel while it is still pending, and you are notified when it is decided.</>,
-          <>Attendance (<Code>ES04</Code>) shows the days, hours and overtime your supervisor recorded for each month.</>,
+          <>My Time (<Code>ES04</Code>): tap <b>Clock in</b> / <b>Clock out</b> on your phone — you must be on site (location is checked). It also shows this week's roster and your hours for each month.</>,
           <>Expenses (<Code>ES05</Code>): add each item with a photo of the receipt (required over $20), then submit. Need money before a trip? <b>Ask for an advance</b>, then claim your receipts against it afterwards — only the difference is paid out.</>,
+          <>My Safety (<Code>ES06</Code>): <b>Report a hazard</b> with a photo (you can stay anonymous), and see your PPE, training, inductions and medicals with expiry dates.</>,
+          <>My Details (<Code>ES07</Code>): change your phone, address, bank or next of kin. Nothing is saved until HR checks it, so they may ask for proof such as a bank letter.</>,
+          <>Tax Certificate (<Code>ES08</Code>): your ITF16 figures for the year (gross, PAYE, AIDS levy, NSSA) to check against the signed copy HR issues.</>,
+          <>Documents & Policies (<Code>ES09</Code>): read and accept company policies, or raise a concern. See your documents on file and when they expire.</>,
+          <>My Camp (<Code>ES10</Code>): your room and roommates, report a room problem with a photo, and record meals you ate today or yesterday. Once the meals officer submits the day, ask them to add a missed meal instead.</>,
+          <>Advances & Loans (<Code>ES11</Code>): a salary advance (up to half your basic pay) comes off your next payslip; a staff loan is repaid over up to 24 payslips. Both need approval.</>,
         ]} />
       </Section>
+
+      {can('hr.view') && (
+        <Section icon="manage_accounts" color={MODULE_COLORS.workforce} title="HR — self-service requests">
+          <Steps items={[
+            <>Detail Changes (<Code>HR37</Code>): compare each employee's current and requested details. Check the proof, then <b>Verified — apply</b>, or reject with a note telling them what's needed.</>,
+            <>Advances & Loans (<Code>HR38</Code>): approve or reject requests (or use the Approvals Inbox if a route is set up), then <b>Mark paid out</b> once the money has gone — this posts to the ledger. Payroll deducts instalments automatically.</>,
+          ]} />
+        </Section>
+      )}
+
+      {can('accommodation.view') && (
+        <Section icon="build" color={MODULE_COLORS.campsite} title="Camp — room faults">
+          <Steps items={[
+            <>Room Faults (<Code>CA09</Code>) lists problems residents reported. Move each one from <b>Start work</b> to <b>Mark fixed</b> — the resident is told when it's fixed.</>,
+          ]} />
+        </Section>
+      )}
 
       {(can('expenses.view') || can('expenses.approve') || can('expenses.edit') || can('pettycash.view') || can('pettycash.edit')) && (
         <Section icon="savings" color={MODULE_COLORS.finance} title="Finance — expense claims and petty cash">

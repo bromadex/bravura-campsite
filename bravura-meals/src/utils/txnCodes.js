@@ -75,6 +75,7 @@ export const TXN_CODES = [
   { code: 'CA06', path: '/campsite/camp_supplies',    label: 'Camp Supplies',           module: 'campsite' },
   { code: 'CA07', path: '/campsite/camp_transfers',   label: 'Site Reassignment',       module: 'campsite' },
   { code: 'CA08', path: '/campsite/camp_occ_report',  label: 'Occupancy Reports',       module: 'campsite' },
+  { code: 'CA09', path: '/campsite/camp_faults',      label: 'Room Faults',             module: 'campsite' },
 
   // ── HR / Workforce (HR) ───────────────────────────────────────────────────
   { code: 'HR01', path: '/workforce/wf_employees',     label: 'Employees',           module: 'workforce' },
@@ -116,6 +117,8 @@ export const TXN_CODES = [
   // Phase 5: Analytics
   { code: 'HR35', path: '/workforce/wf_analytics',            label: 'HR Analytics',         module: 'workforce' },
   { code: 'HR36', path: '/workforce/wf_statutory',            label: 'Statutory Returns',    module: 'workforce' },
+  { code: 'HR37', path: '/workforce/wf_detail_changes',       label: 'Employee Detail Changes', module: 'workforce' },
+  { code: 'HR38', path: '/workforce/wf_salary_advances',      label: 'Salary Advances & Loans', module: 'workforce' },
 
   // ── Contract & Contractor Management (CL) ──────────────────────────────
   { code: 'CL01', path: '/contractors/cl_dashboard',            label: 'CL Dashboard',         module: 'contractors' },
@@ -283,6 +286,12 @@ export const TXN_CODES = [
   { code: 'ES03', path: '/me/me_leave',      label: 'My Leave',      module: 'me' },
   { code: 'ES04', path: '/me/me_attendance', label: 'My Attendance', module: 'me' },
   { code: 'ES05', path: '/me/me_expenses',   label: 'My Expenses',   module: 'me' },
+  { code: 'ES06', path: '/me/me_safety',     label: 'My Safety',     module: 'me' },
+  { code: 'ES07', path: '/me/me_details',    label: 'My Details',    module: 'me' },
+  { code: 'ES08', path: '/me/me_tax',        label: 'My Tax Certificate', module: 'me' },
+  { code: 'ES09', path: '/me/me_documents',  label: 'My Documents & Policies', module: 'me' },
+  { code: 'ES10', path: '/me/me_camp',       label: 'My Camp',       module: 'me' },
+  { code: 'ES11', path: '/me/me_advances',   label: 'My Advances & Loans', module: 'me' },
 
   // ── DocVault (DS) ──────────────────────────────────────────────────────
   { code: 'DS01', path: '/docshare/ds_library',         label: 'Document Library',       module: 'docshare' },

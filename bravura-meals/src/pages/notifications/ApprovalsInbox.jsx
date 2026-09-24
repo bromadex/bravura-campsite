@@ -17,6 +17,7 @@ export const ENTITY_LABELS = {
   fuel_requests:         { label: 'Fuel request',     unit: 'L',    icon: 'local_gas_station' },
   leave_requests:        { label: 'Leave',            unit: 'days', icon: 'flight_takeoff' },
   expense_claims:        { label: 'Expense claim',    unit: '$',    icon: 'receipt_long' },
+  salary_advances:       { label: 'Salary advance / loan', unit: '$', icon: 'savings' },
 }
 
 const STATUS = {

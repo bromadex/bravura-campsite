@@ -10,14 +10,25 @@ const MyPayslips   = lazy(() => import('../pages/me/MyPayslips'))
 const MyLeave      = lazy(() => import('../pages/me/MyLeave'))
 const MyAttendance = lazy(() => import('../pages/me/MyAttendance'))
 const MyExpenses   = lazy(() => import('../pages/me/MyExpenses'))
+const MySafety     = lazy(() => import('../pages/me/MySafety'))
+const MyDetails    = lazy(() => import('../pages/me/MyDetails'))
+const MyTax        = lazy(() => import('../pages/me/MyTaxCertificate'))
+const MyDocuments  = lazy(() => import('../pages/me/MyDocuments'))
+const MyCamp       = lazy(() => import('../pages/me/MyCamp'))
+const MyAdvances   = lazy(() => import('../pages/me/MyAdvances'))
 
 const ME_TABS = [
   { id: 'me_home',       label: 'Home',       icon: 'home',         C: MeHome },
-  { id: 'me_payslips',   label: 'Payslips',   icon: 'payments',     C: MyPayslips },
+  { id: 'me_attendance', label: 'Time',       icon: 'schedule',     C: MyAttendance },
   { id: 'me_leave',      label: 'Leave',      icon: 'beach_access', C: MyLeave },
-  { id: 'me_attendance', label: 'Attendance', icon: 'schedule',     C: MyAttendance },
-  { id: 'me_expenses',   label: 'Expenses',   icon: 'receipt_long', C: MyExpenses },
+  { id: 'me_payslips',   label: 'Pay',        icon: 'payments',     C: MyPayslips },
+  { id: 'me_safety',     label: 'Safety',     icon: 'health_and_safety', C: MySafety },
 ]
+// Reached from the Home hub; shown with a back link instead of a tab.
+const ME_MORE = {
+  me_expenses: MyExpenses, me_details: MyDetails, me_tax: MyTax,
+  me_documents: MyDocuments, me_camp: MyCamp, me_advances: MyAdvances,
+}
 
 // Shared chat-unread count so the home grid badge and the dock use one subscription.
 let chatUnreadValue = 0
@@ -114,7 +125,8 @@ export default function FloatingDock() {
   const chatRight = isMobile ? '16px' : '28px'
   const chatBottom = isMobile ? '16px' : '28px'
   const showChatFab = !onConnectPage
-  const Tab = ME_TABS.find(t => t.id === meTab) || ME_TABS[0]
+  const MeView = ME_TABS.find(t => t.id === meTab)?.C || ME_MORE[meTab] || MeHome
+  const isMoreView = !ME_TABS.some(t => t.id === meTab) && !!ME_MORE[meTab]
 
   return (
     <>
@@ -158,7 +170,13 @@ export default function FloatingDock() {
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '14px', background: THEME.bg || THEME.surface }}>
             <Suspense fallback={<div style={{ padding: '32px', textAlign: 'center', color: THEME.textLow, fontSize: '13px' }}>Loading…</div>}>
-              <Tab.C setPage={setMeTab} />
+              {isMoreView && (
+                <button onClick={() => setMeTab('me_home')} style={{ background: 'none', border: 'none', color: MODULE_COLORS.me, fontFamily: 'inherit',
+                  fontSize: '14px', cursor: 'pointer', padding: '4px 0', marginBottom: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span className="material-symbols-rounded" style={{ fontSize: '16px' }}>arrow_back</span> Home
+                </button>
+              )}
+              <MeView setPage={setMeTab} />
             </Suspense>
           </div>
         </div>
@@ -182,11 +200,11 @@ export default function FloatingDock() {
 
       {/* Self-service button — stacked above Connect */}
       {!onMePage && panel !== 'chat' && (
-        <button onClick={() => setPanel(p => p === 'me' ? null : 'me')} title="My Workspace — payslips, leave, expenses"
+        <button onClick={() => setPanel(p => p === 'me' ? null : 'me')} title="My Workspace — clock in, leave, pay, safety"
           aria-label="My Workspace" aria-expanded={panel === 'me'}
           style={{ ...fabBase, bottom: showChatFab ? (isMobile ? '80px' : '96px') : chatBottom, right: isMobile ? '20px' : '32px',
             zIndex: 160, width: '48px', height: '48px', background: MODULE_COLORS.me,
-            boxShadow: '0 4px 14px rgba(0,137,123,.4), 0 2px 6px rgba(0,0,0,.18)',
+            boxShadow: '0 4px 14px rgba(152,35,41,.4), 0 2px 6px rgba(0,0,0,.18)',
             display: panel === 'me' && showChatFab ? 'none' : 'flex' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
@@ -198,8 +216,8 @@ export default function FloatingDock() {
         <button onClick={() => setPanel(p => (p ? null : 'chat'))} title={panel ? 'Close' : 'Bravura Connect'}
           aria-label={panel ? 'Close panel' : 'Bravura Connect'}
           style={{ ...fabBase, bottom: chatBottom, right: chatRight, zIndex: 160, width: '56px', height: '56px',
-            background: panel === 'me' ? MODULE_COLORS.me : '#982329',
-            boxShadow: '0 4px 14px rgba(152,35,41,.45), 0 2px 6px rgba(0,0,0,.18)' }}
+            background: panel === 'me' ? MODULE_COLORS.me : '#00897B',
+            boxShadow: panel === 'me' ? '0 4px 14px rgba(152,35,41,.45), 0 2px 6px rgba(0,0,0,.18)' : '0 4px 14px rgba(0,137,123,.45), 0 2px 6px rgba(0,0,0,.18)' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
           <span className="material-symbols-rounded filled" style={{ fontSize: '26px', color: '#fff' }}>{panel ? 'close' : 'chat'}</span>

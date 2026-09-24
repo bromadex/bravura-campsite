@@ -82,3 +82,46 @@ export const field = {
   fontFamily: 'inherit', boxSizing: 'border-box',
 }
 export const label = { fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }
+
+// Photos for hazards and room faults: private ess-uploads bucket, <site_id>/<user_id>/<file>.
+export async function uploadEssPhoto(file, siteId, userId) {
+  if (!file) return null
+  if (file.size > 10 * 1024 * 1024) throw new Error('Photo is larger than 10 MB')
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const path = `${siteId}/${userId}/${crypto.randomUUID()}.${ext}`
+  const { error } = await supabase.storage.from('ess-uploads').upload(path, file, { contentType: file.type })
+  if (error) throw error
+  return path
+}
+
+// Expiry status: expired, due within 30 days, or valid.
+export function ExpiryPill({ date }) {
+  if (!date) return <span style={{ fontSize: '11px', color: THEME.textLow }}>No expiry</span>
+  const days = Math.floor((new Date(date + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000)
+  const s = days < 0
+    ? { bg: THEME.statusErrorBg, c: THEME.statusErrorText, t: `Expired ${-days}d ago` }
+    : days <= 30
+      ? { bg: THEME.statusWarningBg, c: THEME.statusWarningText, t: `Due in ${days}d` }
+      : { bg: THEME.statusSuccessBg, c: THEME.statusSuccessText, t: 'Valid' }
+  return <span style={{ padding: '2px 8px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, background: s.bg, color: s.c, whiteSpace: 'nowrap' }}>{s.t}</span>
+}
+
+export function BackHome({ setPage }) {
+  return (
+    <button onClick={() => setPage('me_home')} style={{ background: 'none', border: 'none', color: ME_COLOR, fontFamily: 'inherit', fontSize: '14px', cursor: 'pointer', padding: '4px 0', marginBottom: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+      <Icon name="arrow_back" size={16} /> My Workspace
+    </button>
+  )
+}
+
+export function Section({ title, children, action }) {
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>{title}</div>
+        {action}
+      </div>
+      {children}
+    </div>
+  )
+}

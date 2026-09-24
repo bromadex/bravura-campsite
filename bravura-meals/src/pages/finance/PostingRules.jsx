@@ -20,6 +20,8 @@ const EVENTS = [
   { code: 'payroll_nssa',       group: 'Payroll',     label: 'Payroll approved — NSSA (employee)',    debit: 'Salaries & wages expense',         credit: 'NSSA payable' },
   { code: 'payroll_nssa_employer', group: 'Payroll',  label: 'Payroll approved — NSSA (employer)',    debit: 'Employer NSSA expense',            credit: 'NSSA payable' },
   { code: 'payroll_deductions', group: 'Payroll',     label: 'Payroll approved — other deductions (medical aid etc.)', debit: 'Salaries & wages expense', credit: 'Other deductions payable' },
+  { code: 'payroll_loan_recovery', group: 'Payroll',  label: 'Payroll approved — staff advance/loan recovered', debit: 'Salaries & wages expense', credit: 'Staff loans & advances' },
+  { code: 'staff_loan_paid',    group: 'Payroll',     label: 'Staff advance/loan paid out',           debit: 'Staff loans & advances',           credit: 'Bank' },
   { code: 'payroll_paid',       group: 'Payroll',     label: 'Payroll paid to employees',             debit: 'Net pay payable',                  credit: 'Bank' },
   { code: 'meals_approved',     group: 'Meals',       label: 'Daily meals approved',                  debit: 'Catering expense',                 credit: 'Catering provider payable' },
   { code: 'expense_approved',   group: 'Expenses',    label: 'Expense claim approved',                debit: 'Staff expenses (by claim)',        credit: 'Employee claims payable' },

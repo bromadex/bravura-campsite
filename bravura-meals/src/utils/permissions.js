@@ -96,7 +96,7 @@ export const MODULE_COLORS = {
   connect:     '#00838F',  // cyan         – messaging/connect
   notifications: '#FF6F00', // amber       – alerts/notifications
   docshare:      '#4527A0', // deep purple – document management
-  me:            '#00897B', // teal-green  – employee self-service
+  me:            '#982329', // maroon      – employee self-service
 }
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
@@ -149,6 +149,7 @@ export function workforceNav(role) {
     { id: 'wf_dashboard',    label: 'HR Dashboard',     section: 'Overview',     icon: 'dashboard' },
     { id: 'wf_employees',   label: 'Employees',        section: 'People',  icon: 'badge' },
     { id: 'wf_transfers',    label: 'Site Reassignment', section: 'People',  icon: 'swap_horiz' },
+    { id: 'wf_detail_changes', label: 'Detail Changes',  section: 'People',  icon: 'manage_accounts' },
     { id: 'wf_leave_requests',    label: 'Leave Requests',    section: 'Leave', icon: 'event_available' },
     { id: 'wf_leave_calendar',    label: 'Leave Calendar',    section: 'Leave', icon: 'calendar_month' },
     { id: 'wf_leave_allocations', label: 'Leave Allocations', section: 'Leave', icon: 'pie_chart' },
@@ -166,6 +167,7 @@ export function workforceNav(role) {
     { id: 'wf_salary_components', label: 'Salary Components', section: 'Payroll', icon: 'tune' },
     { id: 'wf_payroll',           label: 'Payroll Run',       section: 'Payroll', icon: 'calculate' },
     { id: 'wf_salary_slips',      label: 'Salary Slips',      section: 'Payroll', icon: 'receipt' },
+    { id: 'wf_salary_advances',   label: 'Advances & Loans',  section: 'Payroll', icon: 'savings' },
     { id: 'wf_statutory',         label: 'Statutory Returns', section: 'Payroll', icon: 'account_balance' },
     { id: 'wf_appraisals',   label: 'Appraisals',       section: 'Performance', icon: 'star_rate' },
     { id: 'wf_disciplinary', label: 'Disciplinary',     section: 'Performance', icon: 'gavel' },
@@ -188,6 +190,7 @@ export function campsiteNav(role) {
     { id: 'camp_blocks',      label: 'Blocks',           section: 'Management',  icon: 'domain' },
     { id: 'camp_supplies',    label: 'Camp Supplies',    section: 'Management',  icon: 'inventory_2' },
     { id: 'camp_transfers',   label: 'Site Reassignment', section: 'Management',  icon: 'swap_horiz' },
+    { id: 'camp_faults',      label: 'Room Faults',      section: 'Management',  icon: 'build' },
     { id: 'camp_occ_report',  label: 'Occupancy Reports',section: 'Reports',     icon: 'analytics' },
   ]
 }
@@ -452,6 +455,12 @@ export function meNav() {
     { id: 'me_leave',      label: 'Leave',        section: 'Me', icon: 'beach_access' },
     { id: 'me_attendance', label: 'Attendance',   section: 'Me', icon: 'schedule' },
     { id: 'me_expenses',   label: 'Expenses',     section: 'Me', icon: 'receipt_long' },
+    { id: 'me_safety',     label: 'My Safety',    section: 'Me', icon: 'health_and_safety' },
+    { id: 'me_details',    label: 'My Details',   section: 'Me', icon: 'badge' },
+    { id: 'me_documents',  label: 'Documents & Policies', section: 'Me', icon: 'description' },
+    { id: 'me_camp',       label: 'My Camp',      section: 'Me', icon: 'bed' },
+    { id: 'me_advances',   label: 'Advances & Loans', section: 'Me', icon: 'savings' },
+    { id: 'me_tax',        label: 'Tax Certificate', section: 'Me', icon: 'receipt_long' },
   ]
 }
 

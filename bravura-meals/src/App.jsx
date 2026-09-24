@@ -185,6 +185,15 @@ const MyPayslips           = lazy(() => import('./pages/me/MyPayslips'))
 const MyLeave              = lazy(() => import('./pages/me/MyLeave'))
 const MyAttendance         = lazy(() => import('./pages/me/MyAttendance'))
 const MyExpenses           = lazy(() => import('./pages/me/MyExpenses'))
+const MySafety             = lazy(() => import('./pages/me/MySafety'))
+const MyDetails            = lazy(() => import('./pages/me/MyDetails'))
+const MyTaxCertificate     = lazy(() => import('./pages/me/MyTaxCertificate'))
+const MyDocuments          = lazy(() => import('./pages/me/MyDocuments'))
+const MyCamp               = lazy(() => import('./pages/me/MyCamp'))
+const MyAdvances           = lazy(() => import('./pages/me/MyAdvances'))
+const HRDetailChanges      = lazy(() => import('./pages/hr/DetailChanges'))
+const HRSalaryAdvances     = lazy(() => import('./pages/hr/SalaryAdvances'))
+const CampFaults           = lazy(() => import('./pages/campsite/CampFaults'))
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
@@ -413,6 +422,8 @@ function getWorkforcePage(page, role, can, setPage) {
     case 'wf_medicals':          return can('hr.view') ? <HRMedicalSurveillance setPage={setPage} /> : null
     case 'wf_document_expiry':   return can('hr.view') ? <HRDocumentExpiry setPage={setPage} /> : null
     case 'wf_ppe':               return can('hr.view') ? <PPETracking setPage={setPage} /> : null
+    case 'wf_detail_changes':    return can('hr.view') ? <HRDetailChanges setPage={setPage} /> : null
+    case 'wf_salary_advances':   return can('hr.edit') || can('hr.approve') ? <HRSalaryAdvances setPage={setPage} /> : null
     // Employee list: the Phase 1 HR list supersedes the original page but
     // keeps the same id — bookmarks and the HR01 T-code keep working.
     // (Legacy workforce/Employees.jsx fallback removed with the old
@@ -441,6 +452,7 @@ function getCampsitePage(page, role, setPage, can) {
     case 'camp_supplies':    return <CampSupplies setPage={setPage} />
     case 'camp_transfers':   return <StockTransfers setPage={setPage} />
     case 'camp_occ_report':  return <CampOccupancyReport setPage={setPage} />
+    case 'camp_faults':      return can('accommodation.view') ? <CampFaults setPage={setPage} /> : null
     default:                 return <CampHeadcount setPage={setPage} />
   }
 }
@@ -762,6 +774,12 @@ function getMePage(page, setPage) {
     case 'me_leave':      return <MyLeave setPage={setPage} />
     case 'me_attendance': return <MyAttendance setPage={setPage} />
     case 'me_expenses':   return <MyExpenses setPage={setPage} />
+    case 'me_safety':     return <MySafety setPage={setPage} />
+    case 'me_details':    return <MyDetails setPage={setPage} />
+    case 'me_tax':        return <MyTaxCertificate setPage={setPage} />
+    case 'me_documents':  return <MyDocuments setPage={setPage} />
+    case 'me_camp':       return <MyCamp setPage={setPage} />
+    case 'me_advances':   return <MyAdvances setPage={setPage} />
     default:              return <MeHome setPage={setPage} />
   }
 }

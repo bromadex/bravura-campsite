@@ -66,7 +66,9 @@ export default function MeHome({ setPage }) {
           {[
             ['event_available', 'Request leave', 'me_leave'],
             ['add_card', 'Claim expenses', 'me_expenses'],
-            ['request_quote', 'Ask for an advance', 'me_expenses'],
+            ['warning', 'Report a hazard', 'me_safety'],
+            ['savings', 'Salary advance or loan', 'me_advances'],
+            ['build', 'Report a room problem', 'me_camp'],
             ['approval', 'My approvals inbox', null],
           ].map(([icon, text, page]) => (
             <button key={text} onClick={() => page ? setPage(page) : navigate('/notifications/approvals_inbox')}
@@ -74,6 +76,29 @@ export default function MeHome({ setPage }) {
                 border: `1px solid ${THEME.outlineVar}`, background: THEME.surface, color: THEME.text, fontFamily: 'inherit',
                 fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}>
               <Icon name={icon} size={20} style={{ color: ME_COLOR }} /> {text}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      <Card style={{ padding: '14px 16px', marginTop: '12px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '10px' }}>Everything else</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+          {[
+            ['health_and_safety', 'My safety', 'PPE, training, medicals', 'me_safety'],
+            ['schedule', 'Clock in & roster', 'Shifts and hours', 'me_attendance'],
+            ['badge', 'My details', 'Contact, bank, next of kin', 'me_details'],
+            ['description', 'Documents & policies', 'Read and acknowledge', 'me_documents'],
+            ['bed', 'My camp', 'Room, faults, meals', 'me_camp'],
+            ['savings', 'Advances & loans', 'Request and track', 'me_advances'],
+            ['receipt_long', 'Tax certificate', 'ITF16 for the year', 'me_tax'],
+          ].map(([icon, text, sub, page]) => (
+            <button key={page + text} onClick={() => setPage(page)}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', minHeight: '84px', padding: '12px', borderRadius: '10px',
+                border: `1px solid ${THEME.outlineVar}`, background: THEME.surface, fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
+              <Icon name={icon} size={20} style={{ color: ME_COLOR }} />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>{text}</span>
+              <span style={{ fontSize: '12px', color: THEME.textLow }}>{sub}</span>
             </button>
           ))}
         </div>

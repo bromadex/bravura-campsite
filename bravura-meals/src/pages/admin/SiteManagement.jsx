@@ -37,11 +37,12 @@ export default function SiteManagement({ setPage }) {
   }
 
   function openAdd() {
-    setEditModal({ name: '', code: '', site_type: 'operational_site', is_active: true })
+    setEditModal({ name: '', code: '', site_type: 'operational_site', is_active: true, latitude: '', longitude: '', geofence_m: 1500 })
   }
 
   function openEdit(site) {
-    setEditModal({ id: site.id, name: site.name, code: site.code || '', site_type: site.site_type, is_active: site.is_active })
+    setEditModal({ id: site.id, name: site.name, code: site.code || '', site_type: site.site_type, is_active: site.is_active,
+      latitude: site.latitude ?? '', longitude: site.longitude ?? '', geofence_m: site.geofence_m ?? 1500 })
   }
 
   async function handleSave() {
@@ -64,7 +65,11 @@ export default function SiteManagement({ setPage }) {
         code: editModal.code.trim().toUpperCase(),
         site_type: editModal.site_type,
         is_active: editModal.is_active,
+        latitude: editModal.latitude === '' ? null : Number(editModal.latitude),
+        longitude: editModal.longitude === '' ? null : Number(editModal.longitude),
+        geofence_m: Number(editModal.geofence_m) || 1500,
       }
+      if ((payload.latitude == null) !== (payload.longitude == null)) { showToast('Enter both latitude and longitude, or neither', 'red'); setSaving(false); return }
 
       if (editModal.id) {
         const { error } = await supabase.from('sites').update(payload).eq('id', editModal.id)
@@ -82,6 +87,14 @@ export default function SiteManagement({ setPage }) {
     } finally {
       setSaving(false)
     }
+  }
+
+  function useMyLocation() {
+    if (!navigator.geolocation) { showToast('This device cannot share its location', 'red'); return }
+    navigator.geolocation.getCurrentPosition(
+      pos => setEditModal(prev => ({ ...prev, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) })),
+      () => showToast('Location permission was denied', 'red'),
+      { enableHighAccuracy: true, timeout: 15000 })
   }
 
   if (!can('users.view')) {
@@ -108,7 +121,7 @@ export default function SiteManagement({ setPage }) {
       ) : (
         <TableWrap>
           <THead color={color}>
-            {['Name', 'Code', 'Type', 'Status', 'Actions'].map(h => <Th key={h}>{h}</Th>)}
+            {['Name', 'Code', 'Type', 'Phone clock-in', 'Status', 'Actions'].map(h => <Th key={h}>{h}</Th>)}
           </THead>
           <tbody>
             {sites.map(s => (
@@ -117,6 +130,9 @@ export default function SiteManagement({ setPage }) {
                 <Td><code style={{ fontSize: '12px', background: THEME.surfaceVar, padding: '2px 6px', borderRadius: '4px' }}>{s.code}</code></Td>
                 <Td style={{ fontSize: '12px', color: THEME.textMed }}>
                   {s.site_type === 'head_office' ? 'Head Office' : 'Operational Site'}
+                </Td>
+                <Td style={{ fontSize: '12px', color: s.latitude != null ? THEME.textMed : THEME.textLow }}>
+                  {s.latitude != null ? `Within ${Number(s.geofence_m || 0).toLocaleString()} m` : 'Not set up'}
                 </Td>
                 <Td>
                   <span style={{
@@ -167,6 +183,19 @@ export default function SiteManagement({ setPage }) {
                 <option value="operational_site">Operational Site</option>
                 <option value="head_office">Head Office</option>
               </select>
+            </div>
+
+            <div style={{ ...fieldWrap, padding: '12px', borderRadius: '10px', background: THEME.surfaceVar }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '4px' }}>Phone clock-in area</div>
+              <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '8px' }}>Employees can only clock in by phone within this distance of the site. Stand at the site office and press "Use my current location".</div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <input aria-label="Latitude" id="site-lat" style={{ ...inp, flex: '1 1 110px' }} value={editModal.latitude} placeholder="Latitude" onChange={e => setEditModal(prev => ({ ...prev, latitude: e.target.value }))} />
+                <input aria-label="Longitude" id="site-lng" style={{ ...inp, flex: '1 1 110px' }} value={editModal.longitude} placeholder="Longitude" onChange={e => setEditModal(prev => ({ ...prev, longitude: e.target.value }))} />
+                <select aria-label="Clock-in radius" id="site-radius" style={{ ...inp, flex: '1 1 110px' }} value={editModal.geofence_m} onChange={e => setEditModal(prev => ({ ...prev, geofence_m: e.target.value }))}>
+                  {[300, 500, 1000, 1500, 3000, 5000].map(m => <option key={m} value={m}>{m >= 1000 ? `${m / 1000} km` : `${m} m`}</option>)}
+                </select>
+              </div>
+              <Button size="sm" variant="outlined" icon="my_location" onClick={useMyLocation} style={{ marginTop: '8px' }}>Use my current location</Button>
             </div>
 
             <div style={fieldWrap}>

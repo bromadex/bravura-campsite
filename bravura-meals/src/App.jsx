@@ -782,6 +782,8 @@ function getMePage(page, setPage) {
     case 'me_camp':       return <MyCamp setPage={setPage} />
     case 'me_advances':   return <MyAdvances setPage={setPage} />
     case 'me_team':       return <MyTeam setPage={setPage} />
+    case 'me_approvals':  return <ApprovalsInbox setPage={setPage} />
+    case 'me_notifications': return <NotificationCenter setPage={setPage} openMePage={setPage} />
     default:              return <MeHome setPage={setPage} />
   }
 }

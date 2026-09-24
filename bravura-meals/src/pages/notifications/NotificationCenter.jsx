@@ -58,7 +58,7 @@ const Icon = ({ name, size = 20, style = {} }) => (
   <span className="material-symbols-rounded" style={{ fontSize: size, lineHeight: 1, userSelect: 'none', ...style }}>{name}</span>
 )
 
-export default function NotificationCenter() {
+export default function NotificationCenter({ openMePage } = {}) {
   const { profile } = useAuth()
   const { currentSiteId } = useSite()
   const navigate = useNavigate()
@@ -280,7 +280,9 @@ export default function NotificationCenter() {
                     key={n.id}
                     onClick={() => {
                       markRead(n.id)
-                      if (n.link && n.link.startsWith('/')) navigate(n.link)
+                      // Inside the My Workspace panel, self-service links open in the panel instead of a full page.
+                      if (openMePage && n.link?.startsWith('/me/')) openMePage(n.link.slice(4))
+                      else if (n.link && n.link.startsWith('/')) navigate(n.link)
                     }}
                     style={{
                       padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start',

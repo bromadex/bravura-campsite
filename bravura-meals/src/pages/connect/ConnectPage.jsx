@@ -20,6 +20,7 @@ const MR_CHAT_BG = '#F5EDED'
 const MR_TIME = '#667781'
 const MR_TICK = '#9B1B30'
 
+const PAGE_SIZE = 50
 const REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🔥']
 const EMOJI_QUICK = ['😀', '😂', '😍', '🥰', '😎', '🤔', '😢', '😡', '👍', '👎', '❤️', '🔥', '🎉', '👏', '🙏', '💯', '✅', '❌', '👋', '🤝', '💪', '🫡', '😮', '🤣']
 
@@ -98,6 +99,60 @@ function ReadReceipt({ mine, isRead }) {
   )
 }
 
+const signedUrlCache = new Map()
+
+async function getSignedUrl(path) {
+  const cached = signedUrlCache.get(path)
+  if (cached && cached.expires > Date.now()) return cached.url
+  const { data, error } = await supabase.storage.from('connect-files').createSignedUrl(path, 60)
+  if (error || !data?.signedUrl) return null
+  signedUrlCache.set(path, { url: data.signedUrl, expires: Date.now() + 50000 })
+  return data.signedUrl
+}
+
+function FileAttachment({ m, mine }) {
+  const [url, setUrl] = useState(null)
+  const isImage = m.file_type?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(m.file_name || '')
+  const filePath = m.file_url ? extractStoragePath(m.file_url) : null
+
+  useEffect(() => {
+    if (!filePath) return
+    let cancelled = false
+    getSignedUrl(filePath).then(u => { if (!cancelled && u) setUrl(u) })
+    return () => { cancelled = true }
+  }, [filePath])
+
+  if (!filePath) return null
+  if (!url) return <div style={{ fontSize: '12px', color: THEME.textLow, padding: '4px' }}>Loading attachment…</div>
+
+  if (isImage) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: '4px' }}>
+        <img src={url} alt={m.file_name || 'Image'} style={{ maxWidth: '260px', maxHeight: '300px', borderRadius: '6px', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
+      </a>
+    )
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer" style={{
+      color: MR_LIGHT, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px',
+      textDecoration: 'none', background: mine ? '#e8bfc7' : '#f5f5f5', padding: '8px 10px', borderRadius: '6px', marginTop: '4px',
+    }}>
+      <Icon name="description" size={20} style={{ color: MR_LIGHT }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 600, fontSize: '13px', color: '#303030', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.file_name || 'Document'}</div>
+        <div style={{ fontSize: '11px', color: MR_TIME }}>{(m.file_type || 'file').split('/').pop().toUpperCase()} · Download</div>
+      </div>
+      <Icon name="download" size={18} style={{ color: MR_TIME }} />
+    </a>
+  )
+}
+
+function extractStoragePath(fileUrl) {
+  if (!fileUrl) return null
+  const match = fileUrl.match(/connect-files\/(.+)$/)
+  return match ? match[1] : null
+}
+
 function RenderContent({ text, navigate }) {
   if (!text) return null
   const parts = text.split(/(\[[A-Z]{2}\d{2}\])/)
@@ -130,17 +185,17 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   const { can } = usePermissions()
 
   const [conversations, setConversations] = useState([])
-  const [lastMessages, setLastMessages] = useState({})
-  const [unreadCounts, setUnreadCounts] = useState({})
   const [siteUsers, setSiteUsers] = useState([])
   const [loadingConvos, setLoadingConvos] = useState(true)
 
   const [selectedId, setSelectedId] = useState(null)
   const [messages, setMessages] = useState([])
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const [convoSearch, setConvoSearch] = useState('')
-  const [convoFilter, setConvoFilter] = useState('all') // all | dm | group | department
+  const [convoFilter, setConvoFilter] = useState('all')
   const [msgSearch, setMsgSearch] = useState('')
 
   const [mobileShowThread, setMobileShowThread] = useState(false)
@@ -179,6 +234,8 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   const imageInputRef = useRef(null)
   const docInputRef = useRef(null)
   const messagesEndRef = useRef(null)
+  const messagesTopRef = useRef(null)
+  const scrollContainerRef = useRef(null)
   const channelRef = useRef(null)
   const selectedIdRef = useRef(null)
   const entitySearchIdRef = useRef(0)
@@ -191,7 +248,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Close emoji/attach menus on outside click
   useEffect(() => {
     function onClick(e) {
       if (emojiRef.current && !emojiRef.current.contains(e.target)) setShowEmojiPicker(false)
@@ -201,46 +257,19 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  // ── Load conversations ──────────────────────────────────────────────────
+  // ── Load conversations (denormalized — no separate message fetch) ──────
   const loadConversations = useCallback(async () => {
     if (!currentSiteId || !profile?.id) return
     setLoadingConvos(true)
     const { data, error } = await supabase
       .from('chat_conversations')
-      .select('*, chat_participants!inner(user_id, last_read_at)')
+      .select('*, chat_participants!inner(user_id, last_read_at, unread_count)')
       .eq('site_id', currentSiteId)
       .eq('chat_participants.user_id', profile.id)
       .eq('is_archived', false)
-      .order('created_at', { ascending: false })
+      .order('last_message_at', { ascending: false, nullsFirst: false })
     if (error) { console.error(error); showToast('Failed to load conversations', 'red'); setLoadingConvos(false); return }
-    const convos = data || []
-    setConversations(convos)
-
-    if (convos.length > 0) {
-      const ids = convos.map(c => c.id)
-      const { data: msgs } = await supabase
-        .from('chat_messages')
-        .select('id, conversation_id, content, created_at, sender_id, is_deleted, file_name, file_type, sender:profiles(id, full_name)')
-        .in('conversation_id', ids)
-        .order('created_at', { ascending: false })
-      const lastByConvo = {}
-      const unread = {}
-      const readMap = {}
-      convos.forEach(c => {
-        const part = (c.chat_participants || []).find(p => p.user_id === profile.id)
-        readMap[c.id] = part?.last_read_at || null
-      })
-      for (const m of msgs || []) {
-        if (!lastByConvo[m.conversation_id] && !m.is_deleted) lastByConvo[m.conversation_id] = m
-        if (m.is_deleted) continue
-        const lastRead = readMap[m.conversation_id]
-        if (m.sender_id !== profile.id && (!lastRead || new Date(m.created_at) > new Date(lastRead))) {
-          unread[m.conversation_id] = (unread[m.conversation_id] || 0) + 1
-        }
-      }
-      setLastMessages(lastByConvo)
-      setUnreadCounts(unread)
-    }
+    setConversations(data || [])
     setLoadingConvos(false)
   }, [currentSiteId, profile?.id])
 
@@ -279,60 +308,169 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   useEffect(() => { loadConversations() }, [loadConversations])
   useEffect(() => { loadSiteUsers() }, [loadSiteUsers])
 
-  // ── Load messages for selected conversation ─────────────────────────────
-  const loadMessages = useCallback(async (convoId) => {
+  // ── Load messages with cursor pagination (newest 50 first) ─────────────
+  const loadMessages = useCallback(async (convoId, cursor = null) => {
     if (!convoId) return
-    setLoadingMessages(true)
-    const { data, error } = await supabase
+    if (!cursor) setLoadingMessages(true)
+    else setLoadingMore(true)
+
+    let query = supabase
       .from('chat_messages')
       .select('*, sender:profiles(id, full_name), reactions:message_reactions(id, emoji, user_id)')
       .eq('conversation_id', convoId)
       .eq('is_deleted', false)
-      .order('created_at', { ascending: true })
-    if (selectedIdRef.current !== convoId) return
-    if (error) { console.error(error); showToast('Failed to load messages', 'red'); setLoadingMessages(false); return }
-    setMessages(data || [])
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(PAGE_SIZE)
+
+    if (cursor) {
+      query = query.or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`)
+    }
+
+    const { data, error } = await query
+    if (selectedIdRef.current !== convoId) { setLoadingMessages(false); setLoadingMore(false); return }
+    if (error) { console.error(error); showToast('Failed to load messages', 'red'); setLoadingMessages(false); setLoadingMore(false); return }
+
+    const sorted = (data || []).reverse()
+    setHasMore((data || []).length === PAGE_SIZE)
+
+    if (cursor) {
+      setMessages(prev => [...sorted, ...prev])
+    } else {
+      setMessages(sorted)
+    }
+
     setLoadingMessages(false)
-    await supabase.from('chat_participants')
-      .update({ last_read_at: new Date().toISOString() })
-      .eq('conversation_id', convoId)
-      .eq('user_id', profile?.id)
-    setUnreadCounts(u => ({ ...u, [convoId]: 0 }))
+    setLoadingMore(false)
+
+    if (!cursor) {
+      await supabase.from('chat_participants')
+        .update({ last_read_at: new Date().toISOString() })
+        .eq('conversation_id', convoId)
+        .eq('user_id', profile?.id)
+      setConversations(prev => prev.map(c => {
+        if (c.id !== convoId) return c
+        const parts = (c.chat_participants || []).map(p =>
+          p.user_id === profile?.id ? { ...p, unread_count: 0 } : p
+        )
+        return { ...c, chat_participants: parts }
+      }))
+    }
   }, [profile?.id])
+
+  const loadOlderMessages = useCallback(() => {
+    if (!selectedId || loadingMore || !hasMore || messages.length === 0) return
+    const oldest = messages[0]
+    loadMessages(selectedId, { created_at: oldest.created_at, id: oldest.id })
+  }, [selectedId, loadingMore, hasMore, messages, loadMessages])
 
   useEffect(() => {
     if (selectedId) loadMessages(selectedId)
   }, [selectedId, loadMessages])
 
   const prevSelectedIdRef = useRef(null)
+  const prevMsgCountRef = useRef(0)
   useEffect(() => {
     const isConvoSwitch = prevSelectedIdRef.current !== selectedId
     prevSelectedIdRef.current = selectedId
-    messagesEndRef.current?.scrollIntoView({ behavior: isConvoSwitch ? 'auto' : 'smooth' })
+    const isNewMessage = messages.length > prevMsgCountRef.current && !isConvoSwitch
+    prevMsgCountRef.current = messages.length
+    if (isConvoSwitch || isNewMessage) {
+      messagesEndRef.current?.scrollIntoView({ behavior: isConvoSwitch ? 'auto' : 'smooth' })
+    }
   }, [messages.length, selectedId])
 
-  // ── Realtime: messages on selected conversation ─────────────────────────
+  // Scroll-up detection for loading older messages
+  const handleMessagesScroll = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el || loadingMore || !hasMore) return
+    if (el.scrollTop < 80) loadOlderMessages()
+  }, [loadingMore, hasMore, loadOlderMessages])
+
+  // ── Realtime: payload-based append for messages ────────────────────────
   useEffect(() => {
     if (!selectedId) return
     const channel = supabase.channel(`chat_messages_${selectedId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `conversation_id=eq.${selectedId}` },
-        () => { loadMessages(selectedId) })
+        async (payload) => {
+          const newMsg = payload.new
+          if (!newMsg || newMsg.is_deleted) return
+          const { data: enriched } = await supabase
+            .from('chat_messages')
+            .select('*, sender:profiles(id, full_name), reactions:message_reactions(id, emoji, user_id)')
+            .eq('id', newMsg.id)
+            .maybeSingle()
+          if (!enriched || selectedIdRef.current !== selectedId) return
+          setMessages(prev => {
+            if (prev.some(m => m.id === enriched.id)) return prev
+            return [...prev, enriched]
+          })
+          if (newMsg.sender_id !== profile?.id) {
+            await supabase.from('chat_participants')
+              .update({ last_read_at: new Date().toISOString() })
+              .eq('conversation_id', selectedId)
+              .eq('user_id', profile?.id)
+          }
+        })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `conversation_id=eq.${selectedId}` },
-        () => { loadMessages(selectedId) })
+        async (payload) => {
+          const updated = payload.new
+          if (!updated) return
+          if (updated.is_deleted) {
+            setMessages(prev => prev.filter(m => m.id !== updated.id))
+            return
+          }
+          const { data: enriched } = await supabase
+            .from('chat_messages')
+            .select('*, sender:profiles(id, full_name), reactions:message_reactions(id, emoji, user_id)')
+            .eq('id', updated.id)
+            .maybeSingle()
+          if (!enriched || selectedIdRef.current !== selectedId) return
+          setMessages(prev => prev.map(m => m.id === enriched.id ? enriched : m))
+        })
       .subscribe()
     channelRef.current = channel
     return () => { supabase.removeChannel(channel) }
-  }, [selectedId, loadMessages])
+  }, [selectedId, profile?.id])
 
-  // ── Realtime: all-conversation refresh for unread badges ────────────────
+  // ── Realtime: conversation-level updates for sidebar ───────────────────
   useEffect(() => {
     if (!currentSiteId) return
     const channel = supabase.channel(`chat_convo_watch_${currentSiteId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' },
-        () => { loadConversations() })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_conversations', filter: `site_id=eq.${currentSiteId}` },
+        (payload) => {
+          const updated = payload.new
+          if (!updated) return
+          setConversations(prev => {
+            const idx = prev.findIndex(c => c.id === updated.id)
+            if (idx === -1) return prev
+            const old = prev[idx]
+            const merged = { ...old, ...updated, chat_participants: old.chat_participants }
+            const next = [...prev]
+            next[idx] = merged
+            next.sort((a, b) => new Date(b.last_message_at || b.created_at) - new Date(a.last_message_at || a.created_at))
+            return next
+          })
+        })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_participants' },
+        (payload) => {
+          const updated = payload.new
+          if (!updated || updated.user_id !== profile?.id) return
+          setConversations(prev => prev.map(c => {
+            if (c.id !== updated.conversation_id) return c
+            const parts = (c.chat_participants || []).map(p =>
+              p.user_id === profile?.id ? { ...p, unread_count: updated.unread_count, last_read_at: updated.last_read_at } : p
+            )
+            return { ...c, chat_participants: parts }
+          }))
+        })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_participants' },
+        (payload) => {
+          if (payload.new?.user_id === profile?.id) loadConversations()
+        })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [currentSiteId, loadConversations])
+  }, [currentSiteId, profile?.id, loadConversations])
 
   // ── Conversation display helpers ─────────────────────────────────────────
   const [dmNames, setDmNames] = useState({})
@@ -362,6 +500,11 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     return 'Conversation'
   }
 
+  function getUnread(c) {
+    const part = (c.chat_participants || []).find(p => p.user_id === profile?.id)
+    return part?.unread_count || 0
+  }
+
   const loadMembers = useCallback(async (convoId) => {
     if (!convoId) return
     setLoadingMembers(true)
@@ -380,14 +523,14 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     const q = convoSearch.trim().toLowerCase()
     return conversations
       .filter(c => convoFilter === 'all' || convoFilter === 'unread' || c.type === convoFilter)
-      .filter(c => convoFilter !== 'unread' || (unreadCounts[c.id] || 0) > 0)
+      .filter(c => convoFilter !== 'unread' || getUnread(c) > 0)
       .filter(c => !q || convoName(c).toLowerCase().includes(q))
       .sort((a, b) => {
-        const ta = lastMessages[a.id]?.created_at || a.created_at
-        const tb = lastMessages[b.id]?.created_at || b.created_at
+        const ta = a.last_message_at || a.created_at
+        const tb = b.last_message_at || b.created_at
         return new Date(tb) - new Date(ta)
       })
-  }, [conversations, convoSearch, convoFilter, lastMessages, unreadCounts])
+  }, [conversations, convoSearch, convoFilter, dmNames, profile?.id])
 
   const selectedConvo = conversations.find(c => c.id === selectedId) || null
 
@@ -419,7 +562,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     return groups
   }, [filteredMessages])
 
-  // ── New conversation ─────────────────────────────────────────────────────
+  // ── New conversation (uses create_or_get_dm RPC for DMs) ───────────────
   function openNewChat() {
     setNewChatType('dm'); setNewChatName(''); setNewChatUserSearch(''); setNewChatDeptFilter(''); setNewChatSelected([])
     setNewChatOpen(true)
@@ -448,41 +591,23 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
       showToast('Group name and at least one member are required', 'red'); return
     }
     setCreating(true)
+
     if (newChatType === 'dm') {
       const otherId = newChatSelected[0].id
-      const { data: myParts } = await supabase
-        .from('chat_participants')
-        .select('conversation_id')
-        .eq('user_id', profile.id)
-      const myConvoIds = (myParts || []).map(p => p.conversation_id)
-      if (myConvoIds.length) {
-        const { data: theirParts } = await supabase
-          .from('chat_participants')
-          .select('conversation_id')
-          .eq('user_id', otherId)
-          .in('conversation_id', myConvoIds)
-        const sharedIds = (theirParts || []).map(p => p.conversation_id)
-        if (sharedIds.length) {
-          const { data: existingDm } = await supabase
-            .from('chat_conversations')
-            .select('id')
-            .in('id', sharedIds)
-            .eq('type', 'dm')
-            .eq('site_id', currentSiteId)
-            .limit(1)
-            .maybeSingle()
-          if (existingDm) {
-            setCreating(false)
-            setNewChatOpen(false)
-            await loadConversations()
-            setSelectedId(existingDm.id)
-            if (isMobile) setMobileShowThread(true)
-            showToast('Opened existing conversation', 'green')
-            return
-          }
-        }
-      }
+      const { data: dmId, error: rpcErr } = await supabase.rpc('create_or_get_dm', {
+        p_other_user_id: otherId,
+        p_site_id: currentSiteId,
+      })
+      setCreating(false)
+      if (rpcErr) { showToast(rpcErr.message, 'red'); return }
+      showToast('Conversation ready', 'green')
+      setNewChatOpen(false)
+      await loadConversations()
+      setSelectedId(dmId)
+      if (isMobile) setMobileShowThread(true)
+      return
     }
+
     const { data: convo, error } = await supabase.from('chat_conversations').insert({
       site_id: currentSiteId,
       type: newChatType,
@@ -491,9 +616,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     }).select().single()
     if (error) { setCreating(false); showToast(error.message, 'red'); return }
 
-    const participantIds = newChatType === 'dm'
-      ? [profile.id, newChatSelected[0].id]
-      : [profile.id, ...newChatSelected.map(u => u.id)]
+    const participantIds = [profile.id, ...newChatSelected.map(u => u.id)]
     const uniqueIds = [...new Set(participantIds)]
     const { error: partError } = await supabase.from('chat_participants').insert(
       uniqueIds.map(uid => ({ conversation_id: convo.id, user_id: uid }))
@@ -593,7 +716,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
         .eq('id', editingId)
       setSending(false)
       if (error) { showToast(error.message, 'red'); return }
-      setEditingId(null); setInput(''); loadMessages(selectedId)
+      setEditingId(null); setInput('')
       return
     }
     const { error } = await supabase.from('chat_messages').insert({
@@ -605,15 +728,12 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     setSending(false)
     if (error) { showToast(error.message, 'red'); return }
     setInput(''); setReplyTo(null)
-    loadMessages(selectedId)
-    loadConversations()
   }
 
   async function deleteMessage(m) {
     if (!window.confirm('Delete this message?')) return
     const { error } = await supabase.from('chat_messages').update({ is_deleted: true }).eq('id', m.id)
     if (error) { showToast(error.message, 'red'); return }
-    loadMessages(selectedId)
   }
 
   function startEdit(m) {
@@ -624,7 +744,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   async function togglePin(m) {
     const { error } = await supabase.from('chat_messages').update({ is_pinned: !m.is_pinned }).eq('id', m.id)
     if (error) { showToast(error.message, 'red'); return }
-    loadMessages(selectedId)
   }
 
   async function toggleReaction(m, emoji) {
@@ -649,16 +768,17 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     if (!allowed.some(t => file.type.startsWith(t))) { showToast('File type not allowed', 'red'); return }
     setUploading(true)
     setShowAttachMenu(false)
-    const safeName = crypto.randomUUID() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const path = `${currentSiteId}/${selectedId}/${safeName}`
+    const uuid = crypto.randomUUID()
+    const ext = file.name.includes('.') ? '.' + file.name.split('.').pop() : ''
+    const path = `${currentSiteId}/${selectedId}/${uuid}${ext}`
     const { error: upErr } = await supabase.storage.from('connect-files').upload(path, file)
     if (upErr) { setUploading(false); showToast(upErr.message, 'red'); return }
-    const { data: urlData } = supabase.storage.from('connect-files').getPublicUrl(path)
+    const publicUrl = `connect-files/${path}`
     const { error } = await supabase.from('chat_messages').insert({
       conversation_id: selectedId,
       sender_id: profile?.id || null,
       content: input.trim() || file.name,
-      file_url: urlData?.publicUrl || null,
+      file_url: publicUrl,
       file_name: file.name,
       file_type: file.type || null,
       reply_to: replyTo?.id || null,
@@ -666,8 +786,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     setUploading(false)
     if (error) { showToast(error.message, 'red'); return }
     setInput(''); setReplyTo(null)
-    loadMessages(selectedId)
-    loadConversations()
     if (fileInputRef.current) fileInputRef.current.value = ''
     if (imageInputRef.current) imageInputRef.current.value = ''
     if (docInputRef.current) docInputRef.current.value = ''
@@ -678,6 +796,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     selectedIdRef.current = id
     setSelectedId(id)
     setEditingId(null); setReplyTo(null); setInput(''); setMsgSearch(''); setShowMembers(false)
+    setHasMore(false)
     if (isMobile) setMobileShowThread(true)
   }
 
@@ -712,17 +831,9 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   const showList = !isMobile || !mobileShowThread
   const showThread = !isMobile || mobileShowThread
 
-  // Preview text for conversation list
   function lastMsgPreview(c) {
-    const last = lastMessages[c.id]
-    if (!last) return 'No messages yet'
-    if (last.is_deleted) return 'Message deleted'
-    const prefix = last.sender_id === profile?.id ? 'You: ' : ''
-    if (last.file_type?.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(last.file_name || '')) {
-      return prefix + '📷 Photo'
-    }
-    if (last.file_name) return prefix + '📎 ' + last.file_name
-    return prefix + (last.content || '')
+    if (!c.last_message_preview) return 'No messages yet'
+    return c.last_message_preview
   }
 
   return (
@@ -734,7 +845,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
           borderRight: isMobile ? 'none' : `1px solid ${THEME.outlineVar}`,
           display: 'flex', flexDirection: 'column', background: THEME.surface,
         }}>
-          {/* Header bar — WhatsApp teal */}
           <div style={{ padding: '10px 14px', background: MR_HEADER_BG, color: '#fff' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -760,7 +870,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
               onChange={e => setConvoSearch(e.target.value)}
             />
           </div>
-          {/* Filter tabs */}
           <div style={{ display: 'flex', gap: '6px', padding: '8px 14px', flexWrap: 'wrap', borderBottom: `1px solid ${THEME.outlineVar}` }}>
             {[['all', 'All'], ['unread', 'Unread'], ['dm', 'DMs'], ['group', 'Groups'], ['department', 'Depts']].map(([k, label]) => (
               <button key={k} onClick={() => setConvoFilter(k)} style={{
@@ -791,8 +900,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 )}
               </div>
             ) : visibleConvos.map(c => {
-              const last = lastMessages[c.id]
-              const unread = unreadCounts[c.id] || 0
+              const unread = getUnread(c)
               const active = c.id === selectedId
               return (
                 <div key={c.id} onClick={() => selectConvo(c.id)} style={{
@@ -806,17 +914,13 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                       <div style={{ fontSize: '15px', fontWeight: unread ? 700 : 500, color: THEME.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {convoName(c)}
                       </div>
-                      <div style={{ fontSize: '11px', color: unread ? MR_PRIMARY : MR_TIME, flexShrink: 0, fontWeight: unread ? 600 : 400 }}>{timeAgo(last?.created_at || c.created_at)}</div>
+                      <div style={{ fontSize: '11px', color: unread ? MR_PRIMARY : MR_TIME, flexShrink: 0, fontWeight: unread ? 600 : 400 }}>{timeAgo(c.last_message_at || c.created_at)}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '2px', alignItems: 'center' }}>
                       <div style={{
                         fontSize: '13px', color: unread ? THEME.text : MR_TIME, fontWeight: unread ? 500 : 400,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                        display: 'flex', alignItems: 'center', gap: '2px',
                       }}>
-                        {last?.sender_id === profile?.id && (
-                          <ReadReceipt mine isRead={!unread} />
-                        )}
                         {lastMsgPreview(c)}
                       </div>
                       {unread > 0 && (
@@ -846,7 +950,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
             </div>
           ) : (
             <>
-              {/* Header */}
               <div style={{ padding: '10px 16px', background: MR_HEADER_BG, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 {isMobile && (
                   <button onClick={() => setMobileShowThread(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fff' }}>
@@ -879,7 +982,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 </div>
               </div>
 
-              {/* Members panel */}
               {showMembers && selectedConvo && selectedConvo.type !== 'dm' && (
                 <div style={{
                   borderBottom: `1px solid ${THEME.outlineVar}`, background: THEME.surface,
@@ -899,7 +1001,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 </div>
               )}
 
-              {/* Pinned messages */}
               {messages.some(m => m.is_pinned) && (
                 <div style={{ padding: '8px 16px', background: THEME.surface, borderBottom: `1px solid ${THEME.outlineVar}`, fontSize: '11px', color: THEME.textMed, display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <Icon name="push_pin" size={14} style={{ color: ACCENT }} />
@@ -911,11 +1012,24 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 </div>
               )}
 
-              {/* Messages area — WhatsApp-style chat wallpaper */}
-              <div style={{
-                flex: 1, overflowY: 'auto', padding: '14px 60px', display: 'flex', flexDirection: 'column', gap: '2px',
-                background: `${MR_CHAT_BG} url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='p' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='%23c8c3ba' opacity='.3'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='400' height='400' fill='url(%23p)'/%3E%3C/svg%3E")`,
-              }}>
+              <div
+                ref={scrollContainerRef}
+                onScroll={handleMessagesScroll}
+                style={{
+                  flex: 1, overflowY: 'auto', padding: '14px 60px', display: 'flex', flexDirection: 'column', gap: '2px',
+                  background: `${MR_CHAT_BG} url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='p' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='%23c8c3ba' opacity='.3'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='400' height='400' fill='url(%23p)'/%3E%3C/svg%3E")`,
+                }}
+              >
+                {loadingMore && (
+                  <div style={{ textAlign: 'center', color: THEME.textLow, padding: '8px', fontSize: '12px' }}>Loading older messages…</div>
+                )}
+                {hasMore && !loadingMore && (
+                  <div ref={messagesTopRef} style={{ textAlign: 'center', padding: '8px' }}>
+                    <button onClick={loadOlderMessages} style={{
+                      background: 'none', border: 'none', color: MR_LIGHT, fontSize: '12px', cursor: 'pointer', fontWeight: 600,
+                    }}>Load older messages</button>
+                  </div>
+                )}
                 {loadingMessages ? (
                   <div style={{ textAlign: 'center', color: THEME.textLow, padding: '32px' }}>Loading…</div>
                 ) : filteredMessages.length === 0 ? (
@@ -925,7 +1039,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                   </div>
                 ) : groupedMessages.map(group => (
                   <div key={group.day}>
-                    {/* Date divider */}
                     <div style={{ textAlign: 'center', margin: '12px 0 8px' }}>
                       <span style={{
                         fontSize: '12px', fontWeight: 500, color: THEME.text, background: '#F2D5DC',
@@ -941,7 +1054,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                       const showSenderName = !mine && selectedConvo?.type !== 'dm'
                       const prevMsg = idx > 0 ? group.items[idx - 1] : null
                       const sameSender = prevMsg && prevMsg.sender_id === m.sender_id
-                      const isLastRead = mine && idx === group.items.length - 1
                       return (
                         <div
                           key={m.id}
@@ -982,28 +1094,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                             }}>
                               {m.is_pinned && <Icon name="push_pin" size={12} style={{ position: 'absolute', top: -6, right: mine ? 'auto' : -6, left: mine ? -6 : 'auto', color: ACCENT }} />}
                               <RenderContent text={m.content} navigate={navigate} />
-                              {m.file_url && (
-                                <div style={{ marginTop: '4px' }}>
-                                  {(m.file_type?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(m.file_name || '')) ? (
-                                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
-                                      <img src={m.file_url} alt={m.file_name || 'Image'} style={{ maxWidth: '260px', maxHeight: '300px', borderRadius: '6px', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
-                                    </a>
-                                  ) : (
-                                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{
-                                      color: MR_LIGHT, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px',
-                                      textDecoration: 'none', background: mine ? '#e8bfc7' : '#f5f5f5', padding: '8px 10px', borderRadius: '6px',
-                                    }}>
-                                      <Icon name="description" size={20} style={{ color: MR_LIGHT }} />
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontWeight: 600, fontSize: '13px', color: '#303030', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.file_name || 'Document'}</div>
-                                        <div style={{ fontSize: '11px', color: MR_TIME }}>PDF · Download</div>
-                                      </div>
-                                      <Icon name="download" size={18} style={{ color: MR_TIME }} />
-                                    </a>
-                                  )}
-                                </div>
-                              )}
-                              {/* Timestamp + ticks row inside bubble */}
+                              {m.file_url && <FileAttachment m={m} mine={mine} />}
                               <div style={{
                                 display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px',
                                 marginTop: '2px',
@@ -1014,7 +1105,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                               </div>
                             </div>
 
-                            {/* Reactions bar */}
                             {Object.keys(reactions).length > 0 && (
                               <div style={{ display: 'flex', gap: '4px', marginTop: '2px', flexWrap: 'wrap' }}>
                                 {Object.entries(reactions).map(([emoji, info]) => (
@@ -1029,7 +1119,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                               </div>
                             )}
 
-                            {/* Row actions — compact, appears below bubble */}
                             <div style={{ display: 'flex', gap: '6px', marginTop: '1px', fontSize: '10px', color: MR_TIME, alignItems: 'center', opacity: 0.8 }}>
                               <div style={{ display: 'flex', gap: '1px' }}>
                                 {REACTIONS.slice(0, 3).map(emo => (
@@ -1064,7 +1153,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Reply / edit indicator */}
               {(replyTo || editingId) && (
                 <div style={{ padding: '8px 16px', background: THEME.surface, borderTop: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: THEME.textMed, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1080,7 +1168,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 </div>
               )}
 
-              {/* Input area — WhatsApp style */}
               <div style={{ padding: '6px 10px', background: '#F0F0F0', position: 'relative' }}>
                 {mentionOpen && mentionMatches.length > 0 && (
                   <div style={{ position: 'absolute', bottom: '100%', left: 14, marginBottom: 4, background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', boxShadow: THEME.shadow2, zIndex: 20, width: 220, maxHeight: 200, overflowY: 'auto' }}>
@@ -1125,7 +1212,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                   </div>
                 )}
 
-                {/* Emoji picker popup */}
                 {showEmojiPicker && (
                   <div ref={emojiRef} style={{
                     position: 'absolute', bottom: '100%', left: 10, marginBottom: 6,
@@ -1146,7 +1232,6 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                   </div>
                 )}
 
-                {/* Attachment menu popup */}
                 {showAttachMenu && (
                   <div ref={attachRef} style={{
                     position: 'absolute', bottom: '100%', left: 50, marginBottom: 6,
@@ -1184,14 +1269,12 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                       <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileUpload} />
                       <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
                       <input ref={docInputRef} type="file" accept="application/pdf,text/*" style={{ display: 'none' }} onChange={handleFileUpload} />
-                      {/* Emoji button */}
                       <button onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false) }} title="Emoji" style={{
                         background: 'none', border: 'none', width: 38, height: 38,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: MR_TIME, flexShrink: 0,
                       }}>
                         <Icon name="emoji_emotions" size={24} />
                       </button>
-                      {/* Attach button */}
                       <button onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false) }} disabled={uploading} title="Attach" style={{
                         background: 'none', border: 'none', width: 38, height: 38,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: MR_TIME, flexShrink: 0,

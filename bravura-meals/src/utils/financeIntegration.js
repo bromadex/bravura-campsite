@@ -12,7 +12,7 @@ export async function createDeliveryJournal({ supabase, siteId, userId, descript
   try {
     // Find raw materials account (Current Asset with 'Raw Material' or 'Inventory' in name)
     const { data: assetAccounts } = await supabase
-      .from('chart_of_accounts')
+      .from('accounts')
       .select('id, name, sub_type')
       .eq('site_id', siteId)
       .eq('sub_type', 'Current Asset')
@@ -23,7 +23,7 @@ export async function createDeliveryJournal({ supabase, siteId, userId, descript
 
     // Find accounts payable (Payable sub_type, or first Current Liability)
     const { data: payableAccounts } = await supabase
-      .from('chart_of_accounts')
+      .from('accounts')
       .select('id, name, sub_type')
       .eq('site_id', siteId)
       .eq('is_archived', false)
@@ -81,7 +81,7 @@ export async function createProductionJournal({ supabase, siteId, userId, descri
   try {
     // Find cost of sales account
     const { data: cosAccounts } = await supabase
-      .from('chart_of_accounts')
+      .from('accounts')
       .select('id, name, sub_type')
       .eq('site_id', siteId)
       .eq('sub_type', 'Cost of Sales')
@@ -90,7 +90,7 @@ export async function createProductionJournal({ supabase, siteId, userId, descri
 
     // Find raw materials account (Current Asset)
     const { data: assetAccounts } = await supabase
-      .from('chart_of_accounts')
+      .from('accounts')
       .select('id, name, sub_type')
       .eq('site_id', siteId)
       .eq('sub_type', 'Current Asset')

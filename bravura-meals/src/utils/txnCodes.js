@@ -211,6 +211,7 @@ export const TXN_CODES = [
   { code: 'FI10', path: '/finance/fi_cost_centres',   label: 'Cost Centres',            module: 'finance' },
   { code: 'FI11', path: '/finance/fi_cost_report',    label: 'Cost Centre Report',      module: 'finance' },
   { code: 'FI12', path: '/finance/fi_dashboard',      label: 'Finance Dashboard',       module: 'finance' },
+  { code: 'FI13', path: '/finance/fi_posting_rules',  label: 'Posting Rules',           module: 'finance' },
 
   // ── Batch Plant Operations ──
   { code: 'CO01', path: '/concrete/co_dashboard',       label: 'Concrete Dashboard',   module: 'concrete' },

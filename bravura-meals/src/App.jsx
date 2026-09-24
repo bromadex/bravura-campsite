@@ -171,6 +171,7 @@ const FICashFlow           = lazy(() => import('./pages/finance/CashFlowStatemen
 const FICostCentres        = lazy(() => import('./pages/finance/CostCentres'))
 const FICostCentreReport   = lazy(() => import('./pages/finance/CostCentreReport'))
 const FIDashboard          = lazy(() => import('./pages/finance/FinanceDashboard'))
+const FIPostingRules       = lazy(() => import('./pages/finance/PostingRules'))
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
@@ -661,6 +662,7 @@ function getFinancePage(page, can, setPage) {
     case 'fi_cost_centres':      return <FICostCentres setPage={setPage} />
     case 'fi_cost_report':       return <FICostCentreReport setPage={setPage} />
     case 'fi_dashboard':         return <FIDashboard setPage={setPage} />
+    case 'fi_posting_rules':     return <FIPostingRules setPage={setPage} />
     default:                     return <FIDashboard setPage={setPage} />
   }
 }

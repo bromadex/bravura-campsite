@@ -332,6 +332,19 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* Finance */}
+      {(can('finance.view') || can('finance.edit')) && (
+        <Section icon="account_balance" color={MODULE_COLORS.finance} title="Finance — automatic posting">
+          <Steps items={[
+            <>Set up the site's ledger accounts in the Chart of Accounts (<Code>FI01</Code>) — stock, expenses, payables and bank. A mine only records costs, so there are no sales or revenue accounts to post to.</>,
+            <>In Posting Rules (<Code>FI13</Code>) pick the debit and credit account for each event: fuel delivered and issued, goods received, supplier invoices approved and paid, payroll approved and paid, and daily meals approved.</>,
+            <>From then on, approving any of those on site writes a posted journal automatically. Fuel issues are valued at the latest delivery price when no cost is captured.</>,
+            <>Posted journals are locked. To correct one, edit, cancel or reopen the source record — the old journal is voided and a new one posted.</>,
+            <>Items with no rule (or no price) wait in the <b>Waiting</b> list. Fix the rule, then press <b>Post waiting items</b>.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* Admin */}
       {can('users.view') && (
         <Section icon="admin_panel_settings" color={MODULE_COLORS.admin} title="Administration">
@@ -340,7 +353,7 @@ export default function QuickStartGuide() {
             <>Users &amp; Roles (<Code>AD02</Code>) — assign each user their roles, per site.</>,
             <>Role Management (<Code>AD03</Code>) — create roles and pick exactly which permissions they carry.</>,
             <>Site Management (<Code>AD04</Code>) — add sites and set which one is head office.</>,
-            <>Pending Invitations (<Code>AD05</Code>) — pre-authorise a role so it applies the moment the person signs up.</>,
+            <>Pending Invitations (<Code>AD05</Code>) — invite a user by email with their role and site; they get a link to set up their account.</>,
             <>System Settings (<Code>AD06</Code>) — per-site module configuration.</>,
             <>Permissions Catalogue (<Code>AD07</Code>) — reference of every permission code in the system.</>,
             <>Audit Log (<Code>AD08</Code>) — who changed what, with before/after values.</>,

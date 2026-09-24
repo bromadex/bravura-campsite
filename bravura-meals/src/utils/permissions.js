@@ -275,6 +275,7 @@ export function financeNav(role, can) {
     { id: 'fi_dashboard',         label: 'Dashboard',         section: 'Overview',       icon: 'dashboard' },
     { id: 'fi_chart_of_accounts', label: 'Chart of Accounts', section: 'General Ledger', icon: 'account_balance' },
     { id: 'fi_journal_entries',   label: 'Journal Entries',   section: 'General Ledger', icon: 'receipt_long' },
+    { id: 'fi_posting_rules',     label: 'Posting Rules',     section: 'General Ledger', icon: 'rule' },
     { id: 'fi_bank_accounts',     label: 'Bank Accounts',     section: 'Banking',        icon: 'account_balance_wallet' },
     { id: 'fi_trial_balance',     label: 'Trial Balance',     section: 'Reports',        icon: 'balance' },
     { id: 'fi_profit_and_loss',   label: 'Profit & Loss',     section: 'Reports',        icon: 'trending_up' },

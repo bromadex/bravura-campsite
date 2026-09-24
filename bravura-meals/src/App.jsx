@@ -763,6 +763,8 @@ function getGovernancePage(page, can, setPage) {
 }
 
 function getConnectPage(page, can, setPage) {
+  const [base, convId] = (page || '').split(':')
+  if (base === 'connect_chat' && convId) return can('connect.view') ? <ConnectChat setPage={setPage} openConversationId={convId} key={convId} /> : null
   switch (page) {
     case 'connect_chat': return can('connect.view') ? <ConnectChat setPage={setPage} /> : null
     default:             return can('connect.view') ? <ConnectChat setPage={setPage} /> : null

@@ -1,65 +1,39 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { THEME } from '../utils/permissions'
 import { usePermissions } from '../contexts/PermissionsContext'
 import { useAuth } from '../auth/AuthContext'
+import { useSite } from '../contexts/SiteContext'
 
 export default function DiscussButton({ linkedTable, linkedId, label, setPage }) {
   const { can } = usePermissions()
   const { profile } = useAuth()
+  const { currentSiteId } = useSite()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
 
-  if (!can('connect.view') || !setPage) return null
+  if (!can('connect.view')) return null
 
   async function handleClick() {
-    if (!linkedTable || !linkedId || !profile?.id) return
+    if (!linkedTable || !linkedId || !profile?.id || !currentSiteId) return
     setLoading(true)
     try {
-      // Look for existing conversation linked to this record
-      const { data: existing } = await supabase
-        .from('chat_conversations')
-        .select('id')
-        .eq('linked_table', linkedTable)
-        .eq('linked_id', linkedId)
-        .limit(1)
-        .maybeSingle()
-
-      let conversationId = existing?.id
-
-      if (!conversationId) {
-        // Create a new group conversation linked to this record
-        const title = label || `${linkedTable.replace(/_/g, ' ')} discussion`
-        const { data: conv } = await supabase
-          .from('chat_conversations')
-          .insert({
-            type: 'group',
-            name: title,
-            linked_table: linkedTable,
-            linked_id: linkedId,
-            created_by: profile.id,
-          })
-          .select('id')
-          .single()
-
-        if (conv) {
-          conversationId = conv.id
-          // Add creator as participant
-          await supabase.from('chat_participants').insert({
-            conversation_id: conversationId,
-            user_id: profile.id,
-          })
-        }
-      }
+      // Find-or-create the record's thread and join it (server-side; RLS hides threads you're not in).
+      const { data: conversationId, error } = await supabase.rpc('connect_open_record_thread', {
+        p_site_id: currentSiteId, p_module: linkedTable, p_record_id: linkedId, p_label: label || null,
+      })
+      if (error) throw error
 
       // Navigate to Connect page — the page will pick up conversation from URL state
       if (conversationId) {
-        setPage('connect_chat:' + conversationId)
+        navigate('/connect/connect_chat:' + conversationId)
       } else {
-        setPage('connect_chat')
+        navigate('/connect/connect_chat')
       }
     } catch (err) {
       console.error('DiscussButton error:', err)
-      setPage('connect_chat')
+      navigate('/connect/connect_chat')
     } finally {
       setLoading(false)
     }

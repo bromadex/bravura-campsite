@@ -195,7 +195,7 @@ function RenderContent({ text, navigate }) {
   })
 }
 
-export default function ConnectPage({ setPage, floatingPanel = false }) {
+export default function ConnectPage({ setPage, floatingPanel = false, openConversationId = null }) {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const { currentSiteId } = useSite()
@@ -695,51 +695,8 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
         selectConvo(dmId)
         return
       }
-      // Fallback: client-side DM creation
-      const { data: existingConvos } = await supabase
-        .from('chat_participants')
-        .select('conversation_id')
-        .eq('user_id', profile.id)
-      const myConvoIds = (existingConvos || []).map(c => c.conversation_id)
-      let existingDmId = null
-      if (myConvoIds.length) {
-        const { data: otherParts } = await supabase
-          .from('chat_participants')
-          .select('conversation_id')
-          .eq('user_id', otherId)
-          .in('conversation_id', myConvoIds)
-        for (const p of otherParts || []) {
-          const { data: cc } = await supabase
-            .from('chat_conversations')
-            .select('id, type')
-            .eq('id', p.conversation_id)
-            .eq('type', 'dm')
-            .eq('site_id', currentSiteId)
-            .maybeSingle()
-          if (cc) { existingDmId = cc.id; break }
-        }
-      }
-      if (existingDmId) {
-        setCreating(false)
-        showToast('Conversation ready', 'green')
-        setNewChatOpen(false)
-        selectConvo(existingDmId)
-        return
-      }
-      // Create new DM
-      const { data: convo, error } = await supabase.from('chat_conversations').insert({
-        site_id: currentSiteId, type: 'dm', created_by: profile?.id || null,
-      }).select().single()
-      if (error) { setCreating(false); showToast(error.message, 'red'); return }
-      await supabase.from('chat_participants').insert([
-        { conversation_id: convo.id, user_id: profile.id },
-        { conversation_id: convo.id, user_id: otherId },
-      ])
       setCreating(false)
-      showToast('Conversation created', 'green')
-      setNewChatOpen(false)
-      await loadConversations()
-      selectConvo(convo.id)
+      showToast(rpcErr?.message || 'Could not start the chat', 'red')
       return
     }
 
@@ -1009,6 +966,18 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     showToast('Message forwarded', 'green')
     setForwardMsg(null)
   }
+
+  // Deep link (e.g. a record's "Discuss" button): open that conversation once it has loaded.
+  const openedRef = useRef(null)
+  useEffect(() => {
+    if (!openConversationId || openedRef.current === openConversationId) return
+    if (conversations.some(c => c.id === openConversationId)) {
+      openedRef.current = openConversationId
+      selectConvo(openConversationId)
+      const conv = conversations.find(c => c.id === openConversationId)
+      setSection(conv?.type === 'dm' ? 'chats' : conv?.type === 'channel' ? 'channels' : 'groups')
+    }
+  }, [openConversationId, conversations])
 
   function selectConvo(id) {
     setMessages([])

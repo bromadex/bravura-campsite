@@ -70,6 +70,30 @@ export default function NotificationCenter() {
   const [filter, setFilter] = useState('all')
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(false)
+  const [showPrefs, setShowPrefs] = useState(false)
+  const [mutedCategories, setMutedCategories] = useState([])
+  const [savingPrefs, setSavingPrefs] = useState(false)
+
+  useEffect(() => {
+    if (!profile?.id) return
+    supabase.from('profiles').select('preferences').eq('id', profile.id).maybeSingle().then(({ data }) => {
+      if (data?.preferences?.muted_notification_categories) {
+        setMutedCategories(data.preferences.muted_notification_categories)
+      }
+    })
+  }, [profile?.id])
+
+  async function toggleMuteCategory(catId) {
+    const next = mutedCategories.includes(catId)
+      ? mutedCategories.filter(c => c !== catId)
+      : [...mutedCategories, catId]
+    setMutedCategories(next)
+    setSavingPrefs(true)
+    const { data: existing } = await supabase.from('profiles').select('preferences').eq('id', profile.id).maybeSingle()
+    const prefs = existing?.preferences || {}
+    await supabase.from('profiles').update({ preferences: { ...prefs, muted_notification_categories: next } }).eq('id', profile.id)
+    setSavingPrefs(false)
+  }
 
   if (!can('notifications.view')) return <Denied />
 
@@ -157,8 +181,44 @@ export default function NotificationCenter() {
               Mark all read
             </button>
           )}
+          <button onClick={() => setShowPrefs(v => !v)} style={{
+            background: showPrefs ? THEME.accent + '18' : THEME.surfaceVar, border: `1px solid ${showPrefs ? THEME.accent : THEME.outlineVar}`, borderRadius: 8,
+            padding: '8px 14px', fontSize: 12, fontWeight: 600, color: showPrefs ? THEME.accent : THEME.text, cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            <Icon name="tune" size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+            Preferences
+          </button>
         </div>
       </div>
+
+      {/* Preferences panel */}
+      {showPrefs && (
+        <div style={{ background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: 12, padding: '16px 20px', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: THEME.text, marginBottom: 12 }}>
+            <Icon name="notifications_off" size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+            Mute Categories
+          </div>
+          <p style={{ fontSize: 12, color: THEME.textLow, margin: '0 0 12px' }}>Muted categories will not show new notifications.</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {CATEGORIES.filter(c => c.id !== 'all').map(cat => {
+              const muted = mutedCategories.includes(cat.id)
+              return (
+                <button key={cat.id} onClick={() => toggleMuteCategory(cat.id)} disabled={savingPrefs} style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                  border: `1px solid ${muted ? '#d32f2f' : THEME.outlineVar}`,
+                  background: muted ? '#d32f2f12' : 'transparent',
+                  color: muted ? '#d32f2f' : THEME.textMed,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                  <Icon name={muted ? 'notifications_off' : cat.icon} size={14} />
+                  {cat.label}
+                  {muted && <Icon name="close" size={12} />}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Category tabs */}
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 16 }}>

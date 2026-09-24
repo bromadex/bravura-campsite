@@ -158,13 +158,15 @@ function extractStoragePath(fileUrl) {
   return match ? match[1] : null
 }
 
+const URL_RE = /(https?:\/\/[^\s<>[\]()]+)/g
+
 function RenderContent({ text, navigate }) {
   if (!text) return null
-  const parts = text.split(/(\[[A-Z]{2}\d{2}\])/)
+  const parts = text.split(/(\[[A-Z]{2}\d{2}\]|https?:\/\/[^\s<>[\]()]+)/)
   return parts.map((part, i) => {
-    const match = part.match(/^\[([A-Z]{2}\d{2})\]$/)
-    if (match) {
-      const entry = resolveCode(match[1])
+    const codeMatch = part.match(/^\[([A-Z]{2}\d{2})\]$/)
+    if (codeMatch) {
+      const entry = resolveCode(codeMatch[1])
       if (entry) {
         const c = MODULE_COLORS[entry.module] || THEME.primary
         return (
@@ -174,10 +176,20 @@ function RenderContent({ text, navigate }) {
             background: c + '22', color: c, fontSize: '12px', fontWeight: 700,
             fontFamily: 'monospace', verticalAlign: 'middle', margin: '0 2px',
           }}>
-            {match[1]} {entry.label}
+            {codeMatch[1]} {entry.label}
           </span>
         )
       }
+    }
+    if (URL_RE.test(part)) {
+      URL_RE.lastIndex = 0
+      return (
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{
+          color: MR_LIGHT, textDecoration: 'underline', wordBreak: 'break-all',
+        }}>
+          {part.length > 60 ? part.slice(0, 57) + '…' : part}
+        </a>
+      )
     }
     return <span key={i}>{part}</span>
   })
@@ -226,10 +238,18 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
 
   const [mentionOpen, setMentionOpen] = useState(false)
   const [mentionQuery, setMentionQuery] = useState('')
+  const [mentionIdx, setMentionIdx] = useState(0)
   const [slashOpen, setSlashOpen] = useState(false)
   const [slashQuery, setSlashQuery] = useState('')
+  const [slashIdx, setSlashIdx] = useState(0)
   const [slashEntityResults, setSlashEntityResults] = useState([])
   const slashDebounceRef = useRef(null)
+
+  const [forwardMsg, setForwardMsg] = useState(null)
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
+  const [groupName, setGroupName] = useState('')
+  const [addMemberSearch, setAddMemberSearch] = useState('')
+  const [savingGroup, setSavingGroup] = useState(false)
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
@@ -442,6 +462,33 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     channelRef.current = channel
     return () => { supabase.removeChannel(channel) }
   }, [selectedId, profile?.id])
+
+  // ── Realtime: reactions ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!selectedId) return
+    const channel = supabase.channel(`chat_reactions_${selectedId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' },
+        async (payload) => {
+          const row = payload.new || payload.old
+          if (!row) return
+          const msgId = row.message_id
+          setMessages(prev => {
+            const idx = prev.findIndex(m => m.id === msgId)
+            if (idx === -1) return prev
+            const updated = [...prev]
+            if (payload.eventType === 'INSERT') {
+              const existing = updated[idx].reactions || []
+              if (existing.some(r => r.id === row.id)) return prev
+              updated[idx] = { ...updated[idx], reactions: [...existing, row] }
+            } else if (payload.eventType === 'DELETE') {
+              updated[idx] = { ...updated[idx], reactions: (updated[idx].reactions || []).filter(r => r.id !== payload.old.id) }
+            }
+            return updated
+          })
+        })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [selectedId])
 
   // ── Realtime: conversation-level updates for sidebar ───────────────────
   useEffect(() => {
@@ -695,9 +742,9 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     const atMatch = upToCaret.match(/@([\w .]*)$/)
     const slashMatch = upToCaret.match(/\/(\w*)$/)
     if (atMatch) {
-      setMentionOpen(true); setMentionQuery(atMatch[1]); setSlashOpen(false)
+      setMentionOpen(true); setMentionQuery(atMatch[1]); setMentionIdx(0); setSlashOpen(false)
     } else if (slashMatch) {
-      setSlashOpen(true); setSlashQuery(slashMatch[1]); setMentionOpen(false)
+      setSlashOpen(true); setSlashQuery(slashMatch[1]); setSlashIdx(0); setMentionOpen(false)
     } else {
       setMentionOpen(false); setSlashOpen(false)
     }
@@ -755,7 +802,26 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   }, [slashQuery, slashOpen, currentSiteId])
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !mentionOpen && !slashOpen) {
+    if (mentionOpen && mentionMatches.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(i => (i + 1) % mentionMatches.length); return }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(i => (i - 1 + mentionMatches.length) % mentionMatches.length); return }
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(mentionMatches[mentionIdx]); return }
+      if (e.key === 'Escape') { e.preventDefault(); setMentionOpen(false); return }
+    }
+    if (slashOpen && (slashMatches.length > 0 || slashEntityResults.length > 0)) {
+      const allSlash = [...slashMatches.map(t => ({ type: 'code', item: t })), ...slashEntityResults.map(r => ({ type: 'entity', item: r }))]
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSlashIdx(i => (i + 1) % allSlash.length); return }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setSlashIdx(i => (i - 1 + allSlash.length) % allSlash.length); return }
+      if ((e.key === 'Enter' || e.key === 'Tab') && allSlash[slashIdx]) {
+        e.preventDefault()
+        const sel = allSlash[slashIdx]
+        if (sel.type === 'code') insertTxnCode(sel.item)
+        else { navigate(sel.item.path); setSlashOpen(false) }
+        return
+      }
+      if (e.key === 'Escape') { e.preventDefault(); setSlashOpen(false); return }
+    }
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault()
       sendMessage()
     }
@@ -788,7 +854,11 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
 
   async function deleteMessage(m) {
     if (!window.confirm('Delete this message?')) return
-    const { error } = await supabase.from('chat_messages').update({ is_deleted: true }).eq('id', m.id)
+    const { error } = await supabase.from('chat_messages').update({
+      is_deleted: true,
+      deleted_at: new Date().toISOString(),
+      deleted_by: profile?.id || null,
+    }).eq('id', m.id)
     if (error) { showToast(error.message, 'red'); return }
   }
 
@@ -805,15 +875,12 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   async function toggleReaction(m, emoji) {
     const mine = (m.reactions || []).find(r => r.emoji === emoji && r.user_id === profile?.id)
     if (mine) {
-      const { error } = await supabase.from('message_reactions').delete().eq('id', mine.id)
-      if (error) { showToast(error.message, 'red'); return }
+      await supabase.from('message_reactions').delete().eq('id', mine.id)
     } else {
-      const { error } = await supabase.from('message_reactions').insert({
+      await supabase.from('message_reactions').insert({
         message_id: m.id, user_id: profile?.id, emoji,
       })
-      if (error) { showToast(error.message, 'red'); return }
     }
-    loadMessages(selectedId)
   }
 
   async function handleFileUpload(e) {
@@ -845,6 +912,71 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     if (fileInputRef.current) fileInputRef.current.value = ''
     if (imageInputRef.current) imageInputRef.current.value = ''
     if (docInputRef.current) docInputRef.current.value = ''
+  }
+
+  // ── Group settings ─────────────────────────────────────────────────────
+  function openGroupSettings() {
+    if (!selectedConvo || selectedConvo.type === 'dm') return
+    setGroupName(selectedConvo.name || '')
+    setAddMemberSearch('')
+    loadMembers(selectedConvo.id)
+    setGroupSettingsOpen(true)
+  }
+
+  async function saveGroupName() {
+    if (!selectedConvo || !groupName.trim()) return
+    setSavingGroup(true)
+    const { error } = await supabase.from('chat_conversations')
+      .update({ name: groupName.trim() })
+      .eq('id', selectedConvo.id)
+    setSavingGroup(false)
+    if (error) { showToast(error.message, 'red'); return }
+    setConversations(prev => prev.map(c => c.id === selectedConvo.id ? { ...c, name: groupName.trim() } : c))
+    showToast('Group renamed', 'green')
+  }
+
+  async function addMemberToGroup(userId) {
+    if (!selectedConvo) return
+    const already = members.some(m => m.id === userId)
+    if (already) { showToast('Already a member', 'orange'); return }
+    const { error } = await supabase.from('chat_participants').insert({
+      conversation_id: selectedConvo.id, user_id: userId,
+    })
+    if (error) { showToast(error.message, 'red'); return }
+    showToast('Member added', 'green')
+    loadMembers(selectedConvo.id)
+  }
+
+  async function removeMemberFromGroup(userId) {
+    if (!selectedConvo || userId === profile?.id) return
+    if (!window.confirm('Remove this member?')) return
+    const { error } = await supabase.from('chat_participants')
+      .delete()
+      .eq('conversation_id', selectedConvo.id)
+      .eq('user_id', userId)
+    if (error) { showToast(error.message, 'red'); return }
+    showToast('Member removed', 'green')
+    loadMembers(selectedConvo.id)
+  }
+
+  const addMemberCandidates = useMemo(() => {
+    const q = addMemberSearch.trim().toLowerCase()
+    const memberIds = new Set(members.map(m => m.id))
+    return siteUsers.filter(u => !memberIds.has(u.id) && (!q || u.full_name.toLowerCase().includes(q))).slice(0, 8)
+  }, [addMemberSearch, members, siteUsers])
+
+  // ── Message forwarding ────────────────────────────────────────────────
+  async function forwardMessage(targetConvoId) {
+    if (!forwardMsg || !targetConvoId) return
+    const content = `↪ Forwarded:\n${forwardMsg.content || ''}`
+    const { error } = await supabase.from('chat_messages').insert({
+      conversation_id: targetConvoId,
+      sender_id: profile?.id || null,
+      content,
+    })
+    if (error) { showToast(error.message, 'red'); return }
+    showToast('Message forwarded', 'green')
+    setForwardMsg(null)
   }
 
   function selectConvo(id) {
@@ -1029,11 +1161,20 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                     />
                   )}
                   {selectedConvo && selectedConvo.type !== 'dm' && (
-                    <button onClick={() => { setShowMembers(v => !v); if (!showMembers) loadMembers(selectedConvo.id) }} style={{
-                      background: 'none', border: 'none', cursor: 'pointer', color: '#fff', padding: '4px',
-                    }}>
-                      <Icon name="group" size={20} />
-                    </button>
+                    <>
+                      <button onClick={() => { setShowMembers(v => !v); if (!showMembers) loadMembers(selectedConvo.id) }} style={{
+                        background: 'none', border: 'none', cursor: 'pointer', color: '#fff', padding: '4px',
+                      }}>
+                        <Icon name="group" size={20} />
+                      </button>
+                      {can('connect.edit') && (
+                        <button onClick={openGroupSettings} style={{
+                          background: 'none', border: 'none', cursor: 'pointer', color: '#fff', padding: '4px',
+                        }} title="Group settings">
+                          <Icon name="settings" size={20} />
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -1184,6 +1325,9 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                               <button onClick={() => setReplyTo(m)} title="Reply" style={{ background: 'none', border: 'none', cursor: 'pointer', color: MR_TIME, padding: 0 }}>
                                 <Icon name="reply" size={14} />
                               </button>
+                              <button onClick={() => setForwardMsg(m)} title="Forward" style={{ background: 'none', border: 'none', cursor: 'pointer', color: MR_TIME, padding: 0 }}>
+                                <Icon name="shortcut" size={14} />
+                              </button>
                               {can('connect.edit') && (
                                 <button onClick={() => togglePin(m)} title="Pin" style={{ background: 'none', border: 'none', cursor: 'pointer', color: MR_TIME, padding: 0 }}>
                                   <Icon name="push_pin" size={14} />
@@ -1227,9 +1371,10 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
               <div style={{ padding: '6px 10px', background: '#F0F0F0', position: 'relative' }}>
                 {mentionOpen && mentionMatches.length > 0 && (
                   <div style={{ position: 'absolute', bottom: '100%', left: 14, marginBottom: 4, background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', boxShadow: THEME.shadow2, zIndex: 20, width: 220, maxHeight: 200, overflowY: 'auto' }}>
-                    {mentionMatches.map(u => (
-                      <div key={u.id} onClick={() => insertMention(u)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                        onMouseDown={e => e.preventDefault()}>
+                    {mentionMatches.map((u, idx) => (
+                      <div key={u.id} onClick={() => insertMention(u)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: idx === mentionIdx ? `${MR_LIGHT}18` : 'transparent' }}
+                        onMouseDown={e => e.preventDefault()}
+                        onMouseEnter={() => setMentionIdx(idx)}>
                         <Avatar name={u.full_name} size={22} />{u.full_name}
                       </div>
                     ))}
@@ -1240,9 +1385,10 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                     {slashMatches.length > 0 && (
                       <>
                         <div style={{ padding: '6px 12px 2px', fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.06em' }}>Screens</div>
-                        {slashMatches.map(t => (
-                          <div key={t.code} onClick={() => insertTxnCode(t)} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: '12px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}
-                            onMouseDown={e => e.preventDefault()}>
+                        {slashMatches.map((t, idx) => (
+                          <div key={t.code} onClick={() => insertTxnCode(t)} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: '12px', display: 'flex', justifyContent: 'space-between', gap: '8px', background: idx === slashIdx ? `${MR_LIGHT}18` : 'transparent' }}
+                            onMouseDown={e => e.preventDefault()}
+                            onMouseEnter={() => setSlashIdx(idx)}>
                             <span style={{ fontWeight: 700, color: MODULE_COLORS[t.module] || ACCENT }}>{t.code}</span>
                             <span style={{ color: THEME.textMed, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
                           </div>
@@ -1254,9 +1400,11 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                         <div style={{ padding: '6px 12px 2px', fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.06em', borderTop: slashMatches.length ? `1px solid ${THEME.outlineVar}` : 'none', marginTop: slashMatches.length ? 4 : 0 }}>Records</div>
                         {slashEntityResults.map((r, i) => {
                           const cat = SEARCH_CATEGORIES.find(c => c.type === r.type) || {}
+                          const combinedIdx = slashMatches.length + i
                           return (
-                            <div key={r.type + '-' + i} onClick={() => { navigate(r.path); setSlashOpen(false) }} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                              onMouseDown={e => e.preventDefault()}>
+                            <div key={r.type + '-' + i} onClick={() => { navigate(r.path); setSlashOpen(false) }} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: combinedIdx === slashIdx ? `${MR_LIGHT}18` : 'transparent' }}
+                              onMouseDown={e => e.preventDefault()}
+                              onMouseEnter={() => setSlashIdx(combinedIdx)}>
                               <Icon name={r.icon || cat.icon || 'search'} size={14} style={{ color: r.color || cat.color || THEME.textLow }} />
                               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: THEME.text }}>{r.label}</span>
                               <span style={{ fontSize: '10px', color: r.color || cat.color || THEME.textLow, fontWeight: 600 }}>{cat.label}</span>
@@ -1368,6 +1516,83 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
           )}
         </div>
       )}
+
+      {/* ── Forward message modal ── */}
+      <Modal open={!!forwardMsg} onClose={() => setForwardMsg(null)} title="Forward Message" dirty={false}
+        footer={<Button variant="outlined" onClick={() => setForwardMsg(null)}>Cancel</Button>}>
+        <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '12px', padding: '8px', background: THEME.surfaceVar, borderRadius: '8px', borderLeft: `3px solid ${MR_LIGHT}` }}>
+          {forwardMsg?.content?.slice(0, 120)}
+        </div>
+        <SectionLabel>Select conversation</SectionLabel>
+        <div style={{ maxHeight: 300, overflowY: 'auto', border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px' }}>
+          {conversations.filter(c => c.id !== selectedId).map(c => (
+            <div key={c.id} onClick={() => forwardMessage(c.id)} style={{
+              display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer',
+              borderBottom: `1px solid ${THEME.outlineVar}`,
+            }}
+              onMouseOver={ev => ev.currentTarget.style.background = THEME.surfaceVar}
+              onMouseOut={ev => ev.currentTarget.style.background = 'transparent'}>
+              <Avatar name={convoName(c)} size={30} />
+              <span style={{ fontSize: '13px', color: THEME.text }}>{convoName(c)}</span>
+            </div>
+          ))}
+        </div>
+      </Modal>
+
+      {/* ── Group settings modal ── */}
+      <Modal open={groupSettingsOpen} onClose={() => setGroupSettingsOpen(false)} title="Group Settings" dirty={false}
+        footer={<Button variant="outlined" onClick={() => setGroupSettingsOpen(false)}>Close</Button>}>
+        <div style={{ display: 'grid', gap: '16px' }}>
+          <div>
+            <SectionLabel>Group Name</SectionLabel>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input style={{ ...inputStyle, flex: 1 }} value={groupName} onChange={e => setGroupName(e.target.value)} />
+              <Button onClick={saveGroupName} disabled={savingGroup || !groupName.trim()}>{savingGroup ? 'Saving…' : 'Rename'}</Button>
+            </div>
+          </div>
+          <div>
+            <SectionLabel>Members ({members.length})</SectionLabel>
+            <div style={{ maxHeight: 180, overflowY: 'auto', border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', marginBottom: '10px' }}>
+              {members.map(m => (
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                  <Avatar name={m.name} size={26} />
+                  <span style={{ flex: 1, fontSize: '13px', color: THEME.text, fontWeight: m.id === profile?.id ? 700 : 500 }}>
+                    {m.name}{m.id === profile?.id ? ' (you)' : ''}
+                  </span>
+                  {m.id !== profile?.id && m.id !== selectedConvo?.created_by && (
+                    <button onClick={() => removeMemberFromGroup(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d32f2f', padding: '2px' }} title="Remove">
+                      <Icon name="person_remove" size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <SectionLabel>Add Member</SectionLabel>
+            <input style={{ ...inputStyle, marginBottom: '8px' }} value={addMemberSearch} onChange={e => setAddMemberSearch(e.target.value)} placeholder="Search people…" />
+            {addMemberCandidates.length > 0 && (
+              <div style={{ maxHeight: 150, overflowY: 'auto', border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px' }}>
+                {addMemberCandidates.map(u => (
+                  <div key={u.id} onClick={() => addMemberToGroup(u.id)} style={{
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', cursor: 'pointer',
+                    borderBottom: `1px solid ${THEME.outlineVar}`,
+                  }}
+                    onMouseOver={ev => ev.currentTarget.style.background = THEME.surfaceVar}
+                    onMouseOut={ev => ev.currentTarget.style.background = 'transparent'}>
+                    <Avatar name={u.full_name} size={24} />
+                    <div>
+                      <div style={{ fontSize: '13px', color: THEME.text }}>{u.full_name}</div>
+                      {u.department && <div style={{ fontSize: '11px', color: THEME.textLow }}>{u.department}</div>}
+                    </div>
+                    <Icon name="person_add" size={16} style={{ marginLeft: 'auto', color: MR_LIGHT }} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
 
       {/* ── New conversation modal ── */}
       <Modal open={newChatOpen} onClose={() => setNewChatOpen(false)} title="New Conversation" dirty={false}

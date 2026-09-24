@@ -651,8 +651,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
         showToast('Conversation ready', 'green')
         setNewChatOpen(false)
         await loadConversations()
-        setSelectedId(dmId)
-        if (isMobile) setMobileShowThread(true)
+        selectConvo(dmId)
         return
       }
       // Fallback: client-side DM creation
@@ -683,8 +682,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
         setCreating(false)
         showToast('Conversation ready', 'green')
         setNewChatOpen(false)
-        setSelectedId(existingDmId)
-        if (isMobile) setMobileShowThread(true)
+        selectConvo(existingDmId)
         return
       }
       // Create new DM
@@ -700,8 +698,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
       showToast('Conversation created', 'green')
       setNewChatOpen(false)
       await loadConversations()
-      setSelectedId(convo.id)
-      if (isMobile) setMobileShowThread(true)
+      selectConvo(convo.id)
       return
     }
 
@@ -723,8 +720,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     showToast('Conversation created', 'green')
     setNewChatOpen(false)
     await loadConversations()
-    setSelectedId(convo.id)
-    if (isMobile) setMobileShowThread(true)
+    selectConvo(convo.id)
   }
 
   // ── Message input handling (mentions + slash) ───────────────────────────

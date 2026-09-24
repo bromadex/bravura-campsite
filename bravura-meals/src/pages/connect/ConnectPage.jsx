@@ -213,6 +213,9 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
 
   const [convoSearch, setConvoSearch] = useState('')
   const [convoFilter, setConvoFilter] = useState('all')
+  const [section, setSection] = useState('chats')      // 'chats' | 'groups' | 'channels'
+  const [channels, setChannels] = useState([])
+  const [browseChannels, setBrowseChannels] = useState(false)
   const [msgSearch, setMsgSearch] = useState('')
 
   const [mobileShowThread, setMobileShowThread] = useState(false)
@@ -288,7 +291,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
     setLoadingConvos(true)
     const { data, error } = await supabase
       .from('chat_conversations')
-      .select('*, chat_participants!inner(user_id, last_read_at, unread_count)')
+      .select('*, chat_participants!inner(user_id, last_read_at, unread_count, role)')
       .eq('site_id', currentSiteId)
       .eq('chat_participants.user_id', profile.id)
       .eq('is_archived', false)
@@ -579,6 +582,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
   const visibleConvos = useMemo(() => {
     const q = convoSearch.trim().toLowerCase()
     return conversations
+      .filter(c => section === 'chats' ? c.type === 'dm' : section === 'channels' ? c.type === 'channel' : !['dm', 'channel'].includes(c.type))
       .filter(c => convoFilter === 'all' || convoFilter === 'unread' || c.type === convoFilter)
       .filter(c => convoFilter !== 'unread' || getUnread(c) > 0)
       .filter(c => !q || convoName(c).toLowerCase().includes(q))
@@ -587,9 +591,36 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
         const tb = b.last_message_at || b.created_at
         return new Date(tb) - new Date(ta)
       })
-  }, [conversations, convoSearch, convoFilter, dmNames, profile?.id])
+  }, [conversations, convoSearch, convoFilter, section, dmNames, profile?.id])
 
   const selectedConvo = conversations.find(c => c.id === selectedId) || null
+  const readOnlyChannel = selectedConvo?.type === 'channel' &&
+    !(selectedConvo.chat_participants || []).some(p => p.user_id === profile?.id && p.role === 'admin')
+  const sectionUnread = useMemo(() => {
+    const sum = pred => conversations.filter(pred).reduce((n, c) => n + (getUnread(c) > 0 ? 1 : 0), 0)
+    return { chats: sum(c => c.type === 'dm'), groups: sum(c => !['dm', 'channel'].includes(c.type)), channels: sum(c => c.type === 'channel') }
+  }, [conversations, profile?.id])
+
+  const loadChannels = useCallback(async () => {
+    if (!currentSiteId) return
+    const { data } = await supabase.rpc('connect_list_channels', { p_site_id: currentSiteId })
+    setChannels(data || [])
+  }, [currentSiteId])
+  useEffect(() => { if (section === 'channels') loadChannels() }, [section, loadChannels])
+
+  async function joinChannel(id) {
+    const { error } = await supabase.rpc('connect_join_channel', { p_id: id })
+    if (error) { showToast(error.message, 'red'); return }
+    await loadConversations(); await loadChannels(); setBrowseChannels(false); selectConvo(id)
+  }
+  async function createChannel() {
+    const name = window.prompt('Channel name (e.g. Kamativi Safety Alerts)')
+    if (!name?.trim()) return
+    const description = window.prompt('What is it for? (optional)') || null
+    const { data: id, error } = await supabase.rpc('connect_create_channel', { p_site_id: currentSiteId, p_name: name, p_description: description })
+    if (error) { showToast(error.message, 'red'); return }
+    await loadConversations(); await loadChannels(); selectConvo(id)
+  }
 
   const filteredMessages = useMemo(() => {
     const q = msgSearch.trim().toLowerCase()
@@ -1058,17 +1089,51 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
               onChange={e => setConvoSearch(e.target.value)}
             />
           </div>
-          <div style={{ display: 'flex', gap: '6px', padding: '8px 14px', flexWrap: 'wrap', borderBottom: `1px solid ${THEME.outlineVar}` }}>
-            {[['all', 'All'], ['unread', 'Unread'], ['dm', 'DMs'], ['group', 'Groups'], ['department', 'Depts']].map(([k, label]) => (
-              <button key={k} onClick={() => setConvoFilter(k)} style={{
-                padding: '4px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 600,
-                border: 'none',
-                background: convoFilter === k ? MR_LIGHT : THEME.surfaceVar,
-                color: convoFilter === k ? '#fff' : THEME.textMed,
-                cursor: 'pointer',
-              }}>{label}</button>
+          <div role="tablist" style={{ display: 'flex', background: MR_HEADER_BG }}>
+            {[['chats', 'Chats'], ['groups', 'Groups'], ['channels', 'Channels']].map(([k, label]) => (
+              <button key={k} role="tab" aria-selected={section === k} onClick={() => { setSection(k); setConvoFilter('all'); setBrowseChannels(false) }} style={{
+                flex: 1, padding: '10px 4px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: 600,
+                background: 'transparent', color: section === k ? '#fff' : 'rgba(255,255,255,.7)',
+                borderBottom: `3px solid ${section === k ? '#fff' : 'transparent'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              }}>
+                {label}
+                {sectionUnread[k] > 0 && <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: '#fff', color: MR_HEADER_BG, fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{sectionUnread[k]}</span>}
+              </button>
             ))}
           </div>
+          <div style={{ display: 'flex', gap: '6px', padding: '8px 14px', flexWrap: 'wrap', borderBottom: `1px solid ${THEME.outlineVar}` }}>
+            {[['all', 'All'], ['unread', 'Unread'], ...(section === 'groups' ? [['group', 'Groups'], ['department', 'Departments'], ['record', 'Records']] : [])].map(([k, label]) => (
+              <button key={k} onClick={() => setConvoFilter(k)} style={{
+                padding: '4px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, border: 'none',
+                background: convoFilter === k ? MR_LIGHT : THEME.surfaceVar, color: convoFilter === k ? '#fff' : THEME.textMed, cursor: 'pointer',
+              }}>{label}</button>
+            ))}
+            {section === 'channels' && (
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
+                <button onClick={() => setBrowseChannels(b => !b)} style={{ padding: '4px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, border: `1px solid ${MR_PRIMARY}`, background: browseChannels ? MR_PRIMARY : 'transparent', color: browseChannels ? '#fff' : MR_PRIMARY, cursor: 'pointer' }}>Browse</button>
+                {can('connect.approve') && <button onClick={createChannel} style={{ padding: '4px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, border: 'none', background: MR_PRIMARY, color: '#fff', cursor: 'pointer' }}>+ Channel</button>}
+              </span>
+            )}
+          </div>
+          {section === 'channels' && browseChannels && (
+            <div style={{ borderBottom: `1px solid ${THEME.outlineVar}`, maxHeight: '45%', overflowY: 'auto' }}>
+              {channels.length === 0 ? (
+                <div style={{ padding: '16px', fontSize: '13px', color: THEME.textLow, textAlign: 'center' }}>No channels at this site yet.</div>
+              ) : channels.map(ch => (
+                <div key={ch.id} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '10px 14px', borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                  <Icon name="campaign" size={22} style={{ color: MR_PRIMARY }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>{ch.name}</div>
+                    <div style={{ fontSize: '12px', color: THEME.textLow, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.description || `${ch.members} follower${Number(ch.members) === 1 ? '' : 's'}`}</div>
+                  </div>
+                  {ch.joined
+                    ? <button onClick={() => { setBrowseChannels(false); selectConvo(ch.id) }} style={{ padding: '6px 12px', borderRadius: '999px', border: `1px solid ${THEME.outline}`, background: 'transparent', color: THEME.textMed, fontSize: '12px', cursor: 'pointer' }}>Open</button>
+                    : <button onClick={() => joinChannel(ch.id)} style={{ padding: '6px 12px', borderRadius: '999px', border: 'none', background: MR_PRIMARY, color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Follow</button>}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {loadingConvos ? (
@@ -1368,6 +1433,11 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                 </div>
               )}
 
+              {readOnlyChannel ? (
+                <div style={{ padding: '12px', background: '#F0F0F0', textAlign: 'center', fontSize: '13px', color: THEME.textMed }}>
+                  <Icon name="campaign" size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />Only channel admins can post here
+                </div>
+              ) : (
               <div style={{ padding: '6px 10px', background: '#F0F0F0', position: 'relative' }}>
                 {mentionOpen && mentionMatches.length > 0 && (
                   <div style={{ position: 'absolute', bottom: '100%', left: 14, marginBottom: 4, background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', boxShadow: THEME.shadow2, zIndex: 20, width: 220, maxHeight: 200, overflowY: 'auto' }}>
@@ -1512,6 +1582,7 @@ export default function ConnectPage({ setPage, floatingPanel = false }) {
                   )}
                 </div>
               </div>
+              )}
             </>
           )}
         </div>

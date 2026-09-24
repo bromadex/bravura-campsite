@@ -46,7 +46,7 @@ function TodayCard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px', gap: '8px', flexWrap: 'wrap' }}>
           <div style={{ fontWeight: 600, color: THEME.text }}>Today</div>
           <div style={{ fontSize: '12px', color: THEME.textMed }}>
-            Work day {String(today.work_start || '07:00').slice(0, 5)}–{String(today.work_end || '16:00').slice(0, 5)} · overtime after {String(today.work_end || '16:00').slice(0, 5)}
+            {today.shift_name || 'Work day'} {String(today.work_start || '07:00').slice(0, 5)}–{String(today.work_end || '16:00').slice(0, 5)} · overtime after {String(today.work_end || '16:00').slice(0, 5)}
           </div>
         </div>
         {!today.site_located ? (

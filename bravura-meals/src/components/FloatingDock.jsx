@@ -195,8 +195,8 @@ export default function FloatingDock() {
         <button onClick={() => setPanel(p => (p ? null : 'chat'))} title={panel ? 'Close' : 'Bravura Connect'}
           aria-label={panel ? 'Close panel' : 'Bravura Connect'}
           style={{ ...fabBase, bottom: chatBottom, right: chatRight, zIndex: 160, width: '56px', height: '56px',
-            background: panel === 'me' ? MODULE_COLORS.me : '#00897B',
-            boxShadow: panel === 'me' ? '0 4px 14px rgba(152,35,41,.45), 0 2px 6px rgba(0,0,0,.18)' : '0 4px 14px rgba(0,137,123,.45), 0 2px 6px rgba(0,0,0,.18)' }}
+            background: panel === 'me' ? MODULE_COLORS.me : '#25D366',
+            boxShadow: panel === 'me' ? '0 4px 14px rgba(152,35,41,.45), 0 2px 6px rgba(0,0,0,.18)' : '0 4px 14px rgba(37,211,102,.45), 0 2px 6px rgba(0,0,0,.18)' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
           <span className="material-symbols-rounded filled" style={{ fontSize: '26px', color: '#fff' }}>{panel ? 'close' : 'chat'}</span>

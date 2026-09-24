@@ -93,7 +93,7 @@ export const MODULE_COLORS = {
   sheq:        '#D32F2F',  // red          – safety/health/environment/quality
   dept:        '#37474F',  // blue-grey    – department workspaces
   governance:  '#6D4C41',  // brown        – governance/policy
-  connect:     '#00897B',  // teal         – messaging/connect
+  connect:     '#008069',  // WhatsApp teal-green – messaging/connect
   notifications: '#FF6F00', // amber       – alerts/notifications
   docshare:      '#4527A0', // deep purple – document management
   me:            '#982329', // maroon      – employee self-service
@@ -157,7 +157,7 @@ export function workforceNav(role) {
     { id: 'wf_departments',  label: 'Departments',      section: 'Organisation', icon: 'domain' },
     { id: 'wf_designations', label: 'Designations',     section: 'Organisation', icon: 'military_tech' },
     { id: 'wf_org_chart',    label: 'Org Chart',        section: 'Organisation', icon: 'account_tree' },
-    // Shift rosters retired (fixed 07:00–16:00 day, overtime after); page kept reachable by T-code only.
+    { id: 'wf_shifts',       label: 'Shift Management', section: 'Attendance', icon: 'schedule' },
     { id: 'wf_attendance',   label: 'Attendance Log',   section: 'Attendance', icon: 'fact_check' },
     { id: 'wf_training',     label: 'Training Programs',section: 'Training',   icon: 'school' },
     { id: 'wf_skills',       label: 'Skills Matrix',    section: 'Training',   icon: 'psychology' },

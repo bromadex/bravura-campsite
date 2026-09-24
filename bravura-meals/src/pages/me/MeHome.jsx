@@ -2,20 +2,39 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { THEME } from '../../utils/permissions'
-import { Card, Icon } from '../../components/ui'
+import { Icon } from '../../components/ui'
 import { useMe, Loading, NotLinked, ME_COLOR, MONTHS, usd } from './shared'
 
-function Tile({ icon, label, value, sub, onClick }) {
+// Each app: [page, label, icon, tint]. Tints keep icons distinguishable at a glance.
+const APPS = [
+  ['me_attendance', 'Clock in',     'schedule',          '#2E7D32'],
+  ['me_leave',      'Leave',        'beach_access',      '#0277BD'],
+  ['me_payslips',   'Payslips',     'payments',          '#6A1B9A'],
+  ['me_safety',     'Safety',       'health_and_safety', '#E65100'],
+  ['me_expenses',   'Expenses',     'receipt_long',      '#00838F'],
+  ['me_advances',   'Advances',     'savings',           '#AD1457'],
+  ['me_camp',       'Camp & meals', 'bed',               '#5D4037'],
+  ['me_documents',  'Policies',     'description',       '#283593'],
+  ['me_details',    'My details',   'badge',             '#455A64'],
+  ['me_tax',        'Tax (ITF16)',  'account_balance',   '#558B2F'],
+]
+
+function App({ icon, label, tint, badge, onClick }) {
   return (
-    <button onClick={onClick} style={{
-      textAlign: 'left', border: `1px solid ${THEME.outlineVar}`, borderRadius: '14px', padding: '16px',
-      background: THEME.surface, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', gap: '6px',
-      minHeight: '112px',
+    <button onClick={onClick} aria-label={badge ? `${label} (${badge} waiting)` : label} style={{
+      background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer', fontFamily: 'inherit',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', position: 'relative', minWidth: 0,
     }}>
-      <Icon name={icon} size={22} style={{ color: ME_COLOR }} />
-      <span style={{ fontSize: '12px', color: THEME.textMed }}>{label}</span>
-      <span style={{ fontSize: '20px', fontWeight: 700, color: THEME.text, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-      {sub && <span style={{ fontSize: '12px', color: THEME.textLow }}>{sub}</span>}
+      <span style={{ width: '56px', height: '56px', borderRadius: '16px', background: tint, color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,.15)' }}>
+        <Icon name={icon} size={28} />
+      </span>
+      {badge > 0 && (
+        <span style={{ position: 'absolute', top: 0, right: 'calc(50% - 34px)', minWidth: '20px', height: '20px', padding: '0 5px',
+          borderRadius: '10px', background: '#D32F2F', color: '#fff', fontSize: '11px', fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${THEME.surface}` }}>{badge > 99 ? '99+' : badge}</span>
+      )}
+      <span style={{ fontSize: '12px', color: THEME.text, textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
     </button>
   )
 }
@@ -24,86 +43,56 @@ export default function MeHome({ setPage }) {
   const { me, loading } = useMe()
   const navigate = useNavigate()
   const [leave, setLeave] = useState(null)
-  const [advances, setAdvances] = useState([])
+  const [team, setTeam] = useState(null)
 
   useEffect(() => {
     if (!me?.linked) return
     supabase.rpc('ess_my_leave').then(({ data }) => setLeave(data))
-    supabase.rpc('ess_my_open_advances').then(({ data }) => setAdvances(data || []))
+    supabase.rpc('ess_team_today').then(({ data }) => setTeam(data))
   }, [me?.linked])
 
   if (loading) return <Loading />
   if (!me?.linked) return <NotLinked />
 
   const annual = (leave?.balances || []).find(b => /annual/i.test(b.leave_type)) || (leave?.balances || [])[0]
-  const openAdv = advances.reduce((s, a) => s + Number(a.outstanding || 0), 0)
   const slip = me.last_payslip
+  const isLead = (team?.members || []).length > 0
+  const teamWaiting = (team?.timesheets?.length || 0) + (team?.leave?.length || 0)
+  const onSite = (team?.members || []).filter(m => m.state === 'a_on_site').length
 
   return (
-    <div style={{ maxWidth: '720px' }}>
-      <div style={{ marginBottom: '16px' }}>
+    <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '14px' }}>
         <div style={{ fontSize: '22px', fontWeight: 700, color: THEME.text, textWrap: 'balance' }}>Hello, {me.name?.split(' ')[0]}</div>
         <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '2px' }}>
-          {[me.designation, me.department, me.site_name].filter(Boolean).join(' · ')}
+          {[me.designation, me.site_name].filter(Boolean).join(' · ')}
           {me.employee_number && <> · <span style={{ fontVariantNumeric: 'tabular-nums' }}>{me.employee_number}</span></>}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px', marginBottom: '16px' }}>
-        <Tile icon="payments" label="Last payslip" onClick={() => setPage('me_payslips')}
-          value={slip ? usd(slip.net) : '—'} sub={slip ? `${MONTHS[slip.period_month - 1]} ${slip.period_year}` : 'None yet'} />
-        <Tile icon="beach_access" label={annual ? `${annual.leave_type} left` : 'Leave'} onClick={() => setPage('me_leave')}
-          value={annual ? `${Number(annual.remaining).toFixed(1)} d` : '—'}
-          sub={me.pending_leave > 0 ? `${me.pending_leave} request${me.pending_leave > 1 ? 's' : ''} waiting` : 'Nothing pending'} />
-        <Tile icon="receipt_long" label="Advances to account for" onClick={() => setPage('me_expenses')}
-          value={usd(openAdv)} sub={advances.length ? `${advances.length} open` : 'All settled'} />
-        <Tile icon="schedule" label="Attendance" onClick={() => setPage('me_attendance')} value="View" sub="This month" />
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', fontSize: '12px', color: THEME.textMed, flexWrap: 'wrap' }}>
+        <span style={{ padding: '6px 10px', borderRadius: '999px', background: THEME.surfaceVar }}>
+          Last pay <b style={{ color: THEME.text }}>{slip ? `${usd(slip.net)} · ${MONTHS[slip.period_month - 1]}` : '—'}</b>
+        </span>
+        <span style={{ padding: '6px 10px', borderRadius: '999px', background: THEME.surfaceVar }}>
+          Leave left <b style={{ color: THEME.text }}>{annual ? `${Number(annual.remaining).toFixed(1)} days` : '—'}</b>
+        </span>
+        {isLead && (
+          <span style={{ padding: '6px 10px', borderRadius: '999px', background: THEME.surfaceVar }}>
+            Team on site <b style={{ color: THEME.text }}>{onSite}/{team.members.length}</b>
+          </span>
+        )}
       </div>
 
-      <Card style={{ padding: '14px 16px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '10px' }}>Quick actions</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
-          {[
-            ['event_available', 'Request leave', 'me_leave'],
-            ['add_card', 'Claim expenses', 'me_expenses'],
-            ['warning', 'Report a hazard', 'me_safety'],
-            ['savings', 'Salary advance or loan', 'me_advances'],
-            ['build', 'Report a room problem', 'me_camp'],
-            ['approval', 'My approvals inbox', null],
-          ].map(([icon, text, page]) => (
-            <button key={text} onClick={() => page ? setPage(page) : navigate('/notifications/approvals_inbox')}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', minHeight: '48px', padding: '10px 12px', borderRadius: '10px',
-                border: `1px solid ${THEME.outlineVar}`, background: THEME.surface, color: THEME.text, fontFamily: 'inherit',
-                fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}>
-              <Icon name={icon} size={20} style={{ color: ME_COLOR }} /> {text}
-            </button>
-          ))}
-        </div>
-      </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', rowGap: '18px', columnGap: '6px' }}>
+        {isLead && <App icon="groups" label="My team" tint={ME_COLOR} badge={teamWaiting} onClick={() => setPage('me_team')} />}
+        {APPS.map(([page, label, icon, tint]) => (
+          <App key={page} icon={icon} label={label} tint={tint} badge={page === 'me_leave' ? me.pending_leave : 0} onClick={() => setPage(page)} />
+        ))}
+        <App icon="approval" label="Approvals" tint="#37474F" onClick={() => navigate('/notifications/approvals_inbox')} />
+      </div>
 
-      <Card style={{ padding: '14px 16px', marginTop: '12px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '10px' }}>Everything else</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
-          {[
-            ['health_and_safety', 'My safety', 'PPE, training, medicals', 'me_safety'],
-            ['schedule', 'Clock in & roster', 'Shifts and hours', 'me_attendance'],
-            ['badge', 'My details', 'Contact, bank, next of kin', 'me_details'],
-            ['description', 'Documents & policies', 'Read and acknowledge', 'me_documents'],
-            ['bed', 'My camp', 'Room, faults, meals', 'me_camp'],
-            ['savings', 'Advances & loans', 'Request and track', 'me_advances'],
-            ['receipt_long', 'Tax certificate', 'ITF16 for the year', 'me_tax'],
-          ].map(([icon, text, sub, page]) => (
-            <button key={page + text} onClick={() => setPage(page)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', minHeight: '84px', padding: '12px', borderRadius: '10px',
-                border: `1px solid ${THEME.outlineVar}`, background: THEME.surface, fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
-              <Icon name={icon} size={20} style={{ color: ME_COLOR }} />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>{text}</span>
-              <span style={{ fontSize: '12px', color: THEME.textLow }}>{sub}</span>
-            </button>
-          ))}
-        </div>
-      </Card>
-      {me.manager && <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '12px' }}>Your line manager: {me.manager}</div>}
+      {me.manager && <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '20px', textAlign: 'center' }}>Your line manager: {me.manager}</div>}
     </div>
   )
 }

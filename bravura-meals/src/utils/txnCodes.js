@@ -292,6 +292,7 @@ export const TXN_CODES = [
   { code: 'ES09', path: '/me/me_documents',  label: 'My Documents & Policies', module: 'me' },
   { code: 'ES10', path: '/me/me_camp',       label: 'My Camp',       module: 'me' },
   { code: 'ES11', path: '/me/me_advances',   label: 'My Advances & Loans', module: 'me' },
+  { code: 'ES12', path: '/me/me_team',       label: 'My Team',       module: 'me' },
 
   // ── DocVault (DS) ──────────────────────────────────────────────────────
   { code: 'DS01', path: '/docshare/ds_library',         label: 'Document Library',       module: 'docshare' },

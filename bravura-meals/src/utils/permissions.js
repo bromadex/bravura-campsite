@@ -157,7 +157,7 @@ export function workforceNav(role) {
     { id: 'wf_departments',  label: 'Departments',      section: 'Organisation', icon: 'domain' },
     { id: 'wf_designations', label: 'Designations',     section: 'Organisation', icon: 'military_tech' },
     { id: 'wf_org_chart',    label: 'Org Chart',        section: 'Organisation', icon: 'account_tree' },
-    { id: 'wf_shifts',       label: 'Shift Management', section: 'Attendance', icon: 'schedule' },
+    // Shift rosters retired (fixed 07:00–16:00 day, overtime after); page kept reachable by T-code only.
     { id: 'wf_attendance',   label: 'Attendance Log',   section: 'Attendance', icon: 'fact_check' },
     { id: 'wf_training',     label: 'Training Programs',section: 'Training',   icon: 'school' },
     { id: 'wf_skills',       label: 'Skills Matrix',    section: 'Training',   icon: 'psychology' },
@@ -461,6 +461,7 @@ export function meNav() {
     { id: 'me_camp',       label: 'My Camp',      section: 'Me', icon: 'bed' },
     { id: 'me_advances',   label: 'Advances & Loans', section: 'Me', icon: 'savings' },
     { id: 'me_tax',        label: 'Tax Certificate', section: 'Me', icon: 'receipt_long' },
+    { id: 'me_team',       label: 'My Team',      section: 'Me', icon: 'groups' },
   ]
 }
 

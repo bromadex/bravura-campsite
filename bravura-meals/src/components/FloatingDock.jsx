@@ -16,18 +16,13 @@ const MyTax        = lazy(() => import('../pages/me/MyTaxCertificate'))
 const MyDocuments  = lazy(() => import('../pages/me/MyDocuments'))
 const MyCamp       = lazy(() => import('../pages/me/MyCamp'))
 const MyAdvances   = lazy(() => import('../pages/me/MyAdvances'))
+const MyTeam       = lazy(() => import('../pages/me/MyTeam'))
 
-const ME_TABS = [
-  { id: 'me_home',       label: 'Home',       icon: 'home',         C: MeHome },
-  { id: 'me_attendance', label: 'Time',       icon: 'schedule',     C: MyAttendance },
-  { id: 'me_leave',      label: 'Leave',      icon: 'beach_access', C: MyLeave },
-  { id: 'me_payslips',   label: 'Pay',        icon: 'payments',     C: MyPayslips },
-  { id: 'me_safety',     label: 'Safety',     icon: 'health_and_safety', C: MySafety },
-]
-// Reached from the Home hub; shown with a back link instead of a tab.
-const ME_MORE = {
-  me_expenses: MyExpenses, me_details: MyDetails, me_tax: MyTax,
-  me_documents: MyDocuments, me_camp: MyCamp, me_advances: MyAdvances,
+// Home is an app grid; every other self-service page opens with a back link to it.
+const ME_PAGES = {
+  me_home: MeHome, me_payslips: MyPayslips, me_leave: MyLeave, me_attendance: MyAttendance,
+  me_expenses: MyExpenses, me_safety: MySafety, me_details: MyDetails, me_tax: MyTax,
+  me_documents: MyDocuments, me_camp: MyCamp, me_advances: MyAdvances, me_team: MyTeam,
 }
 
 // Shared chat-unread count so the home grid badge and the dock use one subscription.
@@ -125,8 +120,8 @@ export default function FloatingDock() {
   const chatRight = isMobile ? '16px' : '28px'
   const chatBottom = isMobile ? '16px' : '28px'
   const showChatFab = !onConnectPage
-  const MeView = ME_TABS.find(t => t.id === meTab)?.C || ME_MORE[meTab] || MeHome
-  const isMoreView = !ME_TABS.some(t => t.id === meTab) && !!ME_MORE[meTab]
+  const MeView = ME_PAGES[meTab] || MeHome
+  const isMoreView = meTab !== 'me_home' && !!ME_PAGES[meTab]
 
   return (
     <>
@@ -151,22 +146,6 @@ export default function FloatingDock() {
               style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', display: 'flex' }}>
               <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>close</span>
             </button>
-          </div>
-          <div role="tablist" style={{ display: 'flex', borderBottom: `1px solid ${THEME.outlineVar}`, background: THEME.surface }}>
-            {ME_TABS.map(t => {
-              const active = t.id === meTab
-              return (
-                <button key={t.id} role="tab" aria-selected={active} onClick={() => setMeTab(t.id)} style={{
-                  flex: 1, minHeight: '52px', padding: '6px 2px', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  background: 'transparent', color: active ? MODULE_COLORS.me : THEME.textMed,
-                  borderBottom: `2px solid ${active ? MODULE_COLORS.me : 'transparent'}`,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', fontSize: '11px', fontWeight: active ? 600 : 400,
-                }}>
-                  <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>{t.icon}</span>
-                  {t.label}
-                </button>
-              )
-            })}
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '14px', background: THEME.bg || THEME.surface }}>
             <Suspense fallback={<div style={{ padding: '32px', textAlign: 'center', color: THEME.textLow, fontSize: '13px' }}>Loading…</div>}>

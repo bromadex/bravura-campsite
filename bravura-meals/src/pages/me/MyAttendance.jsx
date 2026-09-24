@@ -5,7 +5,7 @@ import { Card, Icon, PageHeader, showToast, fmtDate } from '../../components/ui'
 import { useMe, Loading, NotLinked, ME_COLOR, MONTHS, field, bigBtn } from './shared'
 
 const pad = n => String(n).padStart(2, '0')
-const hhmm = t => (t ? String(t).slice(11, 16) || String(t).slice(0, 5) : '—')
+const hhmm = t => (t ? String(t).slice(0, 5) : '—')
 
 function getPosition() {
   return new Promise((resolve, reject) => {
@@ -18,13 +18,9 @@ function getPosition() {
 
 function TodayCard() {
   const [today, setToday] = useState(null)
-  const [roster, setRoster] = useState([])
   const [busy, setBusy] = useState(false)
   const load = () => {
     supabase.rpc('ess_today').then(({ data }) => setToday(data || {}))
-    const from = new Date().toISOString().slice(0, 10)
-    const to = new Date(Date.now() + 13 * 86400000).toISOString().slice(0, 10)
-    supabase.rpc('ess_my_roster', { p_from: from, p_to: to }).then(({ data }) => setRoster(data || []))
   }
   useEffect(load, [])
 
@@ -36,7 +32,7 @@ function TodayCard() {
         p_action: action, p_lat: pos.coords.latitude, p_lng: pos.coords.longitude, p_accuracy: pos.coords.accuracy,
       })
       if (error) throw error
-      showToast(action === 'in' ? `Clocked in${data.late ? ' (late)' : ''}` : `Clocked out — ${Number(data.hours).toFixed(1)} h`, 'green')
+      showToast(action === 'in' ? `Clocked in${data.late ? ' (late)' : ''}` : `Clocked out — ${Number(data.hours).toFixed(1)} h${Number(data.overtime) > 0 ? `, ${Number(data.overtime).toFixed(1)} h overtime` : ''}`, 'green')
       load()
     } catch (err) { showToast(err.message, 'red') }
     setBusy(false)
@@ -50,7 +46,7 @@ function TodayCard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px', gap: '8px', flexWrap: 'wrap' }}>
           <div style={{ fontWeight: 600, color: THEME.text }}>Today</div>
           <div style={{ fontSize: '12px', color: THEME.textMed }}>
-            {today.shift ? `${today.shift.name} · ${String(today.shift.start).slice(0, 5)}–${String(today.shift.end).slice(0, 5)}` : 'No shift rostered'}
+            Work day {String(today.work_start || '07:00').slice(0, 5)}–{String(today.work_end || '16:00').slice(0, 5)} · overtime after {String(today.work_end || '16:00').slice(0, 5)}
           </div>
         </div>
         {!today.site_located ? (
@@ -71,17 +67,6 @@ function TodayCard() {
         )}
         {today.site_located && <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '8px' }}>Works only within {Number(today.geofence_m).toLocaleString()} m of {today.site_name}. Your location is saved only when you clock in or out.</div>}
       </Card>
-      {roster.length > 0 && (
-        <Card style={{ padding: '12px 14px', marginBottom: '14px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '6px' }}>My roster (next 2 weeks)</div>
-          {roster.map((r, i) => (
-            <div key={i} style={{ fontSize: '13px', color: THEME.textMed, padding: '3px 0' }}>
-              <b style={{ color: THEME.text }}>{r.shift_name}</b> {String(r.start_time).slice(0, 5)}–{String(r.end_time).slice(0, 5)}{r.is_night_shift ? ' (night)' : ''}
-              {' · '}{fmtDate(r.start_date)}{r.end_date ? ` to ${fmtDate(r.end_date)}` : ' onwards'}
-            </div>
-          ))}
-        </Card>
-      )}
     </>
   )
 }
@@ -133,7 +118,7 @@ export default function MyAttendance() {
           </div>
           {rows.length === 0 ? (
             <Card style={{ padding: '24px', textAlign: 'center', color: THEME.textLow, fontSize: '13px' }}>
-              No attendance recorded for {MONTHS[m - 1]} {y}. Your supervisor records attendance on site.
+              No attendance recorded for {MONTHS[m - 1]} {y}. Clock in above each day; your supervisor approves your hours.
             </Card>
           ) : (
             <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -151,6 +136,12 @@ export default function MyAttendance() {
                   )}
                   <span style={{ color: THEME.text, fontVariantNumeric: 'tabular-nums' }}>{r.is_absent ? '' : `${Number(r.hours_worked || 0).toFixed(1)} h`}</span>
                   {Number(r.overtime_hours) > 0 && <span style={{ fontSize: '12px', color: ME_COLOR }}>+{Number(r.overtime_hours).toFixed(1)} OT</span>}
+                  {!r.is_absent && r.approval_status && (
+                    <span title={r.supervisor_note || ''} style={{ fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
+                      color: r.approval_status === 'approved' ? THEME.statusSuccessText : r.approval_status === 'rejected' ? THEME.error : THEME.statusWarningText }}>
+                      {r.approval_status === 'approved' ? 'Approved' : r.approval_status === 'rejected' ? 'Query' : 'Awaiting'}
+                    </span>
+                  )}
                 </div>
               ))}
             </Card>

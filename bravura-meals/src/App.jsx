@@ -191,6 +191,7 @@ const MyTaxCertificate     = lazy(() => import('./pages/me/MyTaxCertificate'))
 const MyDocuments          = lazy(() => import('./pages/me/MyDocuments'))
 const MyCamp               = lazy(() => import('./pages/me/MyCamp'))
 const MyAdvances           = lazy(() => import('./pages/me/MyAdvances'))
+const MyTeam               = lazy(() => import('./pages/me/MyTeam'))
 const HRDetailChanges      = lazy(() => import('./pages/hr/DetailChanges'))
 const HRSalaryAdvances     = lazy(() => import('./pages/hr/SalaryAdvances'))
 const CampFaults           = lazy(() => import('./pages/campsite/CampFaults'))
@@ -780,6 +781,7 @@ function getMePage(page, setPage) {
     case 'me_documents':  return <MyDocuments setPage={setPage} />
     case 'me_camp':       return <MyCamp setPage={setPage} />
     case 'me_advances':   return <MyAdvances setPage={setPage} />
+    case 'me_team':       return <MyTeam setPage={setPage} />
     default:              return <MeHome setPage={setPage} />
   }
 }

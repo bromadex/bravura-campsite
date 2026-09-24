@@ -11,14 +11,14 @@ import { Icon, Button, Modal, SectionLabel, showToast, initials } from '../../co
 import Denied from '../../components/Denied'
 
 const ACCENT = MODULE_COLORS.connect
-const MR_PRIMARY = '#800020'
-const MR_SENT_BG = '#F2D5DC'
+const MR_PRIMARY = '#00897B'
+const MR_SENT_BG = '#D6F0EC'
 const MR_RECV_BG = '#FFFFFF'
-const MR_HEADER_BG = '#5C0015'
-const MR_LIGHT = '#9B1B30'
-const MR_CHAT_BG = '#F5EDED'
+const MR_HEADER_BG = '#00695C'
+const MR_LIGHT = '#26A69A'
+const MR_CHAT_BG = '#EEF6F5'
 const MR_TIME = '#667781'
-const MR_TICK = '#9B1B30'
+const MR_TICK = '#00897B'
 
 const PAGE_SIZE = 50
 const REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🔥']

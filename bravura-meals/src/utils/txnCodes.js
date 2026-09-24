@@ -115,6 +115,7 @@ export const TXN_CODES = [
   { code: 'HR34', path: '/workforce/wf_ppe',                 label: 'PPE Tracking',         module: 'workforce' },
   // Phase 5: Analytics
   { code: 'HR35', path: '/workforce/wf_analytics',            label: 'HR Analytics',         module: 'workforce' },
+  { code: 'HR36', path: '/workforce/wf_statutory',            label: 'Statutory Returns',    module: 'workforce' },
 
   // ── Contract & Contractor Management (CL) ──────────────────────────────
   { code: 'CL01', path: '/contractors/cl_dashboard',            label: 'CL Dashboard',         module: 'contractors' },

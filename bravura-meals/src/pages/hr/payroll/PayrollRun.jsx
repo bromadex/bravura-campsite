@@ -74,6 +74,7 @@ export default function PayrollRun() {
           .select('*, employees(name, employee_number, departments(name), designations(name))')
           .eq('payroll_run_id', runs.id)
           .eq('site_id', currentSiteId)
+          .eq('is_archived', false)
           .order('created_at')
         if (slipErr) throw slipErr
         setSlips(slipData || [])
@@ -104,140 +105,41 @@ export default function PayrollRun() {
 
   async function runPayroll() {
     if (!canRunPayroll) return
-    if (!window.confirm(`Run payroll for ${MONTHS[month - 1]} ${year}? This will generate salary slips for all active employees.`)) return
+    if (!window.confirm(`Run payroll for ${MONTHS[month - 1]} ${year}? PAYE, AIDS levy and NSSA are calculated for all active employees.`)) return
     setProcessing(true)
     try {
-      // Fetch active employees
-      const { data: employees, error: empErr } = await supabase.from('employees').select('id, name, employee_number')
-        .eq('site_id', currentSiteId)
-        .eq('status', 'active')
-      if (empErr) throw empErr
-      if (!employees || employees.length === 0) { showToast('No active employees found', 'red'); setProcessing(false); return }
-
-      // End of month date for salary lookup
-      const endOfMonth = new Date(year, month, 0).toISOString().slice(0, 10)
-      const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`
-
-      // Fetch latest salary for each employee
-      const { data: salaries, error: salErr } = await supabase.from('employee_salary').select('*')
-        .eq('site_id', currentSiteId)
-        .lte('effective_date', endOfMonth)
-        .order('effective_date', { ascending: false })
-      if (salErr) throw salErr
-
-      // Map: latest salary per employee
-      const salaryMap = {}
-      ;(salaries || []).forEach(s => {
-        if (!salaryMap[s.employee_id]) salaryMap[s.employee_id] = s
+      const { data, error } = await supabase.rpc('hr_run_payroll', {
+        p_site_id: currentSiteId, p_month: month, p_year: year, p_working_days: WORKING_DAYS,
       })
-
-      // Fetch active salary components
-      const { data: components, error: compErr } = await supabase.from('salary_components').select('*')
-        .eq('is_active', true)
-      if (compErr) throw compErr
-
-      // Fetch attendance for absence count
-      const { data: attendance, error: attErr } = await supabase.from('attendance_logs').select('employee_id, is_absent')
-        .eq('site_id', currentSiteId)
-        .gte('date', startOfMonth)
-        .lte('date', endOfMonth)
-      if (attErr) throw attErr
-
-      const absenceMap = {}
-      ;(attendance || []).forEach(a => {
-        if (a.is_absent) {
-          absenceMap[a.employee_id] = (absenceMap[a.employee_id] || 0) + 1
-        }
-      })
-
-      // Create payroll run
-      let runId
-      if (run && run.status === 'draft') {
-        // Delete existing slips and update run
-        await supabase.from('salary_slips').update({ is_archived: true }).eq('payroll_run_id', run.id)
-        runId = run.id
-      } else {
-        const { data: newRun, error: runErr } = await supabase.from('payroll_runs').insert({
-          site_id: currentSiteId,
-          period_month: month,
-          period_year: year,
-          status: 'draft',
-          created_by: profile?.id || null,
-        }).select('id').single()
-        if (runErr) throw runErr
-        runId = newRun.id
-      }
-
-      // Generate slips
-      const slipRows = []
-      let totalGross = 0, totalDeductions = 0, totalNet = 0
-
-      for (const emp of employees) {
-        const sal = salaryMap[emp.id]
-        const basicSalary = sal ? Number(sal.basic_salary) : 0
-        const daysAbsent = absenceMap[emp.id] || 0
-        const daysWorked = Math.max(0, WORKING_DAYS - daysAbsent)
-
-        // Pro-rate
-        const proRatedBasic = basicSalary * (daysWorked / WORKING_DAYS)
-
-        // Apply components
-        let gross = proRatedBasic
-        let deductions = 0
-        const compDetail = []
-
-        ;(components || []).forEach(c => {
-          const val = c.is_percentage ? (proRatedBasic * Number(c.percentage || 0) / 100) : Number(c.amount || 0)
-          compDetail.push({ id: c.id, name: c.name, code: c.code, type: c.component_type, amount: val, is_taxable: c.is_taxable })
-          if (c.component_type === 'allowance') {
-            gross += val
-          } else {
-            deductions += val
-          }
-        })
-
-        const net = gross - deductions
-
-        totalGross += gross
-        totalDeductions += deductions
-        totalNet += net
-
-        slipRows.push({
-          payroll_run_id: runId,
-          employee_id: emp.id,
-          site_id: currentSiteId,
-          basic_salary: proRatedBasic,
-          gross_salary: gross,
-          total_deductions: deductions,
-          net_salary: net,
-          days_worked: daysWorked,
-          days_absent: daysAbsent,
-          leave_days: 0,
-          components: compDetail,
-        })
-      }
-
-      // Insert slips
-      const { error: slipInsErr } = await supabase.from('salary_slips').insert(slipRows)
-      if (slipInsErr) throw slipInsErr
-
-      // Update run totals
-      const { error: runUpdErr } = await supabase.from('payroll_runs').update({
-        total_gross: totalGross,
-        total_deductions: totalDeductions,
-        total_net: totalNet,
-        employee_count: employees.length,
-        status: 'draft',
-      }).eq('id', runId)
-      if (runUpdErr) throw runUpdErr
-
-      showToast(`Payroll generated for ${employees.length} employees`, 'green')
+      if (error) throw error
+      if (!data?.employees) showToast('No active employees found', 'red')
+      else showToast(`Payroll generated for ${data.employees} employees`, 'green')
       fetchRun()
     } catch (err) {
       console.error(err)
       showToast(err.message || 'Payroll run failed', 'red')
     } finally {
       setProcessing(false)
+    }
+  }
+
+  async function markPaid() {
+    if (!canApprove || !run) return
+    if (!window.confirm('Mark this payroll as paid? Net pay and IMTT on the transfers are posted to the ledger.')) return
+    setApproving(true)
+    try {
+      const { error } = await supabase.from('payroll_runs').update({
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+      }).eq('id', run.id).eq('site_id', currentSiteId)
+      if (error) throw error
+      showToast('Payroll marked as paid', 'green')
+      fetchRun()
+    } catch (err) {
+      console.error(err)
+      showToast(err.message, 'red')
+    } finally {
+      setApproving(false)
     }
   }
 
@@ -250,7 +152,7 @@ export default function PayrollRun() {
         status: 'approved',
         approved_by: profile?.id || null,
         approved_at: new Date().toISOString(),
-      }).eq('id', run.id)
+      }).eq('id', run.id).eq('site_id', currentSiteId)
       if (error) throw error
       showToast('Payroll approved', 'green')
       fetchRun()
@@ -263,12 +165,16 @@ export default function PayrollRun() {
   }
 
   function handleExport() {
-    const headers = ['Employee', 'Emp #', 'Basic', 'Gross', 'Deductions', 'Net', 'Days Worked', 'Days Absent']
+    const headers = ['Employee', 'Emp #', 'Basic', 'Gross', 'Taxable', 'PAYE', 'AIDS Levy', 'NSSA', 'Deductions', 'Net', 'Days Worked', 'Days Absent']
     const rows = slips.map(s => [
       s.employees?.name || '—',
       s.employees?.employee_number || '—',
       fmt(s.basic_salary),
       fmt(s.gross_salary),
+      fmt(s.taxable_income),
+      fmt(s.paye),
+      fmt(s.aids_levy),
+      fmt(s.nssa_employee),
       fmt(s.total_deductions),
       fmt(s.net_salary),
       s.days_worked,
@@ -283,6 +189,8 @@ export default function PayrollRun() {
       gross: Number(run.total_gross || 0),
       deductions: Number(run.total_deductions || 0),
       net: Number(run.total_net || 0),
+      paye: Number(run.total_paye || 0) + Number(run.total_aids_levy || 0),
+      nssa: Number(run.total_nssa_employee || 0) + Number(run.total_nssa_employer || 0),
       count: run.employee_count || slips.length,
     }
   }, [run, slips.length])
@@ -321,6 +229,11 @@ export default function PayrollRun() {
               {approving ? 'Approving...' : 'Approve'}
             </Button>
           )}
+          {run && run.status === 'approved' && canApprove && (
+            <Button onClick={markPaid} variant="filled" disabled={approving} icon="paid">
+              {approving ? 'Saving...' : 'Mark as Paid'}
+            </Button>
+          )}
           {slips.length > 0 && (
             <Button onClick={handleExport} variant="text" icon="download">Export CSV</Button>
           )}
@@ -353,6 +266,18 @@ export default function PayrollRun() {
               <div style={{ padding: '16px', minWidth: '140px' }}>
                 <div style={{ fontSize: '12px', color: THEME.textLow, marginBottom: '4px' }}>Deductions</div>
                 <div style={{ fontSize: '22px', fontWeight: 600, color: THEME.error }}>${fmt(summary.deductions)}</div>
+              </div>
+            </Card>
+            <Card>
+              <div style={{ padding: '16px', minWidth: '140px' }}>
+                <div style={{ fontSize: '12px', color: THEME.textLow, marginBottom: '4px' }}>PAYE + AIDS levy</div>
+                <div style={{ fontSize: '22px', fontWeight: 600, color: THEME.text }}>${fmt(summary.paye)}</div>
+              </div>
+            </Card>
+            <Card>
+              <div style={{ padding: '16px', minWidth: '140px' }}>
+                <div style={{ fontSize: '12px', color: THEME.textLow, marginBottom: '4px' }}>NSSA (employee + employer)</div>
+                <div style={{ fontSize: '22px', fontWeight: 600, color: THEME.text }}>${fmt(summary.nssa)}</div>
               </div>
             </Card>
             <Card>
@@ -391,6 +316,8 @@ export default function PayrollRun() {
             <Th>Emp #</Th>
             <Th align="right">Basic</Th>
             <Th align="right">Gross</Th>
+            <Th align="right">PAYE</Th>
+            <Th align="right">NSSA</Th>
             <Th align="right">Deductions</Th>
             <Th align="right">Net Pay</Th>
             <Th align="right">Days Worked</Th>
@@ -402,6 +329,8 @@ export default function PayrollRun() {
               <Td>{s.employees?.employee_number || '—'}</Td>
               <Td align="right" style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt(s.basic_salary)}</Td>
               <Td align="right" style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt(s.gross_salary)}</Td>
+              <Td align="right" style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt(Number(s.paye || 0) + Number(s.aids_levy || 0))}</Td>
+              <Td align="right" style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt(s.nssa_employee)}</Td>
               <Td align="right" style={{ fontVariantNumeric: 'tabular-nums', color: THEME.error }}>${fmt(s.total_deductions)}</Td>
               <Td align="right" style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>${fmt(s.net_salary)}</Td>
               <Td align="right">{s.days_worked}</Td>

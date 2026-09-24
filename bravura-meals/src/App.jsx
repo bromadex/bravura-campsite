@@ -48,6 +48,7 @@ const HRSalaryGrades     = lazy(() => import('./pages/hr/payroll/SalaryGrades'))
 const HRSalaryComponents = lazy(() => import('./pages/hr/payroll/SalaryComponents'))
 const HRPayrollRun       = lazy(() => import('./pages/hr/payroll/PayrollRun'))
 const HRSalarySlips      = lazy(() => import('./pages/hr/payroll/SalarySlip'))
+const HRStatutoryReturns = lazy(() => import('./pages/hr/payroll/StatutoryReturns'))
 const HRAppraisals       = lazy(() => import('./pages/hr/performance/Appraisals'))
 const HRDisciplinary     = lazy(() => import('./pages/hr/disciplinary/DisciplinaryCases'))
 const HRExitManagement   = lazy(() => import('./pages/hr/ExitManagement'))
@@ -392,6 +393,7 @@ function getWorkforcePage(page, role, can, setPage) {
     case 'wf_salary_components': return can('hr.edit') ? <HRSalaryComponents setPage={setPage} /> : null
     case 'wf_payroll':           return can('hr.edit') ? <HRPayrollRun setPage={setPage} /> : null
     case 'wf_salary_slips':      return can('hr.edit') ? <HRSalarySlips setPage={setPage} /> : null
+    case 'wf_statutory':         return can('hr.view') ? <HRStatutoryReturns setPage={setPage} /> : null
     case 'wf_appraisals':        return can('hr.view') ? <HRAppraisals setPage={setPage} /> : null
     case 'wf_disciplinary':      return can('hr.edit') ? <HRDisciplinary setPage={setPage} /> : null
     case 'wf_exit':              return can('hr.view') ? <HRExitManagement setPage={setPage} /> : null

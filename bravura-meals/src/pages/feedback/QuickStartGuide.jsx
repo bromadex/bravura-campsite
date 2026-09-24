@@ -183,6 +183,8 @@ export default function QuickStartGuide() {
             <>Define shift patterns in Shift Management (<Code>HR17</Code>), then mark daily attendance against them in the Attendance Log (<Code>HR18</Code>).</>,
             <>Training Programs (<Code>HR19</Code>) track courses and who attended; the Skills Matrix (<Code>HR20</Code>) shows each employee's competencies and gaps at a glance.</>,
             <>Payroll: set up Salary Grades (<Code>HR25</Code>) and Components (<Code>HR26</Code>) once, run the monthly Payroll Run (<Code>HR27</Code>), then issue Salary Slips (<Code>HR28</Code>).</>,
+            <>PAYE (with the 3% AIDS levy) and NSSA are calculated automatically on every payroll run — don't add them as components. After approval, use <b>Mark as Paid</b> once net pay has been transferred.</>,
+            <>Statutory Returns (<Code>HR36</Code>) gives the monthly PAYE schedule for ZIMRA and the NSSA P4 schedule, with CSV export. Record each employee's NSSA number and ZIMRA TIN on their employee record. When ZIMRA or NSSA change rates, HR settings holders enter the new bands on the Tax tables tab with the date they take effect.</>,
             <>Appraisals (<Code>HR29</Code>) record performance reviews; Disciplinary Cases (<Code>HR30</Code>) keep a permanent hearing-and-outcome trail; leavers go through Exit Management (<Code>HR31</Code>).</>,
             <>Compliance: Medical Surveillance (<Code>HR32</Code>) tracks fitness-for-work exams due and overdue, and the Document Expiry register (<Code>HR33</Code>) lists every expiring ID, licence and contract in one place.</>,
             <>PPE Tracking (<Code>HR34</Code>) records protective equipment issued to each employee — replacement dates flag automatically when kit is due or overdue.</>,
@@ -339,6 +341,7 @@ export default function QuickStartGuide() {
             <>Set up the site's ledger accounts in the Chart of Accounts (<Code>FI01</Code>) — stock, expenses, payables and bank. A mine only records costs, so there are no sales or revenue accounts to post to.</>,
             <>In Posting Rules (<Code>FI13</Code>) pick the debit and credit account for each event: fuel delivered and issued, goods received, supplier invoices approved and paid, payroll approved and paid, and daily meals approved.</>,
             <>From then on, approving any of those on site writes a posted journal automatically. Fuel issues are valued at the latest delivery price when no cost is captured.</>,
+            <>Payroll posts net pay, PAYE &amp; AIDS levy, employee NSSA and employer NSSA to separate accounts, and IMTT (2% on each bank transfer) posts when invoices or payroll are paid. Set the IMTT rate on the Posting Rules page.</>,
             <>Posted journals are locked. To correct one, edit, cancel or reopen the source record — the old journal is voided and a new one posted.</>,
             <>Items with no rule (or no price) wait in the <b>Waiting</b> list. Fix the rule, then press <b>Post waiting items</b>.</>,
           ]} />

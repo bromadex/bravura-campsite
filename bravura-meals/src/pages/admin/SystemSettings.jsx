@@ -130,7 +130,7 @@ export default function SystemSettings({ setPage }) {
       <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_settings" />
       <PageHeader
         title={<>System Settings <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '6px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{settings.length}</span></>}
-        action={canEdit && <Button onClick={openAdd} icon="add" style={{ background: MODULE_COLOR, color: '#fff' }}>Add Setting</Button>}
+        actions={canEdit && <Button onClick={openAdd} icon="add" style={{ background: MODULE_COLOR, color: '#fff' }}>Add Setting</Button>}
       />
 
       {/* Filters */}

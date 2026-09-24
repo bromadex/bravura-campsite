@@ -134,7 +134,7 @@ export default function PendingInvitations({ setPage }) {
       <QuickNav pills={ADMIN_PILLS} setPage={setPage} current="admin_invitations" />
       <PageHeader
         title={<>Pending Invitations <span style={{ marginLeft: '6px', padding: '1px 9px', borderRadius: '6px', fontSize: '13px', fontWeight: 400, background: THEME.surfaceVar, color: THEME.textMed, verticalAlign: 'middle' }}>{invitations.length}</span></>}
-        action={canEdit && <Button onClick={() => setShowAdd(true)} icon="person_add" style={{ background: MODULE_COLOR, color: '#fff' }}>Invite User</Button>}
+        actions={canEdit && <Button onClick={() => setShowAdd(true)} icon="person_add" style={{ background: MODULE_COLOR, color: '#fff' }}>Invite User</Button>}
       />
 
       <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: '10px', background: THEME.statusInfoBg }}>

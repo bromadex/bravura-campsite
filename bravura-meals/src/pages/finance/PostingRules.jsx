@@ -16,9 +16,13 @@ const EVENTS = [
   { code: 'invoice_approved',   group: 'Procurement', label: 'Supplier invoice approved',             debit: 'Goods received not invoiced',      credit: 'Supplier payables (liability)' },
   { code: 'invoice_paid',       group: 'Procurement', label: 'Supplier invoice paid',                 debit: 'Supplier payables (liability)',    credit: 'Bank' },
   { code: 'payroll_net',        group: 'Payroll',     label: 'Payroll approved — net pay',            debit: 'Salaries & wages expense',         credit: 'Net pay payable' },
-  { code: 'payroll_deductions', group: 'Payroll',     label: 'Payroll approved — PAYE, NSSA & other deductions', debit: 'Salaries & wages expense', credit: 'Statutory deductions payable' },
+  { code: 'payroll_paye',       group: 'Payroll',     label: 'Payroll approved — PAYE & AIDS levy',   debit: 'Salaries & wages expense',         credit: 'PAYE payable (ZIMRA)' },
+  { code: 'payroll_nssa',       group: 'Payroll',     label: 'Payroll approved — NSSA (employee)',    debit: 'Salaries & wages expense',         credit: 'NSSA payable' },
+  { code: 'payroll_nssa_employer', group: 'Payroll',  label: 'Payroll approved — NSSA (employer)',    debit: 'Employer NSSA expense',            credit: 'NSSA payable' },
+  { code: 'payroll_deductions', group: 'Payroll',     label: 'Payroll approved — other deductions (medical aid etc.)', debit: 'Salaries & wages expense', credit: 'Other deductions payable' },
   { code: 'payroll_paid',       group: 'Payroll',     label: 'Payroll paid to employees',             debit: 'Net pay payable',                  credit: 'Bank' },
   { code: 'meals_approved',     group: 'Meals',       label: 'Daily meals approved',                  debit: 'Catering expense',                 credit: 'Catering provider payable' },
+  { code: 'imtt',               group: 'Bank',        label: 'IMTT on payments (invoices & payroll)', debit: 'Bank charges — IMTT',              credit: 'Bank' },
 ]
 const EVENT_LABEL = Object.fromEntries(EVENTS.map(e => [e.code, e.label]))
 
@@ -50,17 +54,21 @@ export default function PostingRules({ setPage }) {
   const [loading, setLoading] = useState(true)
   const [savingCode, setSavingCode] = useState(null)
   const [retrying, setRetrying] = useState(false)
+  const [tax, setTax] = useState(null)
+  const [savingTax, setSavingTax] = useState(false)
 
   useEffect(() => { if (currentSiteId) loadSetup() }, [currentSiteId])
   useEffect(() => { if (currentSiteId) loadLog() }, [currentSiteId, filter])
 
   async function loadSetup() {
     setLoading(true)
-    const [acc, cc, rl] = await Promise.all([
+    const [acc, cc, rl, tx] = await Promise.all([
       supabase.from('accounts').select('id, code, name, account_type').eq('site_id', currentSiteId).eq('is_archived', false).order('code'),
       supabase.from('cost_centres').select('id, code, name').eq('site_id', currentSiteId).eq('is_archived', false).order('code'),
       supabase.from('gl_posting_rules').select('*').eq('site_id', currentSiteId).eq('is_archived', false),
+      supabase.from('finance_tax_settings').select('*').eq('site_id', currentSiteId).maybeSingle(),
     ])
+    setTax(tx.data ? { ...tx.data, imtt_cap: tx.data.imtt_cap ?? '' } : null)
     if (acc.error || rl.error) showToast('Failed to load posting setup', 'red')
     setAccounts(acc.data || [])
     setCentres(cc.data || [])
@@ -123,6 +131,23 @@ export default function PostingRules({ setPage }) {
     loadSetup()
   }
 
+  async function saveTax() {
+    const rate = Number(tax.imtt_rate)
+    if (isNaN(rate) || rate < 0 || rate > 100) { showToast('Enter an IMTT rate between 0 and 100', 'red'); return }
+    setSavingTax(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase.from('finance_tax_settings').update({
+      imtt_enabled: tax.imtt_enabled,
+      imtt_rate: rate,
+      imtt_cap: tax.imtt_cap === '' ? null : Number(tax.imtt_cap),
+      updated_by: user?.id,
+      updated_at: new Date().toISOString(),
+    }).eq('id', tax.id).eq('site_id', currentSiteId)
+    setSavingTax(false)
+    if (error) { showToast(error.message, 'red'); return }
+    showToast('IMTT settings saved', 'green')
+  }
+
   async function retrySkipped() {
     setRetrying(true)
     const { data, error } = await supabase.rpc('gl_retry_skipped', { p_site_id: currentSiteId })
@@ -160,6 +185,35 @@ export default function PostingRules({ setPage }) {
             This site has no ledger accounts yet. Create them in the Chart of Accounts first.
           </div>
           <Button size="sm" variant="outlined" onClick={() => setPage('fi_chart_of_accounts')}>Chart of Accounts</Button>
+        </Card>
+      )}
+
+      {tax && (
+        <Card style={{ marginBottom: '16px', padding: '12px 16px', display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 220px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text }}>IMTT (bank transfer tax)</div>
+            <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '2px' }}>Charged on each supplier payment and each employee's net pay transfer.</div>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: THEME.textMed }}>
+            <input id="imtt-enabled" type="checkbox" checked={tax.imtt_enabled} disabled={!canEdit}
+              onChange={e => setTax({ ...tax, imtt_enabled: e.target.checked })} />
+            Post IMTT
+          </label>
+          <div>
+            <label htmlFor="imtt-rate" style={{ fontSize: '11px', color: THEME.textLow, display: 'block' }}>Rate %</label>
+            <input id="imtt-rate" type="number" step="0.01" style={{ ...sel, width: '90px' }} value={tax.imtt_rate} disabled={!canEdit}
+              onChange={e => setTax({ ...tax, imtt_rate: e.target.value })} />
+          </div>
+          <div>
+            <label htmlFor="imtt-cap" style={{ fontSize: '11px', color: THEME.textLow, display: 'block' }}>Max per transfer (USD)</label>
+            <input id="imtt-cap" type="number" step="0.01" placeholder="No cap" style={{ ...sel, width: '130px' }} value={tax.imtt_cap} disabled={!canEdit}
+              onChange={e => setTax({ ...tax, imtt_cap: e.target.value })} />
+          </div>
+          {canEdit && (
+            <Button size="sm" onClick={saveTax} disabled={savingTax} style={{ background: FI_CLR, color: '#fff' }}>
+              {savingTax ? 'Saving…' : 'Save'}
+            </Button>
+          )}
         </Card>
       )}
 

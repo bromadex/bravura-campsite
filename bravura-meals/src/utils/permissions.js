@@ -164,6 +164,7 @@ export function workforceNav(role) {
     { id: 'wf_salary_components', label: 'Salary Components', section: 'Payroll', icon: 'tune' },
     { id: 'wf_payroll',           label: 'Payroll Run',       section: 'Payroll', icon: 'calculate' },
     { id: 'wf_salary_slips',      label: 'Salary Slips',      section: 'Payroll', icon: 'receipt' },
+    { id: 'wf_statutory',         label: 'Statutory Returns', section: 'Payroll', icon: 'account_balance' },
     { id: 'wf_appraisals',   label: 'Appraisals',       section: 'Performance', icon: 'star_rate' },
     { id: 'wf_disciplinary', label: 'Disciplinary',     section: 'Performance', icon: 'gavel' },
     { id: 'wf_exit',         label: 'Exit Management',  section: 'Performance', icon: 'exit_to_app' },

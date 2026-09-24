@@ -47,6 +47,7 @@ export default function SalarySlip() {
       .select('*, employee:employees!salary_slips_employee_id_fkey(id, name, employee_number, department:departments!employees_department_id_fkey(id, name), designation:designations(id, name))')
       .eq('payroll_run_id', run.id)
       .eq('site_id', currentSiteId)
+      .eq('is_archived', false)
       .order('created_at')
     if (error) { console.error(error); showToast('Failed to load slips', 'red') }
     setSlips(data || [])

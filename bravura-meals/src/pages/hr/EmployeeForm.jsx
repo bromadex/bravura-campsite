@@ -9,7 +9,7 @@ import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 const ACCENT = MODULE_COLORS.workforce
 
 const EMPTY = {
-  name: '', date_of_birth: '', national_id: '', passport_number: '',
+  name: '', date_of_birth: '', national_id: '', passport_number: '', nssa_number: '', zimra_tin: '',
   phone: '', email: '',
   employee_number: '', start_date: new Date().toISOString().slice(0, 10),
   department_id: '', designation_id: '', employment_type_id: '', manager_id: '',
@@ -95,6 +95,7 @@ export default function EmployeeForm({ setPage, employeeId }) {
           setForm({
             name: emp.name || '', date_of_birth: emp.date_of_birth || '',
             national_id: emp.national_id || '', passport_number: emp.passport_number || '',
+            nssa_number: emp.nssa_number || '', zimra_tin: emp.zimra_tin || '',
             phone: emp.phone || '', email: emp.email || '',
             employee_number: emp.employee_number || '',
             start_date: emp.start_date || '',
@@ -163,6 +164,8 @@ export default function EmployeeForm({ setPage, employeeId }) {
         name: form.name.trim(),
         date_of_birth: form.date_of_birth || null,
         national_id: form.national_id.trim() || null,
+        nssa_number: form.nssa_number.trim() || null,
+        zimra_tin: form.zimra_tin.trim() || null,
         passport_number: form.passport_number.trim() || null,
         phone: form.phone.trim() || null,
         email: form.email.trim() || null,
@@ -258,6 +261,14 @@ export default function EmployeeForm({ setPage, employeeId }) {
           <div>
             <SectionLabel>Passport Number</SectionLabel>
             <input style={inputStyle} value={form.passport_number} onChange={e => set('passport_number', e.target.value)} />
+          </div>
+          <div>
+            <SectionLabel>NSSA Number</SectionLabel>
+            <input style={inputStyle} value={form.nssa_number} onChange={e => set('nssa_number', e.target.value)} />
+          </div>
+          <div>
+            <SectionLabel>ZIMRA TIN</SectionLabel>
+            <input style={inputStyle} value={form.zimra_tin} onChange={e => set('zimra_tin', e.target.value)} />
           </div>
           <div>
             <SectionLabel>Phone</SectionLabel>

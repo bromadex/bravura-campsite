@@ -78,7 +78,7 @@ export default function Pricing({ setPage }) {
     setLoading(true)
     const { data } = await supabase
       .from('meal_prices')
-      .select('*, set_by_profile:profiles(full_name, username)')
+      .select('*, set_by_profile:profiles!meal_prices_created_by_fkey(full_name, username)')
       .eq('site_id', currentSiteId)
       .order('effective_date', { ascending: false })
       .limit(20)
@@ -120,7 +120,7 @@ export default function Pricing({ setPage }) {
         lunch_usd:      l,
         supper_usd:     s,
         notes:          form.notes.trim(),
-        set_by:         profile.id,
+        created_by:     profile.id,
       })
     setSaving(false)
     if (error) { showToast(error.message, 'red'); return }

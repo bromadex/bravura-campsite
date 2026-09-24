@@ -324,7 +324,7 @@ export default function QuickStartGuide() {
       {/* Employee self-service */}
       <Section icon="person" color={MODULE_COLORS.me || '#00897B'} title="My Workspace — your own HR on your phone">
         <Steps items={[
-          <>My Workspace (<Code>ES01</Code>) is yours alone: every signed-in employee can open it. If it says your login isn't linked, ask HR to link it to your employee record.</>,
+          <>Open My Workspace (<Code>ES01</Code>) from the round teal button just above the chat button on the home screen. It is yours alone: every signed-in employee can open it. If it says your login isn't linked, ask HR to link it to your employee record.</>,
           <>Payslips (<Code>ES02</Code>) show every approved month with PAYE, AIDS levy and NSSA broken out. Use <b>Print or save as PDF</b> for a copy.</>,
           <>Leave (<Code>ES03</Code>) shows what you have left and lets you request leave — weekends are not counted. You can cancel while it is still pending, and you are notified when it is decided.</>,
           <>Attendance (<Code>ES04</Code>) shows the days, hours and overtime your supervisor recorded for each month.</>,

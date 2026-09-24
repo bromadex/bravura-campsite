@@ -15,7 +15,6 @@ import SiteSwitcher from '../components/SiteSwitcher'
 // Children with `coming: true` render as greyed-out "Coming Soon" tiles.
 // Top-level modules that go straight to their dashboard (no umbrella expand)
 const TOP_LEVEL_MODULES = [
-  { id: 'me', label: 'My Workspace', icon: 'person', color: MODULE_COLORS.me, access: moduleAccess.me },
   { id: 'fuel', label: 'Fuel Management', icon: 'local_gas_station', color: MODULE_COLORS.fuel, access: moduleAccess.fuel },
   { id: 'finance', label: 'Finance', icon: 'account_balance', color: MODULE_COLORS.finance, access: moduleAccess.finance },
   { id: 'procurement', label: 'Procurement', icon: 'storefront', color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
@@ -253,6 +252,7 @@ export default function HomeLauncher({ onEnterModule }) {
   const [chatUnread,    setChatUnread]    = useState(0)
   const [chatPopup,     setChatPopup]     = useState(null)
   const [chatPanelOpen, setChatPanelOpen] = useState(false)
+  const [essOpen, setEssOpen] = useState(false)
 
   useEffect(() => {
     if (!profile?.id) return
@@ -628,9 +628,66 @@ export default function HomeLauncher({ onEnterModule }) {
         </div>
       )}
 
+      {/* Self-service quick menu */}
+      {essOpen && !chatPanelOpen && (
+        <>
+          <div onClick={() => setEssOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 155 }} />
+          <div role="menu" aria-label="My Workspace" style={{
+            position: 'fixed', bottom: '152px', right: '28px', zIndex: 161,
+            width: 'min(260px, calc(100vw - 32px))', borderRadius: '14px', overflow: 'hidden',
+            background: THEME.surface, border: `1px solid ${THEME.outlineVar}`,
+            boxShadow: '0 12px 40px rgba(0,0,0,.2), 0 4px 12px rgba(0,0,0,.1)',
+            animation: 'chatPanelIn .2s ease-out',
+          }}>
+            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${THEME.outlineVar}`, fontSize: '13px', fontWeight: 600, color: THEME.text }}>
+              My Workspace
+            </div>
+            {[
+              ['home', 'Open My Workspace', 'me_home'],
+              ['payments', 'My payslips', 'me_payslips'],
+              ['beach_access', 'Request leave', 'me_leave'],
+              ['schedule', 'My attendance', 'me_attendance'],
+              ['receipt_long', 'Claim expenses', 'me_expenses'],
+            ].map(([icon, text, page]) => (
+              <button key={page} role="menuitem" onClick={() => { setEssOpen(false); navigate(`/me/${page}`) }}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', minHeight: '48px', padding: '10px 16px',
+                  border: 'none', background: 'transparent', color: THEME.text, fontSize: '14px', fontFamily: 'inherit',
+                  cursor: 'pointer', textAlign: 'left' }}
+                onMouseEnter={e => { e.currentTarget.style.background = THEME.surfaceVar }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '20px', color: MODULE_COLORS.me }}>{icon}</span>
+                {text}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Self-service FAB (sits above Connect) */}
+      {!chatPanelOpen && (
+        <button
+          onClick={() => setEssOpen(v => !v)}
+          title="My Workspace — payslips, leave, expenses"
+          aria-label="My Workspace"
+          aria-expanded={essOpen}
+          style={{
+            position: 'fixed', bottom: '96px', right: '32px', zIndex: 160,
+            width: '48px', height: '48px', borderRadius: '50%',
+            background: MODULE_COLORS.me, border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(0,137,123,.4), 0 2px 6px rgba(0,0,0,.18)',
+            transition: 'transform .18s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+        >
+          <span className="material-symbols-rounded filled" style={{ fontSize: '24px', color: '#fff' }}>{essOpen ? 'close' : 'badge'}</span>
+        </button>
+      )}
+
       {/* Connect FAB */}
       <button
-        onClick={() => setChatPanelOpen(v => !v)}
+        onClick={() => { setEssOpen(false); setChatPanelOpen(v => !v) }}
         title="Bravura Connect"
         style={{
           position: 'fixed', bottom: '28px', right: '28px', zIndex: 160,

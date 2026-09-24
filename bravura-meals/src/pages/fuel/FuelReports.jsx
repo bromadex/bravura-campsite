@@ -465,8 +465,8 @@ export default function FuelReports({ setPage }) {
       )}
 
       {/* ── Fuel issuance by day ── */}
-      <ChartCard title="Fuel Issuance by Day" legend="Litres Issued" legendColor={LINE_CLR}>
-        <LineChart points={byDay} color={LINE_CLR} />
+      <ChartCard title="Fuel Issuance by Day" legend="Litres Issued" legendColor={FUEL_CLR}>
+        <LineChart points={byDay} color={FUEL_CLR} />
       </ChartCard>
 
       {/* ── Top 10 consumers ── */}

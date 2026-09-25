@@ -276,7 +276,6 @@ export function procurementNav(role, can) {
     { id: 'proc_requisitions', label: 'Requests',         section: 'Buying',    icon: 'assignment',     show: view || can('procurement.create') },
     { id: 'proc_orders',       label: 'Purchase Orders',  section: 'Buying',    icon: 'shopping_cart',  show: view },
     { id: 'proc_grn',          label: 'Receiving',        section: 'Receiving', icon: 'move_to_inbox',  show: view },
-    { id: 'proc_invoices',     label: 'Supplier Bills',   section: 'Receiving', icon: 'receipt_long',   show: view },
     { id: 'proc_suppliers',    label: 'Suppliers',        section: 'Suppliers', icon: 'business',       show: view },
     { id: 'proc_agreements',   label: 'Agreements',       section: 'Suppliers', icon: 'handshake',      show: view },
     { id: 'proc_budgets',      label: 'Budgets',          section: 'Planning',  icon: 'donut_small',    show: view },

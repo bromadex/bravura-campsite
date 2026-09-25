@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -6,6 +6,7 @@ import { showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
 import { exportCsv } from '../../utils/csv'
 import { FIN, finCard, finBtn, finBtn2, finInput, money, useFinanceFonts } from '../../utils/financeTheme'
+const ProcInvoices = lazy(() => import('../procurement/ProcInvoices'))
 
 // FI21 — Pay suppliers (Finance rewrite Phase 3, issue #49; migration 0204).
 // Bills are recorded and approved in Procurement → Purchase Invoices (PR09). Here finance sees what is
@@ -32,7 +33,7 @@ function dueLabel(b) {
   return { text: new Date(b.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), color: FIN.ink }
 }
 
-export default function PaySuppliers({ setPage }) {
+export default function PaySuppliers({ setPage, initialTab = 'to_pay' }) {
   useFinanceFonts()
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
@@ -41,7 +42,8 @@ export default function PaySuppliers({ setPage }) {
   const [banks, setBanks] = useState([])
   const [tax, setTax] = useState(null)
   const [rules, setRules] = useState({})
-  const [tab, setTab] = useState('to_pay')
+  const [tab, setTab] = useState(initialTab)
+  useEffect(() => { setTab(initialTab) }, [initialTab])
   const [picked, setPicked] = useState(new Set())
   const [openBill, setOpenBill] = useState(null)
   const [runForm, setRunForm] = useState(null)
@@ -135,6 +137,7 @@ export default function PaySuppliers({ setPage }) {
     ['to_pay', 'To pay', groups.to_pay.length, FIN.ink], ['overdue', 'Overdue', groups.overdue.length, FIN.bad],
     ['mismatch', "Doesn't match", groups.mismatch.length, FIN.ochreText], ['awaiting', 'Awaiting approval', groups.awaiting.length, FIN.ink],
     ['in_run', 'In a payment run', groups.in_run.length, FIN.ink], ['paid', 'Paid', null, FIN.ink], ['runs', 'Payment runs', runs.filter(r => ['draft', 'approved'].includes(r.status)).length, FIN.blue], ['statements', 'Supplier statements', null, FIN.ink],
+    ['bills', 'Record & approve bills', null, FIN.blue], ['hq', 'Head office & sites', null, FIN.ink],
   ]
   const Kpi = ({ label, value, sub, color }) => (
     <div style={{ ...finCard, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -179,8 +182,10 @@ export default function PaySuppliers({ setPage }) {
       </div>
 
       {tab === 'statements' && <SupplierStatements siteId={currentSiteId} />}
+      {tab === 'bills' && <Suspense fallback={<div style={{ ...finCard, color: FIN.faint }}>Loading…</div>}><ProcInvoices setPage={setPage} /></Suspense>}
+      {tab === 'hq' && <HeadOffice />}
 
-      {!['runs', 'statements'].includes(tab) && (
+      {!['runs', 'statements', 'bills', 'hq'].includes(tab) && (
         <section style={{ ...finCard, padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 760 }}>
@@ -189,7 +194,7 @@ export default function PaySuppliers({ setPage }) {
               </div>
               {loading && <div style={{ padding: 20, color: FIN.muted, fontSize: 13 }}>Loading…</div>}
               {!loading && list.length === 0 && <div style={{ padding: 20, color: FIN.muted, fontSize: 13 }}>
-                {tab === 'to_pay' ? 'Nothing approved and waiting to be paid. Bills are recorded and approved in Procurement → Purchase Invoices.' : 'Nothing here.'}
+                {tab === 'to_pay' ? 'Nothing approved and waiting to be paid. Bills are recorded and approved in the Record & approve bills tab.' : 'Nothing here.'}
               </div>}
               {list.map(b => {
                 const due = dueLabel(b); const m = MATCH[b.match_status] || MATCH.not_checked; const sel = openBill?.id === b.id
@@ -418,5 +423,57 @@ function SupplierStatements({ siteId }) {
         ))}
       </section>
     </div>
+  )
+}
+
+// Head office & sites (#56): who pays for each site, and what each site owes head office (account 2500).
+function HeadOffice() {
+  const { can } = usePermissions()
+  const { accessibleSites } = useSite()
+  const [rows, setRows] = useState(null)
+  const load = useCallback(() => supabase.rpc('fin_intersite_balances').then(({ data, error }) => { if (error) showToast(error.message, 'red'); setRows(data || []) }), [])
+  useEffect(() => { load() }, [load])
+  async function setFunder(site, funder) {
+    const { error } = await supabase.rpc('finance_set_funded_by', { p_site: site, p_funder: funder || null })
+    if (error) return showToast(error.message, 'red')
+    showToast('Saved'); load()
+  }
+  if (!rows) return <div style={{ ...finCard, color: FIN.faint }}>Loading…</div>
+  return (
+    <section style={{ ...finCard, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ fontSize: 13.5, color: FIN.muted, maxWidth: 760 }}>
+        When head office pays a site's bill or tops up its petty cash, the site's books show the cost and an amount <b>owed to head office</b>;
+        head office's books show the bank payment and an amount <b>owed by the site</b> (account 2500). Head office postings are skipped until
+        head office has its own books set up in Set Up the Books.
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <thead><tr style={{ textAlign: 'left', color: FIN.muted, fontSize: 12 }}>
+            <th style={{ padding: '8px 6px' }}>Site</th><th style={{ padding: '8px 6px' }}>Bills and petty cash paid by</th>
+            <th style={{ padding: '8px 6px', textAlign: 'right' }}>2500 balance</th><th style={{ padding: '8px 6px' }}>Books</th>
+          </tr></thead>
+          <tbody>{rows.map(r => {
+            const bal = Number(r.balance)
+            return (
+              <tr key={r.site_id} style={{ borderTop: `1px solid ${FIN.lineSoft}` }}>
+                <td style={{ padding: '8px 6px', fontWeight: 600 }}>{r.site}{r.site_type === 'head_office' && <span style={{ fontSize: 11, color: FIN.faint, marginLeft: 6 }}>head office</span>}</td>
+                <td style={{ padding: '8px 6px' }}>
+                  {r.site_type === 'head_office' ? '—' : (
+                    <select disabled={!can('finance.approve')} value={r.funded_by_site_id || ''} onChange={e => setFunder(r.site_id, e.target.value)} style={finInput}>
+                      <option value="">The site itself</option>
+                      {(accessibleSites || []).filter(s => s.id !== r.site_id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  )}
+                </td>
+                <td style={{ padding: '8px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: bal > 0 ? FIN.ink : FIN.muted }}>
+                  {bal === 0 ? '—' : bal > 0 ? `owes HQ $${money(bal)}` : `owed $${money(-bal)}`}
+                </td>
+                <td style={{ padding: '8px 6px', fontSize: 12.5, color: r.has_books ? FIN.good : FIN.ochreText }}>{r.has_books ? 'Set up' : 'Not set up yet'}</td>
+              </tr>
+            )
+          })}</tbody>
+        </table>
+      </div>
+    </section>
   )
 }

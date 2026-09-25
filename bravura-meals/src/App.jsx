@@ -603,7 +603,7 @@ function getProcurementPage(page, can, setPage) {
     case 'proc_rfqs':         return view ? <ProcOrders setPage={setPage} initialTab="quotes" /> : null
     case 'proc_orders':       return view ? <ProcOrders setPage={setPage} /> : null
     case 'proc_grn':          return (view || can('inventory.view')) ? <ProcReceiving setPage={setPage} /> : null
-    case 'proc_invoices':     return framed('Supplier bills', <ProcInvoices setPage={setPage} />)
+    case 'proc_invoices':     return can('finance.view') ? <FIPaySuppliers setPage={setPage} initialTab="bills" /> : framed('Supplier bills', <ProcInvoices setPage={setPage} />)  // bills live in Finance (#56)
     case 'proc_tracking':     return view ? <ProcOrders setPage={setPage} initialTab="tracking" /> : null
     case 'proc_reports':      return framed('Reports', <ProcReports setPage={setPage} />)
     default:                  return view ? <ProcHome setPage={setPage} /> : (can('procurement.create') ? <ProcRequests setPage={setPage} /> : null)

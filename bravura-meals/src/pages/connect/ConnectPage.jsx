@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../auth/AuthContext'
@@ -368,6 +368,9 @@ export default function ConnectPage({ setPage, floatingPanel = false, openConver
     setHasMore((data || []).length === PAGE_SIZE)
 
     if (cursor) {
+      // Remember distance from the bottom so prepending older messages doesn't move the view.
+      const el = scrollContainerRef.current
+      if (el) prependAnchorRef.current = el.scrollHeight - el.scrollTop
       setMessages(prev => [...sorted, ...prev])
     } else {
       setMessages(sorted)
@@ -402,16 +405,26 @@ export default function ConnectPage({ setPage, floatingPanel = false, openConver
   }, [selectedId, loadMessages])
 
   const prevSelectedIdRef = useRef(null)
-  const prevMsgCountRef = useRef(0)
+  const prevLastIdRef = useRef(null)
+  const prependAnchorRef = useRef(null)
+  const lastMsgId = messages.length ? messages[messages.length - 1].id : null
+  useLayoutEffect(() => {
+    const el = scrollContainerRef.current
+    if (prependAnchorRef.current != null && el) {
+      el.scrollTop = el.scrollHeight - prependAnchorRef.current
+      prependAnchorRef.current = null
+    }
+  }, [messages.length])
   useEffect(() => {
     const isConvoSwitch = prevSelectedIdRef.current !== selectedId
     prevSelectedIdRef.current = selectedId
-    const isNewMessage = messages.length > prevMsgCountRef.current && !isConvoSwitch
-    prevMsgCountRef.current = messages.length
+    // Scroll down only when a message arrives at the bottom — not when older ones load at the top.
+    const isNewMessage = !isConvoSwitch && lastMsgId && lastMsgId !== prevLastIdRef.current
+    prevLastIdRef.current = lastMsgId
     if (isConvoSwitch || isNewMessage) {
       messagesEndRef.current?.scrollIntoView({ behavior: isConvoSwitch ? 'auto' : 'smooth' })
     }
-  }, [messages.length, selectedId])
+  }, [lastMsgId, selectedId])
 
   // Scroll-up detection for loading older messages
   const handleMessagesScroll = useCallback(() => {
@@ -427,13 +440,15 @@ export default function ConnectPage({ setPage, floatingPanel = false, openConver
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `conversation_id=eq.${selectedId}` },
         async (payload) => {
           const newMsg = payload.new
-          if (!newMsg || newMsg.is_deleted) return
-          const { data: enriched } = await supabase
-            .from('chat_messages')
-            .select('*, sender:profiles(id, full_name), reactions:message_reactions(id, emoji, user_id)')
-            .eq('id', newMsg.id)
-            .maybeSingle()
-          if (!enriched || selectedIdRef.current !== selectedId) return
+          if (!newMsg || newMsg.is_deleted || selectedIdRef.current !== selectedId) return
+          // Build the message from the realtime payload; sender name comes from the site user list.
+          let sender = siteUsersRef.current.find(u => u.id === newMsg.sender_id)
+          if (!sender && newMsg.sender_id) {
+            const { data } = await supabase.from('profiles').select('id, full_name').eq('id', newMsg.sender_id).maybeSingle()
+            sender = data
+          }
+          const enriched = { ...newMsg, sender: sender ? { id: sender.id, full_name: sender.full_name } : null, reactions: [] }
+          if (newMsg.sender_id) clearTyping(newMsg.sender_id)
           setMessages(prev => {
             if (prev.some(m => m.id === enriched.id)) return prev
             return [...prev, enriched]
@@ -453,18 +468,63 @@ export default function ConnectPage({ setPage, floatingPanel = false, openConver
             setMessages(prev => prev.filter(m => m.id !== updated.id))
             return
           }
-          const { data: enriched } = await supabase
-            .from('chat_messages')
-            .select('*, sender:profiles(id, full_name), reactions:message_reactions(id, emoji, user_id)')
-            .eq('id', updated.id)
-            .maybeSingle()
-          if (!enriched || selectedIdRef.current !== selectedId) return
-          setMessages(prev => prev.map(m => m.id === enriched.id ? enriched : m))
+          if (selectedIdRef.current !== selectedId) return
+          // Merge the changed columns; keep the sender and reactions we already have.
+          setMessages(prev => prev.map(m => m.id === updated.id ? { ...m, ...updated, sender: m.sender, reactions: m.reactions } : m))
         })
       .subscribe()
     channelRef.current = channel
     return () => { supabase.removeChannel(channel) }
   }, [selectedId, profile?.id])
+
+  // ── Typing indicators (Supabase broadcast, nothing stored) ────────────
+  const typingChannelRef = useRef(null)
+  const typingTimersRef = useRef({})
+  const lastTypingSentRef = useRef(0)
+  const [typingUsers, setTypingUsers] = useState({})   // user_id -> name
+  const siteUsersRef = useRef([])
+  useEffect(() => { siteUsersRef.current = siteUsers }, [siteUsers])
+  const clearTyping = useCallback((uid) => {
+    clearTimeout(typingTimersRef.current[uid])
+    setTypingUsers(prev => { if (!prev[uid]) return prev; const n = { ...prev }; delete n[uid]; return n })
+  }, [])
+  useEffect(() => {
+    setTypingUsers({})
+    if (!selectedId) return
+    const ch = supabase.channel(`typing_${selectedId}`, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (!payload?.user_id || payload.user_id === profile?.id) return
+        setTypingUsers(prev => ({ ...prev, [payload.user_id]: payload.name || 'Someone' }))
+        clearTimeout(typingTimersRef.current[payload.user_id])
+        typingTimersRef.current[payload.user_id] = setTimeout(() => clearTyping(payload.user_id), 4000)
+      })
+      .subscribe()
+    typingChannelRef.current = ch
+    return () => {
+      Object.values(typingTimersRef.current).forEach(clearTimeout)
+      typingTimersRef.current = {}
+      typingChannelRef.current = null
+      supabase.removeChannel(ch)
+    }
+  }, [selectedId, profile?.id, clearTyping])
+  function announceTyping() {
+    const now = Date.now()
+    if (now - lastTypingSentRef.current < 2000 || !typingChannelRef.current) return
+    lastTypingSentRef.current = now
+    const me = siteUsersRef.current.find(u => u.id === profile?.id)
+    typingChannelRef.current.send({ type: 'broadcast', event: 'typing',
+      payload: { user_id: profile?.id, name: me?.full_name || profile?.full_name || 'Someone' } })
+  }
+
+  // ── Edit history ───────────────────────────────────────────────────────
+  const [historyFor, setHistoryFor] = useState(null)   // { message, edits, loading }
+  async function openEditHistory(m) {
+    setHistoryFor({ message: m, edits: [], loading: true })
+    const { data, error } = await supabase.from('chat_message_edits')
+      .select('id, previous_content, edited_at').eq('message_id', m.id).order('edited_at', { ascending: true })
+    if (error) { showToast(error.message, 'red'); setHistoryFor(null); return }
+    setHistoryFor({ message: m, edits: data || [], loading: false })
+  }
 
   // ── Realtime: reactions ────────────────────────────────────────────────
   useEffect(() => {
@@ -725,6 +785,7 @@ export default function ConnectPage({ setPage, floatingPanel = false, openConver
   function handleInputChange(e) {
     const val = e.target.value
     setInput(val)
+    if (val && !editingId) announceTyping()
     const caret = e.target.selectionStart
     const upToCaret = val.slice(0, caret)
     const atMatch = upToCaret.match(/@([\w .]*)$/)
@@ -1330,7 +1391,7 @@ export default function ConnectPage({ setPage, floatingPanel = false, openConver
                                 display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px',
                                 marginTop: '2px',
                               }}>
-                                {m.is_edited && <span style={{ fontSize: '10px', color: MR_TIME, marginRight: '2px' }}>edited</span>}
+                                {m.is_edited && <button onClick={() => openEditHistory(m)} title="See edit history" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: '10px', color: MR_TIME, marginRight: '2px', textDecoration: 'underline dotted' }}>edited</button>}
                                 <span style={{ fontSize: '11px', color: MR_TIME }}>{formatTime(m.created_at)}</span>
                                 {mine && <ReadReceipt mine isRead />}
                               </div>
@@ -1386,6 +1447,31 @@ export default function ConnectPage({ setPage, floatingPanel = false, openConver
                 ))}
                 <div ref={messagesEndRef} />
               </div>
+
+              {Object.keys(typingUsers).length > 0 && (
+                <div aria-live="polite" style={{ padding: '4px 16px', fontSize: '12px', fontStyle: 'italic', color: MR_LIGHT, background: MR_CHAT_BG }}>
+                  {(() => { const n = Object.values(typingUsers); return n.length === 1 ? `${n[0]} is typing…` : n.length === 2 ? `${n[0]} and ${n[1]} are typing…` : 'Several people are typing…' })()}
+                </div>
+              )}
+
+              <Modal open={!!historyFor} onClose={() => setHistoryFor(null)} title="Edit history" maxWidth={480}
+                footer={<Button onClick={() => setHistoryFor(null)}>Close</Button>}>
+                {historyFor?.loading ? <div style={{ color: THEME.textLow }}>Loading…</div> : historyFor && (
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    {historyFor.edits.map((h, i) => (
+                      <div key={h.id} style={{ borderLeft: `3px solid ${THEME.outlineVar}`, paddingLeft: '10px' }}>
+                        <div style={{ fontSize: '11px', color: THEME.textLow }}>{i === 0 ? 'Original' : `Version ${i + 1}`} · replaced {new Date(h.edited_at).toLocaleString()}</div>
+                        <div style={{ fontSize: '14px', color: THEME.textMed, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{h.previous_content}</div>
+                      </div>
+                    ))}
+                    {historyFor.edits.length === 0 && <div style={{ fontSize: '12px', color: THEME.textLow }}>Earlier versions weren't recorded (edited before history was kept).</div>}
+                    <div style={{ borderLeft: `3px solid ${MR_LIGHT}`, paddingLeft: '10px' }}>
+                      <div style={{ fontSize: '11px', color: MR_LIGHT, fontWeight: 600 }}>Current</div>
+                      <div style={{ fontSize: '14px', color: THEME.text, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{historyFor.message.content}</div>
+                    </div>
+                  </div>
+                )}
+              </Modal>
 
               {(replyTo || editingId) && (
                 <div style={{ padding: '8px 16px', background: THEME.surface, borderTop: `1px solid ${THEME.outlineVar}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>

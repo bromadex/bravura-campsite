@@ -309,7 +309,15 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   Bug fixes from cross-AI review applied (mention insertion, file upload reply_to,
   unread counting, DM path). Hardening roadmap defined — see section above.
   Phases 1-2 (Notifications, Governance) and Phases 4-5 **planned**.
-- DocShare (DS): **planned** — migration 0170+, 4 phases. See roadmap above.
+- DocShare (DS): Phases 1–3 tables live (0195 applied the missing 0171/0172). DocShare is the
+  single document store — SHEQ Doc Control opens the DocShare library (SHEQ category).
+- Overlap merges done (0194–0199): HR+SHEQ share PPE/medical/training; fuel uses fleet_assets
+  and Fleet drivers auto-become fuel operators; POs/GRNs live in Procurement and an accepted GRN
+  moves stock (`proc_receive_po` RPC); department projects are rows in `projects`
+  (department_id); hired plant lives in Contractors (hired_vehicles/equipment). Retired tables
+  are frozen by `trg_moved_to_sheq` triggers — don't write to them.
+- Connect: cursor pagination, payload realtime, keyboard pickers, typing indicators
+  (broadcast) and edit history (`chat_message_edits`, 0200) done. Migrations continue at 0201.
 
 ## Improvement backlog (agreed with user, work top-down)
 

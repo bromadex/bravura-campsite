@@ -341,6 +341,7 @@ export function fleetNav(role, can) {
     { id: 'fleet_inspections', label: 'Inspections',     section: 'Operations',   icon: 'checklist' },
     { id: 'fleet_trips',       label: 'Trip Logs',       section: 'Operations',   icon: 'route' },
     { id: 'fleet_maintenance', label: 'Maintenance',     section: 'Maintenance',  icon: 'build' },
+    { id: 'fleet_preventive',  label: 'PM & Downtime',   section: 'Maintenance',  icon: 'event_repeat' },
     { id: 'fleet_compliance',  label: 'Compliance',      section: 'Compliance',   icon: 'verified_user' },
     { id: 'fleet_drivers',     label: 'Drivers',         section: 'Operations',   icon: 'badge' },
     { id: 'fleet_meter_readings', label: 'Meter Readings', section: 'Operations', icon: 'speed' },

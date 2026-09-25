@@ -166,6 +166,7 @@ export default function QuickStartGuide() {
             <>The Dispatch Board (<Code>DISP</Code>) is the live view — who's on a trip, what's grounded, what needs attention.</>,
             <>Log trips, inspections and meter readings from the Operations pages (<Code>FL07</Code>–<Code>FL11</Code>).</>,
             <>Watch the dashboard's red card: vehicles consuming above their expected L/100km appear there automatically.</>,
+            <>PM &amp; Downtime (<Code>FL19</Code>): set service plans per asset or asset type (every N km, engine hours or days — whichever comes first). The Due tab shows what's overdue or due soon; create work orders one by one or all at once, and completing a PM work order resets the plan. The Downtime tab shows availability, hours down (maintenance, grounded, awaiting parts), breakdowns, MTTR and MTBF per asset — status changes are recorded automatically.</>,
           ]} />
         </Section>
       )}

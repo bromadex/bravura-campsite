@@ -152,6 +152,11 @@ export default function ProcRFQ({ setPage }) {
                     </div>
                   )}
                 </div>
+                {r.status !== 'draft' && r.status !== 'cancelled' && (
+                  <button onClick={() => setPage?.('proc_rfq_compare:' + r.id)} style={{ padding: '6px 12px', borderRadius: 6, background: 'transparent', color: CLR, border: `1px solid ${CLR}`, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    {r.status === 'awarded' ? 'View award' : 'Quotes & award'}
+                  </button>
+                )}
                 {can('procurement.edit') && r.status === 'draft' && (
                   <button onClick={() => updateStatus(r.id, 'sent')} style={{ padding: '6px 12px', borderRadius: 6, background: CLR, color: '#fff', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Send to Suppliers</button>
                 )}

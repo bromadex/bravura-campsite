@@ -357,6 +357,17 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {can('procurement.view') && (
+        <Section icon="request_quote" color={MODULE_COLORS.procurement} title="Procurement — quotes, budgets and suppliers">
+          <Steps items={[
+            <>Quotes (<Code>PR03</Code> → <b>Quotes &amp; award</b>): record each supplier's unit prices, lead time and validity against the RFQ. The comparison highlights the cheapest price per line and in total. <b>Award</b> creates a draft purchase order; choosing a dearer quote needs a reason.</>,
+            <>Budgets (<Code>PR11</Code>): set a yearly budget per cost centre or project. A purchase order tagged with it can't be sent once it would go over — someone with procurement approval can override with a reason, which is recorded on the order.</>,
+            <>Supplier Performance (<Code>PR12</Code>): <b>aging</b> shows unpaid supplier invoices by days overdue; <b>scorecards</b> rate each supplier on on-time delivery and quality (rejections at GRN), with spend, lead time and quotes won.</>,
+            <>Document numbers are now per site and year, e.g. KAM-PO-2026-0001, and are assigned when the document is saved.</>,
+          ]} />
+        </Section>
+      )}
+
       {can('assets.view') && (
         <Section icon="inventory" color={MODULE_COLORS.finance} title="Finance — fixed assets">
           <Steps items={[

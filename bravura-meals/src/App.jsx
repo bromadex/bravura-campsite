@@ -227,6 +227,9 @@ const ProcGRN = lazy(() => import('./pages/procurement/ProcGRN'))
 const ProcInvoices = lazy(() => import('./pages/procurement/ProcInvoices'))
 const ProcTracking = lazy(() => import('./pages/procurement/ProcTracking'))
 const ProcReports = lazy(() => import('./pages/procurement/ProcReports'))
+const ProcRfqCompare       = lazy(() => import('./pages/procurement/ProcRfqCompare'))
+const ProcBudgets          = lazy(() => import('./pages/procurement/ProcBudgets'))
+const ProcSupplierPerf     = lazy(() => import('./pages/procurement/ProcSupplierPerformance'))
 
 // ── Projects ─────────────────────────────────────────────────────────────────
 const PJDashboard = lazy(() => import('./pages/projects/PJDashboard'))
@@ -591,7 +594,11 @@ function getContractorsPage(page, can, setPage) {
 }
 
 function getProcurementPage(page, can, setPage) {
+  const [base, param] = (page || '').split(':')
+  if (base === 'proc_rfq_compare') return can('procurement.view') ? <ProcRfqCompare rfqId={param} setPage={setPage} key={param} /> : null
   switch (page) {
+    case 'proc_budgets':      return can('procurement.view') ? <ProcBudgets setPage={setPage} /> : null
+    case 'proc_supplier_performance': return can('procurement.view') ? <ProcSupplierPerf setPage={setPage} /> : null
     case 'proc_dashboard': return can('procurement.view') ? <ProcDashboard setPage={setPage} /> : null
     case 'proc_suppliers': return can('procurement.view') ? <ProcSuppliers setPage={setPage} /> : null
     case 'proc_rfqs':      return can('procurement.view') ? <ProcRFQ setPage={setPage} /> : null

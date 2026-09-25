@@ -114,6 +114,22 @@ export default function InvPurchaseOrders({ setPage }) {
     return `PO-${new Date().getFullYear()}-0001`
   }
 
+  // Send a draft PO; if it breaks a budget, let someone with procurement approval override with a reason.
+  async function sendWithBudgetCheck(poId) {
+    const { error } = await supabase.from('purchase_orders').update({ status: 'sent' }).eq('id', poId)
+    if (!error) return true
+    if (!error.message?.startsWith('OVER_BUDGET')) throw error
+    const msg = error.message.replace('OVER_BUDGET: ', '')
+    if (!can('procurement.approve')) { showToast(msg + ' The order was saved as a draft.', 'red'); return false }
+    const reason = window.prompt(msg + '\n\nTo send it anyway, give the reason for going over budget:')
+    if (!reason?.trim()) { showToast('Saved as a draft — not sent', 'red'); return false }
+    const { error: oErr } = await supabase.rpc('proc_override_budget', { p_po_id: poId, p_reason: reason })
+    if (oErr) throw oErr
+    const { error: e2 } = await supabase.from('purchase_orders').update({ status: 'sent' }).eq('id', poId)
+    if (e2) throw e2
+    return true
+  }
+
   async function handleSave(sendIt = false) {
     if (!form.supplier_id) { showToast('Select a supplier', 'red'); return }
     const validLines = lines.filter(l => l.item_id && parseFloat(l.quantity) > 0)
@@ -137,10 +153,10 @@ export default function InvPurchaseOrders({ setPage }) {
           cost_centre_id: form.cost_centre_id || null,
           project_id: form.project_id || null,
           total_amount: total,
-          status: sendIt ? 'sent' : undefined,
           updated_at: new Date().toISOString(),
         }).eq('id', editId)
         if (error) throw error
+        if (sendIt && !(await sendWithBudgetCheck(editId))) { setSaving(false); return }
         if (lineErr) throw lineErr
         showToast(sendIt ? 'PO sent' : 'PO updated', 'green')
         if (sendIt) {
@@ -161,10 +177,7 @@ export default function InvPurchaseOrders({ setPage }) {
           validLines.map(l => ({ po_id: newPo.id, item_id: l.item_id, quantity: parseFloat(l.quantity), unit_cost: parseFloat(l.unit_cost) || 0 }))
         )
         if (lineErr) throw lineErr
-        if (sendIt) {
-          const { error: sendErr } = await supabase.from('purchase_orders').update({ status: 'sent' }).eq('id', newPo.id)
-          if (sendErr) throw sendErr
-        }
+        if (sendIt && !(await sendWithBudgetCheck(newPo.id))) { setSaving(false); setModal(false); fetch(); return }
         if (form.requisition_id) {
           await supabase.from('purchase_requisitions').update({ status: 'ordered' }).eq('id', form.requisition_id)
         }

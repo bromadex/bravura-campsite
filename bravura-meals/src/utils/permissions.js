@@ -274,6 +274,8 @@ export function procurementNav(role, can) {
     { id: 'proc_rfqs',      label: 'RFQs',        section: 'Purchasing', icon: 'request_quote',  show: can('procurement.view') },
     { id: 'proc_orders',    label: 'Orders',      section: 'Purchasing', icon: 'shopping_cart',  show: can('procurement.view') },
     { id: 'proc_tracking',  label: 'Tracking',    section: 'Logistics',  icon: 'local_shipping', show: can('procurement.view') },
+    { id: 'proc_budgets',   label: 'Budgets',     section: 'Purchasing', icon: 'savings',        show: can('procurement.view') },
+    { id: 'proc_supplier_performance', label: 'Supplier Performance', section: 'Analytics', icon: 'leaderboard', show: can('procurement.view') },
     { id: 'proc_reports',   label: 'Reports',     section: 'Analytics',  icon: 'bar_chart',      show: can('procurement.view') },
   ].filter(item => item.show !== false)
 }

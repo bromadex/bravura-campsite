@@ -278,7 +278,7 @@ export function procurementNav(role, can) {
     { id: 'proc_grn',          label: 'Receiving',        section: 'Receiving', icon: 'move_to_inbox',  show: view },
     { id: 'proc_invoices',     label: 'Supplier Bills',   section: 'Receiving', icon: 'receipt_long',   show: view },
     { id: 'proc_suppliers',    label: 'Suppliers',        section: 'Suppliers', icon: 'business',       show: view },
-    { id: 'proc_supplier_performance', label: 'Scorecards & Aging', section: 'Suppliers', icon: 'leaderboard', show: view },
+    { id: 'proc_agreements',   label: 'Agreements',       section: 'Suppliers', icon: 'handshake',      show: view },
     { id: 'proc_budgets',      label: 'Budgets',          section: 'Planning',  icon: 'donut_small',    show: view },
     { id: 'proc_reports',      label: 'Reports',          section: 'Planning',  icon: 'bar_chart',      show: view },
   ].filter(item => item.show !== false)

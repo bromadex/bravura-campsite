@@ -11,6 +11,8 @@ import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const ACCENT = MODULE_COLORS.inventory
 
+const NO_PO_REASONS = { opening: 'Opening stock', donation: 'Donated / free issue', found: 'Found during a count', returned: 'Returned from a project or site', other: 'Other (explain in notes)' }
+
 export default function InvGrn({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
@@ -24,7 +26,7 @@ export default function InvGrn({ setPage }) {
   const [whFilter, setWhFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [lines, setLines] = useState([{ item_id: '', qty: '', unit_cost: '', batch_no: '', expiry_date: '' }])
-  const [grnForm, setGrnForm] = useState({ warehouse_id: '', voucher_no: '', notes: '' })
+  const [grnForm, setGrnForm] = useState({ warehouse_id: '', voucher_no: '', notes: '', reason: '' })
   const [saving, setSaving] = useState(false)
 
   const fetch = useCallback(async () => {
@@ -86,6 +88,9 @@ export default function InvGrn({ setPage }) {
   async function handleSubmit() {
     const { warehouse_id, voucher_no } = grnForm
     if (!warehouse_id) { showToast('Select a warehouse', 'red'); return }
+    // Purchases are received against their PO in Procurement → Receiving; this is only for stock that
+    // didn't come through a PO (#54).
+    if (!grnForm.reason) { showToast('Choose why this stock is received without a purchase order', 'red'); return }
     const valid = lines.filter(l => l.item_id && parseFloat(l.qty) > 0)
     if (valid.length === 0) { showToast('Add at least one item line', 'red'); return }
     setSaving(true)
@@ -102,7 +107,7 @@ export default function InvGrn({ setPage }) {
         batch_no: l.batch_no?.trim() || null,
         expiry_date: l.expiry_date || null,
         source_module: 'inventory',
-        notes: grnForm.notes || null,
+        notes: [NO_PO_REASONS[grnForm.reason], grnForm.notes].filter(Boolean).join(' — ') || null,
         created_by: profile?.id,
       }))
       const { error } = await supabase.from('inventory_movements').insert(rows)
@@ -110,7 +115,7 @@ export default function InvGrn({ setPage }) {
       showToast(`GRN recorded — ${valid.length} item(s)`, 'green')
       setModalOpen(false)
       setLines([{ item_id: '', qty: '', unit_cost: '', batch_no: '', expiry_date: '' }])
-      setGrnForm({ warehouse_id: '', voucher_no: '', notes: '' })
+      setGrnForm({ warehouse_id: '', voucher_no: '', notes: '', reason: '' })
       fetch()
     } catch (err) {
       showToast(err.message, 'red')
@@ -143,7 +148,7 @@ export default function InvGrn({ setPage }) {
           {can('inventory.view') && <Button icon="download" onClick={handleExport}>Export</Button>}
           {can('inventory.create') && <Button icon="add" variant="filled" onClick={() => {
             setLines([{ item_id: '', qty: '', unit_cost: '', batch_no: '', expiry_date: '' }])
-            setGrnForm({ warehouse_id: '', voucher_no: '', notes: '' })
+            setGrnForm({ warehouse_id: '', voucher_no: '', notes: '', reason: '' })
             setModalOpen(true)
           }}>Receive Goods</Button>}
         </div>
@@ -209,6 +214,16 @@ export default function InvGrn({ setPage }) {
               <SectionLabel>Voucher / PO No</SectionLabel>
               <input value={grnForm.voucher_no} onChange={e => setGrnForm({ ...grnForm, voucher_no: e.target.value })} placeholder="e.g. GRN-0001" style={inp} />
             </div>
+          </div>
+          <div style={{ fontSize: '12px', padding: '8px 12px', borderRadius: '8px', background: THEME.statusWarningBg, color: THEME.statusWarningText }}>
+            Bought goods are received against their purchase order in Procurement → Receiving. Use this only for stock without a PO.
+          </div>
+          <div>
+            <SectionLabel>Why is there no purchase order? *</SectionLabel>
+            <select value={grnForm.reason} onChange={e => setGrnForm({ ...grnForm, reason: e.target.value })} style={inp}>
+              <option value="">Choose…</option>
+              {Object.entries(NO_PO_REASONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
           </div>
           <div>
             <SectionLabel>Notes</SectionLabel>

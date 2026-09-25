@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0216.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0217.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -397,6 +397,17 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   requisition_lines.ordered_qty + request status (ordered/approved). GRN trigger now confirms service lines.
   Default PO approval routes per site: ≤$1k (procurement.approve), ≤$10k (2× procurement.approve),
   >$10k (+finance.approve).
+  **P4+P5 built (0216, 0216b, 0216c):** supplier confirmation link — public route `/ack/<token>` handled at the
+  top of App.jsx (no login) → `pages/public/SupplierConfirm.jsx`; `po_ack_links`, `proc_po_ack_link`,
+  anon-callable `proc_po_ack_get/submit` (sets acknowledged_at, ack_by_name, po_lines.promised_date,
+  expected_date). pg_cron `procurement-reminders` 05:00 UTC → `proc_delivery_reminders()` (due in
+  supplier.reminder_days, late, not confirmed after 2 days) via `_proc_notify` (procurement.edit holders).
+  ProcReceiving (PR08, route proc_grn; tabs To receive + Receipts = old ProcGRN). Stores InvGrn needs a
+  no-PO reason. Supplier hold (`hold_type` none/all/bills/payments, `proc_supplier_set_hold`,
+  trg_supplier_hold_po / trg_supplier_hold_bill). `supplier_prices` (used first by `_po_last_price`).
+  `proc_supplier_scorecard`. ProcSuppliers (PR02; replaces Suppliers.jsx; scorecards & aging tab = old
+  ProcSupplierPerformance). Agreements PR13 (`proc_agreements`, `proc_agreement_lines`, po_lines.agreement_line_id,
+  `proc_agreement_save/set_status/list`, `proc_po_from_agreement`).
 
 - Real opening balances for Kamativi (replace mock JV-0001 via `finance_setup_clear_mock_opening`).
 - Finance setup (FI20) for Selous, Manhizi, Harare — no CoA/rules yet, so nothing posts there.

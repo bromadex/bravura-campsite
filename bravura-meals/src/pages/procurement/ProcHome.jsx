@@ -13,8 +13,9 @@ const TILES = [
   { key: 'pos_to_approve',      label: 'POs to approve', page: 'proc_orders', tone: 'warn' },
   { key: 'pos_draft',           label: 'Draft POs', page: 'proc_orders' },
   { key: 'pos_waiting',         label: 'Waiting for delivery', page: 'proc_orders' },
+  { key: 'not_acknowledged',    label: 'Not confirmed by supplier', page: 'proc_orders', tone: 'warn' },
   { key: 'late_deliveries',     label: 'Late deliveries', page: 'proc_orders', tone: 'bad' },
-  { key: 'received_not_billed', label: 'Received, not billed', page: 'proc_invoices' },
+  { key: 'received_not_billed', label: 'Received, not billed', page: 'proc_grn' },
 ]
 
 export default function ProcHome({ setPage }) {

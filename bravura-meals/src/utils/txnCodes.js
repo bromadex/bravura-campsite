@@ -204,11 +204,12 @@ export const TXN_CODES = [
   { code: 'PR05', path: '/procurement/proc_tracking',  label: 'Order Tracking (PO hub)', module: 'procurement' },
   { code: 'PR06', path: '/procurement/proc_reports',       label: 'Procurement Reports',   module: 'procurement' },
   { code: 'PR07', path: '/procurement/proc_requisitions', label: 'Requests',              module: 'procurement' },
-  { code: 'PR08', path: '/procurement/proc_grn',          label: 'Goods Received Notes',  module: 'procurement' },
+  { code: 'PR08', path: '/procurement/proc_grn',          label: 'Receiving',             module: 'procurement' },
   { code: 'PR09', path: '/procurement/proc_invoices',     label: 'Purchase Invoices',     module: 'procurement' },
   { code: 'PR10', path: '/procurement/proc_rfq_compare',  label: 'Quote Comparison (PO hub)', module: 'procurement' },
   { code: 'PR11', path: '/procurement/proc_budgets',      label: 'Purchasing Budgets',    module: 'procurement' },
   { code: 'PR12', path: '/procurement/proc_supplier_performance', label: 'Supplier Aging & Scorecards', module: 'procurement' },
+  { code: 'PR13', path: '/procurement/proc_agreements',  label: 'Agreements (blanket orders & templates)', module: 'procurement' },
   // ── Finance ──
   { code: 'FI01', path: '/finance/fi_chart_of_accounts', label: 'Chart of Accounts',      module: 'finance' },
   { code: 'FI02', path: '/finance/fi_journal_entries',   label: 'Journal Entries',         module: 'finance' },

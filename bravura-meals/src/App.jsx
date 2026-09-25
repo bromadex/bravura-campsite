@@ -212,13 +212,13 @@ const InvReorderExpiry = lazy(() => import('./pages/inventory/InvReorderExpiry')
 // ── Procurement ───────────────────────────────────────────────────────────────
 const ProcHome = lazy(() => import('./pages/procurement/ProcHome'))
 const ProcShell = lazy(() => import('./components/ProcShell'))
-const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
+const ProcSuppliers = lazy(() => import('./pages/procurement/ProcSuppliers'))
+const ProcReceiving = lazy(() => import('./pages/procurement/ProcReceiving'))
+const ProcAgreements = lazy(() => import('./pages/procurement/ProcAgreements'))
 const ProcOrders = lazy(() => import('./pages/procurement/ProcOrders'))
 const ProcRequests = lazy(() => import('./pages/procurement/ProcRequests'))
-const ProcGRN = lazy(() => import('./pages/procurement/ProcGRN'))
 const ProcInvoices = lazy(() => import('./pages/procurement/ProcInvoices'))
 const ProcReports = lazy(() => import('./pages/procurement/ProcReports'))
-const ProcSupplierPerf     = lazy(() => import('./pages/procurement/ProcSupplierPerformance'))
 
 // ── Projects ─────────────────────────────────────────────────────────────────
 const PJDashboard = lazy(() => import('./pages/projects/PJDashboard'))
@@ -596,11 +596,12 @@ function getProcurementPage(page, can, setPage) {
   switch (page) {
     case 'proc_budgets':      return view ? <FIBudgets setPage={setPage} /> : null  // one budget screen (0207)
     case 'proc_requisitions': return (view || can('procurement.create')) ? <ProcRequests setPage={setPage} /> : null
-    case 'proc_supplier_performance': return framed('Supplier aging & scorecards', <ProcSupplierPerf setPage={setPage} />)
-    case 'proc_suppliers':    return framed('Suppliers', <ProcSuppliers setPage={setPage} />)
+    case 'proc_supplier_performance':
+    case 'proc_suppliers':    return view ? <ProcSuppliers setPage={setPage} /> : null
+    case 'proc_agreements':   return view ? <ProcAgreements setPage={setPage} /> : null
     case 'proc_rfqs':         return view ? <ProcOrders setPage={setPage} initialTab="quotes" /> : null
     case 'proc_orders':       return view ? <ProcOrders setPage={setPage} /> : null
-    case 'proc_grn':          return framed('Receiving', <ProcGRN setPage={setPage} />)
+    case 'proc_grn':          return (view || can('inventory.view')) ? <ProcReceiving setPage={setPage} /> : null
     case 'proc_invoices':     return framed('Supplier bills', <ProcInvoices setPage={setPage} />)
     case 'proc_tracking':     return view ? <ProcOrders setPage={setPage} initialTab="tracking" /> : null
     case 'proc_reports':      return framed('Reports', <ProcReports setPage={setPage} />)
@@ -1087,7 +1088,12 @@ function AppContent() {
   )
 }
 
+const SupplierConfirm = lazy(() => import('./pages/public/SupplierConfirm'))
+
 export default function App() {
+  // Supplier order confirmation links (/ack/<token>) open without logging in (#54).
+  const ack = typeof window !== 'undefined' && window.location.pathname.match(/^\/ack\/([a-f0-9]{16,})$/)
+  if (ack) return <ErrorBoundary><Suspense fallback={null}><SupplierConfirm token={ack[1]} /></Suspense></ErrorBoundary>
   return (
     <ErrorBoundary>
       <ThemeProvider>

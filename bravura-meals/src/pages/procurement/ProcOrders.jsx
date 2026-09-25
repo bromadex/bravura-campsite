@@ -172,6 +172,7 @@ export default function ProcOrders({ setPage, initialTab = 'orders' }) {
                   <td style={{ padding: '10px 12px' }}>
                     {r.expected_date && <div style={{ fontSize: 12.5, color: r.late ? FIN.bad : FIN.muted }}>{r.late ? 'Late · ' : 'Due '}{new Date(r.expected_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>}
                     <Received r={r} />
+                    {['sent', 'partially_received'].includes(r.status) && <div style={{ fontSize: 11.5, color: r.acknowledged_at ? FIN.good : FIN.ochreText }}>{r.acknowledged_at ? `Confirmed by ${r.ack_by_name || 'supplier'}` : 'Not confirmed by supplier'}</div>}
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>${money(r.total)}</td>
                 </tr>
@@ -272,7 +273,7 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
 
   const load = useCallback(async () => {
     const { data: p, error } = await supabase.from('purchase_orders')
-      .select('*, supplier:procurement_suppliers(supplier_name), site:sites(name), lines:po_lines(id, item_id, description, unit, quantity, unit_cost, received_qty, is_archived, requisition_line_id, item:items(item_code, description))')
+      .select('*, supplier:procurement_suppliers(supplier_name, email, phone, hold_type, hold_reason), site:sites(name), lines:po_lines(id, item_id, description, unit, quantity, unit_cost, received_qty, promised_date, is_archived, requisition_line_id, item:items(item_code, description))')
       .eq('id', id).single()
     if (error) { showToast(error.message, 'red'); return }
     setPo(p)
@@ -410,7 +411,7 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
                     <td style={{ padding: '6px 4px' }}>{editable ? <input value={l.unit || ''} onChange={e => setLine(i, { unit: e.target.value })} style={inp} /> : l.unit}</td>
                     <td style={{ padding: '6px 4px' }}>{editable ? <input type="number" min="0" step="0.01" value={l.unit_cost} onChange={e => setLine(i, { unit_cost: e.target.value })} style={{ ...inp, borderColor: Number(l.unit_cost) > 0 ? FIN.field : FIN.ochre }} /> : `$${money(l.unit_cost)}`}</td>
                     <td style={{ padding: '6px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>${money(Number(l.quantity || 0) * Number(l.unit_cost || 0))}</td>
-                    {!editable && <td style={{ padding: '6px 4px', textAlign: 'right', color: Number(l.received_qty) >= Number(l.quantity) ? FIN.good : FIN.muted }}>{Number(l.received_qty || 0)} / {Number(l.quantity)}</td>}
+                    {!editable && <td style={{ padding: '6px 4px', textAlign: 'right', color: Number(l.received_qty) >= Number(l.quantity) ? FIN.good : FIN.muted }}>{Number(l.received_qty || 0)} / {Number(l.quantity)}{l.promised_date && <div style={{ fontSize: 11, color: FIN.faint }}>promised {new Date(l.promised_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>}</td>}
                     {editable && <td style={{ padding: '6px 4px' }}><button aria-label="Remove line" onClick={() => setLines(ls => ls.filter((_, k) => k !== i))} style={{ ...finBtn2, minHeight: 36, padding: '0 10px' }}>✕</button></td>}
                   </tr>
                 )
@@ -421,6 +422,13 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
           </div>
           {editable && <button style={{ ...finBtn2, marginTop: 8 }} onClick={() => setLines(ls => [...ls, { item_id: null, item_text: '', description: '', unit: '', quantity: 1, unit_cost: 0 }])}>Add a line</button>}
         </div>
+
+        {po.supplier?.hold_type && po.supplier.hold_type !== 'none' && (
+          <div role="alert" style={{ fontSize: 13, padding: '8px 12px', borderRadius: 8, background: '#FDF3F2', color: FIN.bad }}>
+            {po.supplier.supplier_name} is on hold ({po.supplier.hold_type === 'all' ? 'no new orders' : po.supplier.hold_type === 'bills' ? 'bills' : 'payments'}): {po.supplier.hold_reason}
+          </div>
+        )}
+        {['sent', 'partially_received'].includes(po.status) && <AckPanel po={po} onChanged={load} />}
 
         {compareRows.length > 0 && (
           <section aria-label="Compare quotes" style={{ border: `1px solid ${FIN.line}`, borderRadius: 10, padding: 12, overflowX: 'auto' }}>
@@ -463,5 +471,46 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
           <textarea disabled={!editable} rows={2} value={po.notes || ''} onChange={e => set({ notes: e.target.value })} style={{ ...inp, resize: 'vertical' }} /></label>
       </div>
     </Modal>
+  )
+}
+
+// Supplier confirmation link (#54): the supplier opens it without logging in, confirms and gives dates.
+function AckPanel({ po, onChanged }) {
+  const [url, setUrl] = useState(null)
+  const [busy, setBusy] = useState(false)
+  async function make() {
+    setBusy(true)
+    const { data, error } = await supabase.rpc('proc_po_ack_link', { p_po: po.id })
+    setBusy(false)
+    if (error) return showToast(error.message, 'red')
+    setUrl(`${window.location.origin}/ack/${data}`)
+    onChanged?.()
+  }
+  const msg = url ? `Hello, please confirm Bravura purchase order ${po.po_number} and your delivery dates here: ${url}` : ''
+  return (
+    <section aria-label="Supplier confirmation" style={{ border: `1px solid ${FIN.line}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
+        <span style={{ fontSize: 14, fontWeight: 600 }}>Supplier confirmation</span>
+        <span style={{ fontSize: 13, color: po.acknowledged_at ? FIN.good : FIN.ochreText }}>
+          {po.acknowledged_at ? `Confirmed by ${po.ack_by_name} on ${new Date(po.acknowledged_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Not confirmed yet'}
+        </span>
+      </div>
+      {po.ack_note && <div style={{ fontSize: 13, color: FIN.muted }}>“{po.ack_note}”</div>}
+      {!url ? (
+        <button style={{ ...finBtn2, alignSelf: 'flex-start' }} disabled={busy} onClick={make}>{po.acknowledged_at ? 'New link to update dates' : 'Create confirmation link'}</button>
+      ) : (
+        <>
+          <input readOnly value={url} onFocus={e => e.target.select()} aria-label="Confirmation link" style={{ ...finInput, width: '100%' }} />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button style={finBtn2} onClick={() => { navigator.clipboard?.writeText(url); showToast('Link copied') }}>Copy link</button>
+            <a style={{ ...finBtn2, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+              href={`mailto:${po.supplier?.email || ''}?subject=${encodeURIComponent('Purchase order ' + po.po_number)}&body=${encodeURIComponent(msg)}`}>Email</a>
+            <a style={{ ...finBtn2, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }} target="_blank" rel="noreferrer"
+              href={`https://wa.me/${(po.supplier?.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`}>WhatsApp</a>
+          </div>
+          <div style={{ fontSize: 12, color: FIN.faint }}>The link works for 30 days; making a new one cancels the old one.</div>
+        </>
+      )}
+    </section>
   )
 }

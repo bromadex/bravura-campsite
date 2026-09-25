@@ -519,6 +519,12 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   **Module is called "Stores" on screen (user, 25 Sep)** — code ids stay `inventory` / `inv_*` / `inventory.*` permissions.
   **No scanning (user, 25 Sep):** Scan (IN22) removed from menu/dashboard, bin labels are plain text (no QR, qrcode package removed).
   **Vercel (25 Sep):** preview deployments disabled + Ignored Build Step skips every branch but main (free plan = 100 builds/day; the second branch push no longer builds). If pushes stop deploying, redeploy from the dashboard or MCP create_deployment.
+- **NEXT: Fleet & assets rewrite (#61, Stage 15)** — review: https://claude.ai/artifact/F3gZhEyBtf8bkj8BmGZHRh. Found: 45 machines (Kamativi) with no
+  cost/papers/meters/operator; all 135 fuel issues unpriced ($0 → no cost per machine, nothing to GL); no km/hours reach
+  fleet_meter_readings; delete policies on fleet tables; fleet_assets vs fixed_assets unconnected (0 fixed assets); 4 register screens over
+  one 62-column table; status 'active'/'operational' mixed; papers on asset + fleet_compliance; maintenance vs work orders duplicate;
+  FL16 frozen table in menu. Phases A1 correct · A2 one machine record · A3 pre-starts + work orders · A4 service planning + contracts ·
+  A5 dashboard/cost per hour/finance look · A6 small assets + Ask Bravura (+ optional Traccar).
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search

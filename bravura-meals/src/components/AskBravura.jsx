@@ -21,11 +21,9 @@ export function AskProvider({ moduleId, page, title, contentRef, children }) {
   const [pending, setPending] = useState(null)   // a question sent in with the 'open-ask-bravura' event (e.g. from the daily brief)
   const value = { moduleId, page, title, contentRef, pageData, open, setOpen, pending, setPending }
   useEffect(() => {
-    const onKey = e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setOpen(o => !o) } }
     const onOpen = e => { setOpen(true); if (e?.detail?.question) setPending(e.detail.question) }
-    window.addEventListener('keydown', onKey)
     window.addEventListener('open-ask-bravura', onOpen)
-    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('open-ask-bravura', onOpen) }
+    return () => { window.removeEventListener('open-ask-bravura', onOpen) }
   }, [])
   // The button and panel are portalled to <body> so they're never part of the screen text we read.
   return <AskCtx.Provider value={value}>{children}{typeof document !== 'undefined' && createPortal(<AskFab />, document.body)}</AskCtx.Provider>
@@ -457,13 +455,12 @@ function AskFab() {
   return (
     <>
       {!ctx.open && (
-        <button onClick={() => ctx.setOpen(true)} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} aria-label="Ask Bravura (Ctrl J)" title="Ask Bravura (Ctrl J)"
+        <button onClick={() => ctx.setOpen(true)} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} aria-label="Ask Bravura" title="Ask Bravura"
           style={{ position: 'fixed', left: '50%', bottom: narrow ? 14 : 20, transform: `translateX(-50%) translateY(${hover ? -2 : 0}px)`, zIndex: 900,
             display: 'flex', alignItems: 'center', gap: 8, height: 46, padding: '0 20px 0 14px', borderRadius: 23, border: 'none', cursor: 'pointer',
             background: `linear-gradient(135deg, ${FIN.maroon}, #6E1A1F)`, color: '#fff', fontFamily: FIN.sans, fontSize: 14.5, fontWeight: 600,
             boxShadow: '0 8px 24px rgba(152,35,41,.35), 0 2px 6px rgba(0,0,0,.12)', transition: 'transform .15s' }}>
           <span aria-hidden="true" style={{ fontSize: 18 }}>✦</span> Ask Bravura
-          {!narrow && <kbd style={{ fontFamily: 'inherit', fontSize: 11, opacity: .75, border: '1px solid rgba(255,255,255,.4)', borderRadius: 5, padding: '1px 5px' }}>Ctrl J</kbd>}
         </button>
       )}
       {ctx.open && (narrow ? (

@@ -438,7 +438,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   petty cash, request, PO from quote, approvals); B5 ds_document_links + DocumentViewer on any record; B6 daily
   brief + alerts + report commentary; B7 voice notes (Whisper on Groq). A1 (FI29) is live.
   **B1 built:** `components/AskBravura.jsx` — AskProvider inside ModuleLayout's content area (contentRef for DOM-text
-  fallback), floating ✦ button bottom-centre portalled to body (Ctrl J / 'open-ask-bravura' event), desktop panel
+  fallback), floating ✦ button bottom-centre portalled to body (opened by the button or the open-ask-bravura event; no keyboard shortcut — Ctrl J is the browser Downloads key), desktop panel
   movable + resizable on all edges/corners (geometry in localStorage 'ask_box'), phone bottom sheet with drag
   handle; welcome message (capabilities + examples); `useAskContext(obj)` wired on ProcHome, ProcOrders,
   ProcReceiving, ProcRequests, PaySuppliers (others use visible text). Edge function v2: `calculate` tool (safe

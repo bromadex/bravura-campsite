@@ -4,7 +4,7 @@ import FinShell from '../../components/FinShell'
 import { AskChat } from '../../components/AskBravura'
 
 // FI29 — Ask Bravura full page (issues #49, #58). The same chat as the floating button (bottom centre,
-// Ctrl J) without screen reading, for longer conversations.
+// on every screen) without screen reading, for longer conversations.
 export default function AskBravura({ setPage }) {
   const { can } = usePermissions()
   if (!can('finance.view') && !can('procurement.view')) return <Denied />

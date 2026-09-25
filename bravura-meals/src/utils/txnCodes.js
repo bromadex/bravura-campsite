@@ -161,6 +161,7 @@ export const TXN_CODES = [
   { code: 'AD09', path: '/admin/admin_preferences', label: 'My Preferences',       module: 'admin' },
   { code: 'AD10', path: '/admin/admin_employee_links', label: 'Employee Links',    module: 'admin' },
   { code: 'AD11', path: '/admin/admin_approval_routes', label: 'Approval Routes', module: 'admin' },
+  { code: 'AD12', path: '/admin/admin_ask',          label: 'Ask Bravura admin (usage, review, limits, AI register)', module: 'admin' },
 
   // ── Inventory (IN) ──────────────────────────────────────────────────────
   { code: 'IN01', path: '/inventory/inv_dashboard',   label: 'Inventory Dashboard',  module: 'inventory' },

@@ -459,6 +459,8 @@ export default function HomeLauncher({ onEnterModule }) {
           </h1>
         </div>
 
+        <DailyBrief navigate={navigate} />
+
         {/* Icon grid — always visible */}
         <UmbrellaGrid
           groups={visibleGroups}
@@ -725,5 +727,72 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
         @keyframes scaleIn { from { opacity: 0; transform: translate(-50%,-50%) scale(.95) } to { opacity: 1; transform: translate(-50%,-50%) scale(1) } }
       `}</style>
     </>
+  )
+}
+
+// ── Your day (Ask Bravura B6, issue #58) ─────────────────────────────────────
+// ai_daily_brief: approvals waiting for me, late deliveries, low stock, papers/documents expiring,
+// budgets at risk and alerts (unusual fuel draws, price jumps, duplicate or mismatched bills) — for the
+// sites and modules this person can see. Collapsible; the choice is remembered for the day.
+function DailyBrief({ navigate }) {
+  const [b, setB] = useState(null)
+  const today = new Date().toISOString().slice(0, 10)
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem('brief_hidden') === today } catch { return false } })
+  useEffect(() => { supabase.rpc('ai_daily_brief', { p_site_ids: null }).then(({ data }) => setB(data || null)) }, [])
+  if (!b) return null
+  const go = p => { if (!p) return; navigate(p.startsWith('/') ? p : '/' + p) }
+  const chips = [
+    b.approvals_total > 0 && { n: b.approvals_total, label: `approval${b.approvals_total > 1 ? 's' : ''} waiting for you`, tone: 'warn', to: b.approvals?.[0]?.link || '/approvals' },
+    b.late_deliveries?.length > 0 && { n: b.late_deliveries.length, label: `late deliver${b.late_deliveries.length > 1 ? 'ies' : 'y'}`, tone: 'bad', to: '/procurement/proc_orders' },
+    b.low_stock > 0 && { n: b.low_stock, label: `item${b.low_stock > 1 ? 's' : ''} at or below reorder`, tone: 'warn', to: '/inventory/inv_balances' },
+    b.expiring?.length > 0 && { n: b.expiring.length, label: 'papers or documents expiring', tone: 'warn', to: '/fleet/fleet_compliance' },
+    b.budgets_at_risk?.length > 0 && { n: b.budgets_at_risk.length, label: `budget${b.budgets_at_risk.length > 1 ? 's' : ''} over 90% used`, tone: 'bad', to: '/finance/fi_budgets' },
+  ].filter(Boolean)
+  const alerts = b.alerts || []
+  const clear = !chips.length && !alerts.length
+  const toggle = () => { const h = !hidden; setHidden(h); try { h ? localStorage.setItem('brief_hidden', today) : localStorage.removeItem('brief_hidden') } catch { /* private mode */ } }
+  const tone = t => t === 'bad' ? { bg: '#FDECEA', fg: '#B3261E', bd: '#F2C4C0' } : { bg: '#FFF6E8', fg: '#9A5B00', bd: '#EBCB97' }
+  return (
+    <section aria-label="Your day" style={{ width: '100%', maxWidth: 880, marginBottom: 28, background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: 14, padding: hidden ? '10px 16px' : '14px 18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: '#982329', fontSize: 16 }}>✦</span>
+        <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: THEME.text }}>
+          Your day{clear && <span style={{ fontWeight: 400, color: '#2F7D4F' }}> — all clear, nothing waiting on you</span>}
+        </div>
+        {!clear && <button onClick={() => window.dispatchEvent(new CustomEvent('open-ask-bravura', { detail: { question: 'What needs my attention today?' } }))}
+          style={{ border: 'none', background: 'none', color: '#1F4E8C', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}>Ask about it</button>}
+        {!clear && <button onClick={toggle} aria-expanded={!hidden} style={{ border: 'none', background: 'none', color: THEME.textLow, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}>{hidden ? 'Show' : 'Hide'}</button>}
+      </div>
+      {!hidden && !clear && (
+        <>
+          {chips.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              {chips.map(c => { const t = tone(c.tone); return (
+                <button key={c.label} onClick={() => go(c.to)} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, padding: '6px 12px', borderRadius: 18, cursor: 'pointer', fontFamily: 'inherit',
+                  background: t.bg, color: t.fg, border: `1px solid ${t.bd}`, fontSize: 13 }}>
+                  <b style={{ fontSize: 15 }}>{c.n}</b>{c.label}
+                </button>) })}
+            </div>
+          )}
+          {alerts.length > 0 && (
+            <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {alerts.slice(0, 5).map((a, i) => (
+                <li key={i}>
+                  <button onClick={() => go(a.link)} style={{ width: '100%', textAlign: 'left', display: 'flex', gap: 10, alignItems: 'baseline', padding: '6px 4px', border: 'none', borderTop: `1px solid ${THEME.outlineVar}`, background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 4, flexShrink: 0, background: a.severity === 'critical' ? '#B3261E' : '#C8811E' }} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: THEME.text }}>{a.title}</span>
+                      <span style={{ fontSize: 12, color: THEME.textLow }}> · {a.detail}</span>
+                    </span>
+                    <span style={{ fontSize: 11.5, color: THEME.textLow }}>{a.site}</span>
+                  </button>
+                </li>
+              ))}
+              {alerts.length > 5 && <li style={{ fontSize: 12, color: THEME.textLow, padding: '4px' }}>+{alerts.length - 5} more — ask Ask Bravura for the full list</li>}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
   )
 }

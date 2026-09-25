@@ -6,15 +6,16 @@
 // Every question/answer is logged in ai_questions. Provider: Groq (OpenAI-compatible), Qwen preferred.
 //
 // POST { question, site_id, history?, page?: {module, page, title, context, screen_text} } → { answer, links, tools, model, id }
+// POST { transcribe: { audio: base64, type } }                  → { text }   (B7 voice notes, Whisper on Groq)
 // POST { ping: true }                                       → { model, models }
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { unverifiedFigures } from './audit.js'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const GROQ_KEY = Deno.env.get('GROQ_API_KEY')!
 const GROQ = 'https://api.groq.com/openai/v1'
-const DAILY_LIMIT = 60
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -190,6 +191,8 @@ const TOOLS = [
     ['camp', 'Camp accommodation: rooms, beds, occupied now, who checks out in the next 7 days.', false, false],
     ['procurement', 'Procurement status now: open requests, POs by status, POs waiting approval, late deliveries.', false, false],
     ['leave', 'Leave requests in a period (by applied or start date) with status approved / pending / rejected / cancelled, who, dates, days and the rejection reason. Optional search = a status to filter by.', true, true],
+    ['brief', "The person's day: approvals waiting for them, late deliveries, low stock, papers/documents expiring, budgets over 90%, alerts. Use for 'what needs my attention', 'my day', 'anything urgent'.", false, false],
+    ['alerts', 'Alerts worth a look: unusual fuel draws, supplier price jumps (>20%), possible duplicate bills, bills that do not match their order.', false, false],
     ['find', 'Find a record by number or name across modules (POs, requests, suppliers, vehicles, employees, stock items, incidents). Use when the person names something specific.', false, true],
   ] as [string, string, boolean, boolean][]).map(([name, description, dated, search]) => ({ type: 'function', function: { name, description,
     parameters: { type: 'object', properties: {
@@ -265,7 +268,7 @@ const PROPOSE: Record<string, [string, string, (a: Record<string, any>, s: strin
 const MODULE_RPC: Record<string, [string, boolean, boolean]> = {
   fuel: ['ai_fuel', true, true], fleet: ['ai_fleet', true, false], stock: ['ai_stock', false, true], people: ['ai_people', true, false],
   sheq: ['ai_sheq', true, false], meals: ['ai_meals', true, false], camp: ['ai_camp', false, false], procurement: ['ai_procurement', false, false],
-  find: ['ai_find', false, true], leave: ['ai_leave', true, true],
+  find: ['ai_find', false, true], leave: ['ai_leave', true, true], brief: ['ai_daily_brief', false, false], alerts: ['ai_alerts', false, false],
 }
 const EXTRA_ARG: Record<string, string> = { leave: 'p_status' }
 
@@ -287,13 +290,38 @@ Deno.serve(async (req) => {
   const model = await pickModel()
   if (body.ping) return json({ model, models: modelList.filter(m => /qwen|llama|gpt-oss/i.test(m)) })
 
+  // B7: voice note → text (the person checks it, then sends it as a question).
+  const tr = (body as Record<string, any>).transcribe
+  if (tr?.audio) {
+    try {
+      const bytes = Uint8Array.from(atob(String(tr.audio)), c => c.charCodeAt(0))
+      if (bytes.length > 15 * 1024 * 1024) return json({ error: 'Voice note is too long — keep it under 2 minutes' }, 400)
+      const type = String(tr.type || 'audio/webm')
+      const ext = type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : type.includes('wav') ? 'wav' : 'webm'
+      if (!modelList.length) await pickModel()
+      const whisper = ['whisper-large-v3-turbo', 'whisper-large-v3'].filter(m => !modelList.length || modelList.includes(m))
+      let lastErr = 'No speech model available'
+      for (const m of whisper) {
+        const fd = new FormData()
+        fd.append('file', new Blob([bytes], { type }), `note.${ext}`)
+        fd.append('model', m); fd.append('response_format', 'json'); fd.append('language', 'en'); fd.append('temperature', '0')
+        fd.append('prompt', 'Bravura mining camp ERP: purchase order, PO, GRN, delivery note, diesel, litres, cement, tyres, Kamativi, Harare, Selous, Manhizi.')
+        const r = await fetch(`${GROQ}/audio/transcriptions`, { method: 'POST', headers: { Authorization: `Bearer ${GROQ_KEY}` }, body: fd })
+        const d = await r.json().catch(() => ({}))
+        if (r.ok) return json({ text: String(d.text || '').trim() })
+        lastErr = d?.error?.message || `Speech service error ${r.status}`
+      }
+      return json({ error: lastErr }, 502)
+    } catch (e) { return json({ error: (e as Error).message }, 400) }
+  }
+
   const files = (Array.isArray(body.files) ? body.files : []).slice(0, 3)
   const question = ((body.question || '').trim() || (files.length ? 'What is this document? Match it to our records.' : '')).slice(0, 1000)
   if (!question) return json({ error: 'Ask a question' }, 400)
 
-  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
-  const { count } = await db.from('ai_questions').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', since)
-  if ((count || 0) >= DAILY_LIMIT) return json({ error: `You've reached today's limit of ${DAILY_LIMIT} questions` }, 429)
+  // B8: usage caps per person and per site (Admin → Ask Bravura), and the on/off switch.
+  const { data: usage } = await db.rpc('ai_usage_check', { p_site: body.site_id || null })
+  if (usage && usage.allowed === false) return json({ error: usage.reason }, 429)
 
   // Sites this person can see, for turning "Kamativi" / "all" into ids.
   const { data: sites } = await db.from('sites').select('id, name').eq('is_active', true)
@@ -401,9 +429,12 @@ Rules:
   }
 
   const toolText = messages.filter(m => m.role === 'tool').map(m => String(m.content)).join('\n')
+  // B8: every figure in the answer must appear in a source (tools, calculate, screen, files, the question, the chat so far).
+  const sources = [toolText, screen, attached, question, ...(body.history || []).map(h => h.content || '')].join('\n')
+  const unverified = error ? [] : unverifiedFigures(answer, sources)
   const links = error ? [] : await findLinks(db, answer + '\n' + toolText, body.site_id).catch(() => [])
-  const { data: logged } = await db.from('ai_questions').insert({ user_id: user.id, site_id: body.site_id || null, question, answer, model: usedModel,
+  const { data: logged } = await db.from('ai_questions').insert({ user_id: user.id, site_id: body.site_id || null, question, answer, model: usedModel, unverified, via: (body as Record<string, any>).via === 'voice' ? 'voice' : files.length ? 'file' : 'text',
     tools: [...used, ...docs.map(d => ({ name: 'file', args: { name: d.file, doc_type: (d as Record<string, unknown>).doc_type ?? null, error: (d as Record<string, unknown>).error ?? null } })), ...(pg ? [{ name: 'screen', args: { page: pg.page, structured: !!pg.context } }] : [])], tokens, error })
     .select('id').single()
-  return json({ answer, links, tools: used, docs, actions, model: usedModel, id: logged?.id, error })
+  return json({ answer, links, tools: used, docs, actions, check_figures: unverified, model: usedModel, id: logged?.id, error })
 })

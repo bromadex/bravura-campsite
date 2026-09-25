@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0228.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0230.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -459,6 +459,13 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (`ds_unlink`); `ds_attach_file` = upload-and-link (`utils/docshareUpload.js` attachFileToRecord). LinkedDocuments now has
   Upload / Link existing / remove, on PO detail, request detail, supplier profile (+ employees, contractors, incidents, fleet assets).
   `ai_action_confirm` returns record_table/record_id; AskChat files the chat attachment on that record after Confirm.
+  **B6 built (0228):** `_ai_alerts_core` (fuel draw >2× usual, price jump >20%, duplicate bills, bill mismatch) → `ai_alerts`,
+  `ai_daily_brief` (approval_inbox, late POs, low stock, expiring papers/docs, budgets ≥90%, alerts) shown as "Your day" on
+  HomeLauncher; pg_cron `ask-bravura-alerts` 04:30 UTC → `ai_alerts_notify` (once per alert, `ai_alert_log`). scheduled-reports
+  v3 adds an "In short" AI commentary. **B7:** 🎤 in AskChat → edge fn `{transcribe}` (Whisper on Groq) → text into the box;
+  offline recordings retried on 'online'. **B8 guardrails (0229):** `ai_settings` + `ai_usage_check` (per person/site caps, on/off),
+  `supabase/functions/ask-bravura/audit.js` figure check (tested in src/test/askAudit.test.js) → `ai_questions.unverified` + ⚠ note,
+  AD12 `admin_ask` page (`ai_admin_overview`: usage, needs-a-look, actions, limits, AI register).
   Procurement Home touch-up (0225 `proc_home_insights`): headline band, 6-month trend, top suppliers, 30-day pipeline.
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

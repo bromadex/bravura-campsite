@@ -88,6 +88,7 @@ const AdminDashboard     = lazy(() => import('./pages/admin/AdminDashboard'))
 const RoleManagement     = lazy(() => import('./pages/admin/RoleManagement'))
 const SiteManagement     = lazy(() => import('./pages/admin/SiteManagement'))
 const PendingInvitations = lazy(() => import('./pages/admin/PendingInvitations'))
+const AskBravuraAdmin = lazy(() => import('./pages/admin/AskBravuraAdmin'))
 const ApprovalRoutes     = lazy(() => import('./pages/admin/ApprovalRoutes'))
 const ApprovalsInbox     = lazy(() => import('./pages/notifications/ApprovalsInbox'))
 const SystemSettings     = lazy(() => import('./pages/admin/SystemSettings'))
@@ -497,6 +498,7 @@ function getAdminPage(page, can, setPage) {
     case 'admin_roles':       return can('users.view') ? <RoleManagement setPage={setPage} /> : null
     case 'admin_sites':       return can('users.view') ? <SiteManagement setPage={setPage} /> : null
     case 'admin_invitations': return can('users.view') ? <PendingInvitations setPage={setPage} /> : null
+    case 'admin_ask':         return can('users.view') ? <AskBravuraAdmin setPage={setPage} /> : null
     case 'admin_approval_routes': return (can('approvals.view') || can('approvals.edit')) ? <ApprovalRoutes setPage={setPage} /> : null
     case 'admin_settings':    return can('users.view') ? <SystemSettings setPage={setPage} /> : null
     case 'admin_permissions': return can('users.view') ? <PermissionsCatalogue setPage={setPage} /> : null

@@ -231,6 +231,7 @@ export function adminNav(role) {
     { id: 'admin_sites',       label: 'Site Management',      section: 'System',          icon: 'location_city' },
     { id: 'admin_invitations', label: 'Pending Invitations',  section: 'System',          icon: 'mail' },
     { id: 'admin_approval_routes', label: 'Approval Routes',  section: 'System',          icon: 'alt_route' },
+    { id: 'admin_ask',         label: 'Ask Bravura',          section: 'System',          icon: 'auto_awesome' },
     { id: 'admin_settings',    label: 'System Settings',      section: 'System',          icon: 'settings' },
     { id: 'admin_audit',       label: 'Audit Log',            section: 'System',          icon: 'history' },
   ]

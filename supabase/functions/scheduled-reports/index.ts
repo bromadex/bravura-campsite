@@ -9,6 +9,7 @@ const SERVICE_ROLE   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const APP_URL        = Deno.env.get('APP_URL') || 'https://bravura-campsite.vercel.app'
 const FROM           = Deno.env.get('REPORTS_FROM') || 'Bravura ERP <reports@bravura-campsite.com>'
+const GROQ_KEY       = Deno.env.get('GROQ_API_KEY')
 
 const db = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } })
 
@@ -19,7 +20,28 @@ type Report = { title: string; site: string; period: string; sections: Section[]
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!))
 const TONE: Record<string, string> = { bad: '#C62828', warn: '#B26A00' }
 
-function render(r: Report, name: string, link: string): string {
+// Ask Bravura B6 (issue #58): a short written commentary on top of each report. Only figures that are in
+// the report may be quoted; if the AI is unavailable the email simply goes without it.
+async function commentary(r: Report): Promise<string | null> {
+  if (!GROQ_KEY) return null
+  const prompt = `You write the 2-4 sentence summary at the top of a mining-camp management report email. Plain words, no jargon, no greeting.
+Say what matters most and anything that needs action. Quote ONLY numbers that appear in the report below, exactly as written. If nothing stands out, say so briefly.
+REPORT: ${JSON.stringify(r).slice(0, 6000)}`
+  for (const model of ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3-32b', 'llama-3.3-70b-versatile']) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', { method: 'POST',
+        headers: { Authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.2, max_tokens: 300 }) })
+      if (!res.ok) continue
+      const d = await res.json()
+      const text = String(d.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/\*\*/g, '').trim()
+      if (text) return text
+    } catch { /* try next */ }
+  }
+  return null
+}
+
+function render(r: Report, name: string, link: string, note: string | null = null): string {
   const sections = r.sections.map(s => {
     const items = (s.items || []).map(i => `
       <tr><td style="padding:6px 0;color:#444">${esc(i.label)}</td>
@@ -40,6 +62,8 @@ function render(r: Report, name: string, link: string): string {
           <div style="font-size:20px;font-weight:700;margin-top:4px">${esc(r.title)}</div></td></tr>
         <tr><td style="padding:8px 24px 24px">
           <p style="font-size:14px;color:#444">Hello ${esc(name.split(' ')[0] || 'there')},</p>
+          ${note ? `<div style="background:#FBF3F3;border-left:3px solid #982329;padding:10px 14px;margin:8px 0 4px;font-size:14px;color:#333;line-height:1.5">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#982329;margin-bottom:4px">In short · Ask Bravura</div>${esc(note)}</div>` : ''}
           ${sections}
           <p style="margin-top:24px"><a href="${esc(link)}" style="background:#982329;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-size:14px">Open Bravura ERP</a></p>
           <p style="font-size:12px;color:#888;margin-top:20px">You get this because you subscribed in My Preferences → Email reports. Change or stop it there.</p>
@@ -61,6 +85,7 @@ Deno.serve(async req => {
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 })
 
   const results: unknown[] = []
+  const notes = new Map<string, string | null>()   // one commentary per report + site per run
   for (const s of due || []) {
     try {
       const { data: report, error: rErr } = await db.rpc('report_build', { p_code: s.report_code, p_site_id: s.site_id })
@@ -72,10 +97,12 @@ Deno.serve(async req => {
         results.push({ id: s.id, skipped: 'RESEND_API_KEY not set' })
         continue   // don't mark as sent, so it goes once email is configured
       }
+      const nk = s.report_code + ':' + s.site_id
+      if (!notes.has(nk)) notes.set(nk, await commentary(r))
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: FROM, to: s.email, subject, html: render(r, s.full_name || '', link) }),
+        body: JSON.stringify({ from: FROM, to: s.email, subject, html: render(r, s.full_name || '', link, notes.get(s.report_code + ':' + s.site_id) ?? null) }),
       })
       if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`)
       await db.rpc('report_mark_sent', { p_id: s.id, p_title: subject, p_link: LINKS[s.report_code] || '/' })

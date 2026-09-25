@@ -175,6 +175,7 @@ export const ADMIN_PILLS = [
   { id: 'admin_sites',       label: 'Sites',        icon: 'location_city',     color: '#E65100' },
   { id: 'admin_invitations', label: 'Invitations',  icon: 'mail',              color: '#6A1B9A' },
   { id: 'admin_approval_routes', label: 'Approval Routes', icon: 'alt_route', color: '#4527A0' },
+  { id: 'admin_ask',         label: 'Ask Bravura',  icon: 'auto_awesome',      color: '#982329' },
   { id: 'admin_settings',    label: 'Settings',     icon: 'settings',          color: '#546E7A' },
   { id: 'admin_audit',       label: 'Audit Log',    icon: 'history',           color: '#C62828' },
 ]

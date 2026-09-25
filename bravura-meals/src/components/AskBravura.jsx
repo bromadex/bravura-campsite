@@ -18,10 +18,11 @@ const AskCtx = createContext(null)
 export function AskProvider({ moduleId, page, title, contentRef, children }) {
   const pageData = useRef(null)
   const [open, setOpen] = useState(false)
-  const value = { moduleId, page, title, contentRef, pageData, open, setOpen }
+  const [pending, setPending] = useState(null)   // a question sent in with the 'open-ask-bravura' event (e.g. from the daily brief)
+  const value = { moduleId, page, title, contentRef, pageData, open, setOpen, pending, setPending }
   useEffect(() => {
     const onKey = e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setOpen(o => !o) } }
-    const onOpen = () => setOpen(true)
+    const onOpen = e => { setOpen(true); if (e?.detail?.question) setPending(e.detail.question) }
     window.addEventListener('keydown', onKey)
     window.addEventListener('open-ask-bravura', onOpen)
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('open-ask-bravura', onOpen) }
@@ -127,7 +128,57 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
   const [reading, setReading] = useState(false)
   const [fileErr, setFileErr] = useState('')
   const fileInput = useRef(null)
-  const rawFiles = useRef({})   // message index → original File objects (memory only), filed on a record after Confirm
+  const rawFiles = useRef({})
+  // B7 voice notes: record → text (Whisper on Groq) → into the box to check before sending.
+  // On a weak connection the recording is kept and sent again when the phone is back online.
+  const [rec, setRec] = useState(null)          // { recorder, chunks, started }
+  const [voiceBusy, setVoiceBusy] = useState(false)
+  const [voiceQueued, setVoiceQueued] = useState(null)   // { base64, type } waiting to be sent
+  const [elapsed, setElapsed] = useState(0)
+  const viaVoice = useRef(false)
+  useEffect(() => { if (!rec) return; const t = setInterval(() => setElapsed(Math.round((Date.now() - rec.started) / 1000)), 500); return () => clearInterval(t) }, [rec])
+  async function transcribe(item) {
+    setVoiceBusy(true); setFileErr('')
+    try {
+      const { data, error } = await supabase.functions.invoke('ask-bravura', { body: { transcribe: item } })
+      if (error || data?.error) throw new Error(data?.error || (await error.context?.json?.().catch(() => null))?.error || error.message)
+      setVoiceQueued(null)
+      if (data.text) { setQ(prev => (prev ? prev + ' ' : '') + data.text); viaVoice.current = true }
+      else setFileErr('No words heard — try again closer to the phone')
+    } catch (e) {
+      if (!navigator.onLine || /fetch|network|Failed/i.test(e.message)) { setVoiceQueued(item); setFileErr('No connection — the voice note will be sent when you are back online') }
+      else setFileErr(e.message)
+    }
+    setVoiceBusy(false)
+  }
+  useEffect(() => {
+    if (!voiceQueued) return
+    const retry = () => transcribe(voiceQueued)
+    window.addEventListener('online', retry)
+    return () => window.removeEventListener('online', retry)
+  }, [voiceQueued]) // eslint-disable-line react-hooks/exhaustive-deps
+  async function toggleRecord() {
+    if (rec) { rec.recorder.stop(); return }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return setFileErr('This browser cannot record voice notes')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported?.(t)) || ''
+      const recorder = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 32000 } : undefined)
+      const chunks = []
+      recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data) }
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        setRec(null); setElapsed(0)
+        const blob = new Blob(chunks, { type: recorder.mimeType || type || 'audio/webm' })
+        if (blob.size < 1500) return setFileErr('That was too short — hold on a little longer')
+        const base64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.readAsDataURL(blob) })
+        transcribe({ audio: base64, type: blob.type })
+      }
+      recorder.start(1000)
+      setRec({ recorder, started: Date.now() })
+      setTimeout(() => { if (recorder.state === 'recording') recorder.stop() }, 120000)   // 2 minutes max
+    } catch (e) { setFileErr(/denied|allowed/i.test(e.message) ? 'Allow the microphone to record voice notes' : e.message) }
+  }   // message index → original File objects (memory only), filed on a record after Confirm
   const end = useRef(null)
 
   async function addFiles(list) {
@@ -154,10 +205,12 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
     } : null
     const fileNames = sending.map(f => f.name)
     setChat(c => { rawFiles.current[c.length] = sending.map(f => f.raw).filter(Boolean); return [...c, { q: question || (fileNames.length ? 'What is this? Match it to our records.' : ''), a: null, screen: !!page, files: fileNames }] })
-    const { data, error } = await supabase.functions.invoke('ask-bravura', { body: { question, site_id: currentSiteId, history, page,
+    const via = viaVoice.current ? 'voice' : undefined
+    viaVoice.current = false
+    const { data, error } = await supabase.functions.invoke('ask-bravura', { body: { question, site_id: currentSiteId, history, page, via,
       files: sending.map(f => ({ name: f.name, type: f.type, images: f.images, text: f.text })) } })
     const a = error ? (await error.context?.json?.().catch(() => null))?.error || 'The assistant could not be reached. Try again in a minute.' : data?.answer
-    setChat(c => c.map((m, i) => i === c.length - 1 ? { ...m, a, links: data?.links || [], tools: data?.tools || [], id: data?.id,
+    setChat(c => c.map((m, i) => i === c.length - 1 ? { ...m, a, links: data?.links || [], tools: data?.tools || [], id: data?.id, check: data?.check_figures || [],
       actions: (data?.actions || []).map(x => ({ ...x, state: 'proposed' })) } : m))
     setBusy(false)
   }, [q, busy, reading, files, chat, pageInfo, useScreen, currentSiteId])
@@ -183,6 +236,13 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
     await supabase.rpc('ai_action_cancel', { p_id: x.id, p_error: null })
     setAction(mi, x.id, { state: 'cancelled' })
   }
+
+  useEffect(() => {
+    if (!pageInfo?.pending || busy) return
+    const qq = pageInfo.pending
+    pageInfo.setPending(null)
+    ask(qq)
+  }, [pageInfo?.pending]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function rate(m, v) {
     if (!m.id) return
@@ -211,10 +271,12 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
                 <li><b>Every module</b> — fuel used and tank levels, fleet services and expiring papers, stock on hand, who's on leave, safety incidents, meals served, camp beds.</li>
                 <li><b>Read a document</b> — attach a photo or PDF of an invoice, delivery note, quote or receipt (📎, paste or drop it). I read it, find the supplier and PO, and point out differences. Nothing is saved unless you confirm an action — then the file is kept on that record.</li>
                 <li><b>Do things — with your OK</b> — receive a delivery, draft a bill from an invoice, record a petty cash spend, or draft a purchase request. I show a card; nothing is saved until you press Confirm.</li>
+                <li><b>Talk to me</b> — tap 🎤 and say it ("received 20 bags of cement on PO 12, two torn"). I turn it into text for you to check.</li>
+                <li><b>Your day</b> — approvals waiting, late deliveries, low stock, things expiring, budgets at risk, and alerts like unusual fuel draws or duplicate bills.</li>
                 <li><b>Find anything</b> — a PO, request, supplier, vehicle, employee, stock item or incident by number or name.</li>
                 <li><b>Open records</b> — POs, requests and journals I mention are clickable.</li>
               </ul>
-              <div style={{ fontSize: 12, color: FIN.faint }}>Coming soon: approvals, POs from quotes, and a daily brief.</div>
+              <div style={{ fontSize: 12, color: FIN.faint }}>I only quote figures from your records — if I can't trace one, I'll say so.</div>
             </div>
             <div style={{ fontSize: 12, color: FIN.muted }}>Try:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -233,6 +295,11 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {m.links.map(l => <button key={l.path + l.label} onClick={() => { navigate(l.path); if (compact) onClose?.() }}
                     style={{ padding: '3px 10px', borderRadius: 12, border: `1px solid ${FIN.blue}40`, background: FIN.blueTint, color: FIN.blue, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600 }}>{l.label} ↗</button>)}
+                </div>
+              )}
+              {(m.check || []).length > 0 && (
+                <div style={{ marginTop: 8, fontSize: 12, color: FIN.ochreText, background: FIN.ochreTint, border: `1px solid ${FIN.ochreLine}`, borderRadius: 8, padding: '5px 9px' }}>
+                  ⚠ Check {m.check.length > 1 ? 'these figures' : 'this figure'}: {m.check.join(', ')} — I couldn't trace {m.check.length > 1 ? 'them' : 'it'} to your records.
                 </div>
               )}
               {(m.actions || []).map(x => <ActionCard key={x.id} x={x} onConfirm={() => confirmAction(i, x)} onCancel={() => cancelAction(i, x)}
@@ -261,7 +328,7 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
             Using this screen{pageInfo.title ? `: ${pageInfo.title}` : ''}
           </label>
         )}
-        {(files.length > 0 || reading || fileErr) && (
+        {(files.length > 0 || reading || fileErr || voiceBusy || voiceQueued) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             {files.map((f, i) => (
               <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 6px 3px 3px', borderRadius: 8, border: `1px solid ${FIN.field}`, background: '#fff', fontSize: 12.5, maxWidth: 240 }}>
@@ -271,6 +338,8 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
               </span>
             ))}
             {reading && <span style={{ fontSize: 12, color: FIN.faint }}>Reading the file…</span>}
+            {voiceBusy && <span style={{ fontSize: 12, color: FIN.faint }}>Turning your voice note into text…</span>}
+            {voiceQueued && !voiceBusy && <button type="button" onClick={() => transcribe(voiceQueued)} style={{ fontSize: 12, border: 'none', background: 'none', color: FIN.blue, cursor: 'pointer', padding: 0 }}>Try sending the voice note again</button>}
             {fileErr && <span style={{ fontSize: 12, color: FIN.bad }}>{fileErr}</span>}
           </div>
         )}
@@ -278,6 +347,11 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
           <input ref={fileInput} type="file" accept="image/*,application/pdf" multiple hidden onChange={e => { addFiles(e.target.files); e.target.value = '' }} />
           <button type="button" onClick={() => fileInput.current?.click()} disabled={files.length >= 3 || reading} aria-label="Attach a photo or PDF" title="Attach an invoice, delivery note, quote or receipt (photo or PDF)"
             style={{ minHeight: 44, width: 44, flexShrink: 0, background: '#fff', border: `1px solid ${FIN.field}`, borderRadius: 10, cursor: 'pointer', fontSize: 18, color: FIN.muted }}>📎</button>
+          <button type="button" onClick={toggleRecord} disabled={voiceBusy} aria-label={rec ? 'Stop recording' : 'Record a voice note'} aria-pressed={!!rec}
+            title={rec ? 'Tap to stop' : 'Record a voice note (up to 2 minutes)'}
+            style={{ minHeight: 44, minWidth: 44, flexShrink: 0, padding: rec ? '0 10px' : 0, background: rec ? FIN.bad : '#fff', border: `1px solid ${rec ? FIN.bad : FIN.field}`, borderRadius: 10, cursor: 'pointer', fontSize: rec ? 13 : 18, color: rec ? '#fff' : FIN.muted, fontFamily: 'inherit', fontWeight: 600 }}>
+            {rec ? `■ ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}` : '🎤'}
+          </button>
           <input id="ask-bravura-q" aria-label="Ask Bravura" autoFocus={compact} value={q} onChange={e => setQ(e.target.value)} placeholder={files.length ? 'Ask about the file, or just press Ask' : 'Ask anything…'}
             onPaste={e => { const imgs = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith('image/')); if (imgs.length) { e.preventDefault(); addFiles(imgs) } }}
             style={{ flex: 1, minHeight: 44, padding: '8px 12px', borderRadius: 10, border: `1px solid ${FIN.field}`, fontFamily: 'inherit', fontSize: 14, color: FIN.ink, background: '#fff' }} />

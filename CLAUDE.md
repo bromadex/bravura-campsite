@@ -335,7 +335,9 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   `fi_budgets` (also PR11) — one budget store `procurement_budgets` + `budget_months` (`monthly_split`),
   `fin_budget_vs_actual` = plan vs ledger actual vs committed POs. Phase 5 (0208): Bank & Cash FI23 `fi_bank` (replaces fi_reconciliation) — `bank_import_lines` (dedupe),
   `bank_auto_match` (journal same amount ±5d, then `bank_match_rules`), `bank_confirm_line`, `bank_unmatch_line`
-  (voids created JV), `bank_save_rule`, `bank_rec_summary`. Statement lines writable only via RPCs. Migrations continue at 0209.
+  (voids created JV), `bank_save_rule`, `bank_rec_summary`. Statement lines writable only via RPCs. Phase 6 (0209): Reports FI24 `fi_reports` (replaces TB/P&L/BS/cash-flow pages; `fin_statements`, `fin_explore`)
+  and Month-end FI25 `fi_month_end` (`finance_periods`, `fin_close_checklist/close/reopen`; `trg_period_lock`
+  blocks journals dated in a closed month). Migrations continue at 0210.
 
 ## Improvement backlog (agreed with user, work top-down)
 

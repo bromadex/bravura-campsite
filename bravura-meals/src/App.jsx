@@ -168,10 +168,6 @@ const FIChartOfAccounts   = lazy(() => import('./pages/finance/ChartOfAccounts')
 const FIJournalEntries    = lazy(() => import('./pages/finance/JournalEntries'))
 const FIJournalEntryDetail = lazy(() => import('./pages/finance/JournalEntryDetail'))
 const FIBankAccounts       = lazy(() => import('./pages/finance/BankAccounts'))
-const FITrialBalance       = lazy(() => import('./pages/finance/TrialBalance'))
-const FIProfitAndLoss      = lazy(() => import('./pages/finance/ProfitAndLoss'))
-const FIBalanceSheet       = lazy(() => import('./pages/finance/BalanceSheet'))
-const FICashFlow           = lazy(() => import('./pages/finance/CashFlowStatement'))
 const FICostCentres        = lazy(() => import('./pages/finance/CostCentres'))
 const FICostCentreReport   = lazy(() => import('./pages/finance/CostCentreReport'))
 const FIPostingRules       = lazy(() => import('./pages/finance/PostingRules'))
@@ -186,6 +182,8 @@ const FIPaySuppliers       = lazy(() => import('./pages/finance/PaySuppliers'))
 const FIFinanceHome        = lazy(() => import('./pages/finance/FinanceHome'))
 const FIBudgets            = lazy(() => import('./pages/finance/FinanceBudgets'))
 const FIBank               = lazy(() => import('./pages/finance/FinanceBank'))
+const FIReports            = lazy(() => import('./pages/finance/FinanceReports'))
+const FIMonthEnd           = lazy(() => import('./pages/finance/FinanceMonthEnd'))
 const MeHome               = lazy(() => import('./pages/me/MeHome'))
 const MyPayslips           = lazy(() => import('./pages/me/MyPayslips'))
 const MyLeave              = lazy(() => import('./pages/me/MyLeave'))
@@ -703,10 +701,10 @@ function getFinancePage(page, can, setPage) {
     case 'fi_journal_detail':    return <FIJournalEntryDetail setPage={setPage} entryId={param} />
     case 'fi_bank_accounts':     return <FIBankAccounts setPage={setPage} />
     case 'fi_reconciliation':    return <FIBank setPage={setPage} />  // replaced by Bank & cash matching (0208)
-    case 'fi_trial_balance':     return <FITrialBalance setPage={setPage} />
-    case 'fi_profit_and_loss':   return <FIProfitAndLoss setPage={setPage} />
-    case 'fi_balance_sheet':     return <FIBalanceSheet setPage={setPage} />
-    case 'fi_cash_flow':         return <FICashFlow setPage={setPage} />
+    case 'fi_trial_balance': return <FIReports setPage={setPage} />  // one Reports screen (0209)
+    case 'fi_profit_and_loss': return <FIReports setPage={setPage} />  // one Reports screen (0209)
+    case 'fi_balance_sheet': return <FIReports setPage={setPage} />  // one Reports screen (0209)
+    case 'fi_cash_flow': return <FIReports setPage={setPage} />  // one Reports screen (0209)
     case 'fi_cost_centres':      return <FICostCentres setPage={setPage} />
     case 'fi_cost_report':       return <FICostCentreReport setPage={setPage} />
     case 'fi_dashboard':         return <FIFinanceHome setPage={setPage} />  // new Finance Home (0207)
@@ -721,6 +719,8 @@ function getFinancePage(page, can, setPage) {
     case 'fi_pay_suppliers':     return <FIPaySuppliers setPage={setPage} />
     case 'fi_budgets':           return <FIBudgets setPage={setPage} />
     case 'fi_bank':              return <FIBank setPage={setPage} />
+    case 'fi_reports':           return <FIReports setPage={setPage} />
+    case 'fi_month_end':         return <FIMonthEnd setPage={setPage} />
     default:                     return <FIFinanceHome setPage={setPage} />
   }
 }

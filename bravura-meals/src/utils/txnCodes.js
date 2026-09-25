@@ -233,6 +233,8 @@ export const TXN_CODES = [
   { code: 'FI21', path: '/finance/fi_pay_suppliers',   label: 'Pay Suppliers',           module: 'finance' },
   { code: 'FI22', path: '/finance/fi_budgets',         label: 'Budgets',                 module: 'finance' },
   { code: 'FI23', path: '/finance/fi_bank',            label: 'Bank & Cash Matching',    module: 'finance' },
+  { code: 'FI24', path: '/finance/fi_reports',         label: 'Finance Reports & Explorer', module: 'finance' },
+  { code: 'FI25', path: '/finance/fi_month_end',       label: 'Month-end Close',         module: 'finance' },
 
   // ── Batch Plant Operations ──
   { code: 'CO01', path: '/concrete/co_dashboard',       label: 'Concrete Dashboard',   module: 'concrete' },

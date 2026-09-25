@@ -430,6 +430,16 @@ export default function QuickStartGuide() {
       )}
 
       {(can('finance.view') || can('finance.edit')) && (
+        <Section icon="event_available" color={MODULE_COLORS.finance} title="Finance — reports and month-end">
+          <Steps items={[
+            <><b>Reports &amp; Explorer</b> (<Code>FI24</Code>): Operating costs (this period, the period before and year to date — a costs statement, since Bravura doesn't sell), Balance sheet, Trial balance and Cash flow for any period. Export to CSV or print.</>,
+            <>The <b>Explorer</b> tab splits costs by heading, account, cost centre, project, month or where they came from (fuel, payroll, bills…).</>,
+            <><b>Month-end</b> (<Code>FI25</Code>) lists the checks for each month: no draft journals, no postings waiting, bank reconciled, payroll approved, depreciation run, bills approved. Someone with finance approval closes the month — add a note if an optional check isn't done.</>,
+            <>A closed month is locked: nothing can be posted into it. Reopen it with a reason if a correction is needed. Months close in order.</>,
+          ]} />
+        </Section>
+      )}
+      {(can('finance.view') || can('finance.edit')) && (
         <Section icon="account_balance" color={MODULE_COLORS.finance} title="Finance — bank statements and reconciliation">
           <Steps items={[
             <>In <b>Bank &amp; Cash</b> (<Code>FI23</Code>) press <b>Import statement</b> and choose the CSV or Excel file from internet banking. Check the columns (date, description, amount or money in/out) and import — lines already imported are skipped.</>,

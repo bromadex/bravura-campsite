@@ -217,6 +217,7 @@ const InvHome        = lazy(() => import('./pages/inventory/InvHome'))
 const InvScan        = lazy(() => import('./pages/inventory/InvScan'))
 const InvHealth      = lazy(() => import('./pages/inventory/InvHealth'))
 const InvKits        = lazy(() => import('./pages/inventory/InvKits'))
+const InvSetup       = lazy(() => import('./pages/inventory/InvSetup'))
 
 // ── Procurement ───────────────────────────────────────────────────────────────
 const ProcHome = lazy(() => import('./pages/procurement/ProcHome'))
@@ -628,10 +629,10 @@ function getInventoryPage(page, can, setPage) {
     case 'inv_dashboard':   return <InvHome setPage={setPage} />
     case 'inv_scan':        return <InvScan setPage={setPage} />
     case 'inv_health':      return <InvHealth setPage={setPage} />
-    case 'inv_kits':        return <InvKits setPage={setPage} />
+    case 'inv_kits':        return <InvSetup setPage={setPage} initialTab="kits" key="kits" />
     case 'inv_items':       return invFramed('Items', <InvItems setPage={setPage} />)
-    case 'inv_categories':  return invFramed('Categories & units', <InvCategories setPage={setPage} />)
-    case 'inv_warehouses':  return invFramed('Stores', <InvWarehouses setPage={setPage} />)
+    case 'inv_categories':  return <InvSetup setPage={setPage} initialTab="categories" key="categories" />
+    case 'inv_warehouses':  return <InvSetup setPage={setPage} initialTab="stores" key="stores" />
     case 'inv_balances':    return invFramed('Balances', <InvBalances setPage={setPage} />)
     case 'inv_grn':         return invFramed('Receive without a PO', <InvGrn setPage={setPage} />)
     case 'inv_issues':      return invFramed('Issue & return', <InvIssues setPage={setPage} />)
@@ -639,12 +640,12 @@ function getInventoryPage(page, can, setPage) {
     case 'inv_adjustments': return invFramed('Adjust & scrap', <InvAdjustments setPage={setPage} />)
     case 'inv_ledger':      return invFramed('Stock ledger', <InvLedger setPage={setPage} />)
     case 'inv_reports':     return invFramed('Reports', <InvReports setPage={setPage} />)
-    case 'inv_settings':    return invFramed('Settings', <InvSettings setPage={setPage} />)
+    case 'inv_settings':    return <InvSetup setPage={setPage} key="general" />
     case 'inv_stock_take':  return invFramed('Counts', <InvStockTake setPage={setPage} />)
     case 'inv_reorder':       return can('inventory.view') ? invFramed('Reorder & expiry', <InvReorderExpiry setPage={setPage} />) : null
-    case 'inv_bins':          return <InvBins setPage={setPage} />
+    case 'inv_bins':          return <InvSetup setPage={setPage} initialTab="bins" key="bins" />
     case 'inv_levels':        return <InvLevels setPage={setPage} />
-    case 'inv_import':        return <InvImport setPage={setPage} />
+    case 'inv_import':        return <InvSetup setPage={setPage} initialTab="import" key="import" />
     case 'inv_transfers':     return <InvTransfers setPage={setPage} />
     case 'inv_position':      return <InvPosition setPage={setPage} />
     case 'inv_requisitions': return <ProcRequests setPage={setPage} />  // one Requests screen (#52)

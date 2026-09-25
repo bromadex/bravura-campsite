@@ -431,6 +431,7 @@ export function inventoryNav(role, can) {
     { id: 'inv_items',        label: 'Items',                section: 'Stock',     icon: 'category' },
     { id: 'inv_ledger',       label: 'Stock ledger',         section: 'Stock',     icon: 'menu_book' },
     { id: 'inv_stock_take',   label: 'Counts',               section: 'Stock',     icon: 'fact_check' },
+    { id: 'inv_levels',       label: 'Store levels',         section: 'Stock',     icon: 'tune' },
     { id: 'inv_reorder',      label: 'Reorder & expiry',     section: 'Replenish', icon: 'production_quantity_limits' },
     { id: 'inv_purchase_orders', label: 'Purchase orders',   section: 'Replenish', icon: 'shopping_cart' },
     { id: 'inv_site_moves',   label: 'Move between stores',  section: 'Other moves', icon: 'swap_horiz' },
@@ -438,13 +439,7 @@ export function inventoryNav(role, can) {
     { id: 'inv_grn',          label: 'Receive without a PO', section: 'Other moves', icon: 'move_to_inbox' },
     { id: 'inv_health',       label: 'Stock health',         section: 'Reports',   icon: 'monitor_heart' },
     { id: 'inv_reports',      label: 'More reports',         section: 'Reports',   icon: 'bar_chart' },
-    { id: 'inv_levels',       label: 'Store levels',         section: 'Setup',     icon: 'tune' },
-    { id: 'inv_warehouses',   label: 'Stores',               section: 'Setup',     icon: 'warehouse' },
-    { id: 'inv_bins',         label: 'Bins & labels',        section: 'Setup',     icon: 'shelves' },
-    { id: 'inv_kits',         label: 'Kits',                 section: 'Setup',     icon: 'medical_services' },
-    { id: 'inv_categories',   label: 'Categories & units',   section: 'Setup',     icon: 'account_tree' },
-    { id: 'inv_import',       label: 'Import items',         section: 'Setup',     icon: 'upload_file' },
-    { id: 'inv_settings',     label: 'Settings',             section: 'Setup',     icon: 'settings' },
+    { id: 'inv_settings',     label: 'Settings',             section: 'Settings',     icon: 'settings' },
   ]
 }
 

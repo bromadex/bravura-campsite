@@ -1,5 +1,5 @@
 import { FIN, useFinanceFonts } from '../utils/financeTheme'
-import { FinEmbedContext } from './finEmbed'
+import { FinEmbedContext, useFinEmbedded } from './finEmbed'
 import { useSite } from '../contexts/SiteContext'
 
 // The Finance module's frame (issue #49 design): ground, IBM Plex type, serif title, breadcrumb,
@@ -22,6 +22,20 @@ export default function FinShell({ title, subtitle, actions, tabs, tab, onTab, s
   module = 'Finance', homePage = 'fi_dashboard', siteText }) {
   useFinanceFonts()
   const { currentSite } = useSite()
+  const nested = useFinEmbedded()
+  // Inside another finance-look page (e.g. a tab of a settings hub): no second header or ground — actions, tabs and content only.
+  if (nested) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {(subtitle || actions) && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 13, color: FIN.muted }}>{subtitle}</div>
+        {actions && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>{actions}</div>}
+      </div>}
+      {tabs && <div role="tablist" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{tabs.filter(Boolean).map(t => (
+        <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => onTab(t.key)} style={{ minHeight: 36, padding: '0 14px', borderRadius: 18, fontFamily: 'inherit', fontSize: 13, cursor: 'pointer',
+          ...(tab === t.key ? { border: 'none', background: FIN.ink, color: '#fff' } : { border: `1px solid ${FIN.field}`, background: '#fff', color: FIN.ink }) }}>{t.label}</button>))}</div>}
+      {children}
+    </div>
+  )
   const narrow = typeof window !== 'undefined' && window.innerWidth < 768
   return (
     <div style={{ ...SCOPED_THEME, fontFamily: FIN.sans, color: FIN.ink, background: FIN.ground, margin: narrow ? -14 : -24, padding: narrow ? '18px 14px' : '28px 32px',

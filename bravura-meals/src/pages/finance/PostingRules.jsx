@@ -13,6 +13,7 @@ const EVENTS = [
   { code: 'fuel_delivery',      group: 'Fuel',        label: 'Fuel delivered into site tanks',        debit: 'Fuel stock (asset)',               credit: 'Supplier payables (liability)' },
   { code: 'fuel_issue',         group: 'Fuel',        label: 'Fuel issued to vehicles & equipment',   debit: 'Fuel expense',                     credit: 'Fuel stock (asset)' },
   { code: 'grn_accepted',       group: 'Procurement', label: 'Goods received & accepted',             debit: 'Stores stock or expense',          credit: 'Goods received not invoiced' },
+  { code: 'landed_cost',        group: 'Procurement', label: 'Landed cost (freight, duty, clearing) on a GRN', debit: 'Stores stock',              credit: 'Freight / clearing accrued (or supplier)' },
   { code: 'invoice_approved',   group: 'Procurement', label: 'Supplier invoice approved',             debit: 'Goods received not invoiced',      credit: 'Supplier payables (liability)' },
   { code: 'invoice_paid',       group: 'Procurement', label: 'Supplier invoice paid',                 debit: 'Supplier payables (liability)',    credit: 'Bank' },
   { code: 'payroll_net',        group: 'Payroll',     label: 'Payroll approved — net pay',            debit: 'Salaries & wages expense',         credit: 'Net pay payable' },

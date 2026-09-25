@@ -16,6 +16,117 @@ const inp = {
   color: THEME.text, fontFamily: 'inherit', boxSizing: 'border-box',
 }
 
+const COST_TYPES = [['freight', 'Freight / transport'], ['customs_duty', 'Customs duty'], ['clearing', 'Clearing agent'],
+  ['insurance', 'Insurance'], ['handling', 'Handling / offloading'], ['other', 'Other']]
+const LC_EMPTY = { cost_type: 'freight', amount: '', allocation_method: 'value', supplier_id: '', reference: '', description: '' }
+
+// Landed costs on an accepted GRN (0201): drafted here, then applied — the amount is spread over
+// the GRN's lines and added to the stock value (moving-average cost) and the ledger.
+function LandedCosts({ grn, suppliers, siteId }) {
+  const { can } = usePermissions()
+  const [rows, setRows] = useState([])
+  const [form, setForm] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('grn_landed_costs').select('*, supplier:procurement_suppliers(supplier_name)')
+      .eq('grn_id', grn.id).eq('site_id', siteId).eq('is_archived', false).order('created_at')
+    setRows(data || [])
+  }, [grn.id, siteId])
+  useEffect(() => { load() }, [load])
+
+  const goodsValue = (grn.grn_lines || []).reduce((t, l) => t + (l.quantity_received - (l.quantity_rejected || 0)) * (l.unit_price || 0), 0)
+  const applied = rows.filter(r => r.status === 'applied').reduce((t, r) => t + Number(r.amount), 0)
+  const fmt = n => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  async function save() {
+    const amount = parseFloat(form.amount)
+    if (!amount) return showToast('Enter an amount', 'red')
+    setBusy(true)
+    const { error } = await supabase.from('grn_landed_costs').insert({
+      site_id: siteId, grn_id: grn.id, cost_type: form.cost_type, amount, allocation_method: form.allocation_method,
+      supplier_id: form.supplier_id || null, reference: form.reference || null, description: form.description || null,
+    })
+    setBusy(false)
+    if (error) return showToast(error.message, 'red')
+    setForm(null); load()
+  }
+  async function apply(r) {
+    if (!window.confirm(`Apply ${fmt(r.amount)} to the stock cost on ${grn.grn_number}? This can't be undone — a mistake is corrected with a negative landed cost.`)) return
+    setBusy(true)
+    const { error } = await supabase.rpc('proc_apply_landed_cost', { p_id: r.id })
+    setBusy(false)
+    if (error) return showToast(error.message, 'red')
+    showToast('Landed cost applied to stock'); load()
+  }
+  async function cancel(r) {
+    const { error } = await supabase.from('grn_landed_costs').update({ status: 'cancelled' }).eq('id', r.id).eq('site_id', siteId)
+    if (error) return showToast(error.message, 'red')
+    load()
+  }
+
+  const lbl = { fontSize: '11px', color: THEME.textMed, marginBottom: '2px', display: 'block' }
+  return (
+    <div style={{ border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '8px', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>Landed costs</div>
+          <div style={{ fontSize: '12px', color: THEME.textMed }}>
+            Goods {fmt(goodsValue)} + landed {fmt(applied)} = <b style={{ color: THEME.text }}>{fmt(goodsValue + applied)}</b>
+            {goodsValue > 0 && applied !== 0 && <> ({((applied / goodsValue) * 100).toFixed(1)}% on top)</>}
+          </div>
+        </div>
+        {!form && can('procurement.create') && <Button size="sm" onClick={() => setForm({ ...LC_EMPTY })}><Icon name="add" size={14} /> Add cost</Button>}
+      </div>
+
+      {rows.length === 0 && !form && <div style={{ fontSize: '12px', color: THEME.textLow }}>No freight, duty or clearing costs added.</div>}
+      {rows.map(r => (
+        <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderTop: `1px solid ${THEME.outlineVar}`, fontSize: '13px', flexWrap: 'wrap', opacity: r.status === 'cancelled' ? 0.5 : 1 }}>
+          <span style={{ flex: '1 1 160px', color: THEME.text }}>
+            {(COST_TYPES.find(c => c[0] === r.cost_type) || [, r.cost_type])[1]}
+            {r.supplier?.supplier_name && <span style={{ color: THEME.textMed }}> · {r.supplier.supplier_name}</span>}
+            {r.reference && <span style={{ color: THEME.textLow }}> · {r.reference}</span>}
+            <span style={{ color: THEME.textLow }}> · by {r.allocation_method}</span>
+          </span>
+          <b style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(r.amount)}</b>
+          <StatusBadge status={r.status} />
+          {r.status === 'draft' && (can('procurement.edit') || can('procurement.approve')) && <>
+            <Button size="sm" disabled={busy} onClick={() => apply(r)} style={{ background: '#2E7D32', color: '#fff' }}>Apply</Button>
+            <Button size="sm" disabled={busy} onClick={() => cancel(r)} style={{ background: THEME.surfaceVar, color: THEME.text }}>Cancel</Button>
+          </>}
+          {r.status === 'applied' && Array.isArray(r.allocation) && (
+            <div style={{ flexBasis: '100%', fontSize: '11px', color: THEME.textLow }}>
+              {r.allocation.map(a => `${a.item}: ${fmt(a.amount)}${a.stocked ? '' : ' (not stocked)'}`).join(' · ')}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {form && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', marginTop: '8px', borderTop: `1px solid ${THEME.outlineVar}`, paddingTop: '10px' }}>
+          <label><span style={lbl}>Cost</span>
+            <select style={inp} value={form.cost_type} onChange={e => setForm({ ...form, cost_type: e.target.value })}>
+              {COST_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+          <label><span style={lbl}>Amount (USD)</span>
+            <input type="number" step="0.01" style={inp} value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="e.g. 250.00" /></label>
+          <label><span style={lbl}>Split over lines by</span>
+            <select style={inp} value={form.allocation_method} onChange={e => setForm({ ...form, allocation_method: e.target.value })}>
+              <option value="value">Value</option><option value="quantity">Quantity</option></select></label>
+          <label><span style={lbl}>Paid to (optional)</span>
+            <select style={inp} value={form.supplier_id} onChange={e => setForm({ ...form, supplier_id: e.target.value })}>
+              <option value="">—</option>{suppliers.map(s => <option key={s.id} value={s.id}>{s.supplier_name}</option>)}</select></label>
+          <label><span style={lbl}>Their invoice no. (optional)</span>
+            <input style={inp} value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></label>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end' }}>
+            <Button size="sm" disabled={busy} onClick={save} style={{ background: ACCENT_LC, color: '#fff' }}>Save draft</Button>
+            <Button size="sm" onClick={() => setForm(null)} style={{ background: THEME.surfaceVar, color: THEME.text }}>Cancel</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+const ACCENT_LC = MODULE_COLORS.procurement || '#6A1B9A'
+
 export default function ProcGRN({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
@@ -261,6 +372,10 @@ export default function ProcGRN({ setPage }) {
                 ))}
               </tbody>
             </table>
+
+            {['accepted', 'accepted_partial'].includes(detail.status) && (
+              <LandedCosts grn={detail} suppliers={suppliers} siteId={currentSiteId} />
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               {detail.status === 'draft' && can('procurement.edit') && (

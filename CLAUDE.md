@@ -317,7 +317,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (department_id); hired plant lives in Contractors (hired_vehicles/equipment). Retired tables
   are frozen by `trg_moved_to_sheq` triggers — don't write to them.
 - Connect: cursor pagination, payload realtime, keyboard pickers, typing indicators
-  (broadcast) and edit history (`chat_message_edits`, 0200) done. Migrations continue at 0201.
+  (broadcast) and edit history (`chat_message_edits`, 0200) done.
+- Landed cost on GRNs (0201, `grn_landed_costs` + `proc_apply_landed_cost`): value-only
+  `landed_cost` stock movements raise moving-average cost; ledger event `landed_cost`.
+  Governance policies can link a DocShare document (`ds_document_id`). Migrations continue at 0202.
 
 ## Improvement backlog (agreed with user, work top-down)
 

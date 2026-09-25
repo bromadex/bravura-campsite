@@ -1,3 +1,4 @@
+import DocumentViewer from '../../components/DocumentViewer'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -56,7 +57,24 @@ export default function Policies({ setPage }) {
   const [toast, setToast] = useState('')
 
   // Form state
-  const [form, setForm] = useState({ title: '', body: '', category: '', version: '1.0', is_mandatory: false, acknowledge_by: '' })
+  const [form, setForm] = useState({ title: '', body: '', category: '', version: '1.0', is_mandatory: false, acknowledge_by: '', ds_document_id: '' })
+
+  // Controlled documents in DocShare that a policy can point to (the file lives in DocShare).
+  const [dsDocs, setDsDocs] = useState([])
+  const [viewer, setViewer] = useState(null)
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase.from('ds_documents').select('id, title, document_number, file_path, file_name, file_type')
+      .eq('site_id', currentSiteId).eq('is_archived', false).order('title')
+      .then(({ data }) => setDsDocs(data || []))
+  }, [currentSiteId])
+  async function openLinkedDoc(id) {
+    const d = dsDocs.find(x => x.id === id)
+    if (!d?.file_path) return showToast('That DocShare document has no file')
+    const { data, error } = await supabase.storage.from('docshare-files').createSignedUrl(d.file_path, 300)
+    if (error) return showToast('Could not open document: ' + error.message)
+    setViewer({ url: data.signedUrl, doc: d })
+  }
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
@@ -129,7 +147,7 @@ export default function Policies({ setPage }) {
   // Create / Edit
   function openCreate() {
     setEditPolicy(null)
-    setForm({ title: '', body: '', category: '', version: '1.0', is_mandatory: false, acknowledge_by: '' })
+    setForm({ title: '', body: '', category: '', version: '1.0', is_mandatory: false, acknowledge_by: '', ds_document_id: '' })
     setShowModal(true)
   }
 
@@ -138,7 +156,7 @@ export default function Policies({ setPage }) {
     setForm({
       title: p.title || '', body: p.body || '', category: p.category || '',
       version: p.version || '1.0', is_mandatory: !!p.is_mandatory,
-      acknowledge_by: p.acknowledge_by || '',
+      acknowledge_by: p.acknowledge_by || '', ds_document_id: p.ds_document_id || '',
     })
     setShowModal(true)
   }
@@ -157,7 +175,7 @@ export default function Policies({ setPage }) {
         title: form.title, body: form.body, body_html: form.body,
         category: form.category || null, version: newVersion,
         is_mandatory: form.is_mandatory,
-        acknowledge_by: form.acknowledge_by || null, updated_at: now,
+        acknowledge_by: form.acknowledge_by || null, ds_document_id: form.ds_document_id || null, updated_at: now,
       }).eq('id', editPolicy.id).eq('site_id', currentSiteId)
 
       if (error) { showToast('Save failed: ' + (error.message || 'Unknown error')); setSaving(false); return }
@@ -176,6 +194,7 @@ export default function Policies({ setPage }) {
         title: form.title, body: form.body, body_html: form.body,
         category: form.category || null, version: form.version || '1.0',
         is_mandatory: form.is_mandatory, acknowledge_by: form.acknowledge_by || null,
+        ds_document_id: form.ds_document_id || null,
         status: 'draft', is_pinned: false, is_archived: false,
         priority: 'normal', created_by: profile?.id, created_at: now, updated_at: now,
       })
@@ -434,6 +453,14 @@ export default function Policies({ setPage }) {
                   </label>
                 </div>
               </div>
+              <div>
+                <label htmlFor="pol-ds-doc" style={{ fontSize: 12, fontWeight: 600, color: THEME.textMed, marginBottom: 4, display: 'block' }}>Policy document in DocShare (optional)</label>
+                <select id="pol-ds-doc" style={inputStyle} value={form.ds_document_id} onChange={e => setForm({ ...form, ds_document_id: e.target.value })}>
+                  <option value="">— None —</option>
+                  {dsDocs.map(d => <option key={d.id} value={d.id}>{d.document_number ? `${d.document_number} · ` : ''}{d.title}</option>)}
+                </select>
+                <div style={{ fontSize: 11, color: THEME.textLow, marginTop: 4 }}>Upload the signed PDF to DocShare once and link it here, so there is one copy of the file.</div>
+              </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
               <button style={btnSecondary} onClick={() => setShowModal(false)}>Cancel</button>
@@ -467,6 +494,17 @@ export default function Policies({ setPage }) {
               </div>
               <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: THEME.textLow }} onClick={() => setDetailPolicy(null)}>&times;</button>
             </div>
+
+            {detailPolicy.ds_document_id && (() => {
+              const d = dsDocs.find(x => x.id === detailPolicy.ds_document_id)
+              return (
+                <button onClick={() => openLinkedDoc(detailPolicy.ds_document_id)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 12px', marginBottom: 14, background: THEME.surfaceVar, border: `1px solid ${THEME.outline}`, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: THEME.text, textAlign: 'left' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: THEME.primary }}>description</span>
+                  <span style={{ flex: 1 }}>{d ? `${d.document_number ? d.document_number + ' · ' : ''}${d.title}` : 'Linked DocShare document'}</span>
+                  <span style={{ color: THEME.primary, fontWeight: 600 }}>View</span>
+                </button>
+              )
+            })()}
 
             {/* Policy body */}
             {detailPolicy.body && (
@@ -532,6 +570,14 @@ export default function Policies({ setPage }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
               <button style={btnSecondary} onClick={() => setDetailPolicy(null)}>Close</button>
             </div>
+          </div>
+        </div>
+      )}
+      {viewer && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ width: '100%', maxWidth: 1000, height: '85vh' }}>
+            <DocumentViewer url={viewer.url} fileName={viewer.doc.file_name} fileType={viewer.doc.file_type}
+              title={viewer.doc.title} onClose={() => setViewer(null)} />
           </div>
         </div>
       )}

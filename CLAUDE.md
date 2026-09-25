@@ -429,7 +429,14 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 - Finance setup (FI20) for Selous and Manhizi — no CoA/rules yet. Harare done (mock opening).
 - Hired-vehicle usage log (daily/km) so vehicles accrue like hired equipment (`hired_plant_usage`).
 - Expected recurring bills with a missing-bill warning.
-- AI assistant: A1 built (see above). Next A2 project questions, A3 report commentary, A4 alerts, A5 receipts, A6 drafts.
+- **NEXT: Ask Bravura ERP-wide (#58, Stage 13)** — replaces A2–A6. Rules: tools only (ai_* RPCs as the asking user),
+  never writes on its own (proposal cards → person confirms → same RPCs as the screens), sources + logs
+  (ai_questions, ai_actions), figures only from tools / `calculate`. Phases: B1 floating button bottom-centre +
+  screen-aware (`useAskContext()` hook per screen, DOM-text fallback, "Using this screen" chip) + `calculate`
+  tool + clickable record links; B2 ai_* read functions for every module + `ai_find`; B3 files in chat (vision
+  read + match to supplier/PO, no save); B4 actions (receive items via proc_receive_po + file on GRN, draft bill,
+  petty cash, request, PO from quote, approvals); B5 ds_document_links + DocumentViewer on any record; B6 daily
+  brief + alerts + report commentary; B7 voice notes (Whisper on Groq). A1 (FI29) is live.
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

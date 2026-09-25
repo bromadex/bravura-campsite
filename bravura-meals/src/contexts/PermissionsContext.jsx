@@ -23,6 +23,12 @@ import { useSite } from './SiteContext'
 
 const PermissionsContext = createContext(null)
 
+// Screen-level names → permission codes stored in the database (same meaning).
+const CODE_ALIASES = {
+  'finance.view': 'FI01', 'finance.approve': 'FI02', 'finance.create': 'FI03',
+  'finance.edit': 'FI04', 'finance.delete': 'FI05',
+}
+
 export function PermissionsProvider({ children }) {
   const { profile } = useAuth()
   const { currentSiteId } = useSite()
@@ -84,9 +90,11 @@ export function PermissionsProvider({ children }) {
   // reference (or value object) forces a full-tree re-render on every
   // provider render. References only change when the grants or site change.
   const can = useCallback((code, siteId = currentSiteId) => {
-    if (allSiteGrants.has(code)) return true
-    if (siteId && siteScopedGrants.get(siteId)?.has(code)) return true
-    return false
+    const has = c => allSiteGrants.has(c) || (siteId && siteScopedGrants.get(siteId)?.has(c))
+    if (has(code)) return true
+    // Finance permissions are stored as FI01–FI05; screens ask for finance.view etc.
+    const alias = CODE_ALIASES[code]
+    return !!(alias && has(alias))
   }, [allSiteGrants, siteScopedGrants, currentSiteId])
 
   const canAny = useCallback(

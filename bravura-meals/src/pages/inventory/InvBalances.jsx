@@ -8,6 +8,7 @@ import { exportCsv } from '../../utils/csv'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast } from '../../components/ui'
 import QuickNav, { INVENTORY_PILLS } from '../../components/QuickNav'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
+import { useAskContext } from '../../components/AskBravura'
 
 const ACCENT = MODULE_COLORS.inventory
 
@@ -107,6 +108,8 @@ export default function InvBalances({ setPage }) {
     exportCsv('stock_balances.csv', headers, rows)
   }
 
+  useAskContext({ screen: 'Stock balances', filters: { search, store: whFilter, stock: stockFilter },
+    rows: filtered.slice(0, 80).map(b => ({ item: b.item?.description || b.item_id, code: b.item?.item_code, store: b.warehouse?.name, on_hand: b.on_hand_qty, value: b.stock_value })) })
   if (!can('inventory.view')) {
     return (
       <Card style={{ textAlign: 'center', padding: '40px' }}>

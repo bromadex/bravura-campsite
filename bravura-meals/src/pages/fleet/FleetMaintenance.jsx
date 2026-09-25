@@ -9,6 +9,7 @@ import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { pushNotificationToPermission } from '../../utils/notificationEngine'
+import { useAskContext } from '../../components/AskBravura'
 
 const color = MODULE_COLORS.fleet
 
@@ -412,6 +413,8 @@ export default function FleetMaintenance({ setPage }) {
   const lbl = { fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }
   const fieldWrap = { marginBottom: '12px' }
 
+  useAskContext({ screen: 'Fleet maintenance', tab: activeTab, filters: { search, priority: filterPriority, status: filterStatus },
+    work_orders: filtered.slice(0, 50).map(w => ({ wo: w.work_order_number, asset: w.asset_id, fault: w.fault_description, priority: w.priority, status: w.status, opened: w.created_at })) })
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px', color: THEME.textLow }}>

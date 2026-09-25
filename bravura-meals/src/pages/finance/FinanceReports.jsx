@@ -7,6 +7,7 @@ import { showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
 import { exportCsv } from '../../utils/csv'
 import { FIN, finCard, finBtn2, finInput, money, useFinanceFonts } from '../../utils/financeTheme'
+import { useAskContext } from '../../components/AskBravura'
 
 // FI24 — Finance reports (Finance rewrite Phase 6, issue #49; migration 0209).
 // Operating costs (the cost-only P&L), balance sheet, trial balance, cash flow and a spend
@@ -44,6 +45,7 @@ export default function FinanceReports({ setPage, initialTab = 'costs' }) {
     })
   }, [currentSiteId, range, tab, can])
 
+  useAskContext({ screen: 'Finance reports', tab, period: range, data: d })
   if (!can('finance.view')) return <Denied />
   const fmtD = s => new Date(s + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   const period = `${fmtD(range[0])} – ${fmtD(range[1])}`

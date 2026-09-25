@@ -11,6 +11,7 @@ import { Icon, PageHeader, fmtDate } from '../../components/ui'
 import { DashCard, KpiCard, AreaChart, DonutGauge, PairedBars, ProgressRow, ActivityRow, SectionTitle, LevelBandChart } from '../../components/dash'
 import FuelQuickNav from './FuelQuickNav'
 import FuelTankVisual from '../../components/FuelTankVisual'
+import { useAskContext } from '../../components/AskBravura'
 
 const FUEL_CLR = MODULE_COLORS.fuel
 const CRIT_PCT = 15
@@ -274,6 +275,9 @@ export default function FuelDashboard({ setPage }) {
 
   const maxConsumer = topConsumers.length ? topConsumers[0].litres : 1
 
+  useAskContext({ screen: 'Fuel dashboard', site: currentSite?.name, tanks: (tanks || []).map(t => ({ tank: t.name, litres_now: t.current_level_litres, capacity: t.capacity_litres })),
+    recent_issues: issuances.slice(0, 40).map(t => ({ date: t.transaction_date, litres: t.litres, what: t.asset_description || t.fleet_asset_id, no: t.transaction_number })),
+    forecast: projected || null })
   if (!can('fuel.view')) return <Denied />
 
   return (

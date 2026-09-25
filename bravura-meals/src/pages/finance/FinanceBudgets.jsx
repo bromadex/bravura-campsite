@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
 import { FIN, finCard, finBtn, finBtn2, finInput, useFinanceFonts } from '../../utils/financeTheme'
+import { useAskContext } from '../../components/AskBravura'
 
 // FI22 — Budgets (Finance rewrite Phase 4, issue #49; migration 0207). One budget store shared with
 // Procurement: yearly per cost centre or project (procurement_budgets), optional monthly split
@@ -86,6 +87,7 @@ export default function FinanceBudgets({ setPage }) {
     setEdit(null); load()
   }
 
+  useAskContext({ screen: 'Budgets', year, month, by: kind, rows: shown.slice(0, 60) })
   if (!canView) return <Denied />
   const dims = kind === 'cost_centre' ? centres.map(c => ({ id: c.id, label: `${c.code} ${c.name}` })) : projects.map(p => ({ id: p.id, label: `${p.project_code ? p.project_code + ' ' : ''}${p.name}` }))
   const used = new Set(shown.map(r => r.dim_id))

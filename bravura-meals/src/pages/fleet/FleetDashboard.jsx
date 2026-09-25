@@ -10,6 +10,7 @@ import { Icon } from '../../components/ui'
 import { DashCard, KpiCard, DonutGauge, ProgressRow, ActivityRow, SectionTitle } from '../../components/dash'
 import FleetQuickNav from './FleetQuickNav'
 import FleetAssetDetail from './FleetAssetDetail'
+import { useAskContext } from '../../components/AskBravura'
 
 const color = MODULE_COLORS.fleet
 
@@ -316,6 +317,9 @@ export default function FleetDashboard({ setPage }) {
   const availability = totalAssets ? Math.round((operationalCount / totalAssets) * 100) : 0
   const criticalWo = sortedWorkOrders.filter(w => w.priority === 'critical').length
 
+  useAskContext({ screen: 'Fleet dashboard', assets_total: assets.length, by_status: Object.fromEntries(Object.entries(assetsByStatus || {}).map(([k, v]) => [k, Array.isArray(v) ? v.length : v])),
+    open_work_orders: openWorkOrders.slice(0, 30).map(w => ({ wo: w.work_order_number, fault: w.fault_description, priority: w.priority, status: w.status })),
+    compliance_alerts: complianceAlerts.slice(0, 20), over_consumers: overConsumers.slice(0, 15), costs: { total: costData.totalCost, by_type: costData.byType } })
   if (!can('fleet.view')) return <Denied />
 
   return (

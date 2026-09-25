@@ -121,6 +121,25 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
   const firstName = (profile?.full_name || '').split(' ')[0]
   const navigate = useNavigate()
   const [chat, setChat] = useState(() => { try { return JSON.parse(sessionStorage.getItem('ask_chat') || '[]') } catch { return [] } })
+  // Chat history lives on the server for 30 days (ai_questions); a fresh tab picks up the last conversation.
+  const [historyLoaded, setHistoryLoaded] = useState(false)
+  useEffect(() => {
+    if (historyLoaded || chat.length) { setHistoryLoaded(true); return }
+    setHistoryLoaded(true)
+    supabase.from('ai_questions').select('id, question, answer, rating, created_at, tools, unverified')
+      .eq('user_id', profile?.id).eq('hidden', false).gte('created_at', new Date(Date.now() - 30 * 864e5).toISOString())
+      .order('created_at', { ascending: false }).limit(12)
+      .then(({ data }) => {
+        if (!data?.length) return
+        setChat(data.reverse().map(r => ({ q: r.question, a: r.answer, id: r.id, rated: r.rating || undefined, tools: r.tools || [], check: r.unverified || [],
+          old: true, when: r.created_at })))
+      })
+  }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  async function newConversation() {
+    const ids = chat.map(m => m.id).filter(Boolean)
+    setChat([]); rawFiles.current = {}
+    if (ids.length) await supabase.from('ai_questions').update({ hidden: true }).in('id', ids)
+  }
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
   const [useScreen, setUseScreen] = useState(true)
@@ -357,18 +376,21 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
             style={{ flex: 1, minHeight: 44, padding: '8px 12px', borderRadius: 10, border: `1px solid ${FIN.field}`, fontFamily: 'inherit', fontSize: 14, color: FIN.ink, background: '#fff' }} />
           <button type="submit" disabled={busy || reading || (!q.trim() && !files.length)} style={{ minHeight: 44, padding: '0 16px', background: FIN.maroon, border: 'none', borderRadius: 10, color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{busy ? '…' : 'Ask'}</button>
         </div>
-        {chat.length > 0 && <button type="button" onClick={() => setChat([])} style={{ alignSelf: 'flex-start', border: 'none', background: 'none', color: FIN.faint, fontSize: 12, cursor: 'pointer', padding: 0 }}>New conversation</button>}
+        {chat.length > 0 && <button type="button" onClick={newConversation} style={{ alignSelf: 'flex-start', border: 'none', background: 'none', color: FIN.faint, fontSize: 12, cursor: 'pointer', padding: 0 }}>New conversation</button>}
       </form>
     </div>
   )
 }
 
-const ACTION_TITLE = { receive_delivery: 'Receive delivery', draft_bill: 'Draft bill', petty_cash_spend: 'Petty cash spend', purchase_request: 'Draft purchase request' }
+const ACTION_TITLE = { receive_delivery: 'Receive delivery', draft_bill: 'Draft bill', petty_cash_spend: 'Petty cash spend', purchase_request: 'Draft purchase request',
+  approval_decision: 'Approval', po_from_quote: 'Draft purchase order' }
 function ActionCard({ x, onConfirm, onCancel, onOpen }) {
   const d = x.details || {}
   const rows = x.kind === 'receive_delivery' ? (d.lines || []).filter(l => l.qty > 0).map(l => [l.what, `${l.qty} ${l.unit || ''} of ${l.still_to_come} still to come`])
     : x.kind === 'draft_bill' ? (d.lines || []).map(l => [l.what, `${l.qty} × $${Number(l.unit_price).toFixed(2)}`])
     : x.kind === 'purchase_request' ? (d.lines || []).map(l => [l.what, `${l.quantity} ${l.unit || ''}${l.estimated_cost ? ` · ~$${Number(l.estimated_cost).toFixed(2)} each` : ''}`])
+    : x.kind === 'po_from_quote' ? (d.lines || []).map(l => [l.what, `${l.qty} × $${Number(l.unit_price).toFixed(2)}`])
+    : x.kind === 'approval_decision' ? [['Decision', d.approve ? 'Approve' : 'Reject'], ['Item', d.title], ['Requested by', d.from || '—'], ['Step', d.step || '—'], ...(d.comment ? [['Comment', d.comment]] : [])]
     : [['From', d.fund], ['Balance after', `$${Number(d.balance_after || 0).toFixed(2)}`]]
   const warn = x.kind === 'draft_bill' && d.supplier_hold && d.supplier_hold !== 'none' ? `Supplier is on hold (${d.supplier_hold})` : null
   const done = x.state === 'done', failed = x.state === 'failed', off = x.state === 'cancelled'

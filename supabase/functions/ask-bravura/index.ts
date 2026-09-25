@@ -181,6 +181,19 @@ const TOOLS = [
       title: { type: 'string' }, needed_by: { type: 'string', description: 'YYYY-MM-DD' }, priority: { type: 'string', enum: ['low', 'normal', 'high', 'urgent'] },
       lines: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, qty: { type: 'number' }, unit: { type: 'string' }, estimated_cost: { type: 'number' } } } }, site: { type: 'string' },
     }, required: ['title', 'lines'] } } },
+  { type: 'function', function: {
+    name: 'propose_approval',
+    description: "Propose approving or rejecting something waiting in the person's approvals inbox (a request, PO, leave, claim…). Use the brief tool first to see what is waiting. A rejection needs a reason.",
+    parameters: { type: 'object', properties: {
+      search: { type: 'string', description: 'Words from its title, number or the requester name' }, approve: { type: 'boolean' }, comment: { type: 'string' },
+    }, required: ['search', 'approve'] } } },
+  { type: 'function', function: {
+    name: 'propose_po_from_quote',
+    description: "Propose a DRAFT purchase order from a supplier's quote (usually an attached quote). Lines need what, qty and unit_price.",
+    parameters: { type: 'object', properties: {
+      supplier: { type: 'string' }, quote_ref: { type: 'string' }, expected_date: { type: 'string', description: 'YYYY-MM-DD' },
+      lines: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, qty: { type: 'number' }, unit: { type: 'string' }, unit_price: { type: 'number' } } } }, site: { type: 'string' },
+    }, required: ['supplier', 'lines'] } } },
   ...([
     ['fuel', 'Fuel: litres issued and delivered, top-using vehicles/machines, litres per day, tank levels now. Use for fuel consumption/usage/diesel questions. Optional search narrows to one vehicle (fleet no., reg, make).', true, true],
     ['fleet', 'Fleet: vehicles/machines by status, open work orders, services due in 14 days, licence/insurance/roadworthy expiring in 30 days, maintenance jobs and cost in the period.', true, false],
@@ -260,6 +273,10 @@ const PROPOSE: Record<string, [string, string, (a: Record<string, any>, s: strin
     p => `Draft bill ${p.invoice_number} from ${p.supplier} for ${money(p.total)}${p.po ? ` (PO ${p.po})` : ''}`],
   propose_petty_cash_spend: ['petty_cash_spend', 'ai_prepare_petty_cash', (a, s) => ({ p_site_ids: s, p_amount: Number(a.amount), p_what: a.what, p_category: a.category || null, p_date: a.date || null }),
     p => `Spend ${money(p.amount)} from ${p.fund} for ${p.what} (leaves ${money(p.balance_after)})`],
+  propose_approval: ['approval_decision', 'ai_prepare_approval', a => ({ p_search: a.search, p_approve: a.approve !== false && String(a.approve) !== 'false', p_comment: a.comment || null }),
+    p => `${p.approve ? 'Approve' : 'Reject'} ${p.what}: ${p.title}${p.amount ? ` (${money(p.amount)})` : ''}${p.from ? ` from ${p.from}` : ''}${p.comment ? ` — "${p.comment}"` : ''}`],
+  propose_po_from_quote: ['po_from_quote', 'ai_prepare_po', (a, s) => ({ p_site_ids: s, p_supplier: a.supplier, p_lines: a.lines || [], p_quote_ref: a.quote_ref || null, p_expected: a.expected_date || null }),
+    p => `Draft PO to ${p.supplier} for ${money(p.total)}${p.quote_ref ? ` (quote ${p.quote_ref})` : ''}`],
   propose_purchase_request: ['purchase_request', 'ai_prepare_request', (a, s) => ({ p_site_ids: s, p_title: a.title, p_lines: a.lines || [], p_needed_by: a.needed_by || null, p_priority: a.priority || 'normal' }),
     p => `Draft request "${p.title}": ` + (p.lines || []).map((l: any) => `${l.quantity} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ')],
 }
@@ -346,7 +363,7 @@ Rules:
 - Booked cost = already in the books; ordered on POs = committed but maybe not billed yet — say which you mean.
 - For ANY arithmetic (totals, differences, averages, percentages), call the calculate tool and use its result. Show the working briefly.
 - When the person asks about "this screen", "here", "these", use the SCREEN section below. Only use figures that appear there or come from tools.
-- If you can't answer from the screen or the tools, say what you can answer instead.\n- You never change anything yourself. For receiving a delivery, drafting a bill, recording a petty cash spend or drafting a purchase request, call the matching propose_ tool: the person gets a card and must press Confirm. Only propose when the person asks for it or clearly wants it (e.g. 'record this', 'receive it', 'draft the bill'). Other changes (approvals, payments, POs) are done on their screens — say which one.`
+- If you can't answer from the screen or the tools, say what you can answer instead.\n- You never change anything yourself. For receiving a delivery, drafting a bill, recording a petty cash spend, drafting a purchase request, approving or rejecting something in their approvals inbox, or turning a quote into a draft PO, call the matching propose_ tool: the person gets a card and must press Confirm. Only propose when the person asks for it or clearly wants it (e.g. 'record this', 'receive it', 'draft the bill'). Other changes (payments, sending POs to suppliers) are done on their screens — say which one.`
   const pg = body.page
   const screen = pg ? `\n\nSCREEN the person is looking at — module: ${pg.module || '?'}, page: ${pg.title || pg.page || '?'}\n` +
     (pg.context ? 'Structured data shown on screen:\n' + JSON.stringify(pg.context).slice(0, 7000)
@@ -354,7 +371,7 @@ Rules:
 
   const docs = files.length ? await Promise.all(files.map(f => readFile(f).catch(e => ({ file: f.name, error: (e as Error).message })))) : []
   const attached = docs.length ? '\n\nATTACHED DOCUMENTS (read from the files the person attached just now; nothing is saved):\n' + JSON.stringify(docs).slice(0, 6000) +
-    '\nSay what each document is and its key figures, call match_document for supplier documents, then point out differences (prices, quantities, totals, already billed, supplier on hold). Use calculate for any sums. If they ask, you can propose receiving it (delivery note) or a draft bill (invoice) or a petty cash spend (till slip) — they confirm on the card.' : ''
+    '\nSay what each document is and its key figures, call match_document for supplier documents, then point out differences (prices, quantities, totals, already billed, supplier on hold). Use calculate for any sums. If they ask, you can propose receiving it (delivery note), a draft bill (invoice), a draft PO (quote) or a petty cash spend (till slip) — they confirm on the card.' : ''
   const messages: Record<string, unknown>[] = [{ role: 'system', content: system + screen + attached }]
   for (const h of (body.history || []).slice(-6)) {
     if ((h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string') messages.push({ role: h.role, content: h.content.slice(0, 2000) })
@@ -397,7 +414,7 @@ Rules:
           const [kind, fn, params, summarise] = PROPOSE[c.function.name]
           const r = await db.rpc(fn, params(a, siteIds(a.site)))
           const prep = r.error ? { error: r.error.message } : r.data
-          if (!prep || prep.error) result = { error: prep?.error || 'Could not prepare that' }
+          if (!prep || prep.error) result = { error: prep?.error || 'Could not prepare that', ...(prep?.matches ? { matches: prep.matches } : {}), ...(prep?.waiting ? { waiting: prep.waiting } : {}) }
           else {
             const summary = summarise(prep)
             const { data: id, error: pe } = await db.rpc('ai_action_propose', { p_kind: kind, p_site: prep.site_id || body.site_id || null, p_summary: summary, p_payload: prep })

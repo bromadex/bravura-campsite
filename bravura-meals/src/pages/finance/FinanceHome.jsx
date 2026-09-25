@@ -6,6 +6,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
 import { FIN, finCard, money, useFinanceFonts } from '../../utils/financeTheme'
+import { useAskContext } from '../../components/AskBravura'
 
 // FI12 — Finance Home (Finance rewrite Phase 4, issue #49; data from fin_home() in migration 0207).
 // Layout follows the agreed mock-up: setup banner → four key figures → 12-month spend vs budget with
@@ -64,6 +65,7 @@ export default function FinanceHome({ setPage }) {
     })
   }, [currentSiteId, month, can])
 
+  useAskContext(d ? { screen: 'Finance Home', month, figures: d } : { screen: 'Finance Home', loading: true })
   if (!can('finance.view')) return <Denied />
   const monthName = new Date(`${month}-01T00:00:00`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
   const card = { ...finCard, display: 'flex', flexDirection: 'column', gap: 6 }

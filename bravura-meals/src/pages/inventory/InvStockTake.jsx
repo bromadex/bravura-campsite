@@ -28,7 +28,7 @@ export default function InvStockTake({ setPage }) {
   const [warehouses, setWarehouses] = useState([])
   const [loading, setLoading] = useState(true)
   const [newModal, setNewModal] = useState(false)
-  const [newForm, setNewForm] = useState({ warehouse_id: '', notes: '' })
+  const [newForm, setNewForm] = useState({ warehouse_id: '', notes: '', count_type: 'full', limit: 20 })
   const [saving, setSaving] = useState(false)
 
   const [detailModal, setDetailModal] = useState(false)
@@ -66,16 +66,17 @@ export default function InvStockTake({ setPage }) {
       const seq = takes.length + 1
       const ref = `ST-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}`
 
-      const balRes = await supabase.from('stock_balances')
-        .select('item_id, on_hand_qty')
-        .eq('warehouse_id', newForm.warehouse_id)
-        .gt('on_hand_qty', 0)
+      // Cycle count: only the items counted longest ago (highest value first); full count: everything in stock.
+      const balRes = newForm.count_type === 'cycle'
+        ? await supabase.rpc('inv_cycle_count_items', { p_warehouse_id: newForm.warehouse_id, p_limit: Number(newForm.limit) || 20 })
+        : await supabase.from('stock_balances').select('item_id, on_hand_qty').eq('warehouse_id', newForm.warehouse_id).gt('on_hand_qty', 0)
       if (balRes.error) throw balRes.error
 
       const { data: st, error: stErr } = await supabase.from('stock_takes').insert({
         reference: ref,
         warehouse_id: newForm.warehouse_id,
         status: 'in_progress',
+        count_type: newForm.count_type,
         started_at: new Date().toISOString(),
         notes: newForm.notes || null,
         created_by: profile?.id,
@@ -198,7 +199,7 @@ export default function InvStockTake({ setPage }) {
     <div>
       <PageHeader title="Stock Take" site={currentSite} actions={
         can('inventory.create') && <Button icon="add" variant="filled" onClick={() => {
-          setNewForm({ warehouse_id: '', notes: '' })
+          setNewForm({ warehouse_id: '', notes: '', count_type: 'full', limit: 20 })
           setNewModal(true)
         }}>New Stock Take</Button>
       } />
@@ -255,6 +256,20 @@ export default function InvStockTake({ setPage }) {
               <option value="">— Select —</option>
               {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
+          </div>
+          <div>
+            <SectionLabel>What to count</SectionLabel>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <label style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '14px', color: THEME.text }}>
+                <input type="radio" name="st-type" checked={newForm.count_type === 'full'} onChange={() => setNewForm({ ...newForm, count_type: 'full' })} /> Everything in stock
+              </label>
+              <label style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '14px', color: THEME.text }}>
+                <input type="radio" name="st-type" checked={newForm.count_type === 'cycle'} onChange={() => setNewForm({ ...newForm, count_type: 'cycle' })} /> Cycle count of
+              </label>
+              <input aria-label="Number of items" type="number" min="1" value={newForm.limit} disabled={newForm.count_type !== 'cycle'}
+                onChange={e => setNewForm({ ...newForm, limit: e.target.value })} style={{ ...inp, width: '90px' }} />
+              <span style={{ fontSize: '13px', color: THEME.textMed }}>items not counted for longest</span>
+            </div>
           </div>
           <div>
             <SectionLabel>Notes</SectionLabel>

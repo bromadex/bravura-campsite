@@ -292,6 +292,8 @@ export default function QuickStartGuide() {
             <>Stock Take (<Code>IN13</Code>) runs a physical count against system balances — auto-populates a count sheet, calculates variances, and posts adjustments on approval.</>,
             <>Requisitions (<Code>IN14</Code>) let site staff request materials. Draft, submit for approval, then convert approved requisitions into Purchase Orders.</>,
             <>Purchase Orders (<Code>IN15</Code>) track procurement end-to-end — create from scratch or from an approved requisition, send to supplier, then receive goods against the PO.</>,
+            <>Reorder &amp; Expiry (<Code>IN16</Code>): give items a reorder level and quantity. When issues take a store down to that level, the item is added automatically to the store's draft requisition — review it, then submit. Record batch numbers and expiry dates on goods received; issues suggest the earliest-expiring batch, and the expiry list shows what's expired or expiring soon.</>,
+            <>Stock Take (<Code>IN13</Code>): choose <b>Cycle count</b> to count just the items not counted for longest (highest value first) instead of the whole store.</>,
           ]} />
         </Section>
       )}

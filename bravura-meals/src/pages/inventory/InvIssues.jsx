@@ -80,6 +80,19 @@ export default function InvIssues({ setPage }) {
     setModalOpen(true)
   }
 
+  // Batches of the chosen item in the chosen warehouse, earliest expiry first (first-expiry, first-out).
+  const [batches, setBatches] = useState([])
+  useEffect(() => {
+    if (!form.item_id || !form.warehouse_id) { setBatches([]); return }
+    supabase.from('inventory_batches').select('batch_no, expiry_date, qty_remaining')
+      .eq('item_id', form.item_id).eq('warehouse_id', form.warehouse_id).gt('qty_remaining', 0).eq('is_archived', false)
+      .order('expiry_date', { ascending: true, nullsFirst: false })
+      .then(({ data }) => {
+        setBatches(data || [])
+        if (mode === 'issue' && data?.length) setForm(f => ({ ...f, batch_no: f.batch_no || data[0].batch_no }))
+      })
+  }, [form.item_id, form.warehouse_id, mode])
+
   async function handleSubmit() {
     const { warehouse_id, item_id, qty } = form
     if (!warehouse_id || !item_id) { showToast('Select warehouse and item', 'red'); return }
@@ -95,6 +108,7 @@ export default function InvIssues({ setPage }) {
         unit_cost: 0,
         value: 0,
         voucher_type: mode === 'issue' ? 'ISSUE' : 'RETURN',
+        batch_no: form.batch_no || null,
         source_module: 'inventory',
         notes: form.notes || null,
         department_id: form.department_id || null,
@@ -219,6 +233,15 @@ export default function InvIssues({ setPage }) {
               <SectionLabel>Quantity *</SectionLabel>
               <input type="number" min="0.01" step="0.01" value={form.qty} onChange={e => setForm({ ...form, qty: e.target.value })} style={inp} />
             </div>
+            {batches.length > 0 && (
+              <div>
+                <SectionLabel>Batch</SectionLabel>
+                <select aria-label="Batch" value={form.batch_no || ''} onChange={e => setForm({ ...form, batch_no: e.target.value })} style={inp}>
+                  {mode === 'return' && <option value="">— No batch —</option>}
+                  {batches.map(b => <option key={b.batch_no} value={b.batch_no}>{b.batch_no} · {Number(b.qty_remaining)} left{b.expiry_date ? ` · expires ${b.expiry_date}` : ''}</option>)}
+                </select>
+              </div>
+            )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div>

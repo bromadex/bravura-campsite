@@ -214,6 +214,7 @@ const InvLedger      = lazy(() => import('./pages/inventory/InvLedger'))
 const InvReports     = lazy(() => import('./pages/inventory/InvReports'))
 const InvSettings    = lazy(() => import('./pages/inventory/InvSettings'))
 const InvStockTake   = lazy(() => import('./pages/inventory/InvStockTake'))
+const InvReorderExpiry = lazy(() => import('./pages/inventory/InvReorderExpiry'))
 const InvRequisitions = lazy(() => import('./pages/inventory/InvRequisitions'))
 const InvPurchaseOrders = lazy(() => import('./pages/inventory/InvPurchaseOrders'))
 
@@ -628,6 +629,7 @@ function getInventoryPage(page, can, setPage) {
     case 'inv_reports':     return <InvReports setPage={setPage} />
     case 'inv_settings':    return <InvSettings setPage={setPage} />
     case 'inv_stock_take':  return <InvStockTake setPage={setPage} />
+    case 'inv_reorder':       return can('inventory.view') ? <InvReorderExpiry setPage={setPage} /> : null
     case 'inv_requisitions': return <InvRequisitions setPage={setPage} />
     case 'inv_purchase_orders': return <InvPurchaseOrders setPage={setPage} />
     default:                return <InvDashboard setPage={setPage} />

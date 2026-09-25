@@ -23,7 +23,7 @@ export default function InvGrn({ setPage }) {
   const [search, setSearch] = useState('')
   const [whFilter, setWhFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
-  const [lines, setLines] = useState([{ item_id: '', qty: '', unit_cost: '' }])
+  const [lines, setLines] = useState([{ item_id: '', qty: '', unit_cost: '', batch_no: '', expiry_date: '' }])
   const [grnForm, setGrnForm] = useState({ warehouse_id: '', voucher_no: '', notes: '' })
   const [saving, setSaving] = useState(false)
 
@@ -69,7 +69,7 @@ export default function InvGrn({ setPage }) {
   }, [movements, search, whFilter])
 
   function addLine() {
-    setLines([...lines, { item_id: '', qty: '', unit_cost: '' }])
+    setLines([...lines, { item_id: '', qty: '', unit_cost: '', batch_no: '', expiry_date: '' }])
   }
 
   function updateLine(i, field, val) {
@@ -99,6 +99,8 @@ export default function InvGrn({ setPage }) {
         value: parseFloat(l.qty) * (parseFloat(l.unit_cost) || 0),
         voucher_type: 'GRN',
         voucher_no: voucher_no || null,
+        batch_no: l.batch_no?.trim() || null,
+        expiry_date: l.expiry_date || null,
         source_module: 'inventory',
         notes: grnForm.notes || null,
         created_by: profile?.id,
@@ -107,7 +109,7 @@ export default function InvGrn({ setPage }) {
       if (error) throw error
       showToast(`GRN recorded — ${valid.length} item(s)`, 'green')
       setModalOpen(false)
-      setLines([{ item_id: '', qty: '', unit_cost: '' }])
+      setLines([{ item_id: '', qty: '', unit_cost: '', batch_no: '', expiry_date: '' }])
       setGrnForm({ warehouse_id: '', voucher_no: '', notes: '' })
       fetch()
     } catch (err) {
@@ -140,7 +142,7 @@ export default function InvGrn({ setPage }) {
         <div style={{ display: 'flex', gap: '8px' }}>
           {can('inventory.view') && <Button icon="download" onClick={handleExport}>Export</Button>}
           {can('inventory.create') && <Button icon="add" variant="filled" onClick={() => {
-            setLines([{ item_id: '', qty: '', unit_cost: '' }])
+            setLines([{ item_id: '', qty: '', unit_cost: '', batch_no: '', expiry_date: '' }])
             setGrnForm({ warehouse_id: '', voucher_no: '', notes: '' })
             setModalOpen(true)
           }}>Receive Goods</Button>}
@@ -215,7 +217,7 @@ export default function InvGrn({ setPage }) {
 
           <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>Line Items</div>
           {lines.map((l, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 2fr) repeat(4, minmax(90px, 1fr)) auto', gap: '8px', alignItems: 'end' }}>
               <div>
                 {i === 0 && <SectionLabel>Item *</SectionLabel>}
                 <select value={l.item_id} onChange={e => updateLine(i, 'item_id', e.target.value)} style={inp}>
@@ -230,6 +232,14 @@ export default function InvGrn({ setPage }) {
               <div>
                 {i === 0 && <SectionLabel>Unit Cost</SectionLabel>}
                 <input type="number" min="0" step="0.01" value={l.unit_cost} onChange={e => updateLine(i, 'unit_cost', e.target.value)} style={inp} />
+              </div>
+              <div>
+                {i === 0 && <SectionLabel>Batch no</SectionLabel>}
+                <input aria-label="Batch number" value={l.batch_no} onChange={e => updateLine(i, 'batch_no', e.target.value)} placeholder="optional" style={inp} />
+              </div>
+              <div>
+                {i === 0 && <SectionLabel>Expiry</SectionLabel>}
+                <input aria-label="Expiry date" type="date" value={l.expiry_date} onChange={e => updateLine(i, 'expiry_date', e.target.value)} style={inp} />
               </div>
               <div style={{ paddingBottom: '2px' }}>
                 {lines.length > 1 && (

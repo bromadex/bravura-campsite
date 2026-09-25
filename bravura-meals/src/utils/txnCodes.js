@@ -177,6 +177,7 @@ export const TXN_CODES = [
   { code: 'IN13', path: '/inventory/inv_stock_take',   label: 'Stock Take',           module: 'inventory' },
   { code: 'IN14', path: '/inventory/inv_requisitions', label: 'Purchase Requisitions', module: 'inventory' },
   { code: 'IN15', path: '/inventory/inv_purchase_orders', label: 'Purchase Orders',   module: 'inventory' },
+  { code: 'IN16', path: '/inventory/inv_reorder',      label: 'Reorder & Expiry',     module: 'inventory' },
 
   // ── Department Workspaces (DW) ──────────────────────────────────────────────
   { code: 'DW01', path: '/dept/dept_dashboard',  label: 'Dept Dashboard',     module: 'dept' },

@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react'
+import { Fragment, createContext, useContext, useRef, useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { supabase } from '../supabaseClient'
@@ -155,9 +155,23 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
     const { data, error } = await supabase.functions.invoke('ask-bravura', { body: { question, site_id: currentSiteId, history, page,
       files: sending.map(f => ({ name: f.name, type: f.type, images: f.images, text: f.text })) } })
     const a = error ? (await error.context?.json?.().catch(() => null))?.error || 'The assistant could not be reached. Try again in a minute.' : data?.answer
-    setChat(c => c.map((m, i) => i === c.length - 1 ? { ...m, a, links: data?.links || [], tools: data?.tools || [], id: data?.id } : m))
+    setChat(c => c.map((m, i) => i === c.length - 1 ? { ...m, a, links: data?.links || [], tools: data?.tools || [], id: data?.id,
+      actions: (data?.actions || []).map(x => ({ ...x, state: 'proposed' })) } : m))
     setBusy(false)
   }, [q, busy, reading, files, chat, pageInfo, useScreen, currentSiteId])
+
+  // B4: a proposal only runs when the person presses Confirm — through the same functions the screens use.
+  function setAction(mi, id, patch) { setChat(c => c.map((m, i) => i === mi ? { ...m, actions: m.actions.map(x => x.id === id ? { ...x, ...patch } : x) } : m)) }
+  async function confirmAction(mi, x) {
+    setAction(mi, x.id, { state: 'running' })
+    const { data, error } = await supabase.rpc('ai_action_confirm', { p_id: x.id })
+    if (error) { await supabase.rpc('ai_action_cancel', { p_id: x.id, p_error: error.message }); return setAction(mi, x.id, { state: 'failed', message: error.message }) }
+    setAction(mi, x.id, { state: 'done', message: data?.message, path: data?.path })
+  }
+  async function cancelAction(mi, x) {
+    await supabase.rpc('ai_action_cancel', { p_id: x.id, p_error: null })
+    setAction(mi, x.id, { state: 'cancelled' })
+  }
 
   async function rate(m, v) {
     if (!m.id) return
@@ -185,10 +199,11 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
                 <li><b>Suppliers</b> — orders, bills, what we owe, late deliveries.</li>
                 <li><b>Every module</b> — fuel used and tank levels, fleet services and expiring papers, stock on hand, who's on leave, safety incidents, meals served, camp beds.</li>
                 <li><b>Read a document</b> — attach a photo or PDF of an invoice, delivery note, quote or receipt (📎, paste or drop it). I read it, find the supplier and PO, and point out differences. Nothing is saved.</li>
+                <li><b>Do things — with your OK</b> — receive a delivery, draft a bill from an invoice, record a petty cash spend, or draft a purchase request. I show a card; nothing is saved until you press Confirm.</li>
                 <li><b>Find anything</b> — a PO, request, supplier, vehicle, employee, stock item or incident by number or name.</li>
                 <li><b>Open records</b> — POs, requests and journals I mention are clickable.</li>
               </ul>
-              <div style={{ fontSize: 12, color: FIN.faint }}>Coming soon: doing tasks you approve, like receiving a delivery or drafting a bill from the document.</div>
+              <div style={{ fontSize: 12, color: FIN.faint }}>Coming soon: approvals, POs from quotes, and linking documents to any record.</div>
             </div>
             <div style={{ fontSize: 12, color: FIN.muted }}>Try:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -209,6 +224,8 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
                     style={{ padding: '3px 10px', borderRadius: 12, border: `1px solid ${FIN.blue}40`, background: FIN.blueTint, color: FIN.blue, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600 }}>{l.label} ↗</button>)}
                 </div>
               )}
+              {(m.actions || []).map(x => <ActionCard key={x.id} x={x} onConfirm={() => confirmAction(i, x)} onCancel={() => cancelAction(i, x)}
+                onOpen={p => { navigate(p); if (compact) onClose?.() }} />)}
               {m.a != null && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6, fontSize: 11.5, color: FIN.faint }}>
                   {m.screen && <span>used this screen</span>}
@@ -257,6 +274,37 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
         </div>
         {chat.length > 0 && <button type="button" onClick={() => setChat([])} style={{ alignSelf: 'flex-start', border: 'none', background: 'none', color: FIN.faint, fontSize: 12, cursor: 'pointer', padding: 0 }}>New conversation</button>}
       </form>
+    </div>
+  )
+}
+
+const ACTION_TITLE = { receive_delivery: 'Receive delivery', draft_bill: 'Draft bill', petty_cash_spend: 'Petty cash spend', purchase_request: 'Draft purchase request' }
+function ActionCard({ x, onConfirm, onCancel, onOpen }) {
+  const d = x.details || {}
+  const rows = x.kind === 'receive_delivery' ? (d.lines || []).filter(l => l.qty > 0).map(l => [l.what, `${l.qty} ${l.unit || ''} of ${l.still_to_come} still to come`])
+    : x.kind === 'draft_bill' ? (d.lines || []).map(l => [l.what, `${l.qty} × $${Number(l.unit_price).toFixed(2)}`])
+    : x.kind === 'purchase_request' ? (d.lines || []).map(l => [l.what, `${l.quantity} ${l.unit || ''}${l.estimated_cost ? ` · ~$${Number(l.estimated_cost).toFixed(2)} each` : ''}`])
+    : [['From', d.fund], ['Balance after', `$${Number(d.balance_after || 0).toFixed(2)}`]]
+  const warn = x.kind === 'draft_bill' && d.supplier_hold && d.supplier_hold !== 'none' ? `Supplier is on hold (${d.supplier_hold})` : null
+  const done = x.state === 'done', failed = x.state === 'failed', off = x.state === 'cancelled'
+  return (
+    <div style={{ marginTop: 10, border: `1px solid ${done ? FIN.good : failed ? FIN.bad : FIN.maroon}55`, borderLeftWidth: 4, borderRadius: 10, padding: '10px 12px', background: done ? FIN.goodTint : '#FFFBFA', opacity: off ? 0.6 : 1 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: done ? FIN.good : FIN.maroon }}>{ACTION_TITLE[x.kind] || 'Action'} · {done ? 'done' : failed ? 'not done' : off ? 'cancelled' : 'needs your OK'}</div>
+      <div style={{ fontSize: 13.5, fontWeight: 600, margin: '4px 0 6px' }}>{x.summary}</div>
+      {rows.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: '2px 12px', fontSize: 12.5, color: FIN.muted, marginBottom: 6 }}>
+          {rows.slice(0, 8).map(([a, b], k) => <Fragment key={k}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a}</span><span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{b}</span></Fragment>)}
+        </div>
+      )}
+      {warn && <div style={{ fontSize: 12.5, color: FIN.bad, marginBottom: 6 }}>⚠ {warn}</div>}
+      {x.message && <div style={{ fontSize: 12.5, color: failed ? FIN.bad : FIN.good, marginBottom: 6 }}>{x.message}</div>}
+      {(x.state === 'proposed' || x.state === 'running') && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onConfirm} disabled={x.state === 'running'} style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: FIN.maroon, color: '#fff', fontFamily: 'inherit', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{x.state === 'running' ? 'Working…' : 'Confirm'}</button>
+          <button onClick={onCancel} disabled={x.state === 'running'} style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${FIN.field}`, background: '#fff', color: FIN.ink, fontFamily: 'inherit', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+        </div>
+      )}
+      {done && x.path && <button onClick={() => onOpen(x.path)} style={{ padding: 0, border: 'none', background: 'none', color: FIN.blue, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Open ↗</button>}
     </div>
   )
 }

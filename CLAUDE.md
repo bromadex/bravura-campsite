@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0224.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0225.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -451,6 +451,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   sent with the question and never stored; edge fn v4 reads each with a Groq vision model (llama-4-scout, env GROQ_VISION_MODEL)
   into JSON, then `match_document` → `ai_match_document` (supplier, POs with lines/receipts/bills, duplicate bill number).
   Also `ai_leave` (leave requests by status, incl. rejected + reason); `ai_notifications` (0223, own notifications, read-only).
+  **B4 built (0224):** `ai_actions` log; `ai_prepare_receive/bill/petty_cash/request` (read-only checks) → edge fn tools
+  `propose_*` save a proposal (`ai_action_propose`) and return `actions` → ActionCard in AskChat with Confirm/Cancel →
+  `ai_action_confirm` (SECURITY INVOKER: proc_receive_po, purchase_invoices draft insert, petty_cash_record, proc_request_save)
+  / `ai_action_cancel`. Proposals expire after 2 h. Groq free tier: `groqChat` falls back qwen → gpt-oss-120b → gpt-oss-20b.
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

@@ -152,6 +152,34 @@ const TOOLS = [
     parameters: { type: 'object', properties: {
       unread_only: { type: 'boolean', description: 'Default true' }, search: { type: 'string', description: 'Optional word or category, e.g. approval, leave, fuel' },
     } } } },
+  // B4: proposals. These never change anything — they put a card in front of the person, who presses Confirm.
+  { type: 'function', function: {
+    name: 'propose_receive_delivery',
+    description: 'Propose receiving a delivery against a purchase order (e.g. from a delivery note the person attached, or "we received the 4 tyres on PO …"). Leave lines empty to receive everything still to come.',
+    parameters: { type: 'object', properties: {
+      po: { type: 'string', description: 'PO number' }, delivery_ref: { type: 'string', description: "Supplier's delivery note number" },
+      lines: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, qty: { type: 'number' } } } }, site: { type: 'string' },
+    }, required: ['po'] } } },
+  { type: 'function', function: {
+    name: 'propose_draft_bill',
+    description: "Propose saving a supplier invoice as a DRAFT bill (it still needs approval in Pay Suppliers). Use after reading an attached invoice. Lines need what, qty and unit_price.",
+    parameters: { type: 'object', properties: {
+      supplier: { type: 'string' }, invoice_number: { type: 'string' }, invoice_date: { type: 'string', description: 'YYYY-MM-DD' }, po: { type: 'string' },
+      lines: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, qty: { type: 'number' }, unit: { type: 'string' }, unit_price: { type: 'number' } } } }, site: { type: 'string' },
+    }, required: ['supplier', 'invoice_number', 'lines'] } } },
+  { type: 'function', function: {
+    name: 'propose_petty_cash_spend',
+    description: "Propose recording money spent from the person's petty cash box (e.g. from a till slip). Amount in USD.",
+    parameters: { type: 'object', properties: {
+      amount: { type: 'number' }, what: { type: 'string' }, category: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD' }, site: { type: 'string' },
+    }, required: ['amount', 'what'] } } },
+  { type: 'function', function: {
+    name: 'propose_purchase_request',
+    description: 'Propose a DRAFT purchase request for things the site needs (the person checks it and sends it for approval).',
+    parameters: { type: 'object', properties: {
+      title: { type: 'string' }, needed_by: { type: 'string', description: 'YYYY-MM-DD' }, priority: { type: 'string', enum: ['low', 'normal', 'high', 'urgent'] },
+      lines: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, qty: { type: 'number' }, unit: { type: 'string' }, estimated_cost: { type: 'number' } } } }, site: { type: 'string' },
+    }, required: ['title', 'lines'] } } },
   ...([
     ['fuel', 'Fuel: litres issued and delivered, top-using vehicles/machines, litres per day, tank levels now. Use for fuel consumption/usage/diesel questions. Optional search narrows to one vehicle (fleet no., reg, make).', true, true],
     ['fleet', 'Fleet: vehicles/machines by status, open work orders, services due in 14 days, licence/insurance/roadworthy expiring in 30 days, maintenance jobs and cost in the period.', true, false],
@@ -220,6 +248,19 @@ async function readFile(f: AskFile): Promise<Record<string, unknown>> {
   catch { return { file: f.name, ...note, text: raw.slice(0, 3000) } }
 }
 
+// B4 (0224): tool → [action kind, prepare RPC, params, one-line summary for the card]
+const money = (n: unknown) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const PROPOSE: Record<string, [string, string, (a: Record<string, any>, s: string[] | null) => Record<string, unknown>, (p: Record<string, any>) => string]> = {
+  propose_receive_delivery: ['receive_delivery', 'ai_prepare_receive', (a, s) => ({ p_site_ids: s, p_po: a.po, p_lines: a.lines?.length ? a.lines : null, p_delivery_ref: a.delivery_ref || null }),
+    p => `Receive on ${p.po} (${p.supplier}): ` + (p.lines || []).filter((l: any) => l.qty > 0).map((l: any) => `${l.qty} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ')],
+  propose_draft_bill: ['draft_bill', 'ai_prepare_bill', (a, s) => ({ p_site_ids: s, p_supplier: a.supplier, p_invoice_number: a.invoice_number, p_invoice_date: a.invoice_date || null, p_lines: a.lines || [], p_po: a.po || null }),
+    p => `Draft bill ${p.invoice_number} from ${p.supplier} for ${money(p.total)}${p.po ? ` (PO ${p.po})` : ''}`],
+  propose_petty_cash_spend: ['petty_cash_spend', 'ai_prepare_petty_cash', (a, s) => ({ p_site_ids: s, p_amount: Number(a.amount), p_what: a.what, p_category: a.category || null, p_date: a.date || null }),
+    p => `Spend ${money(p.amount)} from ${p.fund} for ${p.what} (leaves ${money(p.balance_after)})`],
+  propose_purchase_request: ['purchase_request', 'ai_prepare_request', (a, s) => ({ p_site_ids: s, p_title: a.title, p_lines: a.lines || [], p_needed_by: a.needed_by || null, p_priority: a.priority || 'normal' }),
+    p => `Draft request "${p.title}": ` + (p.lines || []).map((l: any) => `${l.quantity} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ')],
+}
+
 // B2 (0221): one read-only ai_* function per module → [rpc, takes dates, takes search]
 const MODULE_RPC: Record<string, [string, boolean, boolean]> = {
   fuel: ['ai_fuel', true, true], fleet: ['ai_fleet', true, false], stock: ['ai_stock', false, true], people: ['ai_people', true, false],
@@ -277,7 +318,7 @@ Rules:
 - Booked cost = already in the books; ordered on POs = committed but maybe not billed yet — say which you mean.
 - For ANY arithmetic (totals, differences, averages, percentages), call the calculate tool and use its result. Show the working briefly.
 - When the person asks about "this screen", "here", "these", use the SCREEN section below. Only use figures that appear there or come from tools.
-- If you can't answer from the screen or the tools, say what you can answer instead. You can't change anything in the system.`
+- If you can't answer from the screen or the tools, say what you can answer instead.\n- You never change anything yourself. For receiving a delivery, drafting a bill, recording a petty cash spend or drafting a purchase request, call the matching propose_ tool: the person gets a card and must press Confirm. Only propose when the person asks for it or clearly wants it (e.g. 'record this', 'receive it', 'draft the bill'). Other changes (approvals, payments, POs) are done on their screens — say which one.`
   const pg = body.page
   const screen = pg ? `\n\nSCREEN the person is looking at — module: ${pg.module || '?'}, page: ${pg.title || pg.page || '?'}\n` +
     (pg.context ? 'Structured data shown on screen:\n' + JSON.stringify(pg.context).slice(0, 7000)
@@ -285,7 +326,7 @@ Rules:
 
   const docs = files.length ? await Promise.all(files.map(f => readFile(f).catch(e => ({ file: f.name, error: (e as Error).message })))) : []
   const attached = docs.length ? '\n\nATTACHED DOCUMENTS (read from the files the person attached just now; nothing is saved):\n' + JSON.stringify(docs).slice(0, 6000) +
-    '\nSay what each document is and its key figures, call match_document for supplier documents, then point out differences (prices, quantities, totals, already billed, supplier on hold). Use calculate for any sums. You cannot save or record anything yet — tell them which screen to use (e.g. Receiving, Pay Suppliers → Record & approve bills).' : ''
+    '\nSay what each document is and its key figures, call match_document for supplier documents, then point out differences (prices, quantities, totals, already billed, supplier on hold). Use calculate for any sums. If they ask, you can propose receiving it (delivery note) or a draft bill (invoice) or a petty cash spend (till slip) — they confirm on the card.' : ''
   const messages: Record<string, unknown>[] = [{ role: 'system', content: system + screen + attached }]
   for (const h of (body.history || []).slice(-6)) {
     if ((h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string') messages.push({ role: h.role, content: h.content.slice(0, 2000) })
@@ -293,6 +334,7 @@ Rules:
   messages.push({ role: 'user', content: question })
 
   const used: { name: string; args: unknown }[] = []
+  const actions: { id: string; kind: string; summary: string; details: unknown }[] = []
   let tokens = 0
   let answer = ''
   let error: string | null = null
@@ -322,6 +364,18 @@ Rules:
           result = (await db.rpc('ai_spend_on', { p_site_ids: siteIds(args.site), p_from: args.date_from, p_to: args.date_to, p_search: args.search })).data
         } else if (c.function.name === 'supplier_history') {
           result = (await db.rpc('ai_supplier_history', { p_site_ids: siteIds(args.site), p_supplier: args.supplier, p_from: args.date_from, p_to: args.date_to })).data
+        } else if (PROPOSE[c.function.name]) {
+          const a = args as Record<string, any>
+          const [kind, fn, params, summarise] = PROPOSE[c.function.name]
+          const r = await db.rpc(fn, params(a, siteIds(a.site)))
+          const prep = r.error ? { error: r.error.message } : r.data
+          if (!prep || prep.error) result = { error: prep?.error || 'Could not prepare that' }
+          else {
+            const summary = summarise(prep)
+            const { data: id, error: pe } = await db.rpc('ai_action_propose', { p_kind: kind, p_site: prep.site_id || body.site_id || null, p_summary: summary, p_payload: prep })
+            if (pe) result = { error: pe.message }
+            else { actions.push({ id, kind, summary, details: prep }); result = { proposed: true, summary, note: 'A card with a Confirm button is shown to the person. Nothing has been saved yet — tell them to check it and press Confirm.' } }
+          }
         } else if (c.function.name === 'notifications') {
           const r = await db.rpc('ai_notifications', { p_unread_only: String(args.unread_only) !== 'false', p_search: args.search || null })
           result = r.error ? { error: r.error.message } : r.data
@@ -351,5 +405,5 @@ Rules:
   const { data: logged } = await db.from('ai_questions').insert({ user_id: user.id, site_id: body.site_id || null, question, answer, model: usedModel,
     tools: [...used, ...docs.map(d => ({ name: 'file', args: { name: d.file, doc_type: (d as Record<string, unknown>).doc_type ?? null, error: (d as Record<string, unknown>).error ?? null } })), ...(pg ? [{ name: 'screen', args: { page: pg.page, structured: !!pg.context } }] : [])], tokens, error })
     .select('id').single()
-  return json({ answer, links, tools: used, docs, model: usedModel, id: logged?.id, error })
+  return json({ answer, links, tools: used, docs, actions, model: usedModel, id: logged?.id, error })
 })

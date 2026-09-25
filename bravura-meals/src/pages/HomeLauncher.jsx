@@ -743,6 +743,7 @@ function DailyBrief({ navigate }) {
   ].filter(Boolean)
   const alerts = b.alerts || []
   const clear = !chips.length && !alerts.length
+  if (clear) return null   // only shown when something needs you
   const toggle = () => { const h = !hidden; setHidden(h); try { h ? localStorage.setItem('brief_hidden', today) : localStorage.removeItem('brief_hidden') } catch { /* private mode */ } }
   const tone = t => t === 'bad' ? { bg: '#FDECEA', fg: '#B3261E', bd: '#F2C4C0' } : { bg: '#FFF6E8', fg: '#9A5B00', bd: '#EBCB97' }
   return (

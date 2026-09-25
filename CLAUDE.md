@@ -525,6 +525,9 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   one 62-column table; status 'active'/'operational' mixed; papers on asset + fleet_compliance; maintenance vs work orders duplicate;
   FL16 frozen table in menu. Phases A1 correct · A2 one machine record · A3 pre-starts + work orders · A4 service planning + contracts ·
   A5 dashboard/cost per hour/finance look · A6 small assets + Ask Bravura (+ optional Traccar).
+  Sub-issues: A1 #62 · A2 #63 · A3 #64 · A4 #65 · A5 #66 (dashboard in the FINANCE look — FinShell/financeTheme, user 25 Sep) ·
+  A6 #67 **small assets issued to people (tools, radios, laptops) is REQUIRED** (user, 25 Sep): register, issue/sign/return with
+  condition, who-holds-what, employee profile + exit checklist blocks until returned, overdue returns, counts.
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search

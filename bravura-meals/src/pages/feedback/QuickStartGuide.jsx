@@ -430,6 +430,15 @@ export default function QuickStartGuide() {
       )}
 
       {(can('finance.view') || can('finance.edit')) && (
+        <Section icon="savings" color={MODULE_COLORS.finance} title="Finance — Finance Home and budgets">
+          <Steps items={[
+            <><b>Finance Home</b> (<Code>FI12</Code>) shows the month at a glance: spend against budget, cash and bank, what is owed to suppliers, petty cash, a 12-month spend chart, where the money went, cost by site and project, bills due in the next 14 days, and a <b>Needs attention</b> list. Click anything to go to it.</>,
+            <>In <b>Budgets</b> (<Code>FI22</Code>) set a yearly budget per cost centre or project. Leave it as even months, or tick <b>Plan it month by month</b>. Procurement uses the same budgets to check purchase orders.</>,
+            <>Each line shows the month's plan and spend, the year budget, <b>Committed</b> (approved POs not yet billed) and what is <b>really left</b>. On track is green, 90% used is ochre, over is red.</>,
+          ]} />
+        </Section>
+      )}
+      {(can('finance.view') || can('finance.edit')) && (
         <Section icon="payments" color={MODULE_COLORS.finance} title="Finance — paying suppliers">
           <Steps items={[
             <>Bills are recorded against their PO and GRN in Procurement → Purchase Invoices (<Code>PR09</Code>) and approved there. The due date fills in from the supplier's payment terms (set on the supplier, with their bank details).</>,

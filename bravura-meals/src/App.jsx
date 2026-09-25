@@ -175,7 +175,6 @@ const FIBalanceSheet       = lazy(() => import('./pages/finance/BalanceSheet'))
 const FICashFlow           = lazy(() => import('./pages/finance/CashFlowStatement'))
 const FICostCentres        = lazy(() => import('./pages/finance/CostCentres'))
 const FICostCentreReport   = lazy(() => import('./pages/finance/CostCentreReport'))
-const FIDashboard          = lazy(() => import('./pages/finance/FinanceDashboard'))
 const FIPostingRules       = lazy(() => import('./pages/finance/PostingRules'))
 const FIExpenseClaims      = lazy(() => import('./pages/finance/ExpenseClaims'))
 const FIPettyCash          = lazy(() => import('./pages/finance/PettyCash'))
@@ -185,6 +184,8 @@ const FIAssetVerification  = lazy(() => import('./pages/finance/AssetVerificatio
 const FIDimensionReport    = lazy(() => import('./pages/finance/DimensionReport'))
 const FIFinanceSetup       = lazy(() => import('./pages/finance/FinanceSetup'))
 const FIPaySuppliers       = lazy(() => import('./pages/finance/PaySuppliers'))
+const FIFinanceHome        = lazy(() => import('./pages/finance/FinanceHome'))
+const FIBudgets            = lazy(() => import('./pages/finance/FinanceBudgets'))
 const MeHome               = lazy(() => import('./pages/me/MeHome'))
 const MyPayslips           = lazy(() => import('./pages/me/MyPayslips'))
 const MyLeave              = lazy(() => import('./pages/me/MyLeave'))
@@ -230,7 +231,6 @@ const ProcInvoices = lazy(() => import('./pages/procurement/ProcInvoices'))
 const ProcTracking = lazy(() => import('./pages/procurement/ProcTracking'))
 const ProcReports = lazy(() => import('./pages/procurement/ProcReports'))
 const ProcRfqCompare       = lazy(() => import('./pages/procurement/ProcRfqCompare'))
-const ProcBudgets          = lazy(() => import('./pages/procurement/ProcBudgets'))
 const ProcSupplierPerf     = lazy(() => import('./pages/procurement/ProcSupplierPerformance'))
 
 // ── Projects ─────────────────────────────────────────────────────────────────
@@ -603,7 +603,7 @@ function getProcurementPage(page, can, setPage) {
   const [base, param] = (page || '').split(':')
   if (base === 'proc_rfq_compare') return can('procurement.view') ? <ProcRfqCompare rfqId={param} setPage={setPage} key={param} /> : null
   switch (page) {
-    case 'proc_budgets':      return can('procurement.view') ? <ProcBudgets setPage={setPage} /> : null
+    case 'proc_budgets':      return can('procurement.view') ? <FIBudgets setPage={setPage} /> : null  // one budget screen (0207)
     case 'proc_supplier_performance': return can('procurement.view') ? <ProcSupplierPerf setPage={setPage} /> : null
     case 'proc_dashboard': return can('procurement.view') ? <ProcDashboard setPage={setPage} /> : null
     case 'proc_suppliers': return can('procurement.view') ? <ProcSuppliers setPage={setPage} /> : null
@@ -709,7 +709,7 @@ function getFinancePage(page, can, setPage) {
     case 'fi_cash_flow':         return <FICashFlow setPage={setPage} />
     case 'fi_cost_centres':      return <FICostCentres setPage={setPage} />
     case 'fi_cost_report':       return <FICostCentreReport setPage={setPage} />
-    case 'fi_dashboard':         return <FIDashboard setPage={setPage} />
+    case 'fi_dashboard':         return <FIFinanceHome setPage={setPage} />  // new Finance Home (0207)
     case 'fi_posting_rules':     return <FIPostingRules setPage={setPage} />
     case 'fi_expense_claims':    return <FIExpenseClaims setPage={setPage} />
     case 'fi_petty_cash':        return <FIPettyCash setPage={setPage} />
@@ -719,7 +719,8 @@ function getFinancePage(page, can, setPage) {
     case 'fi_dimension_report':  return <FIDimensionReport setPage={setPage} />
     case 'fi_setup':             return <FIFinanceSetup setPage={setPage} />
     case 'fi_pay_suppliers':     return <FIPaySuppliers setPage={setPage} />
-    default:                     return <FIDashboard setPage={setPage} />
+    case 'fi_budgets':           return <FIBudgets setPage={setPage} />
+    default:                     return <FIFinanceHome setPage={setPage} />
   }
 }
 

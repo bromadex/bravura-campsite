@@ -156,7 +156,7 @@ async function visionCandidates(): Promise<string[]> {
   if (!modelList.length) {
     try { const r = await fetch(`${GROQ}/models`, { headers: { Authorization: `Bearer ${GROQ_KEY}` } }); modelList = ((await r.json()).data || []).map((m: { id: string }) => m.id) } catch { /* none */ }
   }
-  const pref = [/llama-4-maverick/i, /llama-4-scout/i, /vision/i, /[-_/]vl\b|-vl-/i, /gemma-?3/i, /llava/i, /pixtral/i, /qwen.*(2\.5|3).*vl/i]
+  const pref = [/llama-4-maverick/i, /llama-4-scout/i, /vision/i, /[-_/]vl\b|-vl-/i, /gemma-?3/i, /llava/i, /pixtral/i, /qwen.*(2\.5|3).*vl/i, /qwen3\.[5-9]|qwen-?3\.[5-9]/i]
   const found = pref.flatMap(re => modelList.filter(m => re.test(m)))
   return [...new Set([Deno.env.get('GROQ_VISION_MODEL') || '', ...found].filter(Boolean))]
 }
@@ -170,26 +170,30 @@ async function readFile(f: AskFile): Promise<Record<string, unknown>> {
   if (!images.length && !text) return { file: f.name, error: 'Nothing readable in this file' }
   const content: unknown[] = [{ type: 'text', text: READ_PROMPT + (text ? '\n\nText layer of the document:\n' + text : '') }]
   for (const u of images) content.push({ type: 'image_url', image_url: { url: u } })
-  const models = images.length ? await visionCandidates() : [await pickModel()]
-  if (!models.length) return { file: f.name, error: 'No picture-reading model is available on the AI account. Available: ' + modelList.join(', ') }
-  let d: Record<string, any> | null = null; let lastErr = ''
-  for (const model of models) {
+  // Try picture-reading models first; if none works, fall back to the words read off the picture in the browser (OCR).
+  const vision = images.length ? await visionCandidates() : []
+  const textModel = await pickModel()
+  const attempts: [string, boolean][] = [...vision.map(m => [m, true] as [string, boolean]), ...(text ? [[textModel, false] as [string, boolean]] : [])]
+  if (!attempts.length) return { file: f.name, error: 'No picture-reading model on the AI account and no text could be read from the picture' }
+  let d: Record<string, any> | null = null; let lastErr = ''; let how = ''
+  for (const [model, withImages] of attempts) {
     for (const json_mode of [true, false]) {
-      const payload: Record<string, unknown> = { model, messages: [{ role: 'user', content: images.length ? content : (content[0] as { text: string }).text }], temperature: 0, max_tokens: 1500 }
+      const payload: Record<string, unknown> = { model, messages: [{ role: 'user', content: withImages ? content : (content[0] as { text: string }).text }], temperature: 0, max_tokens: 1500 }
       if (json_mode) payload.response_format = { type: 'json_object' }
       if (/qwen3/i.test(model)) payload.reasoning_format = 'hidden'
       const r = await fetch(`${GROQ}/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(payload) })
       const body = await r.json()
-      if (r.ok) { d = body; break }
+      if (r.ok) { d = body; how = withImages ? 'picture' : 'text read from the file'; break }
       lastErr = `${model}: ${body?.error?.message || r.status}`
-      if (/does not exist|not have access|decommission|not support.*image|image.*not support/i.test(lastErr)) break
+      if (/does not exist|not have access|decommission|image|vision|multimodal|content.*(array|type)/i.test(lastErr)) break
     }
     if (d) break
   }
-  if (!d) return { file: f.name, error: lastErr + ' | tried: ' + models.join(', ') + ' | available: ' + modelList.join(', ') }
+  if (!d) return { file: f.name, error: lastErr + ' | tried: ' + attempts.map(a => a[0]).join(', ') + ' | available: ' + modelList.join(', ') }
   const raw = String(d.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '')
-  try { return { file: f.name, ...JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)) } }
-  catch { return { file: f.name, text: raw.slice(0, 3000) } }
+  const note = how === 'picture' || f.type !== 'image' ? {} : { read_from: 'OCR text of the picture — spelling and numbers may be slightly off; say so if something looks wrong' }
+  try { return { file: f.name, ...note, ...JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)) } }
+  catch { return { file: f.name, ...note, text: raw.slice(0, 3000) } }
 }
 
 // B2 (0221): one read-only ai_* function per module → [rpc, takes dates, takes search]

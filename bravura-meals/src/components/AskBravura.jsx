@@ -86,10 +86,23 @@ async function pdfToParts(file) {
   }
   return { images, text: text.trim() }
 }
+// The AI account may have no picture-reading model, so also read the words off photos here (OCR).
+async function ocr(dataUrl) {
+  try {
+    const { createWorker } = await import('tesseract.js')
+    const w = await createWorker('eng')
+    const { data } = await w.recognize(dataUrl)
+    await w.terminate()
+    return (data?.text || '').trim()
+  } catch { return '' }
+}
 async function prepareFile(file) {
   if (file.size > MAX_FILE_MB * 1024 * 1024) throw new Error(`${file.name} is over ${MAX_FILE_MB} MB`)
   if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) return { name: file.name, type: 'pdf', ...(await pdfToParts(file)) }
-  if (file.type.startsWith('image/')) return { name: file.name, type: 'image', images: [await imageToJpeg(file)] }
+  if (file.type.startsWith('image/')) {
+    const jpeg = await imageToJpeg(file)
+    return { name: file.name, type: 'image', images: [jpeg], text: await ocr(jpeg) }
+  }
   throw new Error(`${file.name}: attach a photo, scan or PDF`)
 }
 
@@ -229,7 +242,7 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
                 <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setFiles(fs => fs.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', color: FIN.muted, fontSize: 14, padding: 0 }}>×</button>
               </span>
             ))}
-            {reading && <span style={{ fontSize: 12, color: FIN.faint }}>Preparing file…</span>}
+            {reading && <span style={{ fontSize: 12, color: FIN.faint }}>Reading the file…</span>}
             {fileErr && <span style={{ fontSize: 12, color: FIN.bad }}>{fileErr}</span>}
           </div>
         )}

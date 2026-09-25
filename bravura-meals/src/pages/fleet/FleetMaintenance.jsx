@@ -351,29 +351,15 @@ export default function FleetMaintenance({ setPage }) {
           await supabase.from('fleet_maintenance_parts').insert(partsRows)
 
           // Create inventory issue movements for parts with a warehouse
-          const movements = stockParts
-            .filter(p => p.warehouse_id && Number(p.qty) > 0)
-            .map(p => ({
-              item_id: p.item_id,
-              warehouse_id: p.warehouse_id,
-              movement_type: 'issue',
-              quantity: -(Number(p.qty)),
-              unit_cost: Number(p.unit_cost) || 0,
-              value: -(Number(p.qty) * (Number(p.unit_cost) || 0)),
-              voucher_type: 'fleet_wo',
-              voucher_no: form.work_order_number,
-              source_module: 'fleet',
-            }))
-          if (movements.length > 0) {
-            await supabase.from('inventory_movements').insert(movements)
-            // Update stock balances
-            for (const p of stockParts.filter(sp => sp.warehouse_id && Number(sp.qty) > 0)) {
-              const newQty = p.available - Number(p.qty)
-              await supabase.from('stock_balances')
-                .update({ on_hand_qty: newQty, updated_at: new Date().toISOString() })
-                .eq('item_id', p.item_id)
-                .eq('warehouse_id', p.warehouse_id)
-            }
+          // One stores issue per store, charged to this work order. The database prices it, moves the
+          // balance (once) and posts it to Finance with the work order's cost centre.
+          const byStore = {}
+          for (const p of stockParts.filter(sp => sp.item_id && sp.warehouse_id && Number(sp.qty) > 0)) {
+            (byStore[p.warehouse_id] ||= []).push({ item_id: p.item_id, qty: Number(p.qty), notes: form.work_order_number })
+          }
+          for (const [warehouse_id, lines] of Object.entries(byStore)) {
+            const { error: issueErr } = await supabase.rpc('inv_issue', { p: { warehouse_id, work_order_id: editId, source: 'fleet', lines } })
+            if (issueErr) throw issueErr
           }
         }
       } else if (stockParts.length > 0 && !closeMode) {

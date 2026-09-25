@@ -95,24 +95,14 @@ export default function InvGrn({ setPage }) {
     if (valid.length === 0) { showToast('Add at least one item line', 'red'); return }
     setSaving(true)
     try {
-      const rows = valid.map(l => ({
-        item_id: l.item_id,
-        warehouse_id,
-        movement_type: 'grn',
-        quantity: parseFloat(l.qty),
-        unit_cost: parseFloat(l.unit_cost) || 0,
-        value: parseFloat(l.qty) * (parseFloat(l.unit_cost) || 0),
-        voucher_type: 'GRN',
-        voucher_no: voucher_no || null,
-        batch_no: l.batch_no?.trim() || null,
-        expiry_date: l.expiry_date || null,
-        source_module: 'inventory',
-        notes: [NO_PO_REASONS[grnForm.reason], grnForm.notes].filter(Boolean).join(' — ') || null,
-        created_by: profile?.id,
-      }))
-      const { error } = await supabase.from('inventory_movements').insert(rows)
+      // Each reason posts correctly: opening → Dr stock / Cr equity; returned → return; donated/found/other → stock gain.
+      const { data, error } = await supabase.rpc('inv_receive_nopo', { p: {
+        warehouse_id, reason: grnForm.reason, voucher_no: voucher_no || null, notes: grnForm.notes || null,
+        lines: valid.map(l => ({ item_id: l.item_id, qty: parseFloat(l.qty), unit_cost: parseFloat(l.unit_cost) || null,
+          batch_no: l.batch_no?.trim() || null, expiry_date: l.expiry_date || null })),
+      } })
       if (error) throw error
-      showToast(`GRN recorded — ${valid.length} item(s)`, 'green')
+      showToast(`Received ${data.voucher} — ${data.lines} item(s)`, 'green')
       setModalOpen(false)
       setLines([{ item_id: '', qty: '', unit_cost: '', batch_no: '', expiry_date: '' }])
       setGrnForm({ warehouse_id: '', voucher_no: '', notes: '', reason: '' })

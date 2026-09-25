@@ -63,22 +63,13 @@ export default function InvSiteMoves({ setPage }) {
     if (!q || q <= 0) { showToast('Enter a valid quantity', 'red'); return }
     setSaving(true)
     try {
-      const { error } = await supabase.from('inventory_movements').insert([
-        {
-          item_id, warehouse_id: from_warehouse_id, movement_type: 'transfer_out',
-          quantity: -q, unit_cost: 0, value: 0,
-          voucher_type: 'TRANSFER', source_module: 'inventory',
-          notes: form.notes || null, created_by: profile?.id,
-        },
-        {
-          item_id, warehouse_id: to_warehouse_id, movement_type: 'transfer_in',
-          quantity: q, unit_cost: 0, value: 0,
-          voucher_type: 'TRANSFER', source_module: 'inventory',
-          notes: form.notes || null, created_by: profile?.id,
-        },
-      ])
+      // Same-site only; stock between sites goes through a transfer request in Procurement.
+      const { data, error } = await supabase.rpc('inv_transfer', { p: {
+        from_warehouse_id, to_warehouse_id,
+        lines: [{ item_id, qty: q, notes: form.notes || null }],
+      } })
       if (error) throw error
-      showToast('Stock reassignment recorded', 'green')
+      showToast(`Moved — ${data.voucher}`, 'green')
       setModalOpen(false)
       fetch()
     } catch (err) {

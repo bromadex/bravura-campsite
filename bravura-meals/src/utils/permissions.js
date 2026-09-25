@@ -189,8 +189,6 @@ export function campsiteNav(role) {
     { id: 'camp_assignments', label: 'Room Assignments',  section: 'Management',  icon: 'assignment_ind' },
     { id: 'camp_rooms',       label: 'Rooms',            section: 'Management',  icon: 'meeting_room' },
     { id: 'camp_blocks',      label: 'Blocks',           section: 'Management',  icon: 'domain' },
-    { id: 'camp_supplies',    label: 'Camp Supplies',    section: 'Management',  icon: 'inventory_2' },
-    { id: 'camp_transfers',   label: 'Site Reassignment', section: 'Management',  icon: 'swap_horiz' },
     { id: 'camp_faults',      label: 'Room Faults',      section: 'Management',  icon: 'build' },
     { id: 'camp_occ_report',  label: 'Occupancy Reports',section: 'Reports',     icon: 'analytics' },
   ]
@@ -430,7 +428,7 @@ export function inventoryNav(role, can) {
     { id: 'inv_balances',     label: 'Stock Balances',     section: 'Warehouse',  icon: 'inventory' },
     { id: 'inv_grn',          label: 'Goods Received',     section: 'Operations', icon: 'move_to_inbox' },
     { id: 'inv_issues',       label: 'Issues & Returns',   section: 'Operations', icon: 'outbox' },
-    { id: 'inv_site_moves',   label: 'Site Reassignment',  section: 'Operations', icon: 'swap_horiz' },
+    { id: 'inv_site_moves',   label: 'Move between stores',  section: 'Operations', icon: 'swap_horiz' },
     { id: 'inv_adjustments',  label: 'Adjustments',        section: 'Operations', icon: 'tune' },
     { id: 'inv_ledger',       label: 'Stock Ledger',       section: 'Reports',    icon: 'menu_book' },
     { id: 'inv_reports',      label: 'Reports',            section: 'Reports',    icon: 'bar_chart' },

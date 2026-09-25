@@ -73,18 +73,13 @@ export default function InvAdjustments({ setPage }) {
     if (!notes?.trim()) { showToast('Reason/notes is required for adjustments', 'red'); return }
     setSaving(true)
     try {
-      const { error } = await supabase.from('inventory_movements').insert({
-        item_id, warehouse_id,
-        movement_type: 'adjustment',
-        quantity: direction === 'add' ? q : -q,
-        unit_cost: 0, value: 0,
-        voucher_type: 'ADJ',
-        source_module: 'inventory',
-        notes,
-        created_by: profile?.id,
-      })
+      // Priced by the database at the store's average; losses and gains post to Finance.
+      const { data, error } = await supabase.rpc('inv_adjust', { p: {
+        warehouse_id, reason: notes.trim(),
+        lines: [{ item_id, qty: direction === 'add' ? q : -q }],
+      } })
       if (error) throw error
-      showToast('Adjustment recorded', 'green')
+      showToast(`Adjustment ${data.voucher} recorded · $${Number(data.value || 0).toFixed(2)}`, 'green')
       setModalOpen(false)
       fetch()
     } catch (err) {

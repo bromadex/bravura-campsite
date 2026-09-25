@@ -98,25 +98,19 @@ export default function InvIssues({ setPage }) {
     if (!warehouse_id || !item_id) { showToast('Select warehouse and item', 'red'); return }
     const q = parseFloat(qty)
     if (!q || q <= 0) { showToast('Enter a valid quantity', 'red'); return }
+    if (mode === 'issue' && !form.department_id && !form.issued_to_employee_id) { showToast('Choose the department or person the stock is for', 'red'); return }
     setSaving(true)
     try {
-      const { error } = await supabase.from('inventory_movements').insert({
-        item_id,
+      // The database prices the move at the store's average cost and refuses to go below zero.
+      const { data, error } = await supabase.rpc(mode === 'issue' ? 'inv_issue' : 'inv_return', { p: {
         warehouse_id,
-        movement_type: mode,
-        quantity: mode === 'issue' ? -q : q,
-        unit_cost: 0,
-        value: 0,
-        voucher_type: mode === 'issue' ? 'ISSUE' : 'RETURN',
-        batch_no: form.batch_no || null,
-        source_module: 'inventory',
-        notes: form.notes || null,
         department_id: form.department_id || null,
-        issued_to_employee_id: form.issued_to_employee_id || null,
-        created_by: profile?.id,
-      })
+        employee_id: form.issued_to_employee_id || null,
+        notes: form.notes || null,
+        lines: [{ item_id, qty: q, batch_no: form.batch_no || null }],
+      } })
       if (error) throw error
-      showToast(mode === 'issue' ? 'Stock issued' : 'Stock returned', 'green')
+      showToast(`${mode === 'issue' ? 'Issued' : 'Returned'} — ${data.voucher} · $${Number(data.value || 0).toFixed(2)}`, 'green')
       setModalOpen(false)
       fetch()
     } catch (err) {

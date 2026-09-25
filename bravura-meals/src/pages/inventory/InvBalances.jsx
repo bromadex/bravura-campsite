@@ -79,16 +79,8 @@ export default function InvBalances({ setPage }) {
     const cost = parseFloat(unit_cost) || 0
     setSaving(true)
     try {
-      const { error } = await supabase.from('inventory_movements').insert({
-        item_id,
-        warehouse_id,
-        movement_type: 'opening',
-        quantity: q,
-        unit_cost: cost,
-        value: q * cost,
-        notes: 'Opening stock capture',
-        created_by: profile?.id,
-      })
+      const { error } = await supabase.rpc('inv_opening', { p: { warehouse_id, notes: 'Opening stock capture',
+        lines: [{ item_id, qty: q, unit_cost: cost || null }] } })
       if (error) throw error
       showToast('Opening stock recorded', 'green')
       setOpeningModal(false)

@@ -62,10 +62,8 @@ const CampHeadcount       = lazy(() => import('./pages/campsite/CampHeadcount'))
 const CampBlocks          = lazy(() => import('./pages/campsite/CampBlocks'))
 const CampRooms           = lazy(() => import('./pages/campsite/CampRooms'))
 const CampAssignments     = lazy(() => import('./pages/campsite/CampAssignments'))
-const CampSupplies        = lazy(() => import('./pages/campsite/CampSupplies'))
 const CampOccupancyReport = lazy(() => import('./pages/campsite/CampOccupancyReport'))
 const CampFloorplan       = lazy(() => import('./pages/campsite/CampFloorplan'))
-const StockTransfers      = lazy(() => import('./pages/campsite/StockTransfers'))
 
 // ── Meals pages ───────────────────────────────────────────────────────────────
 const Dashboard      = lazy(() => import('./pages/meals/Dashboard'))
@@ -451,8 +449,9 @@ function getCampsitePage(page, role, setPage, can) {
     case 'camp_assignments': return <CampAssignments setPage={setPage} />
     case 'camp_rooms':       return <CampRooms setPage={setPage} />
     case 'camp_blocks':      return can('accommodation.create') ? <CampBlocks setPage={setPage} /> : null
-    case 'camp_supplies':    return <CampSupplies setPage={setPage} />
-    case 'camp_transfers':   return <StockTransfers setPage={setPage} />
+    case 'camp_supplies':    return <InvIssues setPage={setPage} />
+    // Camp stock now lives in Stores (0232): transfers → move between stores, supplies → issues.
+    case 'camp_transfers':   return <InvSiteMoves setPage={setPage} />
     case 'camp_occ_report':  return <CampOccupancyReport setPage={setPage} />
     case 'camp_faults':      return can('accommodation.view') ? <CampFaults setPage={setPage} /> : null
     default:                 return <CampHeadcount setPage={setPage} />

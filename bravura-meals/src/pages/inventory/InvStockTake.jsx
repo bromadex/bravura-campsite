@@ -142,6 +142,13 @@ export default function InvStockTake({ setPage }) {
     setSaving(false)
   }
 
+  async function saveCountsQuiet() {
+    for (const l of lines.filter(l => l.counted_qty !== null && l.counted_qty !== undefined)) {
+      const { error } = await supabase.from('stock_take_lines').update({ counted_qty: l.counted_qty }).eq('id', l.id)
+      if (error) throw error
+    }
+  }
+
   async function postAdjustments() {
     if (!can('inventory.approve')) { showToast('Approval permission required', 'red'); return }
     const variances = lines.filter(l => l.counted_qty !== null && l.counted_qty !== undefined && (l.counted_qty - l.system_qty) !== 0)
@@ -149,27 +156,11 @@ export default function InvStockTake({ setPage }) {
     if (!confirm(`Post ${variances.length} adjustment(s) from this stock take?`)) return
     setPostingSaving(true)
     try {
-      const movs = variances.map(l => ({
-        item_id: l.item_id,
-        warehouse_id: activeTake.warehouse_id,
-        movement_type: 'stock_take',
-        quantity: l.counted_qty - l.system_qty,
-        unit_cost: 0, value: 0,
-        voucher_type: 'ST',
-        voucher_no: activeTake.reference,
-        source_module: 'inventory',
-        notes: `Stock take ${activeTake.reference}: system ${l.system_qty}, counted ${l.counted_qty}`,
-        created_by: profile?.id,
-      }))
-      const { error: movErr } = await supabase.from('inventory_movements').insert(movs)
-      if (movErr) throw movErr
-
-      const { error: upErr } = await supabase.from('stock_takes')
-        .update({ status: 'completed', completed_at: new Date().toISOString(), approved_by: profile?.id })
-        .eq('id', activeTake.id)
-      if (upErr) throw upErr
-
-      showToast(`${variances.length} adjustment(s) posted`, 'green')
+      await saveCountsQuiet()
+      // One step in the database: variance against stock on hand now, priced, posted to Finance, count closed.
+      const { data, error } = await supabase.rpc('inv_count_post', { p_stock_take_id: activeTake.id })
+      if (error) throw error
+      showToast(`${data.adjusted_lines} adjustment(s) posted · variance $${Number(data.variance_value || 0).toFixed(2)}`, 'green')
       notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.view', type: 'stock_take_completed', title: 'Stock Take Completed', body: `A stock take has been completed with ${variances.length} adjustment(s).`, actionUrl: '/inventory/stock-take' })
       setDetailModal(false)
       fetch()

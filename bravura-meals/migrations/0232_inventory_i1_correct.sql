@@ -170,6 +170,14 @@ BEGIN
 END $$;
 
 -- New posting rules for every site that has books, and in the template for new sites.
+DO $$ DECLARE d text; BEGIN
+  SELECT pg_get_constraintdef(oid) INTO d FROM pg_constraint WHERE conname = 'gl_posting_rules_event_code_check';
+  IF d IS NOT NULL AND position('stock_opening' in d) = 0 THEN
+    ALTER TABLE gl_posting_rules DROP CONSTRAINT gl_posting_rules_event_code_check;
+    EXECUTE 'ALTER TABLE gl_posting_rules ADD CONSTRAINT gl_posting_rules_event_code_check '
+      || replace(d, '''landed_cost''::text,', '''landed_cost''::text, ''stock_opening''::text, ''stock_transfer_out''::text, ''stock_transfer_in''::text,');
+  END IF;
+END $$;
 INSERT INTO gl_posting_rules (site_id, event_code, debit_account_id, credit_account_id, is_active)
 SELECT fs.site_id, v.ev, (SELECT id FROM accounts WHERE site_id = fs.site_id AND code = v.dr), (SELECT id FROM accounts WHERE site_id = fs.site_id AND code = v.cr), true
   FROM finance_setup fs CROSS JOIN (VALUES ('stock_transfer_out', '2500', '1320'), ('stock_transfer_in', '1320', '2500'), ('stock_opening', '1320', '3900')) v(ev, dr, cr)

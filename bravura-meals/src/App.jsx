@@ -208,14 +208,14 @@ const InvReports     = lazy(() => import('./pages/inventory/InvReports'))
 const InvSettings    = lazy(() => import('./pages/inventory/InvSettings'))
 const InvStockTake   = lazy(() => import('./pages/inventory/InvStockTake'))
 const InvReorderExpiry = lazy(() => import('./pages/inventory/InvReorderExpiry'))
-const InvRequisitions = lazy(() => import('./pages/inventory/InvRequisitions'))
 const InvPurchaseOrders = lazy(() => import('./pages/inventory/InvPurchaseOrders'))
 
 // ── Procurement ───────────────────────────────────────────────────────────────
-const ProcDashboard = lazy(() => import('./pages/procurement/ProcDashboard'))
+const ProcHome = lazy(() => import('./pages/procurement/ProcHome'))
+const ProcShell = lazy(() => import('./components/ProcShell'))
 const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
 const ProcRFQ = lazy(() => import('./pages/procurement/ProcRFQ'))
-const ProcRequisitions = lazy(() => import('./pages/procurement/ProcRequisitions'))
+const ProcRequests = lazy(() => import('./pages/procurement/ProcRequests'))
 const ProcGRN = lazy(() => import('./pages/procurement/ProcGRN'))
 const ProcInvoices = lazy(() => import('./pages/procurement/ProcInvoices'))
 const ProcTracking = lazy(() => import('./pages/procurement/ProcTracking'))
@@ -590,21 +590,24 @@ function getContractorsPage(page, can, setPage) {
 }
 
 function getProcurementPage(page, can, setPage) {
+  // Procurement rewrite (#50): Home and Requests are built in the new design; older screens sit inside
+  // the same Procurement frame until their phase replaces them.
   const [base, param] = (page || '').split(':')
-  if (base === 'proc_rfq_compare') return can('procurement.view') ? <ProcRfqCompare rfqId={param} setPage={setPage} key={param} /> : null
+  const view = can('procurement.view')
+  const framed = (title, el) => view ? <ProcShell title={title} setPage={setPage}>{el}</ProcShell> : null
+  if (base === 'proc_rfq_compare') return framed('Quote comparison', <ProcRfqCompare rfqId={param} setPage={setPage} key={param} />)
   switch (page) {
-    case 'proc_budgets':      return can('procurement.view') ? <FIBudgets setPage={setPage} /> : null  // one budget screen (0207)
-    case 'proc_supplier_performance': return can('procurement.view') ? <ProcSupplierPerf setPage={setPage} /> : null
-    case 'proc_dashboard': return can('procurement.view') ? <ProcDashboard setPage={setPage} /> : null
-    case 'proc_suppliers': return can('procurement.view') ? <ProcSuppliers setPage={setPage} /> : null
-    case 'proc_rfqs':      return can('procurement.view') ? <ProcRFQ setPage={setPage} /> : null
-    case 'proc_orders':       return can('procurement.view') ? <InvPurchaseOrders setPage={setPage} /> : null  // one PO screen (was list-only ProcOrders)
-    case 'proc_requisitions': return can('procurement.view') ? <ProcRequisitions setPage={setPage} /> : null
-    case 'proc_grn':          return can('procurement.view') ? <ProcGRN setPage={setPage} /> : null
-    case 'proc_invoices':     return can('procurement.view') ? <ProcInvoices setPage={setPage} /> : null
-    case 'proc_tracking':     return can('procurement.view') ? <ProcTracking setPage={setPage} /> : null
-    case 'proc_reports':      return can('procurement.view') ? <ProcReports setPage={setPage} /> : null
-    default:               return can('procurement.view') ? <ProcDashboard setPage={setPage} /> : null
+    case 'proc_budgets':      return view ? <FIBudgets setPage={setPage} /> : null  // one budget screen (0207)
+    case 'proc_requisitions': return (view || can('procurement.create')) ? <ProcRequests setPage={setPage} /> : null
+    case 'proc_supplier_performance': return framed('Supplier aging & scorecards', <ProcSupplierPerf setPage={setPage} />)
+    case 'proc_suppliers':    return framed('Suppliers', <ProcSuppliers setPage={setPage} />)
+    case 'proc_rfqs':         return framed('Requests for quotation', <ProcRFQ setPage={setPage} />)
+    case 'proc_orders':       return framed('Purchase orders', <InvPurchaseOrders setPage={setPage} />)
+    case 'proc_grn':          return framed('Receiving', <ProcGRN setPage={setPage} />)
+    case 'proc_invoices':     return framed('Supplier bills', <ProcInvoices setPage={setPage} />)
+    case 'proc_tracking':     return framed('Order tracking', <ProcTracking setPage={setPage} />)
+    case 'proc_reports':      return framed('Reports', <ProcReports setPage={setPage} />)
+    default:                  return view ? <ProcHome setPage={setPage} /> : (can('procurement.create') ? <ProcRequests setPage={setPage} /> : null)
   }
 }
 
@@ -625,7 +628,7 @@ function getInventoryPage(page, can, setPage) {
     case 'inv_settings':    return <InvSettings setPage={setPage} />
     case 'inv_stock_take':  return <InvStockTake setPage={setPage} />
     case 'inv_reorder':       return can('inventory.view') ? <InvReorderExpiry setPage={setPage} /> : null
-    case 'inv_requisitions': return <InvRequisitions setPage={setPage} />
+    case 'inv_requisitions': return <ProcRequests setPage={setPage} />  // one Requests screen (#52)
     case 'inv_purchase_orders': return <InvPurchaseOrders setPage={setPage} />
     default:                return <InvDashboard setPage={setPage} />
   }

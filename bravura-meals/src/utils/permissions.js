@@ -268,15 +268,21 @@ export function fuelNav(role, can) {
 }
 
 export function procurementNav(role, can) {
+  // Procurement rewrite (#50): one place per step of buying. RFQs / tracking / scorecards fold into
+  // Purchase Orders and Suppliers in phases P3 and P5.
+  const view = !can || can('procurement.view')
   return [
-    { id: 'proc_dashboard', label: 'Dashboard',  section: 'Overview',   icon: 'dashboard',      show: can('procurement.view') },
-    { id: 'proc_suppliers', label: 'Suppliers',   section: 'Registry',   icon: 'business',       show: can('procurement.view') },
-    { id: 'proc_rfqs',      label: 'RFQs',        section: 'Purchasing', icon: 'request_quote',  show: can('procurement.view') },
-    { id: 'proc_orders',    label: 'Orders',      section: 'Purchasing', icon: 'shopping_cart',  show: can('procurement.view') },
-    { id: 'proc_tracking',  label: 'Tracking',    section: 'Logistics',  icon: 'local_shipping', show: can('procurement.view') },
-    { id: 'proc_budgets',   label: 'Budgets',     section: 'Purchasing', icon: 'savings',        show: can('procurement.view') },
-    { id: 'proc_supplier_performance', label: 'Supplier Performance', section: 'Analytics', icon: 'leaderboard', show: can('procurement.view') },
-    { id: 'proc_reports',   label: 'Reports',     section: 'Analytics',  icon: 'bar_chart',      show: can('procurement.view') },
+    { id: 'proc_dashboard',    label: 'Procurement Home', section: 'Overview',  icon: 'dashboard',      show: view },
+    { id: 'proc_requisitions', label: 'Requests',         section: 'Buying',    icon: 'assignment',     show: view || can('procurement.create') },
+    { id: 'proc_rfqs',         label: 'Quotes (RFQs)',    section: 'Buying',    icon: 'request_quote',  show: view },
+    { id: 'proc_orders',       label: 'Purchase Orders',  section: 'Buying',    icon: 'shopping_cart',  show: view },
+    { id: 'proc_tracking',     label: 'Tracking',         section: 'Buying',    icon: 'local_shipping', show: view },
+    { id: 'proc_grn',          label: 'Receiving',        section: 'Receiving', icon: 'move_to_inbox',  show: view },
+    { id: 'proc_invoices',     label: 'Supplier Bills',   section: 'Receiving', icon: 'receipt_long',   show: view },
+    { id: 'proc_suppliers',    label: 'Suppliers',        section: 'Suppliers', icon: 'business',       show: view },
+    { id: 'proc_supplier_performance', label: 'Scorecards & Aging', section: 'Suppliers', icon: 'leaderboard', show: view },
+    { id: 'proc_budgets',      label: 'Budgets',          section: 'Planning',  icon: 'donut_small',    show: view },
+    { id: 'proc_reports',      label: 'Reports',          section: 'Planning',  icon: 'bar_chart',      show: view },
   ].filter(item => item.show !== false)
 }
 
@@ -432,7 +438,7 @@ export function inventoryNav(role, can) {
     { id: 'inv_reports',      label: 'Reports',            section: 'Reports',    icon: 'bar_chart' },
     { id: 'inv_stock_take',    label: 'Stock Take',         section: 'Operations', icon: 'fact_check' },
     { id: 'inv_reorder',       label: 'Reorder & Expiry',   section: 'Warehouse',  icon: 'production_quantity_limits' },
-    { id: 'inv_requisitions',  label: 'Requisitions',       section: 'Purchasing', icon: 'request_quote' },
+    { id: 'inv_requisitions',  label: 'Requests',           section: 'Purchasing', icon: 'request_quote' },
     { id: 'inv_purchase_orders', label: 'Purchase Orders',  section: 'Purchasing', icon: 'shopping_cart' },
     { id: 'inv_settings',     label: 'Settings',           section: 'Admin',      icon: 'settings' },
   ]

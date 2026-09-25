@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0214.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0215.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -376,6 +376,15 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   profile + hold + price list + Agreements (#55) · P6 Bills move to Finance FI21 + inter-site 2500 postings
   (#56) · P7 Reports + reorder→draft POs + PO↔fleet work order (#57). Defaults: bills in Finance; each site
   keeps its own books (HQ pays via 2500); approval tiers ≤$1k / ≤$10k / >$10k (configurable, no role names).
+  **P1+P2 built (0214, 0214b, 0214c):** `components/ProcShell.jsx` (FinShell with module/homePage/siteText) +
+  `useSiteScope`/`SiteScopeToggle` (this site vs all accessible sites). ProcHome (PR01, `proc_home(site_ids[])`)
+  replaces ProcDashboard. ProcRequests (PR07, also IN14) replaces ProcRequisitions + InvRequisitions:
+  `purchase_requisitions` gained request_type buy/transfer, title, needed_by, department_id, work_order_id,
+  source_site_id, fulfilled_*; lines allow free-text services and are soft-archived. Write via
+  `proc_request_save` / `proc_request_submit` / `proc_request_cancel`; `proc_stock_check(item_ids[])`;
+  `proc_request_fulfil_transfer` moves stock between sites' stores (transfer_out/in). RLS via `_proc_can`
+  (procurement.* or inventory.*); sending site can see transfers. Default approval route per site:
+  line manager ("Department head"). Older procurement screens are wrapped in ProcShell in App.jsx.
 
 - Real opening balances for Kamativi (replace mock JV-0001 via `finance_setup_clear_mock_opening`).
 - Finance setup (FI20) for Selous, Manhizi, Harare — no CoA/rules yet, so nothing posts there.

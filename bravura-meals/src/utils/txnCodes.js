@@ -176,7 +176,7 @@ export const TXN_CODES = [
   { code: 'IN11', path: '/inventory/inv_reports',      label: 'Inventory Reports',    module: 'inventory' },
   { code: 'IN12', path: '/inventory/inv_settings',     label: 'Inventory Settings',   module: 'inventory' },
   { code: 'IN13', path: '/inventory/inv_stock_take',   label: 'Stock Take',           module: 'inventory' },
-  { code: 'IN14', path: '/inventory/inv_requisitions', label: 'Purchase Requisitions', module: 'inventory' },
+  { code: 'IN14', path: '/inventory/inv_requisitions', label: 'Requests (stores)',     module: 'inventory' },
   { code: 'IN15', path: '/inventory/inv_purchase_orders', label: 'Purchase Orders',   module: 'inventory' },
   { code: 'IN16', path: '/inventory/inv_reorder',      label: 'Reorder & Expiry',     module: 'inventory' },
 
@@ -197,13 +197,13 @@ export const TXN_CODES = [
   { code: 'DW14', path: '/dept/dept_templates',   label: 'Project Templates',  module: 'dept' },
 
   // ── Procurement (PR) / Feedback (FB) ──────────────────────────────────────
-  { code: 'PR01', path: '/procurement/proc_dashboard', label: 'Procurement Dashboard', module: 'procurement' },
+  { code: 'PR01', path: '/procurement/proc_dashboard', label: 'Procurement Home',      module: 'procurement' },
   { code: 'PR02', path: '/procurement/proc_suppliers', label: 'Suppliers',             module: 'procurement' },
   { code: 'PR03', path: '/procurement/proc_rfqs',      label: 'RFQs',                  module: 'procurement' },
   { code: 'PR04', path: '/procurement/proc_orders',    label: 'Purchase Orders',       module: 'procurement' },
   { code: 'PR05', path: '/procurement/proc_tracking',  label: 'Order Tracking',        module: 'procurement' },
   { code: 'PR06', path: '/procurement/proc_reports',       label: 'Procurement Reports',   module: 'procurement' },
-  { code: 'PR07', path: '/procurement/proc_requisitions', label: 'Requisitions',          module: 'procurement' },
+  { code: 'PR07', path: '/procurement/proc_requisitions', label: 'Requests',              module: 'procurement' },
   { code: 'PR08', path: '/procurement/proc_grn',          label: 'Goods Received Notes',  module: 'procurement' },
   { code: 'PR09', path: '/procurement/proc_invoices',     label: 'Purchase Invoices',     module: 'procurement' },
   { code: 'PR10', path: '/procurement/proc_rfq_compare',  label: 'Quote Comparison',      module: 'procurement' },

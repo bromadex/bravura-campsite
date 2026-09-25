@@ -84,15 +84,14 @@ export const INVENTORY_PILLS = [
 ]
 
 export const PROCUREMENT_PILLS = [
-  { id: 'proc_dashboard',    label: 'Dashboard',     icon: 'dashboard',      color: '#7C3AED' },
-  { id: 'proc_suppliers',    label: 'Suppliers',      icon: 'business',       color: '#1565C0' },
-  { id: 'proc_requisitions', label: 'Requisitions',   icon: 'assignment',     color: '#6A1B9A' },
-  { id: 'proc_rfqs',         label: 'RFQs',           icon: 'request_quote',  color: '#00838F' },
-  { id: 'proc_orders',       label: 'Orders',         icon: 'shopping_cart',  color: '#2E7D32' },
-  { id: 'proc_grn',          label: 'Goods Received', icon: 'inventory',      color: '#E65100' },
-  { id: 'proc_invoices',     label: 'Invoices',       icon: 'receipt_long',   color: '#AD1457' },
-  { id: 'proc_tracking',     label: 'Tracking',       icon: 'local_shipping', color: '#5D4037' },
-  { id: 'proc_reports',      label: 'Reports',        icon: 'bar_chart',      color: '#C62828' },
+  { id: 'proc_dashboard',    label: 'Home',            icon: 'dashboard',      color: '#982329' },
+  { id: 'proc_requisitions', label: 'Requests',        icon: 'assignment',     color: '#982329' },
+  { id: 'proc_rfqs',         label: 'Quotes',          icon: 'request_quote',  color: '#1F4E8C' },
+  { id: 'proc_orders',       label: 'Purchase Orders', icon: 'shopping_cart',  color: '#1F4E8C' },
+  { id: 'proc_grn',          label: 'Receiving',       icon: 'move_to_inbox',  color: '#2F7D4F' },
+  { id: 'proc_invoices',     label: 'Bills',           icon: 'receipt_long',   color: '#2F7D4F' },
+  { id: 'proc_suppliers',    label: 'Suppliers',       icon: 'business',       color: '#5B6661' },
+  { id: 'proc_reports',      label: 'Reports',         icon: 'bar_chart',      color: '#5B6661' },
 ]
 
 export const CONTRACTOR_PILLS = [

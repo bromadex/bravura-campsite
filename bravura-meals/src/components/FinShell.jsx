@@ -16,19 +16,23 @@ const SCOPED_THEME = {
   '--color-info': FIN.blue, '--color-success': FIN.good, '--color-error': FIN.bad, '--color-warning': FIN.ochreText,
 }
 
-export default function FinShell({ title, subtitle, actions, tabs, tab, onTab, setPage, children, embedChildren = true }) {
+// Also used by Procurement (issue #50): pass module / homePage, and siteText to replace the site name
+// (e.g. "All sites" when an HQ user is looking across sites).
+export default function FinShell({ title, subtitle, actions, tabs, tab, onTab, setPage, children, embedChildren = true,
+  module = 'Finance', homePage = 'fi_dashboard', siteText }) {
   useFinanceFonts()
   const { currentSite } = useSite()
+  const narrow = typeof window !== 'undefined' && window.innerWidth < 768
   return (
-    <div style={{ ...SCOPED_THEME, fontFamily: FIN.sans, color: FIN.ink, background: FIN.ground, margin: -24, padding: '28px 32px',
+    <div style={{ ...SCOPED_THEME, fontFamily: FIN.sans, color: FIN.ink, background: FIN.ground, margin: narrow ? -14 : -24, padding: narrow ? '18px 14px' : '28px 32px',
       minHeight: '100%', fontVariantNumeric: 'tabular-nums', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
       <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 13, color: FIN.muted }}>
-            <button onClick={() => setPage?.('fi_dashboard')} style={{ background: 'none', border: 'none', padding: 0, color: FIN.blue, cursor: 'pointer', font: 'inherit' }}>Finance</button>
-            {' · '}{currentSite?.name}
+            <button onClick={() => setPage?.(homePage)} style={{ background: 'none', border: 'none', padding: 0, color: FIN.blue, cursor: 'pointer', font: 'inherit' }}>{module}</button>
+            {' · '}{siteText || currentSite?.name}
           </div>
-          <h1 style={{ margin: '4px 0 0', fontFamily: FIN.serif, fontWeight: 600, fontSize: 30, letterSpacing: '-0.01em' }}>{title}</h1>
+          <h1 style={{ margin: '4px 0 0', fontFamily: FIN.serif, fontWeight: 600, fontSize: narrow ? 24 : 30, letterSpacing: '-0.01em' }}>{title}</h1>
           {subtitle && <div style={{ fontSize: 13, color: FIN.muted, marginTop: 2 }}>{subtitle}</div>}
         </div>
         {actions && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>{actions}</div>}

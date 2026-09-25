@@ -291,7 +291,7 @@ export default function QuickStartGuide() {
             <>Site Reassignment (<Code>IN08</Code>) transfers stock between warehouses or sites, creating paired transfer-out and transfer-in movements.</>,
             <>Adjustments (<Code>IN09</Code>) allows authorised users to add or subtract stock with a mandatory reason — requires the Approve permission.</>,
             <>Stock Take (<Code>IN13</Code>) runs a physical count against system balances — auto-populates a count sheet, calculates variances, and posts adjustments on approval.</>,
-            <>Requisitions (<Code>IN14</Code>) let site staff request materials. Draft, submit for approval, then convert approved requisitions into Purchase Orders.</>,
+            <>Requests (<Code>PR07</Code>, also under Stores) let site staff ask for goods or services. See the Procurement — requests section below.</>,
             <>Purchase Orders (<Code>IN15</Code>) track procurement end-to-end — create from scratch or from an approved requisition, send to supplier, then receive goods against the PO.</>,
             <>Reorder &amp; Expiry (<Code>IN16</Code>): give items a reorder level and quantity. When issues take a store down to that level, the item is added automatically to the store's draft requisition — review it, then submit. Record batch numbers and expiry dates on goods received; issues suggest the earliest-expiring batch, and the expiry list shows what's expired or expiring soon.</>,
             <>Stock Take (<Code>IN13</Code>): choose <b>Cycle count</b> to count just the items not counted for longest (highest value first) instead of the whole store.</>,
@@ -468,6 +468,18 @@ export default function QuickStartGuide() {
           ]} />
         </Section>
       )}
+      {(can('procurement.view') || can('procurement.create') || can('inventory.create')) && (
+        <Section icon="assignment" color={MODULE_COLORS.procurement || MODULE_COLORS.finance} title="Procurement — requests and Procurement Home">
+          <Steps items={[
+            <>Anyone who needs something opens <b>Requests</b> (<Code>PR07</Code>) and presses <b>New request</b>. Choose <b>Buy it</b> or <b>Transfer from another site</b>, the site it's for, what it's for, when it's needed, and the department, cost centre, project or fleet work order.</>,
+            <>Add lines: search the stock catalogue, or just type a service (e.g. "tyre fitting"). For stock items the form shows how many are <b>in stock at this site and at other sites</b> — if your stores has it, ask them to issue it; if another site has it, make it a transfer instead of buying.</>,
+            <><b>Send for approval</b> — it goes to your line manager (department head) in the Approvals inbox. The tabs show <b>My requests</b>, <b>Waiting approval</b>, <b>To order</b> (approved purchases for HQ Procurement) and <b>Transfers to send</b>.</>,
+            <>For an approved transfer, the sending site's stores opens it, picks the store to send from and to, and presses <b>Move stock now</b> — the stock leaves one store and arrives in the other at its current value.</>,
+            <><b>Procurement Home</b> (<Code>PR01</Code>) shows what's waiting — requests to approve and order, POs to approve, late deliveries, goods received but not billed — plus this month's ordering against budget per site. HQ staff can switch between <b>this site</b> and <b>all sites</b>.</>,
+          ]} />
+        </Section>
+      )}
+
       {(can('finance.view') || can('finance.edit')) && (
         <Section icon="payments" color={MODULE_COLORS.finance} title="Finance — paying suppliers">
           <Steps items={[

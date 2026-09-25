@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Button, Icon, PageHeader, StatusBadge, showToast, TableWrap, THead, Th, TRow, Td, ModalOverlay } from '../../components/ui'
 import QuickNav from '../../components/QuickNav'
-import { PROCUREMENT_PILLS } from './ProcDashboard'
+import { PROCUREMENT_PILLS } from '../../components/QuickNav'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const CLR = MODULE_COLORS.procurement

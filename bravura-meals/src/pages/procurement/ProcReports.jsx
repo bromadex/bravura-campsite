@@ -6,7 +6,7 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Card, Icon, PageHeader, showToast } from '../../components/ui'
 import { DashCard, SectionTitle, ProgressRow } from '../../components/dash'
 import QuickNav from '../../components/QuickNav'
-import { PROCUREMENT_PILLS } from './ProcDashboard'
+import { PROCUREMENT_PILLS } from '../../components/QuickNav'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
 const CLR = MODULE_COLORS.procurement

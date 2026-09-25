@@ -370,11 +370,12 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 
 ## Open roadmap (Sept 2026) — tracked in #49 (finance + AI) and #47 (Stage 11)
 
-- **NEXT: Procurement rewrite (#50, Stage 12)** — HQ-centralised buying, "for site" on forms, cross-site
-  lists, finance theme. Wait for the user's detailed instructions. Uploaded refs (not yet reviewed, don't
-  read until told): Awesome-Purchase-Order-Management, mobile-shop-management-system,
-  Smart-Procurement-2.0-With-GenAI, EU-AI-Act-Toolkit. Open decision: per-site books via 2500 vs posting
-  straight to the destination site.
+- **NEXT: Procurement rewrite (#50, Stage 12)** — plan agreed, phases are sub-issues:
+  P1 look/menu/Home (#51) · P2 Requests (#52) · P3 Purchase Orders hub, RFQ = draft PO + alternatives +
+  approval levels + lock/amend (#53) · P4 Receiving + supplier acknowledgement link (#54) · P5 Suppliers
+  profile + hold + price list + Agreements (#55) · P6 Bills move to Finance FI21 + inter-site 2500 postings
+  (#56) · P7 Reports + reorder→draft POs + PO↔fleet work order (#57). Defaults: bills in Finance; each site
+  keeps its own books (HQ pays via 2500); approval tiers ≤$1k / ≤$10k / >$10k (configurable, no role names).
 
 - Real opening balances for Kamativi (replace mock JV-0001 via `finance_setup_clear_mock_opening`).
 - Finance setup (FI20) for Selous, Manhizi, Harare — no CoA/rules yet, so nothing posts there.

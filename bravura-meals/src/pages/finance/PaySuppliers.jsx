@@ -93,7 +93,7 @@ export default function PaySuppliers({ setPage }) {
     return { owed: sum(open), overdue: sum(open.filter(b => b.due_date && b.due_date < t)), week: sum(open.filter(b => b.due_date && b.due_date >= t && b.due_date <= in7)), mismatch: groups.mismatch.length }
   }, [bills, groups])
 
-  const list = tab === 'runs' ? [] : groups[tab] || []
+  const list = ['runs', 'statements'].includes(tab) ? [] : groups[tab] || []
   const pickedBills = bills.filter(b => picked.has(b.id))
   const pickedTotal = pickedBills.reduce((s, b) => s + Number(b.total_amount || 0), 0)
   const pickedImtt = pickedBills.reduce((s, b) => s + imttOn(b.total_amount), 0)
@@ -134,7 +134,7 @@ export default function PaySuppliers({ setPage }) {
   const tabs = [
     ['to_pay', 'To pay', groups.to_pay.length, FIN.ink], ['overdue', 'Overdue', groups.overdue.length, FIN.bad],
     ['mismatch', "Doesn't match", groups.mismatch.length, FIN.ochreText], ['awaiting', 'Awaiting approval', groups.awaiting.length, FIN.ink],
-    ['in_run', 'In a payment run', groups.in_run.length, FIN.ink], ['paid', 'Paid', null, FIN.ink], ['runs', 'Payment runs', runs.filter(r => ['draft', 'approved'].includes(r.status)).length, FIN.blue],
+    ['in_run', 'In a payment run', groups.in_run.length, FIN.ink], ['paid', 'Paid', null, FIN.ink], ['runs', 'Payment runs', runs.filter(r => ['draft', 'approved'].includes(r.status)).length, FIN.blue], ['statements', 'Supplier statements', null, FIN.ink],
   ]
   const Kpi = ({ label, value, sub, color }) => (
     <div style={{ ...finCard, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -178,7 +178,9 @@ export default function PaySuppliers({ setPage }) {
         ))}
       </div>
 
-      {tab !== 'runs' && (
+      {tab === 'statements' && <SupplierStatements siteId={currentSiteId} />}
+
+      {!['runs', 'statements'].includes(tab) && (
         <section style={{ ...finCard, padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 760 }}>
@@ -315,5 +317,106 @@ function BillDrawer({ bill: b, rules, imtt, onClose, onPick, picked, setPage }) 
         <button style={finBtn2} onClick={() => setPage('proc_invoices')}>Open in Procurement</button>
       </div>
     </aside>
+  )
+}
+
+// Supplier statement reconciliation (0210): their statement balance vs what our books say we owe
+// on that date. Tick our bills that appear on their statement; what is left over is what to query.
+function SupplierStatements({ siteId }) {
+  const { can } = usePermissions()
+  const [suppliers, setSuppliers] = useState([])
+  const [recs, setRecs] = useState([])
+  const [f, setF] = useState({ supplier: '', date: todayIso(), balance: '' })
+  const [pos, setPos] = useState(null)
+  const [ticked, setTicked] = useState(new Set())
+  const [notes, setNotes] = useState('')
+  const [busy, setBusy] = useState(false)
+  const loadRecs = useCallback(async () => {
+    const { data } = await supabase.from('supplier_statement_recs').select('*, supplier:procurement_suppliers(supplier_name)')
+      .eq('site_id', siteId).eq('is_archived', false).order('statement_date', { ascending: false }).limit(20)
+    setRecs(data || [])
+  }, [siteId])
+  useEffect(() => {
+    supabase.from('procurement_suppliers').select('id, supplier_name').eq('site_id', siteId).order('supplier_name').then(({ data }) => setSuppliers(data || []))
+    loadRecs()
+  }, [siteId, loadRecs])
+  useEffect(() => {
+    setPos(null)
+    if (!f.supplier || !f.date) return
+    supabase.rpc('ap_supplier_position', { p_site: siteId, p_supplier: f.supplier, p_date: f.date }).then(({ data, error }) => {
+      if (error) return showToast(error.message, 'red')
+      setPos(data); setTicked(new Set((data?.bills || []).map(b => b.id)))
+    })
+  }, [siteId, f.supplier, f.date])
+  const books = Number(pos?.balance || 0)
+  const theirs = f.balance === '' ? null : Number(f.balance)
+  const notOnTheirs = (pos?.bills || []).filter(b => !ticked.has(b.id)).reduce((s, b) => s + Number(b.amount), 0)
+  const diff = theirs == null ? null : Math.round((theirs - books) * 100) / 100
+  const unexplained = theirs == null ? null : Math.round((theirs - (books - notOnTheirs)) * 100) / 100
+  async function save(agreed) {
+    if (theirs == null) return showToast("Enter the balance on the supplier's statement", 'red')
+    setBusy(true)
+    const { error } = await supabase.from('supplier_statement_recs').insert({ site_id: siteId, supplier_id: f.supplier, statement_date: f.date,
+      statement_balance: theirs, books_balance: books, on_statement: [...ticked], notes: notes || null, status: agreed ? 'agreed' : 'open' })
+    setBusy(false)
+    if (error) return showToast(error.message, 'red')
+    showToast(agreed ? 'Statement agreed' : 'Saved with differences to follow up'); setNotes(''); loadRecs()
+  }
+  const lbl = { display: 'block', fontSize: 12, color: FIN.muted, marginBottom: 4 }
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, alignItems: 'start' }}>
+      <section style={{ ...finCard, gridColumn: 'span 2', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div><h2 style={{ margin: 0, fontSize: 18 }}>Check a supplier statement</h2>
+          <div style={{ fontSize: 13, color: FIN.muted }}>Enter the closing balance on their statement. Tick each of our bills that appears on it — the rest explains the difference.</div></div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+          <label><span style={lbl}>Supplier</span><select value={f.supplier} onChange={e => setF({ ...f, supplier: e.target.value })} style={{ ...finInput, width: '100%' }}>
+            <option value="">Choose…</option>{suppliers.map(x => <option key={x.id} value={x.id}>{x.supplier_name}</option>)}</select></label>
+          <label><span style={lbl}>Statement date</span><input type="date" value={f.date} onChange={e => setF({ ...f, date: e.target.value })} style={{ ...finInput, width: '100%' }} /></label>
+          <label><span style={lbl}>Balance on their statement</span><input type="number" inputMode="decimal" step="0.01" value={f.balance} onChange={e => setF({ ...f, balance: e.target.value })} placeholder="0.00" style={{ ...finInput, width: '100%' }} /></label>
+        </div>
+        {pos && (<>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+            {[["Their statement", theirs == null ? '—' : `$${money(theirs)}`, FIN.ink], ['Our books', `$${money(books)}`, FIN.ink],
+              ['Difference', diff == null ? '—' : `$${money(diff)}`, diff ? FIN.ochreText : FIN.good], ['Still unexplained', unexplained == null ? '—' : `$${money(unexplained)}`, unexplained ? FIN.bad : FIN.good]].map(([l, v, c]) => (
+              <div key={l} style={{ background: FIN.ground, borderRadius: 10, padding: '10px 12px' }}><div style={{ fontSize: 12, color: FIN.muted }}>{l}</div><div style={{ fontFamily: FIN.serif, fontSize: 22, fontWeight: 600, color: c }}>{v}</div></div>
+            ))}
+          </div>
+          {Number(pos.paid_since) > 0 && <div style={{ fontSize: 12, color: FIN.muted }}>${money(pos.paid_since)} of these bills was paid after the statement date — their statement may not show those payments yet.</div>}
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Our unpaid bills on {f.date} · tick if on their statement</div>
+            {pos.bills.length === 0 && <div style={{ fontSize: 13, color: FIN.muted }}>We owed this supplier nothing on that date.</div>}
+            {pos.bills.map(b => (
+              <label key={b.id} style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 110px 120px', gap: 8, alignItems: 'center', padding: '8px 0', borderTop: `1px solid ${FIN.lineSoft}`, fontSize: 13, cursor: 'pointer' }}>
+                <input type="checkbox" checked={ticked.has(b.id)} onChange={() => setTicked(p => { const n = new Set(p); n.has(b.id) ? n.delete(b.id) : n.add(b.id); return n })} style={{ width: 18, height: 18, accentColor: FIN.maroon }} />
+                <span>{b.invoice_number}{b.po ? ` · ${b.po}` : ''}<span style={{ display: 'block', fontSize: 11, color: FIN.muted }}>{b.status.replace('_', ' ')}</span></span>
+                <span style={{ color: FIN.muted }}>{b.invoice_date}</span>
+                <b style={{ textAlign: 'right', color: ticked.has(b.id) ? FIN.ink : FIN.ochreText }}>${money(b.amount)}</b>
+              </label>
+            ))}
+          </div>
+          {notOnTheirs > 0 && <div style={{ fontSize: 13, color: FIN.ochreText }}>${money(notOnTheirs)} of our bills is not on their statement — ask whether they received those invoices or have credited them.</div>}
+          {unexplained != null && unexplained !== 0 && <div style={{ fontSize: 13, color: FIN.bad }}>${money(Math.abs(unexplained))} {unexplained > 0 ? 'more on their statement than we have — a bill we have not recorded, or a payment they have not applied' : 'less on their statement — a credit note or payment we have not recorded'}.</div>}
+          {can('finance.edit') && <>
+            <label><span style={lbl}>Notes (what to follow up)</span><input value={notes} onChange={e => setNotes(e.target.value)} style={{ ...finInput, width: '100%' }} /></label>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button style={finBtn2} disabled={busy} onClick={() => save(false)}>Save — follow up differences</button>
+              <button style={finBtn} disabled={busy || unexplained !== 0} onClick={() => save(true)}>Agree statement</button>
+            </div>
+          </>}
+        </>)}
+      </section>
+      <section style={{ ...finCard, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <h2 style={{ margin: '0 0 6px', fontSize: 16 }}>Recent statement checks</h2>
+        {recs.length === 0 && <div style={{ fontSize: 13, color: FIN.muted }}>None yet.</div>}
+        {recs.map(r => (
+          <div key={r.id} style={{ padding: '8px 0', borderTop: `1px solid ${FIN.lineSoft}`, fontSize: 13 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b>{r.supplier?.supplier_name}</b>
+              <span style={{ fontSize: 12, fontWeight: 600, color: r.status === 'agreed' ? FIN.good : FIN.ochreText }}>{r.status === 'agreed' ? 'Agreed' : 'Follow up'}</span></div>
+            <div style={{ color: FIN.muted, fontSize: 12 }}>{r.statement_date} · theirs ${money(r.statement_balance)} · ours ${money(r.books_balance)}{Number(r.difference) ? ` · diff $${money(r.difference)}` : ''}</div>
+            {r.notes && <div style={{ fontSize: 12 }}>{r.notes}</div>}
+          </div>
+        ))}
+      </section>
+    </div>
   )
 }

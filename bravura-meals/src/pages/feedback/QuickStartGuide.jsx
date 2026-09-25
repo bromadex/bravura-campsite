@@ -430,6 +430,16 @@ export default function QuickStartGuide() {
       )}
 
       {(can('finance.view') || can('finance.edit')) && (
+        <Section icon="menu_book" color={MODULE_COLORS.finance} title="Finance — what's where">
+          <Steps items={[
+            <>Finance is grouped by job: <b>Finance Home</b>, <b>Pay Suppliers</b>, <b>Claims &amp; Petty Cash</b>, <b>Bank &amp; Cash</b>, <b>Budgets</b>, <b>Reports &amp; Explorer</b>, <b>Month-end</b>, <b>Ledger</b> (chart of accounts, journals, posting rules, cost centres — <Code>FI26</Code>), <b>Fixed Assets</b> (register, depreciation, counts — <Code>FI28</Code>) and <b>Set Up the Books</b>. Old codes like FI01 or FI16 open the right tab.</>,
+            <><b>Quick spend</b> at the top of Claims &amp; Petty Cash (<Code>FI27</Code>) works on a phone: pick the fund, type the amount and what it was for, snap the slip, press <b>Record spend</b>.</>,
+            <><b>Supplier statements</b> (a tab in Pay Suppliers): choose the supplier, the statement date and the balance on their statement. Tick our bills that appear on it — the screen shows what's still unexplained. <b>Agree statement</b> when it matches, or save the differences to follow up.</>,
+            <>On Finance Home press <b>Customise</b> to move widgets up or down or hide them — it's saved for you. In Reports → Explorer, <b>Add to Finance Home</b> turns the current view (e.g. costs by cost centre this month) into your own widget.</>,
+          ]} />
+        </Section>
+      )}
+      {(can('finance.view') || can('finance.edit')) && (
         <Section icon="event_available" color={MODULE_COLORS.finance} title="Finance — reports and month-end">
           <Steps items={[
             <><b>Reports &amp; Explorer</b> (<Code>FI24</Code>): Operating costs (this period, the period before and year to date — a costs statement, since Bravura doesn't sell), Balance sheet, Trial balance and Cash flow for any period. Export to CSV or print.</>,

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -75,7 +76,7 @@ export default function FinanceReports({ setPage, initialTab = 'costs' }) {
         ))}
       </div>
 
-      {tab === 'explore' ? <Explorer siteId={currentSiteId} range={range} period={period} /> : loading || !d ? <div style={{ color: FIN.muted }}>Loading…</div> : (
+      {tab === 'explore' ? <Explorer siteId={currentSiteId} range={range} period={period} preset={preset} setPage={setPage} /> : loading || !d ? <div style={{ color: FIN.muted }}>Loading…</div> : (
         <section style={{ ...finCard, padding: '22px 26px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
             <div>
@@ -183,7 +184,20 @@ function CsvButton({ tab, d, name }) {
 }
 
 const GROUPS = [['heading', 'Cost heading'], ['account', 'Account'], ['cost_centre', 'Cost centre'], ['project', 'Project'], ['month', 'Month'], ['source', 'Where it came from']]
-function Explorer({ siteId, range, period }) {
+function Explorer({ siteId, range, period, preset, setPage }) {
+  const { profile } = useAuth()
+  async function addToHome() {
+    const g = GROUPS.find(x => x[0] === group)[1]
+    const title = window.prompt('Name this widget', `Costs by ${g.toLowerCase()}${heading ? ` — ${heading}` : ''}`)
+    if (!title) return
+    const { data } = await supabase.from('finance_home_layouts').select('layout').eq('user_id', profile.id).maybeSingle()
+    const layout = data?.layout || {}
+    const view = { id: Math.random().toString(36).slice(2, 10), title, group, heading: heading || null, period: preset === 'custom' ? 'this_month' : preset }
+    const { error } = await supabase.from('finance_home_layouts').upsert({ user_id: profile.id, layout: { ...layout, views: [...(layout.views || []), view] }, updated_at: new Date().toISOString() })
+    if (error) return showToast(error.message, 'red')
+    showToast('Added to Finance Home')
+    if (window.confirm('Added. Open Finance Home now?')) setPage('fi_dashboard')
+  }
   const [group, setGroup] = useState('heading')
   const [heading, setHeading] = useState('')
   const [rows, setRows] = useState(null)
@@ -207,6 +221,7 @@ function Explorer({ siteId, range, period }) {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <label style={{ fontSize: 12, color: FIN.muted }}>Group by<br /><select value={group} onChange={e => setGroup(e.target.value)} style={finInput}>{GROUPS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
           <label style={{ fontSize: 12, color: FIN.muted }}>Only<br /><select value={heading} onChange={e => setHeading(e.target.value)} style={finInput}><option value="">All costs</option>{headings.map(h => <option key={h} value={h}>{h}</option>)}</select></label>
+          <button style={{ ...finBtn2, alignSelf: 'flex-end', minHeight: 40 }} onClick={addToHome}>Add to Finance Home</button>
           <button style={{ ...finBtn2, alignSelf: 'flex-end', minHeight: 40 }} onClick={() => exportCsv(`explore-${group}-${range[0]}-${range[1]}.csv`, [GROUPS.find(g => g[0] === group)[1], 'Amount', 'Ledger lines'], (rows || []).map(r => [r.label, r.amount, r.lines]))}>Export CSV</button>
         </div>
       </div>

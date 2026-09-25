@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -11,6 +12,20 @@ import { FIN, finCard, money, useFinanceFonts } from '../../utils/financeTheme'
 // "Needs attention" → where the money went / cost by site / projects → payments due in 14 days.
 const usd = n => '$' + Math.round(Number(n || 0)).toLocaleString('en-US')
 const short = n => { const v = Math.abs(Number(n || 0)); return v >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : v >= 1e3 ? `$${(n / 1e3).toFixed(v >= 1e5 ? 0 : 1)}k` : usd(n) }
+// Widgets people can reorder or hide (layout per person in finance_home_layouts, 0210), plus
+// saved Explorer views added from Reports → Explorer.
+const BUILTIN = [
+  { key: 'kpis', label: 'Key figures' }, { key: 'trend', label: 'Spend vs budget & needs attention' },
+  { key: 'breakdowns', label: 'Where the money went, sites and projects' }, { key: 'upcoming', label: 'Payments due' },
+]
+const ctl = { minHeight: 32, padding: '0 10px', borderRadius: 8, border: `1px solid ${FIN.field}`, background: '#fff', fontFamily: 'inherit', fontSize: 12, cursor: 'pointer', color: FIN.ink }
+export function periodRange(p) {
+  const t = new Date(); const y = t.getFullYear(), m = t.getMonth(); const iso = d => d.toISOString().slice(0, 10)
+  if (p === 'last_month') return [iso(new Date(y, m - 1, 1)), iso(new Date(y, m, 0))]
+  if (p === 'quarter') { const q = Math.floor(m / 3) * 3; return [iso(new Date(y, q, 1)), iso(new Date(y, q + 3, 0))] }
+  if (p === 'ytd') return [iso(new Date(y, 0, 1)), iso(t)]
+  return [iso(new Date(y, m, 1)), iso(new Date(y, m + 1, 0))]
+}
 const MATCH = { matched: ['PO · GRN · bill', FIN.good], price_diff: ['Price differs', FIN.ochreText], qty_diff: ['Qty differs', FIN.ochreText],
   no_grn: ['Not received', FIN.bad], service: ['No PO (service)', FIN.muted], not_checked: ['Not checked', FIN.muted] }
 
@@ -21,6 +36,25 @@ export default function FinanceHome({ setPage }) {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
   const [d, setD] = useState(null)
   const [err, setErr] = useState(null)
+  const { profile } = useAuth()
+  const [layout, setLayout] = useState({})
+  const [editing, setEditing] = useState(false)
+  useEffect(() => {
+    if (!profile?.id) return
+    supabase.from('finance_home_layouts').select('layout').eq('user_id', profile.id).maybeSingle().then(({ data }) => setLayout(data?.layout || {}))
+  }, [profile?.id])
+  const saveLayout = useCallback(async next => {
+    setLayout(next)
+    const { error } = await supabase.from('finance_home_layouts').upsert({ user_id: profile.id, layout: next, updated_at: new Date().toISOString() })
+    if (error) showToast(error.message, 'red')
+  }, [profile?.id])
+  const move = (order, k, dir) => {
+    const hidden = new Set(layout.hidden || []); const vis = order.filter(x => !hidden.has(x))
+    const i = vis.indexOf(k), j = i + dir; if (j < 0 || j >= vis.length) return
+    ;[vis[i], vis[j]] = [vis[j], vis[i]]
+    saveLayout({ ...layout, order: [...vis, ...order.filter(x => hidden.has(x))] })
+  }
+  const removeView = id => saveLayout({ ...layout, views: (layout.views || []).filter(v => v.id !== id), order: (layout.order || []).filter(k => k !== 'view:' + id) })
 
   useEffect(() => {
     if (!currentSiteId || !can('finance.view')) return
@@ -43,17 +77,21 @@ export default function FinanceHome({ setPage }) {
           <div style={{ fontSize: 13, color: FIN.muted }}>Finance · {currentSite?.name}</div>
           <h1 style={{ margin: '4px 0 0', fontFamily: FIN.serif, fontWeight: 600, fontSize: 32, letterSpacing: '-0.01em' }}>{monthName} at a glance</h1>
         </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button onClick={() => setEditing(e => !e)} aria-pressed={editing} style={{ minHeight: 40, padding: '0 14px', borderRadius: 10, fontFamily: 'inherit', fontSize: 13, cursor: 'pointer',
+          ...(editing ? { border: 'none', background: FIN.maroon, color: '#fff', fontWeight: 600 } : { border: `1px solid ${FIN.line}`, background: '#fff', color: FIN.ink }) }}>{editing ? 'Done' : 'Customise'}</button>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: FIN.muted }}>Month
           <input type="month" value={month} onChange={e => e.target.value && setMonth(e.target.value)}
             style={{ minHeight: 40, padding: '6px 10px', borderRadius: 10, border: `1px solid ${FIN.line}`, background: '#fff', fontFamily: 'inherit', fontSize: 14, color: FIN.ink }} />
         </label>
+        </div>
       </header>
 
       {err && <div style={{ ...finCard, color: FIN.bad }}>{err}</div>}
       {!d && !err && <div style={{ color: FIN.muted }}>Loading…</div>}
-      {d && <>
-        <SetupBanner s={d.setup} setPage={setPage} />
-
+      {d && (() => {
+        const W = {
+          kpis: (
         <section aria-label="Key figures" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
           <div style={card}>
             <div style={{ fontSize: 13, color: FIN.muted }}>Spent this month</div>
@@ -85,7 +123,8 @@ export default function FinanceHome({ setPage }) {
             {d.petty_low > 0 && <div style={{ fontSize: 12, color: FIN.ochreText, fontWeight: 600 }}>{d.petty_low} fund{d.petty_low === 1 ? '' : 's'} running low</div>}
           </div>
         </section>
-
+          ),
+          trend: (
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
           <div style={{ ...finCard, gridColumn: 'span 2', minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
@@ -99,7 +138,8 @@ export default function FinanceHome({ setPage }) {
           </div>
           <Attention a={d.attention} setPage={setPage} />
         </section>
-
+          ),
+          breakdowns: (
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
           <div style={{ ...finCard, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <h2 style={h2}>Where the money went</h2>
@@ -146,7 +186,8 @@ export default function FinanceHome({ setPage }) {
             <div style={{ fontSize: 12, color: FIN.muted }}>Weekly cost trend · % of the year's project budget used</div>
           </div>
         </section>
-
+          ),
+          upcoming: (
         <section style={finCard}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
             <h2 style={h2}>Payments due in the next 14 days</h2>
@@ -169,7 +210,40 @@ export default function FinanceHome({ setPage }) {
             </div></div>
           )}
         </section>
-      </>}
+          ),
+        }
+        const views = layout.views || []
+        const all = [...BUILTIN.map(b => b.key), ...views.map(v => 'view:' + v.id)]
+        const order = [...(layout.order || []).filter(k => all.includes(k)), ...all.filter(k => !(layout.order || []).includes(k))]
+        const hidden = new Set(layout.hidden || [])
+        const shown = order.filter(k => !hidden.has(k))
+        const label = k => k.startsWith('view:') ? (views.find(v => 'view:' + v.id === k)?.title || 'Saved view') : BUILTIN.find(b => b.key === k)?.label
+        return <>
+          <SetupBanner s={d.setup} setPage={setPage} />
+          {shown.map((k, i) => (
+            <div key={k} style={{ position: 'relative', ...(editing ? { outline: `2px dashed ${FIN.field}`, outlineOffset: 6, borderRadius: 14 } : {}) }}>
+              {editing && (
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: FIN.muted, marginRight: 'auto', fontWeight: 600 }}>{label(k)}</span>
+                  <button aria-label={`Move ${label(k)} up`} disabled={i === 0} onClick={() => move(order, k, -1)} style={ctl}>↑</button>
+                  <button aria-label={`Move ${label(k)} down`} disabled={i === shown.length - 1} onClick={() => move(order, k, 1)} style={ctl}>↓</button>
+                  {k.startsWith('view:')
+                    ? <button onClick={() => removeView(k.slice(5))} style={{ ...ctl, color: FIN.bad }}>Remove</button>
+                    : <button onClick={() => saveLayout({ ...layout, order, hidden: [...hidden, k] })} style={ctl}>Hide</button>}
+                </div>
+              )}
+              {k.startsWith('view:') ? <SavedView view={views.find(v => 'view:' + v.id === k)} siteId={currentSiteId} setPage={setPage} /> : W[k]}
+            </div>
+          ))}
+          {editing && hidden.size > 0 && (
+            <div style={{ ...finCard, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: FIN.muted }}>Hidden:</span>
+              {[...hidden].filter(k => all.includes(k)).map(k => <button key={k} onClick={() => saveLayout({ ...layout, order, hidden: [...hidden].filter(x => x !== k) })} style={ctl}>Show {label(k)}</button>)}
+            </div>
+          )}
+          {editing && <div style={{ fontSize: 12, color: FIN.faint }}>Add your own widgets from Reports → Explorer with “Add to Finance Home”.</div>}
+        </>
+      })()}
     </div>
   )
 }
@@ -252,4 +326,34 @@ function Sparkline({ values, color }) {
   const max = Math.max(...values.map(Number)), min = Math.min(...values.map(Number)), span = max - min || 1
   const pts = values.map((v, i) => `${(i / Math.max(1, values.length - 1)) * w},${h - 2 - ((Number(v) - min) / span) * (h - 6)}`).join(' ')
   return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true"><polyline points={pts} fill="none" stroke={max === 0 ? FIN.line : color} strokeWidth="2" /></svg>
+}
+
+// A saved Explorer view as a Finance Home widget.
+const PERIOD_LABEL = { this_month: 'This month', last_month: 'Last month', quarter: 'This quarter', ytd: 'Year to date' }
+function SavedView({ view, siteId, setPage }) {
+  const [rows, setRows] = useState(null)
+  useEffect(() => {
+    if (!view) return
+    const [from, to] = periodRange(view.period)
+    supabase.rpc('fin_explore', { p_site: siteId, p_from: from, p_to: to, p_group: view.group, p_heading: view.heading || null })
+      .then(({ data }) => setRows(data || []))
+  }, [view, siteId])
+  if (!view) return null
+  const max = Math.max(1, ...(rows || []).map(r => Math.abs(Number(r.amount))))
+  return (
+    <section style={{ ...finCard, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{view.title}</h2>
+        <button onClick={() => setPage('fi_reports')} style={{ background: 'none', border: 'none', padding: 0, color: FIN.blue, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600 }}>{PERIOD_LABEL[view.period] || ''} · open Explorer →</button>
+      </div>
+      {rows === null ? <div style={{ fontSize: 13, color: FIN.muted }}>Loading…</div> : rows.length === 0 ? <div style={{ fontSize: 13, color: FIN.muted }}>No costs in this period yet.</div> :
+        rows.slice(0, 8).map(r => (
+          <div key={r.label} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) minmax(0, 2fr) 110px', gap: 10, alignItems: 'center', fontSize: 13 }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
+            <div style={{ height: 10, background: FIN.lineSoft, borderRadius: 4 }}><div style={{ width: `${Math.max(1, (Math.abs(Number(r.amount)) / max) * 100)}%`, height: 10, background: FIN.blue, borderRadius: 4 }} /></div>
+            <b style={{ textAlign: 'right' }}>{usd(r.amount)}</b>
+          </div>
+        ))}
+    </section>
+  )
 }

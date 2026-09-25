@@ -337,7 +337,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   `bank_auto_match` (journal same amount ±5d, then `bank_match_rules`), `bank_confirm_line`, `bank_unmatch_line`
   (voids created JV), `bank_save_rule`, `bank_rec_summary`. Statement lines writable only via RPCs. Phase 6 (0209): Reports FI24 `fi_reports` (replaces TB/P&L/BS/cash-flow pages; `fin_statements`, `fin_explore`)
   and Month-end FI25 `fi_month_end` (`finance_periods`, `fin_close_checklist/close/reopen`; `trg_period_lock`
-  blocks journals dated in a closed month). Migrations continue at 0210.
+  blocks journals dated in a closed month). Modernised (0210): FinShell (`components/FinShell.jsx`) scopes the finance palette onto old ui-based
+  screens; hubs FI26 Ledger, FI27 Claims & Petty Cash (Quick spend), FI28 Fixed Assets; 11 duplicate pages
+  deleted; supplier statement recs (`supplier_statement_recs`, `ap_supplier_position`); Finance Home
+  per-user layout + saved Explorer views (`finance_home_layouts`). Migrations continue at 0211.
 
 ## Improvement backlog (agreed with user, work top-down)
 

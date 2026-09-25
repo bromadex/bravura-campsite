@@ -370,6 +370,12 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 
 ## Open roadmap (Sept 2026) — tracked in #49 (finance + AI) and #47 (Stage 11)
 
+- **NEXT: Procurement rewrite (#50, Stage 12)** — HQ-centralised buying, "for site" on forms, cross-site
+  lists, finance theme. Wait for the user's detailed instructions. Uploaded refs (not yet reviewed, don't
+  read until told): Awesome-Purchase-Order-Management, mobile-shop-management-system,
+  Smart-Procurement-2.0-With-GenAI, EU-AI-Act-Toolkit. Open decision: per-site books via 2500 vs posting
+  straight to the destination site.
+
 - Real opening balances for Kamativi (replace mock JV-0001 via `finance_setup_clear_mock_opening`).
 - Finance setup (FI20) for Selous, Manhizi, Harare — no CoA/rules yet, so nothing posts there.
 - Hired-vehicle usage log (daily/km) so vehicles accrue like hired equipment (`hired_plant_usage`).

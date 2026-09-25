@@ -5,6 +5,7 @@ import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
 import FleetAssetIcon from '../../components/FleetAssetIcon'
+import DimensionPicker from '../../components/DimensionPicker'
 
 const color = MODULE_COLORS.fleet
 
@@ -63,7 +64,7 @@ const EMPTY_FORM = {
   tare_weight: '', gross_vehicle_mass: '', tracker_id: '',
   licence_expiry: '', insurance_expiry: '', roadworthy_expiry: '',
   status: 'operational', department_id: '', assigned_project: '',
-  cost_center: '', current_odometer_km: '',
+  cost_center: '', cost_centre_id: '', project_id: '', current_odometer_km: '',
   purchase_date: '', purchase_cost: '', salvage_value: '',
 }
 
@@ -165,7 +166,7 @@ export default function FleetVehicles({ setPage }) {
       status: asset.status || 'operational',
       department_id: asset.department_id || '',
       assigned_project: asset.assigned_project || '',
-      cost_center: asset.cost_center || '',
+      cost_center: asset.cost_center || '', cost_centre_id: asset.cost_centre_id || '', project_id: asset.project_id || '',
       current_odometer_km: asset.current_odometer_km || '',
       purchase_date: asset.purchase_date || '',
       purchase_cost: asset.purchase_cost || '',
@@ -196,6 +197,8 @@ export default function FleetVehicles({ setPage }) {
         purchase_cost: form.purchase_cost ? Number(form.purchase_cost) : null,
         salvage_value: form.salvage_value ? Number(form.salvage_value) : null,
         department_id: form.department_id || null,
+        cost_centre_id: form.cost_centre_id || null,
+        project_id: form.project_id || null,
         fuel_type_id: form.fuel_type_id || null,
         purchase_date: form.purchase_date || null,
         licence_expiry: form.licence_expiry || null,
@@ -392,10 +395,7 @@ export default function FleetVehicles({ setPage }) {
             <label style={lbl}>Assigned Project</label>
             <input style={inp} value={form.assigned_project} onChange={e => set('assigned_project', e.target.value)} />
           </div>
-          <div style={fieldWrap}>
-            <label style={lbl}>Cost Center</label>
-            <input style={inp} value={form.cost_center} onChange={e => set('cost_center', e.target.value)} />
-          </div>
+          <DimensionPicker idPrefix="veh" value={form} onChange={v => setForm(f => ({ ...f, cost_centre_id: v.cost_centre_id, project_id: v.project_id }))} inputStyle={inp} labelStyle={lbl} />
           <div style={fieldWrap}>
             <label style={lbl}>Current Odometer (km)</label>
             <input style={inp} type="number" value={form.current_odometer_km} onChange={e => set('current_odometer_km', e.target.value)} />

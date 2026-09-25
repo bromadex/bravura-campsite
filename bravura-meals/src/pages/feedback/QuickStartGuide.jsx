@@ -364,6 +364,7 @@ export default function QuickStartGuide() {
             <>Moving an asset, changing its custodian, category, cost centre or project is logged in its history automatically.</>,
             <>Depreciation (<Code>FI17</Code>): pick a month and <b>Run depreciation</b>. Each asset in use is charged once (straight line or reducing balance, never below salvage value) and posted to the ledger through the "Monthly depreciation" rule in Posting Rules (<Code>FI13</Code>).</>,
             <>Asset Counts (<Code>FI18</Code>): start a count, mark each asset found (with condition) or missing, then close it. Missing assets alert whoever can dispose of assets; <b>Dispose</b> or write off from the register — the ledger entries post automatically.</>,
+            <>Costs by Cost Centre &amp; Project (<Code>FI19</Code>): pick a cost centre or project on purchase orders, work orders, fleet vehicles/equipment and fixed assets. Everything they post to the ledger (receipts, invoices, fuel, depreciation) carries the same tags, so this report shows spend per cost centre or project for any date range.</>,
           ]} />
         </Section>
       )}

@@ -4,6 +4,7 @@ import { StatusBadge, ModalOverlay } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
+import DimensionPicker from '../../components/DimensionPicker'
 import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
@@ -31,7 +32,7 @@ const STATUS_MAP = {
 const EMPTY_FORM = {
   work_order_number: '', asset_id: '', fault_description: '',
   priority: 'medium', assigned_technician: '', parts_required: '',
-  labour_hours_est: '', cost_est: '', status: 'scheduled', notes: '',
+  labour_hours_est: '', cost_est: '', status: 'scheduled', notes: '', cost_centre_id: '', project_id: '',
   // Close WO fields
   findings: '', labour_hours_actual: '', labour_rate: '',
   parts_cost: '', other_cost: '',
@@ -212,7 +213,7 @@ export default function FleetMaintenance({ setPage }) {
       labour_hours_est: wo.labour_hours_est ?? '',
       cost_est: wo.cost_est ?? '',
       status: wo.status || 'scheduled',
-      notes: wo.notes || '',
+      notes: wo.notes || '', cost_centre_id: wo.cost_centre_id || '', project_id: wo.project_id || '',
     })
     setStockParts([]); setItemSearch(''); setShowItemPicker(false); setExistingWoParts([])
     setError(''); setModalOpen(true)
@@ -233,7 +234,7 @@ export default function FleetMaintenance({ setPage }) {
       labour_hours_est: wo.labour_hours_est ?? '',
       cost_est: wo.cost_est ?? '',
       status: 'completed',
-      notes: wo.notes || '',
+      notes: wo.notes || '', cost_centre_id: wo.cost_centre_id || '', project_id: wo.project_id || '',
       findings: '', labour_hours_actual: '', labour_rate: '',
       parts_cost: '', other_cost: '',
     })
@@ -294,6 +295,8 @@ export default function FleetMaintenance({ setPage }) {
         cost_est: form.cost_est ? Number(form.cost_est) : null,
         status: form.status,
         notes: form.notes || null,
+        cost_centre_id: form.cost_centre_id || null,
+        project_id: form.project_id || null,
         site_id: currentSiteId,
       }
       if (form.status === 'completed') payload.completed_at = new Date().toISOString()
@@ -711,6 +714,7 @@ export default function FleetMaintenance({ setPage }) {
                     <label style={lbl}>Labour Hours (est)</label>
                     <input style={inp} type="number" step="0.5" value={form.labour_hours_est} onChange={e => set('labour_hours_est', e.target.value)} />
                   </div>
+                  <DimensionPicker idPrefix="wo" value={form} onChange={v => setForm(f => ({ ...f, cost_centre_id: v.cost_centre_id, project_id: v.project_id }))} inputStyle={inp} labelStyle={lbl} />
                   <div style={fieldWrap}>
                     <label style={lbl}>Cost Estimate</label>
                     <input style={inp} type="number" step="0.01" value={form.cost_est} onChange={e => set('cost_est', e.target.value)} />

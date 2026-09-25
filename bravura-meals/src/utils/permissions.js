@@ -291,6 +291,7 @@ export function financeNav(role, can) {
     { id: 'fi_cash_flow',         label: 'Cash Flow',         section: 'Reports',        icon: 'water_drop' },
     { id: 'fi_cost_centres',      label: 'Cost Centres',      section: 'Cost Tracking',  icon: 'category' },
     { id: 'fi_cost_report',       label: 'Cost Centre Report',section: 'Cost Tracking',  icon: 'bar_chart' },
+    { id: 'fi_dimension_report',  label: 'Costs by Centre & Project', section: 'Cost Tracking', icon: 'stacked_bar_chart' },
     { id: 'fi_expense_claims',    label: 'Expense Claims',    section: 'Spending',       icon: 'receipt_long' },
     { id: 'fi_petty_cash',        label: 'Petty Cash',        section: 'Spending',       icon: 'savings' },
     { id: 'fi_fixed_assets',      label: 'Asset Register',    section: 'Fixed Assets',   icon: 'inventory', show: !can || can('assets.view') },

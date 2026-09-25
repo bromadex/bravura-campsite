@@ -5,6 +5,7 @@ import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
 import FleetAssetIcon from '../../components/FleetAssetIcon'
+import DimensionPicker from '../../components/DimensionPicker'
 
 const color = MODULE_COLORS.fleet
 
@@ -22,7 +23,7 @@ const TABS = ['Identity', 'Operations', 'Finance']
 const EMPTY_FORM = {
   asset_type_id: '', asset_number: '', description: '', registration: '',
   serial_number: '', fleet_number: '', make: '', model: '', year: '',
-  status: 'operational', department_id: '', assigned_project: '', cost_center: '',
+  status: 'operational', department_id: '', assigned_project: '', cost_center: '', cost_centre_id: '', project_id: '',
   current_hours: '', expected_consumption_lph: '', tank_capacity_litres: '',
   purchase_date: '', purchase_cost: '', salvage_value: '', useful_life_months: '',
 }
@@ -92,7 +93,7 @@ export default function FleetHeavyEquipment({ setPage }) {
       status: asset.status || 'operational',
       department_id: asset.department_id || '',
       assigned_project: asset.assigned_project || '',
-      cost_center: asset.cost_center || '',
+      cost_center: asset.cost_center || '', cost_centre_id: asset.cost_centre_id || '', project_id: asset.project_id || '',
       current_hours: asset.current_hours || '',
       expected_consumption_lph: asset.expected_consumption_lph || '',
       tank_capacity_litres: asset.tank_capacity_litres || '',
@@ -126,6 +127,8 @@ export default function FleetHeavyEquipment({ setPage }) {
         department_id: form.department_id || null,
         assigned_project: form.assigned_project || null,
         cost_center: form.cost_center || null,
+        cost_centre_id: form.cost_centre_id || null,
+        project_id: form.project_id || null,
         purchase_date: form.purchase_date || null,
       }
       if (editId) {
@@ -385,10 +388,7 @@ export default function FleetHeavyEquipment({ setPage }) {
                   <div style={lbl}>Assigned Project</div>
                   <input value={form.assigned_project} onChange={e => setForm({ ...form, assigned_project: e.target.value })} style={inp} />
                 </div>
-                <div>
-                  <div style={lbl}>Cost Center</div>
-                  <input value={form.cost_center} onChange={e => setForm({ ...form, cost_center: e.target.value })} style={inp} />
-                </div>
+                <DimensionPicker idPrefix="heq" value={form} onChange={v => setForm(f => ({ ...f, cost_centre_id: v.cost_centre_id, project_id: v.project_id }))} inputStyle={inp} labelStyle={{ ...lbl, display: 'block' }} />
                 <div>
                   <div style={lbl}>Current Hours</div>
                   <input type="number" value={form.current_hours} onChange={e => setForm({ ...form, current_hours: e.target.value })} placeholder="0" style={inp} />

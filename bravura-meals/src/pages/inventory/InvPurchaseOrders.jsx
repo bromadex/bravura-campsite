@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import DimensionPicker from '../../components/DimensionPicker'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -121,21 +122,25 @@ export default function InvPurchaseOrders({ setPage }) {
     try {
       const total = validLines.reduce((s, l) => s + parseFloat(l.quantity) * (parseFloat(l.unit_cost) || 0), 0)
       if (editId) {
+        // Lines first, while the PO is still a draft — the database locks lines once it's sent.
+        await supabase.from('po_lines').delete().eq('po_id', editId)
+        const { error: lineErr } = await supabase.from('po_lines').insert(
+          validLines.map(l => ({ po_id: editId, item_id: l.item_id, quantity: parseFloat(l.quantity), unit_cost: parseFloat(l.unit_cost) || 0 }))
+        )
+        if (lineErr) throw lineErr
         const { error } = await supabase.from('purchase_orders').update({
           supplier_id: form.supplier_id,
           warehouse_id: form.warehouse_id || null,
           order_date: form.order_date || null,
           expected_date: form.expected_date || null,
           notes: form.notes || null,
+          cost_centre_id: form.cost_centre_id || null,
+          project_id: form.project_id || null,
           total_amount: total,
           status: sendIt ? 'sent' : undefined,
           updated_at: new Date().toISOString(),
         }).eq('id', editId)
         if (error) throw error
-        await supabase.from('po_lines').delete().eq('po_id', editId)
-        const { error: lineErr } = await supabase.from('po_lines').insert(
-          validLines.map(l => ({ po_id: editId, item_id: l.item_id, quantity: parseFloat(l.quantity), unit_cost: parseFloat(l.unit_cost) || 0 }))
-        )
         if (lineErr) throw lineErr
         showToast(sendIt ? 'PO sent' : 'PO updated', 'green')
         if (sendIt) {
@@ -148,13 +153,18 @@ export default function InvPurchaseOrders({ setPage }) {
           warehouse_id: form.warehouse_id || null, requisition_id: form.requisition_id || null,
           order_date: form.order_date || null, expected_date: form.expected_date || null,
           notes: form.notes || null, total_amount: total,
-          status: sendIt ? 'sent' : 'draft', created_by: profile?.id,
+          cost_centre_id: form.cost_centre_id || null, project_id: form.project_id || null,
+          status: 'draft', created_by: profile?.id,
         }).select().single()
         if (error) throw error
         const { error: lineErr } = await supabase.from('po_lines').insert(
           validLines.map(l => ({ po_id: newPo.id, item_id: l.item_id, quantity: parseFloat(l.quantity), unit_cost: parseFloat(l.unit_cost) || 0 }))
         )
         if (lineErr) throw lineErr
+        if (sendIt) {
+          const { error: sendErr } = await supabase.from('purchase_orders').update({ status: 'sent' }).eq('id', newPo.id)
+          if (sendErr) throw sendErr
+        }
         if (form.requisition_id) {
           await supabase.from('purchase_requisitions').update({ status: 'ordered' }).eq('id', form.requisition_id)
         }
@@ -307,7 +317,7 @@ export default function InvPurchaseOrders({ setPage }) {
                           </button>
                         )}
                         {o.status === 'draft' && can('inventory.edit') && (
-                          <button onClick={() => { setEditId(o.id); setForm({ supplier_id: o.supplier_id || '', warehouse_id: o.warehouse_id || '', requisition_id: o.requisition_id || '', order_date: o.order_date || '', expected_date: o.expected_date || '', notes: o.notes || '' }); setLines(o.lines?.map(l => ({ item_id: l.item_id, quantity: l.quantity, unit_cost: l.unit_cost })) || [{ item_id: '', quantity: '', unit_cost: '' }]); setModal(true) }}
+                          <button onClick={() => { setEditId(o.id); setForm({ supplier_id: o.supplier_id || '', warehouse_id: o.warehouse_id || '', requisition_id: o.requisition_id || '', order_date: o.order_date || '', expected_date: o.expected_date || '', notes: o.notes || '', cost_centre_id: o.cost_centre_id || '', project_id: o.project_id || '' }); setLines(o.lines?.map(l => ({ item_id: l.item_id, quantity: l.quantity, unit_cost: l.unit_cost })) || [{ item_id: '', quantity: '', unit_cost: '' }]); setModal(true) }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
                             <Icon name="edit" size={16} style={{ color: THEME.textMed }} />
                           </button>
@@ -352,6 +362,9 @@ export default function InvPurchaseOrders({ setPage }) {
               <SectionLabel>Expected Delivery</SectionLabel>
               <input type="date" value={form.expected_date} onChange={e => setForm({ ...form, expected_date: e.target.value })} style={inp} />
             </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <DimensionPicker idPrefix="po" value={form} onChange={v => setForm({ ...form, cost_centre_id: v.cost_centre_id, project_id: v.project_id })} inputStyle={inp} />
           </div>
           <div>
             <SectionLabel>Notes</SectionLabel>

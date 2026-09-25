@@ -6,10 +6,12 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE _st TEXT;
 BEGIN
   SELECT status INTO _st FROM purchase_orders WHERE id = COALESCE(NEW.po_id, OLD.po_id);
-  IF _st IS NOT NULL AND _st <> 'draft' THEN
-    RAISE EXCEPTION 'This purchase order is % — its lines can no longer be changed', replace(_st, '_', ' ');
+  IF _st IS NULL OR _st = 'draft' THEN RETURN COALESCE(NEW, OLD); END IF;
+  -- Receiving goods against a sent PO only changes received quantities — that's allowed.
+  IF TG_OP = 'UPDATE' AND (to_jsonb(NEW) - 'received_qty' - 'updated_at') = (to_jsonb(OLD) - 'received_qty' - 'updated_at') THEN
+    RETURN NEW;
   END IF;
-  RETURN COALESCE(NEW, OLD);
+  RAISE EXCEPTION 'This purchase order is % — its lines can no longer be changed', replace(_st, '_', ' ');
 END;
 $$;
 DROP TRIGGER IF EXISTS trg_lock_po_lines ON po_lines;

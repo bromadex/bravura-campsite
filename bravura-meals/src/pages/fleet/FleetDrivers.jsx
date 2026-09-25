@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { ModalOverlay } from '../../components/ui'
+import { ModalOverlay, showToast } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
@@ -261,6 +261,21 @@ export default function FleetDrivers({ setPage }) {
           <div style={{ fontSize: '20px', fontWeight: 500, color: THEME.text }}>Drivers</div>
           <div style={{ fontSize: '12px', color: THEME.textMed }}>{filtered.length} driver{filtered.length !== 1 ? 's' : ''}</div>
         </div>
+        {can('fleet.edit') && (
+          <button onClick={async () => {
+            const { data: n, error: e } = await supabase.rpc('fleet_sync_drivers_from_hr', { p_site_id: currentSiteId })
+            if (e) { showToast(e.message, 'red'); return }
+            showToast(n ? `${n} driver${n > 1 ? 's' : ''} added from HR` : 'Everyone with a driver or operator job title is already listed', 'green')
+            fetchDrivers()
+          }} title="Adds employees whose job title is a driver or operator" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', marginRight: '8px',
+            padding: '8px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+            background: 'transparent', color, border: `1px solid ${color}`, cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>sync</span>
+            Sync from HR
+          </button>
+        )}
         {can('fleet.create') && (
           <button onClick={openAdd} style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',

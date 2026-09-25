@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
+import { AskProvider } from './components/AskBravura'
 import ErrorBoundary from './components/ErrorBoundary'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
@@ -1017,7 +1018,8 @@ function HomeLauncherPage() {
     const allowed = moduleAccess[landing]?.(role, can)
     if (landing && DEFAULT_PAGE[landing] && allowed) return <Navigate to={`/${landing}/${DEFAULT_PAGE[landing]}`} replace />
   }
-  return <HomeLauncher onEnterModule={enterModule} />
+  // Ask Bravura is on the home screen too (#58) — it reads the launcher's visible text.
+  return <HomeWithAsk><HomeLauncher onEnterModule={enterModule} /></HomeWithAsk>
 }
 
 // Signs the user out after the idle time chosen in My Preferences.
@@ -1043,6 +1045,11 @@ function IdleSignOut() {
 }
 
 // ── App shell ─────────────────────────────────────────────────────────────────
+function HomeWithAsk({ children }) {
+  const ref = useRef(null)
+  return <div ref={ref}><AskProvider moduleId="home" page="home" title="Home" contentRef={ref}>{children}</AskProvider></div>
+}
+
 function AppContent() {
   const { user, profile, loading } = useAuth()
 

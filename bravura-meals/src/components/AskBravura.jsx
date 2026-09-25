@@ -45,6 +45,7 @@ const SUGGEST = {
   procurement: ['What needs my attention here?', 'Which orders on this screen are late?', 'Total the orders on this screen by supplier', 'How much have we spent on tyres this year?'],
   inventory: ['What does this screen show?', 'Which items here are below reorder level?', 'Total the stock value on this screen'],
   fleet: ['Summarise this screen', 'Which vehicles here need attention?'],
+  home: ['How much did we spend this week?', 'What needs my attention today?', 'How much have we spent on diesel this month?', 'Which purchase orders are late?'],
   default: ['What does this screen show?', 'Summarise the numbers on this screen', 'How much did we spend this month?'],
 }
 

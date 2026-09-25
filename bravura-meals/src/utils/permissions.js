@@ -268,15 +268,13 @@ export function fuelNav(role, can) {
 }
 
 export function procurementNav(role, can) {
-  // Procurement rewrite (#50): one place per step of buying. RFQs / tracking / scorecards fold into
-  // Purchase Orders and Suppliers in phases P3 and P5.
+  // Procurement rewrite (#50): one place per step of buying. Quotes and tracking are tabs of Purchase
+  // Orders (P3); scorecards fold into Suppliers in P5.
   const view = !can || can('procurement.view')
   return [
     { id: 'proc_dashboard',    label: 'Procurement Home', section: 'Overview',  icon: 'dashboard',      show: view },
     { id: 'proc_requisitions', label: 'Requests',         section: 'Buying',    icon: 'assignment',     show: view || can('procurement.create') },
-    { id: 'proc_rfqs',         label: 'Quotes (RFQs)',    section: 'Buying',    icon: 'request_quote',  show: view },
     { id: 'proc_orders',       label: 'Purchase Orders',  section: 'Buying',    icon: 'shopping_cart',  show: view },
-    { id: 'proc_tracking',     label: 'Tracking',         section: 'Buying',    icon: 'local_shipping', show: view },
     { id: 'proc_grn',          label: 'Receiving',        section: 'Receiving', icon: 'move_to_inbox',  show: view },
     { id: 'proc_invoices',     label: 'Supplier Bills',   section: 'Receiving', icon: 'receipt_long',   show: view },
     { id: 'proc_suppliers',    label: 'Suppliers',        section: 'Suppliers', icon: 'business',       show: view },

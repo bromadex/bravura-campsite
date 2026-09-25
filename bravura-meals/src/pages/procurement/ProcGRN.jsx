@@ -173,11 +173,11 @@ export default function ProcGRN({ setPage }) {
 
   async function loadPoLines(poId) {
     if (!poId) { setPoLines([]); setLines([{ item_description: '', quantity_expected: '', quantity_received: '', unit: '', unit_price: '' }]); return }
-    const { data } = await supabase.from('po_lines').select('*, item:items(description)').eq('po_id', poId).order('created_at')
+    const { data } = await supabase.from('po_lines').select('*, item:items(description)').eq('po_id', poId).eq('is_archived', false).order('created_at')
     setPoLines(data || [])
     if (data?.length) {
       setLines(data.map(pl => ({
-        po_line_id: pl.id, item_id: pl.item_id, item_description: pl.item?.description || '',
+        po_line_id: pl.id, item_id: pl.item_id, item_description: pl.item?.description || pl.description || '',
         quantity_expected: pl.quantity - (pl.received_qty || 0), quantity_received: pl.quantity - (pl.received_qty || 0),
         unit: '', unit_price: pl.unit_cost,
       })))

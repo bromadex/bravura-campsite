@@ -208,19 +208,16 @@ const InvReports     = lazy(() => import('./pages/inventory/InvReports'))
 const InvSettings    = lazy(() => import('./pages/inventory/InvSettings'))
 const InvStockTake   = lazy(() => import('./pages/inventory/InvStockTake'))
 const InvReorderExpiry = lazy(() => import('./pages/inventory/InvReorderExpiry'))
-const InvPurchaseOrders = lazy(() => import('./pages/inventory/InvPurchaseOrders'))
 
 // ── Procurement ───────────────────────────────────────────────────────────────
 const ProcHome = lazy(() => import('./pages/procurement/ProcHome'))
 const ProcShell = lazy(() => import('./components/ProcShell'))
 const ProcSuppliers = lazy(() => import('./pages/procurement/Suppliers'))
-const ProcRFQ = lazy(() => import('./pages/procurement/ProcRFQ'))
+const ProcOrders = lazy(() => import('./pages/procurement/ProcOrders'))
 const ProcRequests = lazy(() => import('./pages/procurement/ProcRequests'))
 const ProcGRN = lazy(() => import('./pages/procurement/ProcGRN'))
 const ProcInvoices = lazy(() => import('./pages/procurement/ProcInvoices'))
-const ProcTracking = lazy(() => import('./pages/procurement/ProcTracking'))
 const ProcReports = lazy(() => import('./pages/procurement/ProcReports'))
-const ProcRfqCompare       = lazy(() => import('./pages/procurement/ProcRfqCompare'))
 const ProcSupplierPerf     = lazy(() => import('./pages/procurement/ProcSupplierPerformance'))
 
 // ── Projects ─────────────────────────────────────────────────────────────────
@@ -595,17 +592,17 @@ function getProcurementPage(page, can, setPage) {
   const [base, param] = (page || '').split(':')
   const view = can('procurement.view')
   const framed = (title, el) => view ? <ProcShell title={title} setPage={setPage}>{el}</ProcShell> : null
-  if (base === 'proc_rfq_compare') return framed('Quote comparison', <ProcRfqCompare rfqId={param} setPage={setPage} key={param} />)
+  if (base === 'proc_rfq_compare') return view ? <ProcOrders setPage={setPage} initialTab="quotes" /> : null  // quotes live in the PO hub (#53)
   switch (page) {
     case 'proc_budgets':      return view ? <FIBudgets setPage={setPage} /> : null  // one budget screen (0207)
     case 'proc_requisitions': return (view || can('procurement.create')) ? <ProcRequests setPage={setPage} /> : null
     case 'proc_supplier_performance': return framed('Supplier aging & scorecards', <ProcSupplierPerf setPage={setPage} />)
     case 'proc_suppliers':    return framed('Suppliers', <ProcSuppliers setPage={setPage} />)
-    case 'proc_rfqs':         return framed('Requests for quotation', <ProcRFQ setPage={setPage} />)
-    case 'proc_orders':       return framed('Purchase orders', <InvPurchaseOrders setPage={setPage} />)
+    case 'proc_rfqs':         return view ? <ProcOrders setPage={setPage} initialTab="quotes" /> : null
+    case 'proc_orders':       return view ? <ProcOrders setPage={setPage} /> : null
     case 'proc_grn':          return framed('Receiving', <ProcGRN setPage={setPage} />)
     case 'proc_invoices':     return framed('Supplier bills', <ProcInvoices setPage={setPage} />)
-    case 'proc_tracking':     return framed('Order tracking', <ProcTracking setPage={setPage} />)
+    case 'proc_tracking':     return view ? <ProcOrders setPage={setPage} initialTab="tracking" /> : null
     case 'proc_reports':      return framed('Reports', <ProcReports setPage={setPage} />)
     default:                  return view ? <ProcHome setPage={setPage} /> : (can('procurement.create') ? <ProcRequests setPage={setPage} /> : null)
   }
@@ -629,7 +626,7 @@ function getInventoryPage(page, can, setPage) {
     case 'inv_stock_take':  return <InvStockTake setPage={setPage} />
     case 'inv_reorder':       return can('inventory.view') ? <InvReorderExpiry setPage={setPage} /> : null
     case 'inv_requisitions': return <ProcRequests setPage={setPage} />  // one Requests screen (#52)
-    case 'inv_purchase_orders': return <InvPurchaseOrders setPage={setPage} />
+    case 'inv_purchase_orders': return <ProcOrders setPage={setPage} />  // one PO hub (#53)
     default:                return <InvDashboard setPage={setPage} />
   }
 }

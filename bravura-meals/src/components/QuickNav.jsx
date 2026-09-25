@@ -86,7 +86,6 @@ export const INVENTORY_PILLS = [
 export const PROCUREMENT_PILLS = [
   { id: 'proc_dashboard',    label: 'Home',            icon: 'dashboard',      color: '#982329' },
   { id: 'proc_requisitions', label: 'Requests',        icon: 'assignment',     color: '#982329' },
-  { id: 'proc_rfqs',         label: 'Quotes',          icon: 'request_quote',  color: '#1F4E8C' },
   { id: 'proc_orders',       label: 'Purchase Orders', icon: 'shopping_cart',  color: '#1F4E8C' },
   { id: 'proc_grn',          label: 'Receiving',       icon: 'move_to_inbox',  color: '#2F7D4F' },
   { id: 'proc_invoices',     label: 'Bills',           icon: 'receipt_long',   color: '#2F7D4F' },

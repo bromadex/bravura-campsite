@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0215.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0216.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -385,6 +385,18 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   `proc_request_fulfil_transfer` moves stock between sites' stores (transfer_out/in). RLS via `_proc_can`
   (procurement.* or inventory.*); sending site can see transfers. Default approval route per site:
   line manager ("Department head"). Older procurement screens are wrapped in ProcShell in App.jsx.
+  **P3 built (0215):** ProcOrders hub (PR04; also proc_rfqs/proc_rfq_compare/proc_tracking/inv_purchase_orders
+  routes → tabs To order · Quotes · Orders · Tracking). ProcRFQ, ProcRfqCompare, InvPurchaseOrders deleted
+  (rfqs table unused/empty). purchase_orders statuses rfq → rfq_sent → draft → pending_approval → sent →
+  partially_received → received | cancelled; rfq_group_id (alternatives), amended_from/revision (cancel &
+  amend, PO-x-1), cancel_reason, confirmed_*. po_lines: item optional (services), description, unit,
+  requisition_line_id, is_archived. RPCs: proc_po_from_requests, proc_po_save, proc_rfq_add_supplier,
+  proc_rfq_mark_sent, proc_po_confirm (cancels other alternatives), proc_po_cancel, proc_po_amend,
+  proc_po_list (receipt/billed status), proc_lines_to_order, proc_item_price_history. Locks:
+  trg_lock_po_lines + trg_po_header_lock (editable only rfq/rfq_sent/draft). trg_po_requests_sync keeps
+  requisition_lines.ordered_qty + request status (ordered/approved). GRN trigger now confirms service lines.
+  Default PO approval routes per site: ≤$1k (procurement.approve), ≤$10k (2× procurement.approve),
+  >$10k (+finance.approve).
 
 - Real opening balances for Kamativi (replace mock JV-0001 via `finance_setup_clear_mock_opening`).
 - Finance setup (FI20) for Selous, Manhizi, Harare — no CoA/rules yet, so nothing posts there.

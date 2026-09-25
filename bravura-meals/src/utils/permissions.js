@@ -420,29 +420,29 @@ export function deptNav(role, can) {
 }
 
 export function inventoryNav(role, can) {
-  // Grouped by what people do (inventory review, #59 I4).
+  // Ordered by how often people use it (user, 25 Sep): daily work first, setup last.
   return [
-    { id: 'inv_dashboard',    label: 'Stores dashboard',     section: 'Overview',  icon: 'dashboard' },
-    { id: 'inv_position',     label: 'Stock position',       section: 'Stock',     icon: 'stacked_bar_chart' },
-    { id: 'inv_items',        label: 'Items',                section: 'Stock',     icon: 'category' },
+    { id: 'inv_dashboard',    label: 'Stores dashboard',     section: 'Daily',     icon: 'dashboard' },
+    { id: 'inv_issues',       label: 'Issue & return',       section: 'Daily',     icon: 'outbox' },
+    { id: 'inv_position',     label: 'Stock position',       section: 'Daily',     icon: 'stacked_bar_chart' },
+    { id: 'inv_requisitions', label: 'Requests',             section: 'Daily',     icon: 'request_quote' },
+    { id: 'inv_transfers',    label: 'Transfers',            section: 'Daily',     icon: 'local_shipping' },
     { id: 'inv_balances',     label: 'Balances',             section: 'Stock',     icon: 'inventory' },
+    { id: 'inv_items',        label: 'Items',                section: 'Stock',     icon: 'category' },
     { id: 'inv_ledger',       label: 'Stock ledger',         section: 'Stock',     icon: 'menu_book' },
-    { id: 'inv_issues',       label: 'Issue & return',       section: 'Move',      icon: 'outbox' },
-    { id: 'inv_transfers',    label: 'Transfers',            section: 'Move',      icon: 'local_shipping' },
-    { id: 'inv_site_moves',   label: 'Move between stores',  section: 'Move',      icon: 'swap_horiz' },
-    { id: 'inv_adjustments',  label: 'Adjust & scrap',       section: 'Move',      icon: 'tune' },
-    { id: 'inv_stock_take',   label: 'Counts',               section: 'Move',      icon: 'fact_check' },
-    { id: 'inv_grn',          label: 'Receive without a PO', section: 'Move',      icon: 'move_to_inbox' },
+    { id: 'inv_stock_take',   label: 'Counts',               section: 'Stock',     icon: 'fact_check' },
     { id: 'inv_reorder',      label: 'Reorder & expiry',     section: 'Replenish', icon: 'production_quantity_limits' },
-    { id: 'inv_requisitions', label: 'Requests',             section: 'Replenish', icon: 'request_quote' },
     { id: 'inv_purchase_orders', label: 'Purchase orders',   section: 'Replenish', icon: 'shopping_cart' },
+    { id: 'inv_site_moves',   label: 'Move between stores',  section: 'Other moves', icon: 'swap_horiz' },
+    { id: 'inv_adjustments',  label: 'Adjust & scrap',       section: 'Other moves', icon: 'tune' },
+    { id: 'inv_grn',          label: 'Receive without a PO', section: 'Other moves', icon: 'move_to_inbox' },
     { id: 'inv_health',       label: 'Stock health',         section: 'Reports',   icon: 'monitor_heart' },
     { id: 'inv_reports',      label: 'More reports',         section: 'Reports',   icon: 'bar_chart' },
+    { id: 'inv_levels',       label: 'Store levels',         section: 'Setup',     icon: 'tune' },
     { id: 'inv_warehouses',   label: 'Stores',               section: 'Setup',     icon: 'warehouse' },
     { id: 'inv_bins',         label: 'Bins & labels',        section: 'Setup',     icon: 'shelves' },
-    { id: 'inv_levels',       label: 'Store levels',         section: 'Setup',     icon: 'tune' },
-    { id: 'inv_categories',   label: 'Categories & units',   section: 'Setup',     icon: 'account_tree' },
     { id: 'inv_kits',         label: 'Kits',                 section: 'Setup',     icon: 'medical_services' },
+    { id: 'inv_categories',   label: 'Categories & units',   section: 'Setup',     icon: 'account_tree' },
     { id: 'inv_import',       label: 'Import items',         section: 'Setup',     icon: 'upload_file' },
     { id: 'inv_settings',     label: 'Settings',             section: 'Setup',     icon: 'settings' },
   ]

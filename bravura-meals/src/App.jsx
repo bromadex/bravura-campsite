@@ -212,6 +212,8 @@ const InvReorderExpiry = lazy(() => import('./pages/inventory/InvReorderExpiry')
 const InvBins        = lazy(() => import('./pages/inventory/InvBins'))
 const InvLevels      = lazy(() => import('./pages/inventory/InvLevels'))
 const InvImport      = lazy(() => import('./pages/inventory/InvImport'))
+const InvTransfers   = lazy(() => import('./pages/inventory/InvTransfers'))
+const InvPosition    = lazy(() => import('./pages/inventory/InvPosition'))
 
 // ── Procurement ───────────────────────────────────────────────────────────────
 const ProcHome = lazy(() => import('./pages/procurement/ProcHome'))
@@ -635,6 +637,8 @@ function getInventoryPage(page, can, setPage) {
     case 'inv_bins':          return <InvBins setPage={setPage} />
     case 'inv_levels':        return <InvLevels setPage={setPage} />
     case 'inv_import':        return <InvImport setPage={setPage} />
+    case 'inv_transfers':     return <InvTransfers setPage={setPage} />
+    case 'inv_position':      return <InvPosition setPage={setPage} />
     case 'inv_requisitions': return <ProcRequests setPage={setPage} />  // one Requests screen (#52)
     case 'inv_purchase_orders': return <ProcOrders setPage={setPage} />  // one PO hub (#53)
     default:                return <InvDashboard setPage={setPage} />

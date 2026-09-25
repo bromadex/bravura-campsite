@@ -183,6 +183,8 @@ export const TXN_CODES = [
   { code: 'IN17', path: '/inventory/inv_bins',         label: 'Bins & labels',        module: 'inventory' },
   { code: 'IN18', path: '/inventory/inv_levels',       label: 'Store levels',         module: 'inventory' },
   { code: 'IN19', path: '/inventory/inv_import',       label: 'Import items',         module: 'inventory' },
+  { code: 'IN20', path: '/inventory/inv_transfers',    label: 'Transfers (in transit)', module: 'inventory' },
+  { code: 'IN21', path: '/inventory/inv_position',     label: 'Stock position & reservations', module: 'inventory' },
 
   // ── Department Workspaces (DW) ──────────────────────────────────────────────
   { code: 'DW01', path: '/dept/dept_dashboard',  label: 'Dept Dashboard',     module: 'dept' },

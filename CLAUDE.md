@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0234.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0235.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -493,6 +493,13 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   **I2 built (0233):** `warehouse_bins` + QR labels (IN17 `inv_bins`), `item_store_settings` bin/min/max/reorder per store (IN18
   `inv_levels`; `_inv_reorder_core` uses them first), `items.purchase_uom_id` + `purchase_factor` (GRN converts PO-unit qty × factor,
   cost ÷ factor), `inv_import_items(rows, store)` + IN19 `inv_import` (Excel template, upsert by item_code, bins/levels, opening stock).
+  **I3 built (0234):** `stock_reservations` (request or work order; `inv_reserve` / `inv_release`; BEFORE trigger `trg_inv_a_reservation`
+  blocks issue/transfer_out of stock held for others and consumes the matching reservation on issue). Shipments `inv_shipments` +
+  `inv_shipment_lines`: `inv_dispatch` (transfer_out, SHP number, in transit) → `inv_receive_shipment` (transfer_in at sending cost,
+  shortfall = adjustment 'short in transit'); `proc_request_fulfil_transfer` now dispatches (request 'ordered' → 'fulfilled' on receipt).
+  `inv_position(sites, store)` = on hand / reserved / free / on order (PO units converted) / in transit / reorder / value / bin.
+  `inv_store_list()` names every active store (destination picker). Screens IN20 `inv_transfers` (truck cart, receive), IN21 `inv_position`
+  (position + reservations tabs).
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search

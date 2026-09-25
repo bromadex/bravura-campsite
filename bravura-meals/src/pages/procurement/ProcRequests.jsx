@@ -207,7 +207,7 @@ function RequestDetail({ r, approval, profileId, onClose, onEdit, onChanged }) {
     ])
     setSend({ fromList: f.data || [], toList: t.data || [], from: f.data?.[0]?.id || '', to: t.data?.[0]?.id || '' })
   }
-  const doSend = () => run(() => supabase.rpc('proc_request_fulfil_transfer', { p_id: r.id, p_from_warehouse: send.from, p_to_warehouse: send.to }), 'Stock transferred')
+  const doSend = () => run(() => supabase.rpc('proc_request_fulfil_transfer', { p_id: r.id, p_from_warehouse: send.from, p_to_warehouse: send.to }), 'Sent — in transit until the receiving store confirms it (Stores → Transfers)')
 
   const stockFor = id => (stock || []).filter(s => s.item_id === id)
   const canSend = r.request_type === 'transfer' && r.status === 'approved' && (can('inventory.edit') || can('inventory.create'))

@@ -425,6 +425,8 @@ export function inventoryNav(role, can) {
     { id: 'inv_items',        label: 'Items',              section: 'Catalogue',  icon: 'category' },
     { id: 'inv_categories',   label: 'Categories & UoM',   section: 'Catalogue',  icon: 'account_tree' },
     { id: 'inv_warehouses',   label: 'Warehouses',         section: 'Warehouse',  icon: 'warehouse' },
+    { id: 'inv_position',     label: 'Stock position',     section: 'Warehouse',  icon: 'stacked_bar_chart' },
+    { id: 'inv_transfers',    label: 'Transfers',          section: 'Operations', icon: 'local_shipping' },
     { id: 'inv_bins',         label: 'Bins & labels',      section: 'Warehouse',  icon: 'qr_code_2' },
     { id: 'inv_levels',       label: 'Store levels',       section: 'Warehouse',  icon: 'tune' },
     { id: 'inv_import',       label: 'Import items',       section: 'Catalogue',  icon: 'upload_file' },

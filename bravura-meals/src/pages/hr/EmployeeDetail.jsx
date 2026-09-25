@@ -48,7 +48,12 @@ function InfoRow({ label, value }) {
 }
 
 const EXAM_RESULTS = ['Fit', 'Fit with Restrictions', 'Unfit', 'Pending']
-const EXAM_TYPES = ['Pre-Employment', 'Annual', 'Exit', 'Specific']
+const EXAM_TYPES = ['Pre-Employment', 'Annual', 'Return to Work', 'Exit', 'Specific']
+// Medicals are stored in SHEQ's sheq_medical_fitness (shared with SHEQ since 0194); map to HR's labels.
+const TYPE_TO_DB = { 'Pre-Employment': 'pre_employment', Annual: 'periodic', 'Return to Work': 'return_to_work', Exit: 'exit', Specific: 'special' }
+const RESULT_TO_DB = { Fit: 'fit', 'Fit with Restrictions': 'fit_with_restrictions', Unfit: 'temporarily_unfit', Pending: 'pending' }
+const TYPE_FROM_DB = Object.fromEntries(Object.entries(TYPE_TO_DB).map(([k, v]) => [v, k]))
+const RESULT_FROM_DB = { ...Object.fromEntries(Object.entries(RESULT_TO_DB).map(([k, v]) => [v, k])), permanently_unfit: 'Unfit' }
 
 export default function EmployeeDetail({ setPage, employeeId }) {
   const { currentSiteId, currentSite } = useSite()
@@ -130,9 +135,10 @@ export default function EmployeeDetail({ setPage, employeeId }) {
     setLeaveAlloc(laRes.data || [])
     setLeaveReqs(lrRes.data || [])
     if (can('hr.approve')) {
-      const { data: med } = await supabase.from('medical_records')
-        .select('*').eq('employee_id', employeeId).order('exam_date', { ascending: false })
-      setMedical(med || [])
+      const { data: med } = await supabase.from('sheq_medical_fitness')
+        .select('*').eq('employee_id', employeeId).eq('is_archived', false).order('exam_date', { ascending: false })
+      setMedical((med || []).map(m => ({ ...m, exam_type: TYPE_FROM_DB[m.exam_type] || m.exam_type,
+        result: RESULT_FROM_DB[m.fitness_status] || m.fitness_status, next_exam_date: m.expiry_date })))
     }
     setLoading(false)
   }, [currentSiteId, employeeId, can])
@@ -198,11 +204,11 @@ export default function EmployeeDetail({ setPage, employeeId }) {
   async function saveMedical() {
     if (!medForm.exam_date) { showToast('Exam date is required', 'red'); return }
     setSaving(true)
-    const { error } = await supabase.from('medical_records').insert({
+    const { error } = await supabase.from('sheq_medical_fitness').insert({
       employee_id: employeeId, site_id: currentSiteId,
-      exam_type: medForm.exam_type, exam_date: medForm.exam_date,
-      result: medForm.result, restrictions: medForm.restrictions.trim() || null,
-      next_exam_date: medForm.next_exam_date || null,
+      exam_type: TYPE_TO_DB[medForm.exam_type] || 'special', exam_date: medForm.exam_date,
+      fitness_status: RESULT_TO_DB[medForm.result] || 'pending', restrictions: medForm.restrictions.trim() || null,
+      expiry_date: medForm.next_exam_date || null,
       blood_group: medForm.blood_group.trim() || null,
       allergies: medForm.allergies.trim() || null,
       notes: medForm.notes.trim() || null,

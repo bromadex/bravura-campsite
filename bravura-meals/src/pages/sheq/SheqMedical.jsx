@@ -205,9 +205,9 @@ export default function SheqMedical({ setPage }) {
   const [editRow, setEditRow] = useState(null)
   const [profiles, setProfiles] = useState([])
 
-  const canView = can('sheq.view')
-  const canCreate = can('sheq.create')
-  const canEdit = can('sheq.edit')
+  const canView = (can('sheq.view') || can('hr.view'))
+  const canCreate = (can('sheq.create') || can('hr.create'))
+  const canEdit = (can('sheq.edit') || can('hr.edit'))
 
   const profileMap = useMemo(() => { const m = {}; profiles.forEach(p => { m[p.id] = p.name }); return m }, [profiles])
 

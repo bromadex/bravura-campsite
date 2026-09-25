@@ -291,7 +291,7 @@ export default function SheqPpe({ setPage }) {
     else { showToast('Archived'); load() }
   }
 
-  if (!can('sheq.view')) return <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>You do not have permission to view PPE register.</div>
+  if (!(can('sheq.view') || can('hr.view'))) return <div style={{ padding: '40px', textAlign: 'center', color: THEME.textMed }}>You do not have permission to view PPE register.</div>
 
   const lowStockCount = items.filter(i => i.is_active && i.current_stock <= i.reorder_level).length
 
@@ -319,7 +319,7 @@ export default function SheqPpe({ setPage }) {
           <Icon name="search" size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: THEME.textLow }} />
           <input style={{ ...inputStyle, paddingLeft: '32px' }} placeholder={`Search ${tab}...`} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        {can('sheq.create') && (
+        {(can('sheq.create') || can('hr.create')) && (
           <Button style={{ background: ACCENT, color: '#fff' }} onClick={() => setModal(tab === 'items' ? 'newItem' : 'newIssue')}>
             <Icon name="add" size={16} style={{ color: '#fff' }} /> {tab === 'items' ? 'New Item' : 'New Issue'}
           </Button>
@@ -362,7 +362,7 @@ export default function SheqPpe({ setPage }) {
                       </td>
                       <td style={{ padding: '10px 12px' }}>
                         <div style={{ display: 'flex', gap: '4px' }}>
-                          {can('sheq.edit') && <button onClick={() => setModal({ type: 'editItem', data: r })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Icon name="edit" size={16} style={{ color: THEME.textMed }} /></button>}
+                          {(can('sheq.edit') || can('hr.edit')) && <button onClick={() => setModal({ type: 'editItem', data: r })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Icon name="edit" size={16} style={{ color: THEME.textMed }} /></button>}
                           {can('sheq.delete') && <button onClick={() => handleArchiveItem(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Icon name="archive" size={16} style={{ color: THEME.textMed }} /></button>}
                         </div>
                       </td>
@@ -408,7 +408,7 @@ export default function SheqPpe({ setPage }) {
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        {can('sheq.edit') && <button onClick={() => setModal({ type: 'editIssue', data: r })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Icon name="edit" size={16} style={{ color: THEME.textMed }} /></button>}
+                        {(can('sheq.edit') || can('hr.edit')) && <button onClick={() => setModal({ type: 'editIssue', data: r })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Icon name="edit" size={16} style={{ color: THEME.textMed }} /></button>}
                         {can('sheq.delete') && <button onClick={() => handleArchiveIssue(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Icon name="archive" size={16} style={{ color: THEME.textMed }} /></button>}
                       </div>
                     </td>

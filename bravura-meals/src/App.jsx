@@ -429,9 +429,10 @@ function getWorkforcePage(page, role, can, setPage) {
     case 'wf_appraisals':        return can('hr.view') ? <HRAppraisals setPage={setPage} /> : null
     case 'wf_disciplinary':      return can('hr.edit') ? <HRDisciplinary setPage={setPage} /> : null
     case 'wf_exit':              return can('hr.view') ? <HRExitManagement setPage={setPage} /> : null
-    case 'wf_medicals':          return can('hr.view') ? <HRMedicalSurveillance setPage={setPage} /> : null
+    // Medicals and PPE are one set of records shared with SHEQ (0194) — HR shows the same screens.
+    case 'wf_medicals':          return can('hr.view') ? <SheqMedical setPage={setPage} /> : null
     case 'wf_document_expiry':   return can('hr.view') ? <HRDocumentExpiry setPage={setPage} /> : null
-    case 'wf_ppe':               return can('hr.view') ? <PPETracking setPage={setPage} /> : null
+    case 'wf_ppe':               return can('hr.view') ? <SheqPpe setPage={setPage} /> : null
     case 'wf_holidays':          return can('hr.view') ? <HRPublicHolidays setPage={setPage} /> : null
     case 'wf_detail_changes':    return can('hr.view') ? <HRDetailChanges setPage={setPage} /> : null
     case 'wf_salary_advances':   return can('hr.edit') || can('hr.approve') ? <HRSalaryAdvances setPage={setPage} /> : null

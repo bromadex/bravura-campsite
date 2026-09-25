@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0238.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0239. Kamativi stores (0238): Container 1 (KAM-C1, main — the old Main Store), Container 2 (KAM-C2), Container 3 (KAM-C3).
 
 ## Improvement backlog (agreed with user, work top-down)
 

@@ -479,6 +479,17 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {(can('procurement.edit') || can('finance.edit')) && (
+        <Section icon="fact_check" color={MODULE_COLORS.finance} title="Finance — contractor bills and accrued work">
+          <Steps items={[
+            <>Approved casual timesheets, approved hired-equipment usage logs and closed SHEQ incidents with an actual cost are booked as cost straight away, held in <b>Other accruals</b> until the contractor's bill arrives. Stores issues, returns and stock-count differences also post to the ledger by themselves.</>,
+            <>When you enter a bill in Purchase Invoices (<Code>PR09</Code>) without a GRN, answer <b>What is this bill for?</b> — choose <b>Contract labour, hired plant or incident costs</b> for work already booked, so the cost isn't counted twice.</>,
+            <>Open the draft bill and, under <b>Accrued work this bill covers</b>, tick the timesheets, usage logs or incidents it pays for, then <b>Save matching</b>. The box shows how much is matched and any difference.</>,
+            <>On approval exactly the matched amount leaves Other accruals. If the bill is lower than what was accrued the difference is released; if higher, the extra is added as cost. Each item can only be on one bill; cancelling a bill frees its items.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* Finance */}
       {(can('finance.view') || can('finance.edit')) && (
         <Section icon="account_balance" color={MODULE_COLORS.finance} title="Finance — automatic posting">

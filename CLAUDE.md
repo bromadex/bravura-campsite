@@ -518,7 +518,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   on the road >5 d, count off >5%, batch expiring ≤14 d).
   **Module is called "Stores" on screen (user, 25 Sep)** — code ids stay `inventory` / `inv_*` / `inventory.*` permissions.
   **No scanning (user, 25 Sep):** Scan (IN22) removed from menu/dashboard, bin labels are plain text (no QR, qrcode package removed).
-  **Vercel note:** if pushes stop deploying (daily build limit), redeploy from the Vercel dashboard or MCP create_deployment.
+  **Vercel (25 Sep):** preview deployments disabled + Ignored Build Step skips every branch but main (free plan = 100 builds/day; the second branch push no longer builds). If pushes stop deploying, redeploy from the dashboard or MCP create_deployment.
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search

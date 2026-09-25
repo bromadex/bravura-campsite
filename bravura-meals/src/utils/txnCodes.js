@@ -164,7 +164,7 @@ export const TXN_CODES = [
   { code: 'AD12', path: '/admin/admin_ask',          label: 'Ask Bravura admin (usage, review, limits, AI register)', module: 'admin' },
 
   // ── Inventory (IN) ──────────────────────────────────────────────────────
-  { code: 'IN01', path: '/inventory/inv_dashboard',   label: 'Inventory Dashboard',  module: 'inventory' },
+  { code: 'IN01', path: '/inventory/inv_dashboard',   label: 'Stores dashboard',     module: 'inventory' },
   { code: 'IN02', path: '/inventory/inv_items',        label: 'Items',                module: 'inventory' },
   { code: 'IN03', path: '/inventory/inv_categories',   label: 'Categories & UoM',     module: 'inventory' },
   { code: 'IN04', path: '/inventory/inv_warehouses',   label: 'Warehouses',           module: 'inventory' },
@@ -185,6 +185,7 @@ export const TXN_CODES = [
   { code: 'IN19', path: '/inventory/inv_import',       label: 'Import items',         module: 'inventory' },
   { code: 'IN20', path: '/inventory/inv_transfers',    label: 'Transfers (in transit)', module: 'inventory' },
   { code: 'IN21', path: '/inventory/inv_position',     label: 'Stock position & reservations', module: 'inventory' },
+  { code: 'IN22', path: '/inventory/inv_scan',         label: 'Scan (phone)',         module: 'inventory' },
 
   // ── Department Workspaces (DW) ──────────────────────────────────────────────
   { code: 'DW01', path: '/dept/dept_dashboard',  label: 'Dept Dashboard',     module: 'dept' },

@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0235.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0236.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -500,6 +500,12 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   `inv_position(sites, store)` = on hand / reserved / free / on order (PO units converted) / in transit / reorder / value / bin.
   `inv_store_list()` names every active store (destination picker). Screens IN20 `inv_transfers` (truck cart, receive), IN21 `inv_position`
   (position + reservations tabs).
+  **I4 built (0235):** `inv_home(site_ids)` → Stores dashboard IN01 `pages/inventory/InvHome.jsx` (replaces InvDashboard): attention chips,
+  value / issued this month / days of cover / dead stock (180 d) / count accuracy (90 d) / reserved, 6-month trend, by department,
+  Reorder now (+ proc_po_from_reorder), ABC (12 m issued value), expiring batches, latest moves. `inv_scan(code, site)` → IN22 `inv_scan`
+  (BarcodeDetector camera or typed / handheld; item → stock per store + Issue / Count (inv_adjust 'Spot count'); `BIN:store:code` → bin
+  contents). Inventory menu grouped Overview · Stock · Move · Replenish · Reports · Setup; older stores screens wrapped with `invFramed`
+  (FinShell module Inventory); QuickNav hides inside any Finance/Procurement/Stores frame.
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search

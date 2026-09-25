@@ -195,7 +195,6 @@ const HRPublicHolidays     = lazy(() => import('./pages/hr/PublicHolidays'))
 const CampFaults           = lazy(() => import('./pages/campsite/CampFaults'))
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
-const InvDashboard   = lazy(() => import('./pages/inventory/InvDashboard'))
 const InvItems       = lazy(() => import('./pages/inventory/InvItems'))
 const InvCategories  = lazy(() => import('./pages/inventory/InvCategories'))
 const InvWarehouses  = lazy(() => import('./pages/inventory/InvWarehouses'))
@@ -214,6 +213,8 @@ const InvLevels      = lazy(() => import('./pages/inventory/InvLevels'))
 const InvImport      = lazy(() => import('./pages/inventory/InvImport'))
 const InvTransfers   = lazy(() => import('./pages/inventory/InvTransfers'))
 const InvPosition    = lazy(() => import('./pages/inventory/InvPosition'))
+const InvHome        = lazy(() => import('./pages/inventory/InvHome'))
+const InvScan        = lazy(() => import('./pages/inventory/InvScan'))
 
 // ── Procurement ───────────────────────────────────────────────────────────────
 const ProcHome = lazy(() => import('./pages/procurement/ProcHome'))
@@ -619,21 +620,24 @@ function getProcurementPage(page, can, setPage) {
 
 function getInventoryPage(page, can, setPage) {
   if (!can('inventory.view')) return null
+  // Stores rewrite (#59, I4): older stores screens sit inside the finance-look frame.
+  const invFramed = (title, el) => <FinShell module="Inventory" homePage="inv_dashboard" title={title} setPage={setPage}>{el}</FinShell>
   switch (page) {
-    case 'inv_dashboard':   return <InvDashboard setPage={setPage} />
-    case 'inv_items':       return <InvItems setPage={setPage} />
-    case 'inv_categories':  return <InvCategories setPage={setPage} />
-    case 'inv_warehouses':  return <InvWarehouses setPage={setPage} />
-    case 'inv_balances':    return <InvBalances setPage={setPage} />
-    case 'inv_grn':         return <InvGrn setPage={setPage} />
-    case 'inv_issues':      return <InvIssues setPage={setPage} />
-    case 'inv_site_moves':  return <InvSiteMoves setPage={setPage} />
-    case 'inv_adjustments': return <InvAdjustments setPage={setPage} />
-    case 'inv_ledger':      return <InvLedger setPage={setPage} />
-    case 'inv_reports':     return <InvReports setPage={setPage} />
-    case 'inv_settings':    return <InvSettings setPage={setPage} />
-    case 'inv_stock_take':  return <InvStockTake setPage={setPage} />
-    case 'inv_reorder':       return can('inventory.view') ? <InvReorderExpiry setPage={setPage} /> : null
+    case 'inv_dashboard':   return <InvHome setPage={setPage} />
+    case 'inv_scan':        return <InvScan setPage={setPage} />
+    case 'inv_items':       return invFramed('Items', <InvItems setPage={setPage} />)
+    case 'inv_categories':  return invFramed('Categories & units', <InvCategories setPage={setPage} />)
+    case 'inv_warehouses':  return invFramed('Stores', <InvWarehouses setPage={setPage} />)
+    case 'inv_balances':    return invFramed('Balances', <InvBalances setPage={setPage} />)
+    case 'inv_grn':         return invFramed('Receive without a PO', <InvGrn setPage={setPage} />)
+    case 'inv_issues':      return invFramed('Issue & return', <InvIssues setPage={setPage} />)
+    case 'inv_site_moves':  return invFramed('Move between stores', <InvSiteMoves setPage={setPage} />)
+    case 'inv_adjustments': return invFramed('Adjust & scrap', <InvAdjustments setPage={setPage} />)
+    case 'inv_ledger':      return invFramed('Stock ledger', <InvLedger setPage={setPage} />)
+    case 'inv_reports':     return invFramed('Reports', <InvReports setPage={setPage} />)
+    case 'inv_settings':    return invFramed('Settings', <InvSettings setPage={setPage} />)
+    case 'inv_stock_take':  return invFramed('Counts', <InvStockTake setPage={setPage} />)
+    case 'inv_reorder':       return can('inventory.view') ? invFramed('Reorder & expiry', <InvReorderExpiry setPage={setPage} />) : null
     case 'inv_bins':          return <InvBins setPage={setPage} />
     case 'inv_levels':        return <InvLevels setPage={setPage} />
     case 'inv_import':        return <InvImport setPage={setPage} />
@@ -641,7 +645,7 @@ function getInventoryPage(page, can, setPage) {
     case 'inv_position':      return <InvPosition setPage={setPage} />
     case 'inv_requisitions': return <ProcRequests setPage={setPage} />  // one Requests screen (#52)
     case 'inv_purchase_orders': return <ProcOrders setPage={setPage} />  // one PO hub (#53)
-    default:                return <InvDashboard setPage={setPage} />
+    default:                return <InvHome setPage={setPage} />
   }
 }
 

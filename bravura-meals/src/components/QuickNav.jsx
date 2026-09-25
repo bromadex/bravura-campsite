@@ -1,7 +1,9 @@
+import { useFinEmbedded } from './finEmbed'
 import { Icon } from './ui'
 
 export default function QuickNav({ pills, setPage, current }) {
-  if (!setPage || !pills?.length) return null
+  const embedded = useFinEmbedded()   // inside a Finance / Procurement / Stores frame the side menu is enough
+  if (embedded || !setPage || !pills?.length) return null
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px' }}>
       {pills.map(p => {

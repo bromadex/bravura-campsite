@@ -98,7 +98,6 @@ const UserPreferences      = lazy(() => import('./pages/admin/UserPreferences'))
 const FleetDashboard      = lazy(() => import('./pages/fleet/FleetDashboard'))
 const FleetDispatch       = lazy(() => import('./pages/fleet/FleetDispatch'))
 const FleetTyres          = lazy(() => import('./pages/fleet/FleetTyres'))
-const FleetContractors    = lazy(() => import('./pages/fleet/FleetContractors'))
 const FleetAssets         = lazy(() => import('./pages/fleet/FleetAssets'))
 const FleetVehicles       = lazy(() => import('./pages/fleet/FleetVehicles'))
 const FleetHeavyEquipment = lazy(() => import('./pages/fleet/FleetHeavyEquipment'))
@@ -566,7 +565,9 @@ function getFleetPage(page, setPage) {
     case 'fleet_drivers':     return <FleetDrivers setPage={setPage} />
     case 'fleet_accidents':   return <FleetAccidents setPage={setPage} />
     case 'fleet_tyres':       return <FleetTyres setPage={setPage} />
-    case 'fleet_contractors': return <FleetContractors setPage={setPage} />
+    // Hired plant is recorded once, in Contractors (0199); Fleet shows the same records.
+    case 'fleet_contractors': return (can('contractors.view') || can('fleet.view'))
+      ? <><CLHiredVehicles setPage={setPage} /><div style={{ height: 24 }} /><CLHiredEquipment setPage={setPage} /></> : null
     case 'fleet_settings':    return <FleetSettings setPage={setPage} />
     default:                  return <FleetDashboard setPage={setPage} />
   }

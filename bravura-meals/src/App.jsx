@@ -176,6 +176,7 @@ const FIBudgets            = lazy(() => import('./pages/finance/FinanceBudgets')
 const FIBank               = lazy(() => import('./pages/finance/FinanceBank'))
 const FIReports            = lazy(() => import('./pages/finance/FinanceReports'))
 const FIMonthEnd           = lazy(() => import('./pages/finance/FinanceMonthEnd'))
+const FIAsk                = lazy(() => import('./pages/finance/AskBravura'))
 const MeHome               = lazy(() => import('./pages/me/MeHome'))
 const MyPayslips           = lazy(() => import('./pages/me/MyPayslips'))
 const MyLeave              = lazy(() => import('./pages/me/MyLeave'))
@@ -691,6 +692,7 @@ function getFinancePage(page, can, setPage) {
   switch (base) {
     case 'fi_chart_of_accounts': return <FILedger setPage={setPage} initialTab="accounts" />
     case 'fi_journal_entries':   return <FILedger setPage={setPage} initialTab="journals" />
+    case 'fi_ask':               return <FIAsk setPage={setPage} />
     case 'fi_journal_detail':    return <FinShell title="Journal entry" setPage={setPage}><FIJournalEntryDetail setPage={setPage} entryId={param} /></FinShell>
     case 'fi_bank_accounts':     return <FIBank setPage={setPage} />
     case 'fi_reconciliation':    return <FIBank setPage={setPage} />  // replaced by Bank & cash matching (0208)

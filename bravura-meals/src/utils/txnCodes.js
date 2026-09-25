@@ -239,6 +239,7 @@ export const TXN_CODES = [
   { code: 'FI26', path: '/finance/fi_ledger',          label: 'Ledger (accounts, journals, rules, cost centres)', module: 'finance' },
   { code: 'FI27', path: '/finance/fi_spending',        label: 'Claims & Petty Cash (quick spend)', module: 'finance' },
   { code: 'FI28', path: '/finance/fi_assets',          label: 'Fixed Assets (register, depreciation, counts)', module: 'finance' },
+  { code: 'FI29', path: '/finance/fi_ask', label: 'Ask Bravura (AI spending questions)', module: 'finance' },
 
   // ── Batch Plant Operations ──
   { code: 'CO01', path: '/concrete/co_dashboard',       label: 'Concrete Dashboard',   module: 'concrete' },

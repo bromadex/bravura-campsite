@@ -288,6 +288,7 @@ export function financeNav(role, can) {
   // Finance rewrite (issue #49): one place per job — hubs with tabs instead of 20 separate pages.
   return [
     { id: 'fi_dashboard',     label: 'Finance Home',        section: 'Overview',  icon: 'dashboard' },
+    { id: 'fi_ask',           label: 'Ask Bravura',         section: 'Overview',  icon: 'auto_awesome' },
     { id: 'fi_pay_suppliers', label: 'Pay Suppliers',       section: 'Money out', icon: 'payments' },
     { id: 'fi_spending',      label: 'Claims & Petty Cash', section: 'Money out', icon: 'savings' },
     { id: 'fi_bank',          label: 'Bank & Cash',         section: 'Money out', icon: 'account_balance' },

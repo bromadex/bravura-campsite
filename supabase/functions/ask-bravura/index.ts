@@ -39,6 +39,30 @@ async function pickModel(): Promise<string> {
   return chosenModel
 }
 
+// Free-tier Groq has small per-model token limits, so each call can fall back to another model
+// (each model has its own limit). Tries the list in order on rate limits / overload / bad params.
+async function groqChat(models: string[], base: Record<string, unknown>): Promise<{ ok: boolean; data: any; model: string; error?: string }> {
+  let last = ''
+  for (const m of [...new Set(models.filter(Boolean))]) {
+    const payload: Record<string, unknown> = { ...base, model: m }
+    if (/qwen3/i.test(m)) payload.reasoning_format = 'hidden'
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const r = await fetch(`${GROQ}/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+      const d = await r.json().catch(() => ({}))
+      if (r.ok) return { ok: true, data: d, model: m }
+      last = `${m}: ${d?.error?.message || r.status}`
+      if (attempt === 0 && payload.reasoning_format && r.status === 400) { delete payload.reasoning_format; continue }
+      break
+    }
+  }
+  return { ok: false, data: null, model: '', error: last }
+}
+async function chatModels(first: string): Promise<string[]> {
+  if (!modelList.length) await pickModel()
+  const have = (m: string) => !modelList.length || modelList.includes(m)
+  return [first, ...['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'llama-3.3-70b-versatile'].filter(have)]
+}
+
 // ── Exact arithmetic (the model must not do sums in its head) ────────────────
 // Numbers, + - * / ^ %, parentheses and sum/avg/min/max/round/abs/count. No variables, no code.
 function calc(expr: string): number {
@@ -172,8 +196,8 @@ async function readFile(f: AskFile): Promise<Record<string, unknown>> {
   for (const u of images) content.push({ type: 'image_url', image_url: { url: u } })
   // Try picture-reading models first; if none works, fall back to the words read off the picture in the browser (OCR).
   const vision = images.length ? await visionCandidates() : []
-  const textModel = await pickModel()
-  const attempts: [string, boolean][] = [...vision.map(m => [m, true] as [string, boolean]), ...(text ? [[textModel, false] as [string, boolean]] : [])]
+  const textModels = (await chatModels(await pickModel())).reverse()   // smallest first: keeps the main model's quota for the answer
+  const attempts: [string, boolean][] = [...vision.map(m => [m, true] as [string, boolean]), ...(text ? textModels.map(m => [m, false] as [string, boolean]) : [])]
   if (!attempts.length) return { file: f.name, error: 'No picture-reading model on the AI account and no text could be read from the picture' }
   let d: Record<string, any> | null = null; let lastErr = ''; let how = ''
   for (const [model, withImages] of attempts) {
@@ -185,7 +209,7 @@ async function readFile(f: AskFile): Promise<Record<string, unknown>> {
       const body = await r.json()
       if (r.ok) { d = body; how = withImages ? 'picture' : 'text read from the file'; break }
       lastErr = `${model}: ${body?.error?.message || r.status}`
-      if (/does not exist|not have access|decommission|image|vision|multimodal|content.*(array|type)/i.test(lastErr)) break
+      if (/does not exist|not have access|decommission|image|vision|multimodal|content.*(array|type)|rate limit|429/i.test(lastErr) || r.status === 429) break
     }
     if (d) break
   }
@@ -257,10 +281,10 @@ Rules:
   const pg = body.page
   const screen = pg ? `\n\nSCREEN the person is looking at — module: ${pg.module || '?'}, page: ${pg.title || pg.page || '?'}\n` +
     (pg.context ? 'Structured data shown on screen:\n' + JSON.stringify(pg.context).slice(0, 7000)
-                : (pg.screen_text ? 'Visible text on screen:\n' + String(pg.screen_text).slice(0, 5000) : '(nothing captured)')) : ''
+                : (pg.screen_text ? 'Visible text on screen:\n' + String(pg.screen_text).slice(0, files.length ? 1500 : 5000) : '(nothing captured)')) : ''
 
   const docs = files.length ? await Promise.all(files.map(f => readFile(f).catch(e => ({ file: f.name, error: (e as Error).message })))) : []
-  const attached = docs.length ? '\n\nATTACHED DOCUMENTS (read from the files the person attached just now; nothing is saved):\n' + JSON.stringify(docs).slice(0, 9000) +
+  const attached = docs.length ? '\n\nATTACHED DOCUMENTS (read from the files the person attached just now; nothing is saved):\n' + JSON.stringify(docs).slice(0, 6000) +
     '\nSay what each document is and its key figures, call match_document for supplier documents, then point out differences (prices, quantities, totals, already billed, supplier on hold). Use calculate for any sums. You cannot save or record anything yet — tell them which screen to use (e.g. Receiving, Pay Suppliers → Record & approve bills).' : ''
   const messages: Record<string, unknown>[] = [{ role: 'system', content: system + screen + attached }]
   for (const h of (body.history || []).slice(-6)) {
@@ -272,17 +296,13 @@ Rules:
   let tokens = 0
   let answer = ''
   let error: string | null = null
+  let usedModel = model
   try {
     for (let round = 0; round < 5; round++) {
-      const payload: Record<string, unknown> = { model, messages, tools: TOOLS, tool_choice: 'auto', temperature: 0.2, max_tokens: 900 }
-      if (/qwen3/i.test(model)) payload.reasoning_format = 'hidden'
-      let r = await fetch(`${GROQ}/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(payload) })
-      if (!r.ok && payload.reasoning_format) {
-        delete payload.reasoning_format
-        r = await fetch(`${GROQ}/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(payload) })
-      }
-      const d = await r.json()
-      if (!r.ok) throw new Error(d?.error?.message || `AI service error ${r.status}`)
+      const res = await groqChat(await chatModels(usedModel), { messages, tools: TOOLS, tool_choice: 'auto', temperature: 0.2, max_tokens: 900 })
+      if (!res.ok) throw new Error(res.error || 'AI service error')
+      usedModel = res.model
+      const d = res.data
       tokens += d.usage?.total_tokens || 0
       const msg = d.choices?.[0]?.message
       const calls = msg?.tool_calls || []
@@ -323,13 +343,13 @@ Rules:
     if (!answer) answer = "I couldn't finish working that out — try asking more simply."
   } catch (e) {
     error = (e as Error).message
-    answer = 'Sorry — the AI service did not answer. Please try again in a minute.'
+    answer = /rate limit|429/i.test(error) ? 'The AI service is busy (free-plan limit reached) — please try again in about a minute.' : 'Sorry — the AI service did not answer. Please try again in a minute.'
   }
 
   const toolText = messages.filter(m => m.role === 'tool').map(m => String(m.content)).join('\n')
   const links = error ? [] : await findLinks(db, answer + '\n' + toolText, body.site_id).catch(() => [])
-  const { data: logged } = await db.from('ai_questions').insert({ user_id: user.id, site_id: body.site_id || null, question, answer,
-    tools: [...used, ...docs.map(d => ({ name: 'file', args: { name: d.file, doc_type: (d as Record<string, unknown>).doc_type ?? null, error: (d as Record<string, unknown>).error ?? null } })), ...(pg ? [{ name: 'screen', args: { page: pg.page, structured: !!pg.context } }] : [])], model, tokens, error })
+  const { data: logged } = await db.from('ai_questions').insert({ user_id: user.id, site_id: body.site_id || null, question, answer, model: usedModel,
+    tools: [...used, ...docs.map(d => ({ name: 'file', args: { name: d.file, doc_type: (d as Record<string, unknown>).doc_type ?? null, error: (d as Record<string, unknown>).error ?? null } })), ...(pg ? [{ name: 'screen', args: { page: pg.page, structured: !!pg.context } }] : [])], tokens, error })
     .select('id').single()
-  return json({ answer, links, tools: used, docs, model, id: logged?.id, error })
+  return json({ answer, links, tools: used, docs, model: usedModel, id: logged?.id, error })
 })

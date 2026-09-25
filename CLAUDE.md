@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0222.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0223.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -447,6 +447,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   **B2 built (0221):** `_ai_sites_for(perm, sites)` + read-only `ai_fuel`, `ai_fleet`, `ai_stock`, `ai_people`, `ai_sheq`,
   `ai_meals`, `ai_camp`, `ai_procurement`, `ai_find` (each gated by that module's .view per site); edge function v3 maps
   tools fuel/fleet/stock/people/sheq/meals/camp/procurement/find via MODULE_RPC.
+  **B3 built (0222):** 📎 / paste / drop in AskChat — images downscaled to JPEG, PDFs rendered (pdfjs-dist, 2 pages) + text layer,
+  sent with the question and never stored; edge fn v4 reads each with a Groq vision model (llama-4-scout, env GROQ_VISION_MODEL)
+  into JSON, then `match_document` → `ai_match_document` (supplier, POs with lines/receipts/bills, duplicate bill number).
+  Also `ai_leave` (leave requests by status, incl. rejected + reason).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

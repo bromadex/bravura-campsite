@@ -52,6 +52,47 @@ const SUGGEST = {
   default: ['What does this screen show?', 'Summarise the numbers on this screen', 'How much did we spend this month?'],
 }
 
+// B3: attached files are turned into small JPEGs (and a PDF's text layer) in the browser, sent with the
+// question, read by the assistant and thrown away — nothing is uploaded to storage.
+const MAX_FILE_MB = 15
+function canvasToJpeg(canvas) { return canvas.toDataURL('image/jpeg', 0.82) }
+async function imageToJpeg(file, maxSide = 1600) {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Could not open the picture')); i.src = url })
+    const k = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight))
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k)
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+    return canvasToJpeg(c)
+  } finally { URL.revokeObjectURL(url) }
+}
+async function pdfToParts(file) {
+  const pdfjs = await import('pdfjs-dist')
+  const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
+  pdfjs.GlobalWorkerOptions.workerSrc = worker
+  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise
+  const images = []; let text = ''
+  for (let n = 1; n <= Math.min(doc.numPages, 3); n++) {
+    const page = await doc.getPage(n)
+    const tc = await page.getTextContent()
+    text += tc.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join('') + '\n'
+    if (n <= 2) {
+      const base = page.getViewport({ scale: 1 })
+      const vp = page.getViewport({ scale: Math.min(2, 1600 / Math.max(base.width, base.height)) })
+      const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height
+      await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise
+      images.push(canvasToJpeg(c))
+    }
+  }
+  return { images, text: text.trim() }
+}
+async function prepareFile(file) {
+  if (file.size > MAX_FILE_MB * 1024 * 1024) throw new Error(`${file.name} is over ${MAX_FILE_MB} MB`)
+  if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) return { name: file.name, type: 'pdf', ...(await pdfToParts(file)) }
+  if (file.type.startsWith('image/')) return { name: file.name, type: 'image', images: [await imageToJpeg(file)] }
+  throw new Error(`${file.name}: attach a photo, scan or PDF`)
+}
+
 function screenText(ref) {
   const el = ref?.current
   if (!el) return ''
@@ -68,25 +109,42 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
   const [useScreen, setUseScreen] = useState(true)
+  const [files, setFiles] = useState([])
+  const [reading, setReading] = useState(false)
+  const [fileErr, setFileErr] = useState('')
+  const fileInput = useRef(null)
   const end = useRef(null)
+
+  async function addFiles(list) {
+    const picked = [...(list || [])].slice(0, 3 - files.length)
+    if (!picked.length) return
+    setReading(true); setFileErr('')
+    const out = []
+    for (const f of picked) { try { out.push(await prepareFile(f)) } catch (e) { setFileErr(e.message) } }
+    setFiles(fs => [...fs, ...out].slice(0, 3))
+    setReading(false)
+  }
   useEffect(() => { try { sessionStorage.setItem('ask_chat', JSON.stringify(chat.slice(-20))) } catch { /* storage off */ } end.current?.scrollIntoView({ block: 'end' }) }, [chat])
 
   const ask = useCallback(async text => {
     const question = (text ?? q).trim()
-    if (!question || busy) return
-    setQ(''); setBusy(true)
+    const sending = files
+    if ((!question && !sending.length) || busy || reading) return
+    setQ(''); setFiles([]); setFileErr(''); setBusy(true)
     const history = chat.slice(-3).flatMap(m => [{ role: 'user', content: m.q }, { role: 'assistant', content: m.a || '' }])
     const page = pageInfo && useScreen ? {
       module: pageInfo.moduleId, page: pageInfo.page, title: pageInfo.title,
       context: pageInfo.pageData?.current || null,
       screen_text: pageInfo.pageData?.current ? '' : screenText(pageInfo.contentRef),
     } : null
-    setChat(c => [...c, { q: question, a: null, screen: !!page }])
-    const { data, error } = await supabase.functions.invoke('ask-bravura', { body: { question, site_id: currentSiteId, history, page } })
+    const fileNames = sending.map(f => f.name)
+    setChat(c => [...c, { q: question || (fileNames.length ? 'What is this? Match it to our records.' : ''), a: null, screen: !!page, files: fileNames }])
+    const { data, error } = await supabase.functions.invoke('ask-bravura', { body: { question, site_id: currentSiteId, history, page,
+      files: sending.map(f => ({ name: f.name, type: f.type, images: f.images, text: f.text })) } })
     const a = error ? (await error.context?.json?.().catch(() => null))?.error || 'The assistant could not be reached. Try again in a minute.' : data?.answer
     setChat(c => c.map((m, i) => i === c.length - 1 ? { ...m, a, links: data?.links || [], tools: data?.tools || [], id: data?.id } : m))
     setBusy(false)
-  }, [q, busy, chat, pageInfo, useScreen, currentSiteId])
+  }, [q, busy, reading, files, chat, pageInfo, useScreen, currentSiteId])
 
   async function rate(m, v) {
     if (!m.id) return
@@ -113,10 +171,11 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
                 <li><b>Spending</b> — how much, on what, by site, supplier, cost centre or week.</li>
                 <li><b>Suppliers</b> — orders, bills, what we owe, late deliveries.</li>
                 <li><b>Every module</b> — fuel used and tank levels, fleet services and expiring papers, stock on hand, who's on leave, safety incidents, meals served, camp beds.</li>
+                <li><b>Read a document</b> — attach a photo or PDF of an invoice, delivery note, quote or receipt (📎, paste or drop it). I read it, find the supplier and PO, and point out differences. Nothing is saved.</li>
                 <li><b>Find anything</b> — a PO, request, supplier, vehicle, employee, stock item or incident by number or name.</li>
                 <li><b>Open records</b> — POs, requests and journals I mention are clickable.</li>
               </ul>
-              <div style={{ fontSize: 12, color: FIN.faint }}>Coming soon: reading receipts and delivery notes you attach, and doing tasks you approve.</div>
+              <div style={{ fontSize: 12, color: FIN.faint }}>Coming soon: doing tasks you approve, like receiving a delivery or drafting a bill from the document.</div>
             </div>
             <div style={{ fontSize: 12, color: FIN.muted }}>Try:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -126,9 +185,11 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
         )}
         {chat.map((m, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ alignSelf: 'flex-end', maxWidth: '85%', background: FIN.maroon, color: '#fff', padding: '8px 12px', borderRadius: '14px 14px 4px 14px', fontSize: 14, whiteSpace: 'pre-wrap' }}>{m.q}</div>
+            <div style={{ alignSelf: 'flex-end', maxWidth: '85%', background: FIN.maroon, color: '#fff', padding: '8px 12px', borderRadius: '14px 14px 4px 14px', fontSize: 14, whiteSpace: 'pre-wrap' }}>
+              {(m.files || []).length > 0 && <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 2 }}>📎 {m.files.join(', ')}</div>}
+              {m.q}</div>
             <div style={{ alignSelf: 'flex-start', maxWidth: '95%', background: '#fff', border: `1px solid ${FIN.line}`, padding: '10px 12px', borderRadius: '14px 14px 14px 4px', fontSize: 14, lineHeight: 1.55 }}>
-              {m.a == null ? <span style={{ color: FIN.faint }}>{m.screen ? 'Reading this screen and your records…' : 'Looking through your records…'}</span> : <Formatted text={m.a} />}
+              {m.a == null ? <span style={{ color: FIN.faint }}>{(m.files || []).length ? 'Reading your document and checking it against your records…' : m.screen ? 'Reading this screen and your records…' : 'Looking through your records…'}</span> : <Formatted text={m.a} />}
               {(m.links || []).length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {m.links.map(l => <button key={l.path + l.label} onClick={() => { navigate(l.path); if (compact) onClose?.() }}
@@ -150,17 +211,36 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
         ))}
         <div ref={end} />
       </div>
-      <form onSubmit={e => { e.preventDefault(); ask() }} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: compact ? '10px 14px 14px' : '10px 0 0', borderTop: compact ? `1px solid ${FIN.line}` : 'none', background: compact ? FIN.ground : 'transparent' }}>
+      <form onSubmit={e => { e.preventDefault(); ask() }}
+        onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); addFiles(e.dataTransfer.files) }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: compact ? '10px 14px 14px' : '10px 0 0', borderTop: compact ? `1px solid ${FIN.line}` : 'none', background: compact ? FIN.ground : 'transparent' }}>
         {pageInfo && (
           <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: useScreen ? FIN.blue : FIN.faint, cursor: 'pointer', alignSelf: 'flex-start' }}>
             <input type="checkbox" checked={useScreen} onChange={e => setUseScreen(e.target.checked)} />
             Using this screen{pageInfo.title ? `: ${pageInfo.title}` : ''}
           </label>
         )}
+        {(files.length > 0 || reading || fileErr) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            {files.map((f, i) => (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 6px 3px 3px', borderRadius: 8, border: `1px solid ${FIN.field}`, background: '#fff', fontSize: 12.5, maxWidth: 240 }}>
+                {f.images?.[0] && <img src={f.images[0]} alt="" style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 4 }} />}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setFiles(fs => fs.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', color: FIN.muted, fontSize: 14, padding: 0 }}>×</button>
+              </span>
+            ))}
+            {reading && <span style={{ fontSize: 12, color: FIN.faint }}>Preparing file…</span>}
+            {fileErr && <span style={{ fontSize: 12, color: FIN.bad }}>{fileErr}</span>}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8 }}>
-          <input id="ask-bravura-q" aria-label="Ask Bravura" autoFocus={compact} value={q} onChange={e => setQ(e.target.value)} placeholder="Ask anything…"
+          <input ref={fileInput} type="file" accept="image/*,application/pdf" multiple hidden onChange={e => { addFiles(e.target.files); e.target.value = '' }} />
+          <button type="button" onClick={() => fileInput.current?.click()} disabled={files.length >= 3 || reading} aria-label="Attach a photo or PDF" title="Attach an invoice, delivery note, quote or receipt (photo or PDF)"
+            style={{ minHeight: 44, width: 44, flexShrink: 0, background: '#fff', border: `1px solid ${FIN.field}`, borderRadius: 10, cursor: 'pointer', fontSize: 18, color: FIN.muted }}>📎</button>
+          <input id="ask-bravura-q" aria-label="Ask Bravura" autoFocus={compact} value={q} onChange={e => setQ(e.target.value)} placeholder={files.length ? 'Ask about the file, or just press Ask' : 'Ask anything…'}
+            onPaste={e => { const imgs = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith('image/')); if (imgs.length) { e.preventDefault(); addFiles(imgs) } }}
             style={{ flex: 1, minHeight: 44, padding: '8px 12px', borderRadius: 10, border: `1px solid ${FIN.field}`, fontFamily: 'inherit', fontSize: 14, color: FIN.ink, background: '#fff' }} />
-          <button type="submit" disabled={busy || !q.trim()} style={{ minHeight: 44, padding: '0 16px', background: FIN.maroon, border: 'none', borderRadius: 10, color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{busy ? '…' : 'Ask'}</button>
+          <button type="submit" disabled={busy || reading || (!q.trim() && !files.length)} style={{ minHeight: 44, padding: '0 16px', background: FIN.maroon, border: 'none', borderRadius: 10, color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{busy ? '…' : 'Ask'}</button>
         </div>
         {chat.length > 0 && <button type="button" onClick={() => setChat([])} style={{ alignSelf: 'flex-start', border: 'none', background: 'none', color: FIN.faint, fontSize: 12, cursor: 'pointer', padding: 0 }}>New conversation</button>}
       </form>

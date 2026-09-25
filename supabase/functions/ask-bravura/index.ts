@@ -1,5 +1,5 @@
 // ── ask-bravura ─────────────────────────────────────────────────────────────
-// AI assistant (issues #49, #58). A1: spending questions. B1: reads the screen the person is on
+// AI assistant (issues #49, #58). A1: spending questions. B2: read tools per module + find. B3: attached files read (not stored) + match_document. B1: reads the screen the person is on
 // (structured context from useAskContext, or the visible text), exact `calculate` tool, record links.
 // Principles: the model never sees tables — it can only call the read-only ai_* database functions,
 // and those run as the person asking (their login is forwarded), so permissions and sites still apply.
@@ -115,6 +115,13 @@ const TOOLS = [
     parameters: { type: 'object', properties: {
       supplier: { type: 'string' }, site: { type: 'string' }, date_from: { type: 'string' }, date_to: { type: 'string' },
     }, required: ['supplier', 'date_from', 'date_to'] } } },
+  { type: 'function', function: {
+    name: 'match_document',
+    description: 'Match an ATTACHED document (invoice, delivery note, quote, receipt) to our records: finds the supplier, the purchase order(s) it belongs to (with ordered/received lines, receipts and bills) and whether a bill with that number already exists. Call it for every attached supplier document.',
+    parameters: { type: 'object', properties: {
+      supplier: { type: 'string', description: 'Supplier name as printed' }, doc_number: { type: 'string', description: 'Invoice / delivery note number' },
+      po_ref: { type: 'string', description: 'Our PO number if printed on it' }, total: { type: 'number' }, site: { type: 'string' },
+    }, required: ['supplier'] } } },
   ...([
     ['fuel', 'Fuel: litres issued and delivered, top-using vehicles/machines, litres per day, tank levels now. Use for fuel consumption/usage/diesel questions. Optional search narrows to one vehicle (fleet no., reg, make).', true, true],
     ['fleet', 'Fleet: vehicles/machines by status, open work orders, services due in 14 days, licence/insurance/roadworthy expiring in 30 days, maintenance jobs and cost in the period.', true, false],
@@ -124,6 +131,7 @@ const TOOLS = [
     ['meals', 'Meals: breakfasts, lunches and suppers served in the period, per day.', true, false],
     ['camp', 'Camp accommodation: rooms, beds, occupied now, who checks out in the next 7 days.', false, false],
     ['procurement', 'Procurement status now: open requests, POs by status, POs waiting approval, late deliveries.', false, false],
+    ['leave', 'Leave requests in a period (by applied or start date) with status approved / pending / rejected / cancelled, who, dates, days and the rejection reason. Optional search = a status to filter by.', true, true],
     ['find', 'Find a record by number or name across modules (POs, requests, suppliers, vehicles, employees, stock items, incidents). Use when the person names something specific.', false, true],
   ] as [string, string, boolean, boolean][]).map(([name, description, dated, search]) => ({ type: 'function', function: { name, description,
     parameters: { type: 'object', properties: {
@@ -133,12 +141,44 @@ const TOOLS = [
     }, required: [...(dated ? ['date_from', 'date_to'] : []), ...(name === 'find' ? ['search'] : [])] } } })),
 ]
 
+// ── B3: attached files are read here, never stored ─────────────────────────
+// The browser sends images (photos, scans, PDF pages rendered to JPEG) and any text layer of a PDF.
+// A vision model turns each into structured JSON; the chat model then matches it with match_document.
+type AskFile = { name?: string; type?: string; images?: string[]; text?: string }
+async function pickVisionModel(): Promise<string> {
+  if (Deno.env.get('GROQ_VISION_MODEL')) return Deno.env.get('GROQ_VISION_MODEL')!
+  if (!modelList.length) await pickModel()
+  return modelList.find(m => /llama-4-scout/i.test(m)) || modelList.find(m => /llama-4-maverick/i.test(m))
+    || modelList.find(m => /vision/i.test(m)) || 'meta-llama/llama-4-scout-17b-16e-instruct'
+}
+const READ_PROMPT = `Read this business document (a supplier invoice, delivery note, quotation, receipt, statement or other). Return ONLY JSON:
+{"doc_type": "invoice|delivery_note|quote|receipt|statement|other", "supplier": "", "doc_number": "", "date": "YYYY-MM-DD", "po_ref": "", "currency": "",
+ "subtotal": null, "tax": null, "total": null, "lines": [{"description": "", "qty": null, "unit_price": null, "amount": null}], "notes": "anything else important, short"}
+Copy numbers exactly as printed. Use null when something is not on the document. Do not guess.`
+async function readFile(f: AskFile): Promise<Record<string, unknown>> {
+  const images = (f.images || []).filter(u => typeof u === 'string' && u.startsWith('data:image/')).slice(0, 3)
+  const text = (f.text || '').slice(0, 12000)
+  if (!images.length && !text) return { file: f.name, error: 'Nothing readable in this file' }
+  const content: unknown[] = [{ type: 'text', text: READ_PROMPT + (text ? '\n\nText layer of the document:\n' + text : '') }]
+  for (const u of images) content.push({ type: 'image_url', image_url: { url: u } })
+  const model = images.length ? await pickVisionModel() : await pickModel()
+  const payload: Record<string, unknown> = { model, messages: [{ role: 'user', content: images.length ? content : (content[0] as { text: string }).text }], temperature: 0, max_tokens: 1500, response_format: { type: 'json_object' } }
+  if (/qwen3/i.test(model)) payload.reasoning_format = 'hidden'
+  const r = await fetch(`${GROQ}/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+  const d = await r.json()
+  if (!r.ok) return { file: f.name, error: d?.error?.message || 'Could not read the file' }
+  const raw = String(d.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '')
+  try { return { file: f.name, ...JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)) } }
+  catch { return { file: f.name, text: raw.slice(0, 3000) } }
+}
+
 // B2 (0221): one read-only ai_* function per module → [rpc, takes dates, takes search]
 const MODULE_RPC: Record<string, [string, boolean, boolean]> = {
   fuel: ['ai_fuel', true, true], fleet: ['ai_fleet', true, false], stock: ['ai_stock', false, true], people: ['ai_people', true, false],
   sheq: ['ai_sheq', true, false], meals: ['ai_meals', true, false], camp: ['ai_camp', false, false], procurement: ['ai_procurement', false, false],
-  find: ['ai_find', false, true],
+  find: ['ai_find', false, true], leave: ['ai_leave', true, true],
 }
+const EXTRA_ARG: Record<string, string> = { leave: 'p_status' }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -152,13 +192,14 @@ Deno.serve(async (req) => {
   const user = userData?.user
   if (!user) return json({ error: 'Sign in first' }, 401)
 
-  let body: { question?: string; site_id?: string; history?: { role: string; content: string }[]; ping?: boolean;
+  let body: { files?: AskFile[]; question?: string; site_id?: string; history?: { role: string; content: string }[]; ping?: boolean;
     page?: { module?: string; page?: string; title?: string; context?: unknown; screen_text?: string } | null } = {}
   try { body = await req.json() } catch { /* empty */ }
   const model = await pickModel()
   if (body.ping) return json({ model, models: modelList.filter(m => /qwen|llama|gpt-oss/i.test(m)) })
 
-  const question = (body.question || '').trim().slice(0, 1000)
+  const files = (Array.isArray(body.files) ? body.files : []).slice(0, 3)
+  const question = ((body.question || '').trim() || (files.length ? 'What is this document? Match it to our records.' : '')).slice(0, 1000)
   if (!question) return json({ error: 'Ask a question' }, 400)
 
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
@@ -194,7 +235,10 @@ Rules:
     (pg.context ? 'Structured data shown on screen:\n' + JSON.stringify(pg.context).slice(0, 7000)
                 : (pg.screen_text ? 'Visible text on screen:\n' + String(pg.screen_text).slice(0, 5000) : '(nothing captured)')) : ''
 
-  const messages: Record<string, unknown>[] = [{ role: 'system', content: system + screen }]
+  const docs = files.length ? await Promise.all(files.map(f => readFile(f).catch(e => ({ file: f.name, error: (e as Error).message })))) : []
+  const attached = docs.length ? '\n\nATTACHED DOCUMENTS (read from the files the person attached just now; nothing is saved):\n' + JSON.stringify(docs).slice(0, 9000) +
+    '\nSay what each document is and its key figures, call match_document for supplier documents, then point out differences (prices, quantities, totals, already billed, supplier on hold). Use calculate for any sums. You cannot save or record anything yet — tell them which screen to use (e.g. Receiving, Pay Suppliers → Record & approve bills).' : ''
+  const messages: Record<string, unknown>[] = [{ role: 'system', content: system + screen + attached }]
   for (const h of (body.history || []).slice(-6)) {
     if ((h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string') messages.push({ role: h.role, content: h.content.slice(0, 2000) })
   }
@@ -234,11 +278,15 @@ Rules:
           result = (await db.rpc('ai_spend_on', { p_site_ids: siteIds(args.site), p_from: args.date_from, p_to: args.date_to, p_search: args.search })).data
         } else if (c.function.name === 'supplier_history') {
           result = (await db.rpc('ai_supplier_history', { p_site_ids: siteIds(args.site), p_supplier: args.supplier, p_from: args.date_from, p_to: args.date_to })).data
+        } else if (c.function.name === 'match_document') {
+          const r = await db.rpc('ai_match_document', { p_site_ids: siteIds(args.site), p_supplier: args.supplier, p_doc_number: args.doc_number || null,
+            p_po_ref: args.po_ref || null, p_total: args.total ? Number(args.total) : null })
+          result = r.error ? { error: r.error.message } : r.data
         } else if (MODULE_RPC[c.function.name]) {
           const [fn, dated, search] = MODULE_RPC[c.function.name]
           const p: Record<string, unknown> = { p_site_ids: siteIds(args.site) }
           if (dated) { p.p_from = args.date_from; p.p_to = args.date_to }
-          if (search) p.p_search = args.search ?? null
+          if (search) p[EXTRA_ARG[c.function.name] || 'p_search'] = args.search || null
           const r = await db.rpc(fn, p)
           result = r.error ? { error: r.error.message } : r.data
         } else result = { error: 'Unknown tool' }
@@ -254,7 +302,7 @@ Rules:
   const toolText = messages.filter(m => m.role === 'tool').map(m => String(m.content)).join('\n')
   const links = error ? [] : await findLinks(db, answer + '\n' + toolText, body.site_id).catch(() => [])
   const { data: logged } = await db.from('ai_questions').insert({ user_id: user.id, site_id: body.site_id || null, question, answer,
-    tools: [...used, ...(pg ? [{ name: 'screen', args: { page: pg.page, structured: !!pg.context } }] : [])], model, tokens, error })
+    tools: [...used, ...docs.map(d => ({ name: 'file', args: { name: d.file, doc_type: (d as Record<string, unknown>).doc_type ?? null, error: (d as Record<string, unknown>).error ?? null } })), ...(pg ? [{ name: 'screen', args: { page: pg.page, structured: !!pg.context } }] : [])], model, tokens, error })
     .select('id').single()
-  return json({ answer, links, tools: used, model, id: logged?.id, error })
+  return json({ answer, links, tools: used, docs, model, id: logged?.id, error })
 })

@@ -15,10 +15,12 @@ import { useChatUnreadCount } from '../components/FloatingDock'
 // Children with `coming: true` render as greyed-out "Coming Soon" tiles.
 // Top-level modules that go straight to their dashboard (no umbrella expand)
 const TOP_LEVEL_MODULES = [
-  { id: 'fuel', label: 'Fuel Management', icon: 'local_gas_station', color: MODULE_COLORS.fuel, access: moduleAccess.fuel },
+  // Order agreed Sept 2026: Finance, Procurement, Inventory, Fuel, Fleet, then everything else.
   { id: 'finance', label: 'Finance', icon: 'account_balance', color: MODULE_COLORS.finance, access: moduleAccess.finance },
   { id: 'procurement', label: 'Procurement', icon: 'storefront', color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
   { id: 'inventory', label: 'Inventory', icon: 'inventory_2', color: MODULE_COLORS.inventory, access: moduleAccess.inventory },
+  { id: 'fuel', label: 'Fuel Management', icon: 'local_gas_station', color: MODULE_COLORS.fuel, access: moduleAccess.fuel },
+  { id: 'fleet', label: 'Fleet', icon: 'local_shipping', color: MODULE_COLORS.fleet, access: moduleAccess.fleet },
   { id: 'concrete', label: 'Batch Plant', icon: 'factory', color: MODULE_COLORS.concrete, access: moduleAccess.concrete },
 ]
 
@@ -59,15 +61,6 @@ const MODULE_GROUPS = [
       { id: 'workforce',   label: 'Training & Skills',  icon: 'school',       color: '#E07B39', access: moduleAccess.workforce, deepPage: 'wf_training' },
       { id: 'workforce',   label: 'Payroll',            icon: 'payments',     color: '#E07B39', access: moduleAccess.workforce, deepPage: 'wf_payroll' },
       { id: 'workforce',   label: 'Org Chart',          icon: 'account_tree', color: '#E07B39', access: moduleAccess.workforce, deepPage: 'wf_org_chart' },
-    ],
-  },
-  {
-    id: 'assets',
-    label: 'Fleet',
-    icon: 'local_shipping',
-    color: MODULE_COLORS.fleet,
-    children: [
-      { id: 'fleet',       label: 'Fleet',         icon: 'directions_car',  color: MODULE_COLORS.fleet,       access: moduleAccess.fleet },
     ],
   },
   {

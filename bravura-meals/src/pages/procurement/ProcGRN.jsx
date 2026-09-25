@@ -62,13 +62,13 @@ export default function ProcGRN({ setPage }) {
 
   async function loadPoLines(poId) {
     if (!poId) { setPoLines([]); setLines([{ item_description: '', quantity_expected: '', quantity_received: '', unit: '', unit_price: '' }]); return }
-    const { data } = await supabase.from('po_lines').select('*').eq('po_id', poId).order('created_at')
+    const { data } = await supabase.from('po_lines').select('*, item:items(description)').eq('po_id', poId).order('created_at')
     setPoLines(data || [])
     if (data?.length) {
       setLines(data.map(pl => ({
-        po_line_id: pl.id, item_description: pl.item_description,
-        quantity_expected: pl.quantity, quantity_received: pl.quantity,
-        unit: pl.unit || '', unit_price: pl.unit_price,
+        po_line_id: pl.id, item_id: pl.item_id, item_description: pl.item?.description || '',
+        quantity_expected: pl.quantity - (pl.received_qty || 0), quantity_received: pl.quantity - (pl.received_qty || 0),
+        unit: '', unit_price: pl.unit_cost,
       })))
     }
     const po = pos.find(p => p.id === poId)
@@ -95,7 +95,7 @@ export default function ProcGRN({ setPage }) {
     }).select().single()
     if (error) { showToast(error.message, 'red'); setSaving(false); return }
     const lineInserts = validLines.map(l => ({
-      grn_id: grn.id, po_line_id: l.po_line_id || null,
+      grn_id: grn.id, po_line_id: l.po_line_id || null, item_id: l.item_id || null,
       item_description: l.item_description.trim(),
       quantity_expected: parseFloat(l.quantity_expected) || 0,
       quantity_received: parseFloat(l.quantity_received),

@@ -160,7 +160,7 @@ export default function InvPurchaseOrders({ setPage }) {
         if (lineErr) throw lineErr
         showToast(sendIt ? 'PO sent' : 'PO updated', 'green')
         if (sendIt) {
-          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'inventory_approval', title: 'Purchase Order Sent', body: `A purchase order has been sent and may need your attention.`, actionUrl: '/inventory/purchase-orders' })
+          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'inventory_approval', title: 'Purchase Order Sent', body: `A purchase order has been sent and may need your attention.`, actionUrl: '/procurement/proc_grn' })
         }
       } else {
         const poNo = await genPoNo()
@@ -183,7 +183,7 @@ export default function InvPurchaseOrders({ setPage }) {
         }
         showToast(`PO ${newPo.po_number} created`, 'green')
         if (sendIt) {
-          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'inventory_approval', title: 'Purchase Order Sent', body: `Purchase order ${newPo.po_number} has been sent.`, actionUrl: '/inventory/purchase-orders' })
+          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'inventory_approval', title: 'Purchase Order Sent', body: `Purchase order ${newPo.po_number} has been sent.`, actionUrl: '/procurement/proc_grn' })
         }
       }
       setModal(false)
@@ -205,37 +205,17 @@ export default function InvPurchaseOrders({ setPage }) {
     if (toReceive.length === 0) { showToast('Enter quantities to receive', 'red'); return }
     setReceiveSaving(true)
     try {
-      const grnRows = toReceive.map(l => ({
-        item_id: l.item_id, warehouse_id: receivePo.warehouse_id,
-        movement_type: 'grn', quantity: parseFloat(l.receive_qty),
-        unit_cost: l.unit_cost || 0, value: parseFloat(l.receive_qty) * (l.unit_cost || 0),
-        voucher_type: 'PO', voucher_no: receivePo.po_number,
-        source_module: 'inventory', source_reference_id: receivePo.id,
-        notes: `Received against ${receivePo.po_number}`, created_by: profile?.id,
-      }))
-      const { error: movErr } = await supabase.from('inventory_movements').insert(grnRows)
-      if (movErr) throw movErr
-
-      for (const l of toReceive) {
-        const newRcv = (l.received_qty || 0) + parseFloat(l.receive_qty)
-        await supabase.from('po_lines').update({ received_qty: newRcv }).eq('id', l.id)
-      }
-
-      const allLines = receivePo.lines || []
-      const fullyReceived = allLines.every(l => {
-        const rcv = toReceive.find(r => r.id === l.id)
-        const total = (l.received_qty || 0) + (rcv ? parseFloat(rcv.receive_qty) : 0)
-        return total >= l.quantity
+      // One receiving path (0197): this creates an accepted GRN in Procurement, which moves the
+      // stock, updates received quantities and the PO status, and posts to the ledger.
+      const { error: rErr } = await supabase.rpc('proc_receive_po', {
+        p_po_id: receivePo.id,
+        p_lines: toReceive.map(l => ({ po_line_id: l.id, qty: parseFloat(l.receive_qty) })),
       })
-
-      await supabase.from('purchase_orders').update({
-        status: fullyReceived ? 'received' : 'partially_received',
-        updated_at: new Date().toISOString(),
-      }).eq('id', receivePo.id)
+      if (rErr) throw rErr
 
       showToast(`Received ${toReceive.length} item(s) against ${receivePo.po_number}`, 'green')
       if (receivePo.created_by) {
-        sendNotification({ recipientId: receivePo.created_by, type: 'inventory_po_received', title: 'Goods Received', body: `${toReceive.length} item(s) received against ${receivePo.po_number}.`, actionUrl: '/inventory/purchase-orders' })
+        sendNotification({ recipientId: receivePo.created_by, type: 'inventory_po_received', title: 'Goods Received', body: `${toReceive.length} item(s) received against ${receivePo.po_number}.`, actionUrl: '/procurement/proc_grn' })
       }
       setReceiveModal(false)
       fetch()
@@ -254,7 +234,7 @@ export default function InvPurchaseOrders({ setPage }) {
     exportCsv('purchase_orders.csv', headers, rows)
   }
 
-  if (!can('inventory.view')) {
+  if (!(can('inventory.view') || can('procurement.view'))) {
     return <Card style={{ textAlign: 'center', padding: '40px' }}><Icon name="lock" size={28} style={{ color: THEME.textLow }} /><div style={{ marginTop: '10px', color: THEME.textMed, fontSize: '14px' }}>No access.</div></Card>
   }
 
@@ -266,7 +246,7 @@ export default function InvPurchaseOrders({ setPage }) {
       <PageHeader title="Purchase Orders" site={currentSite} actions={
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button icon="download" onClick={handleExport}>Export</Button>
-          {can('inventory.create') && <Button icon="add" variant="filled" onClick={openNew}>New PO</Button>}
+          {(can('inventory.create') || can('procurement.create')) && <Button icon="add" variant="filled" onClick={openNew}>New PO</Button>}
         </div>
       } />
 
@@ -324,12 +304,12 @@ export default function InvPurchaseOrders({ setPage }) {
                     <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>{o.total_amount ? `$${o.total_amount.toFixed(2)}` : '—'}</td>
                     <td style={{ padding: '8px 10px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        {(o.status === 'sent' || o.status === 'partially_received') && o.warehouse_id && can('inventory.create') && (
+                        {(o.status === 'sent' || o.status === 'partially_received') && o.warehouse_id && (can('inventory.create') || can('procurement.create')) && (
                           <button onClick={() => openReceive(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }} title="Receive goods">
                             <Icon name="move_to_inbox" size={16} style={{ color: '#16a34a' }} />
                           </button>
                         )}
-                        {o.status === 'draft' && can('inventory.edit') && (
+                        {o.status === 'draft' && (can('inventory.edit') || can('procurement.edit')) && (
                           <button onClick={() => { setEditId(o.id); setForm({ supplier_id: o.supplier_id || '', warehouse_id: o.warehouse_id || '', requisition_id: o.requisition_id || '', order_date: o.order_date || '', expected_date: o.expected_date || '', notes: o.notes || '', cost_centre_id: o.cost_centre_id || '', project_id: o.project_id || '' }); setLines(o.lines?.map(l => ({ item_id: l.item_id, quantity: l.quantity, unit_cost: l.unit_cost })) || [{ item_id: '', quantity: '', unit_cost: '' }]); setModal(true) }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
                             <Icon name="edit" size={16} style={{ color: THEME.textMed }} />

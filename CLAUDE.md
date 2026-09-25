@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0220.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0221.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -412,8 +412,9 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (embeds ProcInvoices; route proc_invoices → FI21 for finance users). HQ pays for sites: finance_setup.funded_by_site_id
   (Kamativi → Harare), `_paying_site(invoice)` (run bank account's site, else funder, else own). Paid bill of a
   funded site posts `invoice_paid_by_hq` (site Dr 2100/Cr 2500) + `hq_paid_for_site` & IMTT at HQ (Dr 2500/Cr 1110);
-  petty cash top-ups `petty_cash_topup_hq` / `hq_funded_site_cash`. HQ-side postings are logged 'skipped' until
-  Harare has books (skipped entries are not retried automatically). Tab "Head office & sites": `fin_intersite_balances`,
+  petty cash top-ups `petty_cash_topup_hq` / `hq_funded_site_cash`. Harare books set up 25 Sep 2026 (0220: 78
+  accounts, 46 rules, bank acct → 1110, MOCK opening Dr 1110 1.5M / Dr 2500 3M / Cr 3900 4.5M, live 25 Sep) — both sides
+  now post; 2500 balances mirror (Kamativi owes HQ = HQ owed). Tab "Head office & sites": `fin_intersite_balances`,
   `finance_set_funded_by`.
   **P7 built (0219, 0219b):** purchase_orders.work_order_id (copied from requests by trg_po_line_work_order;
   `proc_po_set_work_order`), FleetMaintenance work order modal lists its POs; `proc_po_from_reorder` (stores
@@ -425,7 +426,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   log `ai_questions` (rating 👍/👎).
 
 - Real opening balances for Kamativi (replace mock JV-0001 via `finance_setup_clear_mock_opening`).
-- Finance setup (FI20) for Selous, Manhizi, Harare — no CoA/rules yet, so nothing posts there.
+- Finance setup (FI20) for Selous and Manhizi — no CoA/rules yet. Harare done (mock opening).
 - Hired-vehicle usage log (daily/km) so vehicles accrue like hired equipment (`hired_plant_usage`).
 - Expected recurring bills with a missing-bill warning.
 - AI assistant: A1 built (see above). Next A2 project questions, A3 report commentary, A4 alerts, A5 receipts, A6 drafts.

@@ -320,7 +320,11 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (broadcast) and edit history (`chat_message_edits`, 0200) done.
 - Landed cost on GRNs (0201, `grn_landed_costs` + `proc_apply_landed_cost`): value-only
   `landed_cost` stock movements raise moving-average cost; ledger event `landed_cost`.
-  Governance policies can link a DocShare document (`ds_document_id`). Migrations continue at 0202.
+  Governance policies can link a DocShare document (`ds_document_id`).
+- Finance rewrite (issue #49): Phase 1 design agreed (maroon nav + buttons, blue links/charts,
+  IBM Plex, tokens in `utils/financeTheme.js`). Phase 2 Setup wizard FI20 `fi_setup` built (0202:
+  `finance_setup`, mining CoA template, rule template, opening balances, go-live — `gl_auto_post`
+  skips postings dated before go-live). Migrations continue at 0203.
 
 ## Improvement backlog (agreed with user, work top-down)
 

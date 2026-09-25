@@ -4,6 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
+import { FIN } from '../../utils/financeTheme'
 
 const color = MODULE_COLORS.finance || '#1565C0'
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -235,6 +236,11 @@ export default function FinanceDashboard({ setPage }) {
   const [bankAccounts, setBankAccounts] = useState([])
   const [statementLines, setStatementLines] = useState([])
   const [loading, setLoading] = useState(true)
+  const [setup, setSetup] = useState(null)
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase.rpc('finance_setup_status', { p_site: currentSiteId }).then(({ data }) => setSetup(data))
+  }, [currentSiteId])
 
   async function load() {
     if (!currentSiteId) return
@@ -347,6 +353,15 @@ export default function FinanceDashboard({ setPage }) {
 
   return (
     <div style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
+      {setup && !setup.go_live_date && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', background: FIN.ochreTint, border: `1px solid ${FIN.ochreLine}`, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#6B4208' }}>Finish setting up the books</div>
+          <div style={{ fontSize: 13, color: '#6B4208', flex: 1, minWidth: 220 }}>
+            {setup.accounts ? `${setup.accounts} accounts` : 'No chart of accounts yet'} · posting rules {setup.rules} of {setup.events} · opening balances {setup.opening_journal_id ? 'entered' : 'not entered'}. Ledger postings start once the books go live.
+          </div>
+          <button onClick={() => setPage('fi_setup')} style={{ minHeight: 36, padding: '0 14px', borderRadius: 8, border: 'none', background: FIN.maroon, color: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Continue setup</button>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: THEME.text }}>Finance Dashboard</h1>

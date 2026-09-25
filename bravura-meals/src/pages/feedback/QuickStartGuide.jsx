@@ -433,6 +433,7 @@ export default function QuickStartGuide() {
       {(can('finance.view') || can('finance.edit')) && (
         <Section icon="account_balance" color={MODULE_COLORS.finance} title="Finance — automatic posting">
           <Steps items={[
+            <>Start with <b>Set Up the Books</b> (<Code>FI20</Code>): six guided steps — financial year, the mining chart of accounts (tick what you use), posting rules filled in for you, opening balances, bank accounts, then <b>Go live</b> (needs finance approval). Nothing dated before the go-live date auto-posts; the opening balances cover it.</>,
             <>Set up the site's ledger accounts in the Chart of Accounts (<Code>FI01</Code>) — stock, expenses, payables and bank. A mine only records costs, so there are no sales or revenue accounts to post to.</>,
             <>In Posting Rules (<Code>FI13</Code>) pick the debit and credit account for each event: fuel delivered and issued, goods received, supplier invoices approved and paid, payroll approved and paid, and daily meals approved.</>,
             <>From then on, approving any of those on site writes a posted journal automatically. Fuel issues are valued at the latest delivery price when no cost is captured.</>,

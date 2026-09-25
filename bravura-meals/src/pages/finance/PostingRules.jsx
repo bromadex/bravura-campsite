@@ -9,7 +9,7 @@ import Denied from '../../components/Denied'
 const FI_CLR = MODULE_COLORS.finance
 
 // A mine only incurs costs: every event is an expense, stock or liability movement — no revenue.
-const EVENTS = [
+export const EVENTS = [
   { code: 'fuel_delivery',      group: 'Fuel',        label: 'Fuel delivered into site tanks',        debit: 'Fuel stock (asset)',               credit: 'Supplier payables (liability)' },
   { code: 'fuel_issue',         group: 'Fuel',        label: 'Fuel issued to vehicles & equipment',   debit: 'Fuel expense',                     credit: 'Fuel stock (asset)' },
   { code: 'grn_accepted',       group: 'Procurement', label: 'Goods received & accepted',             debit: 'Stores stock or expense',          credit: 'Goods received not invoiced' },

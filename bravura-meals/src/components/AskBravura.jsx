@@ -122,8 +122,8 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
         {chat.map((m, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ alignSelf: 'flex-end', maxWidth: '85%', background: FIN.maroon, color: '#fff', padding: '8px 12px', borderRadius: '14px 14px 4px 14px', fontSize: 14, whiteSpace: 'pre-wrap' }}>{m.q}</div>
-            <div style={{ alignSelf: 'flex-start', maxWidth: '95%', background: '#fff', border: `1px solid ${FIN.line}`, padding: '10px 12px', borderRadius: '14px 14px 14px 4px', fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
-              {m.a == null ? <span style={{ color: FIN.faint }}>{m.screen ? 'Reading this screen and your records…' : 'Looking through your records…'}</span> : m.a}
+            <div style={{ alignSelf: 'flex-start', maxWidth: '95%', background: '#fff', border: `1px solid ${FIN.line}`, padding: '10px 12px', borderRadius: '14px 14px 14px 4px', fontSize: 14, lineHeight: 1.55 }}>
+              {m.a == null ? <span style={{ color: FIN.faint }}>{m.screen ? 'Reading this screen and your records…' : 'Looking through your records…'}</span> : <Formatted text={m.a} />}
               {(m.links || []).length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {m.links.map(l => <button key={l.path + l.label} onClick={() => { navigate(l.path); if (compact) onClose?.() }}
@@ -263,6 +263,57 @@ function PanelHeader({ onClose, onDragStart, onReset }) {
         {onReset && <button onClick={onReset} aria-label="Reset size" title="Reset size" style={{ border: 'none', background: 'none', fontSize: 14, cursor: 'pointer', color: FIN.muted }}>⤢</button>}
         <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer', color: FIN.muted, lineHeight: 1 }}>×</button>
       </div>
+    </div>
+  )
+}
+
+// Answers come back in light Markdown. Show real formatting instead of the raw ** and - characters:
+// **bold**, *italic*, `code`, "- " / "• " / "1. " lists and "#" headings. Plain text only — no HTML is injected.
+function inline(text, key) {
+  const parts = []
+  const re = /(\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*\s][^*]*\*)/g
+  let last = 0, m, i = 0
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push(text.slice(last, m.index))
+    const t = m[0]
+    if (t.startsWith('**') || t.startsWith('__')) parts.push(<strong key={key + '-' + i++}>{t.slice(2, -2)}</strong>)
+    else if (t.startsWith('`')) parts.push(<code key={key + '-' + i++} style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.92em', background: FIN.lineSoft, padding: '0 4px', borderRadius: 4 }}>{t.slice(1, -1)}</code>)
+    else parts.push(<em key={key + '-' + i++}>{t.slice(1, -1)}</em>)
+    last = m.index + t.length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts
+}
+function Formatted({ text }) {
+  const blocks = []
+  let list = null
+  const flush = () => { if (list) { blocks.push(list); list = null } }
+  String(text || '').split('\n').forEach((raw, n) => {
+    const line = raw.trimEnd()
+    const bullet = /^\s*(?:[-*•])\s+(.*)$/.exec(line)
+    const numbered = /^\s*(\d+)[.)]\s+(.*)$/.exec(line)
+    const heading = /^\s*#{1,4}\s+(.*)$/.exec(line)
+    if (bullet || numbered) {
+      const ordered = !!numbered
+      if (!list || list.ordered !== ordered) { flush(); list = { ordered, items: [] } }
+      list.items.push(inline(bullet ? bullet[1] : numbered[2], 'l' + n))
+      return
+    }
+    flush()
+    if (heading) blocks.push({ h: inline(heading[1], 'h' + n) })
+    else if (line.trim() === '') blocks.push({ gap: true })
+    else blocks.push({ p: inline(line, 'p' + n) })
+  })
+  flush()
+  return (
+    <div>
+      {blocks.map((b, i) => b.items ? (
+        b.ordered
+          ? <ol key={i} style={{ margin: '4px 0', paddingLeft: 20 }}>{b.items.map((it, j) => <li key={j} style={{ margin: '2px 0' }}>{it}</li>)}</ol>
+          : <ul key={i} style={{ margin: '4px 0', paddingLeft: 18 }}>{b.items.map((it, j) => <li key={j} style={{ margin: '2px 0' }}>{it}</li>)}</ul>
+      ) : b.h ? <div key={i} style={{ fontWeight: 700, margin: '6px 0 2px' }}>{b.h}</div>
+        : b.gap ? <div key={i} style={{ height: 6 }} />
+        : <div key={i}>{b.p}</div>)}
     </div>
   )
 }

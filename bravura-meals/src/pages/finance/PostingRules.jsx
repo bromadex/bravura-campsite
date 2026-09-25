@@ -16,6 +16,7 @@ export const EVENTS = [
   { code: 'fuel_issue',         group: 'Fuel',        label: 'Fuel issued to vehicles & equipment',   debit: 'Fuel expense',                     credit: 'Fuel stock (asset)' },
   { code: 'grn_accepted',       group: 'Procurement', label: 'Goods received & accepted',             debit: 'Stores stock or expense',          credit: 'Goods received not invoiced' },
   { code: 'landed_cost',        group: 'Procurement', label: 'Landed cost (freight, duty, clearing) on a GRN', debit: 'Stores stock',              credit: 'Freight / clearing accrued (or supplier)' },
+  { code: 'invoice_accrual',    group: 'Procurement', label: 'Supplier bill for work already accrued (contract labour, hired plant, incidents)', debit: 'Other accruals', credit: 'Supplier payables' },
   { code: 'stock_issue',        group: 'Stores',      label: 'Stores issue (parts, consumables) to a department or work order', debit: 'Parts / consumables expense', credit: 'Stores stock' },
   { code: 'stock_issue_camp',   group: 'Stores',      label: 'Stores issue to camp, catering or housekeeping', debit: 'Camp utilities & supplies', credit: 'Stores stock' },
   { code: 'stock_return',       group: 'Stores',      label: 'Unused stock returned to stores',          debit: 'Stores stock',              credit: 'Parts / consumables expense' },

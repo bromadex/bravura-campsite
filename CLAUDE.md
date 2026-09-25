@@ -344,7 +344,8 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   issues/returns/count gains+losses (`trg_inv_movement_gl`; camp-type departments → 6420), approved casual
   timesheets (6510) and hired-equipment usage (6520) accrue to 2200, closed SHEQ incidents with actual_cost
   (6951). fleet_maintenance.actual_cost is deliberately NOT posted (parts via stores, workshops via bills).
-  Migrations continue at 0212.
+  0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
+  Dr 2200 / Cr 2100 instead of clearing GRNI. Migrations continue at 0213.
 
 ## Improvement backlog (agreed with user, work top-down)
 

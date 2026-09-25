@@ -31,7 +31,7 @@ export default function ProcInvoices({ setPage }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ po_id: '', grn_id: '', supplier_id: '', invoice_number: '', invoice_date: new Date().toISOString().split('T')[0], due_date: '', notes: '' })
+  const [form, setForm] = useState({ po_id: '', grn_id: '', supplier_id: '', invoice_number: '', invoice_date: new Date().toISOString().split('T')[0], due_date: '', notes: '', bill_type: 'goods' })
   const [lines, setLines] = useState([{ item_description: '', quantity: '', unit: '', unit_price: '' }])
   const [detail, setDetail] = useState(null)
 
@@ -107,6 +107,7 @@ export default function ProcInvoices({ setPage }) {
       invoice_date: form.invoice_date, due_date: form.due_date || null,
       subtotal, tax_amount: 0, total_amount: subtotal,
       status: 'draft', notes: form.notes || null, created_by: user.id,
+      bill_type: form.grn_id ? 'goods' : form.bill_type,
     }).select().single()
     if (error) { showToast(error.message, 'red'); setSaving(false); return }
     const lineInserts = validLines.map(l => ({
@@ -118,7 +119,7 @@ export default function ProcInvoices({ setPage }) {
     await supabase.from('invoice_lines').insert(lineInserts)
     showToast('Invoice created')
     setShowForm(false)
-    setForm({ po_id: '', grn_id: '', supplier_id: '', invoice_number: '', invoice_date: new Date().toISOString().split('T')[0], due_date: '', notes: '' })
+    setForm({ po_id: '', grn_id: '', supplier_id: '', invoice_number: '', invoice_date: new Date().toISOString().split('T')[0], due_date: '', notes: '', bill_type: 'goods' })
     setLines([{ item_description: '', quantity: '', unit: '', unit_price: '' }])
     setSaving(false)
     fetchAll()
@@ -243,6 +244,16 @@ export default function ProcInvoices({ setPage }) {
                 <label style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, display: 'block', marginBottom: '4px' }}>Due Date</label>
                 <input type="date" value={form.due_date} onChange={e => setForm(prev => ({ ...prev, due_date: e.target.value }))} style={inp} />
               </div>
+              {!form.grn_id && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label htmlFor="inv-bill-type" style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, display: 'block', marginBottom: '4px' }}>What is this bill for?</label>
+                  <select id="inv-bill-type" value={form.bill_type} onChange={e => setForm(prev => ({ ...prev, bill_type: e.target.value }))} style={inp}>
+                    <option value="goods">Goods or services received on a PO / GRN</option>
+                    <option value="accrued">Contract labour, hired plant or incident costs already booked from timesheets, usage logs or incidents</option>
+                  </select>
+                  {form.bill_type === 'accrued' && <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '4px' }}>Approving this bill clears Other accruals (2200) instead of adding the cost again.</div>}
+                </div>
+              )}
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, display: 'block', marginBottom: '4px' }}>Notes</label>
                 <input value={form.notes} onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="Optional" style={inp} />

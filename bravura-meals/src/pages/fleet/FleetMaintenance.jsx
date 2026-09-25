@@ -193,7 +193,7 @@ export default function FleetMaintenance({ setPage }) {
 
   function openAdd() {
     setEditId(null); setCloseMode(false)
-    setForm({ ...EMPTY_FORM, work_order_number: generateWONumber() })
+    setForm({ ...EMPTY_FORM, work_order_number: 'Assigned on save' })
     setStockParts([]); setItemSearch(''); setShowItemPicker(false); setExistingWoParts([])
     setError(''); setModalOpen(true)
     fetchItems(); fetchSiteStock()
@@ -302,12 +302,12 @@ export default function FleetMaintenance({ setPage }) {
         const { error: err } = await supabase.from('fleet_work_orders').update(payload).eq('id', editId)
         if (err) throw err
       } else {
-        const { error: err } = await supabase.from('fleet_work_orders').insert(payload)
+        const { data: created, error: err } = await supabase.from('fleet_work_orders').insert(payload).select('work_order_number').single()
         if (err) throw err
-        const assetName = assets.find(a => a.id === form.asset_id)?.description || form.work_order_number
+        const assetName = assets.find(a => a.id === form.asset_id)?.description || created.work_order_number
         pushNotificationToPermission('fleet.approve', currentSiteId, {
           type: 'maintenance_created', title: 'New Work Order',
-          message: `Work order ${form.work_order_number} created for ${assetName} (${form.priority} priority).`,
+          message: `Work order ${created.work_order_number} created for ${assetName} (${form.priority} priority).`,
           link: '/fleet/fleet_maintenance', category: 'general',
         })
       }
@@ -680,7 +680,7 @@ export default function FleetMaintenance({ setPage }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                   <div style={fieldWrap}>
                     <label style={lbl}>Work Order Number *</label>
-                    <input style={inp} value={form.work_order_number} onChange={e => set('work_order_number', e.target.value)} />
+                    <input style={{ ...inp, background: THEME.surfaceVar }} value={form.work_order_number} readOnly aria-readonly="true" />
                   </div>
                   <div style={fieldWrap}>
                     <label style={lbl}>Asset</label>

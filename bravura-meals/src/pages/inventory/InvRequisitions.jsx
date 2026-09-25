@@ -163,9 +163,9 @@ export default function InvRequisitions({ setPage }) {
           }))
         )
         if (lineErr) throw lineErr
-        showToast(`Requisition ${reqNo} created`, 'green')
+        showToast(`Requisition ${newReq.requisition_no} created`, 'green')
         if (andSubmit) {
-          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'requisition_submitted', title: 'Requisition Submitted', body: `Requisition ${reqNo} has been submitted and needs your approval.`, actionUrl: '/inventory/requisitions' })
+          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'requisition_submitted', title: 'Requisition Submitted', body: `Requisition ${newReq.requisition_no} has been submitted and needs your approval.`, actionUrl: '/inventory/requisitions' })
         }
       }
       setModal(false)

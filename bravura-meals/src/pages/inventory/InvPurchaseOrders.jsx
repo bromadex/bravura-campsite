@@ -158,9 +158,9 @@ export default function InvPurchaseOrders({ setPage }) {
         if (form.requisition_id) {
           await supabase.from('purchase_requisitions').update({ status: 'ordered' }).eq('id', form.requisition_id)
         }
-        showToast(`PO ${poNo} created`, 'green')
+        showToast(`PO ${newPo.po_number} created`, 'green')
         if (sendIt) {
-          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'inventory_approval', title: 'Purchase Order Sent', body: `Purchase order ${poNo} has been sent.`, actionUrl: '/inventory/purchase-orders' })
+          notifyApprovers({ siteId: currentSiteId, permissionCode: 'inventory.approve', type: 'inventory_approval', title: 'Purchase Order Sent', body: `Purchase order ${newPo.po_number} has been sent.`, actionUrl: '/inventory/purchase-orders' })
         }
       }
       setModal(false)

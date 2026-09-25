@@ -36,6 +36,7 @@ Supabase (PostgREST + RLS) backend, Vercel auto-deploys from `main` —
   `action` CHECK-constrained to `('View','Create','Edit','Delete','Approve')`,
   and `UNIQUE (module, action)` — **max 5 permissions per module**.
   HR uses: hr.view / hr.create / hr.edit / hr.terminate (Delete) / hr.approve.
+  Finance uses finance.view/create/edit/delete/approve (renamed from FI01–FI05 in 0205 — FIxx are T-codes, never permissions).
   Fleet uses: fleet.view/create/edit/delete/approve — NOTE: module column values are inconsistently cased ('Fleet', 'HR', 'fuel', 'hr') — always match on p.code, never on module.
 - `sites.site_type` CHECK: `('operational_site','head_office')`. Harare = head_office (HQ).
 - `fleet_status_history` and `fleet_maintenance_parts` have **no site_id** —
@@ -330,7 +331,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   Phase 3 Pay Suppliers FI21 `fi_pay_suppliers` (0204): RLS now ON for purchase_invoices,
   invoice_lines, goods_received_notes, grn_lines (`_ap_can`); supplier payment terms + bank details;
   auto due dates; three-way match (`match_status`, `match_diff`); payment runs (`ap_payment_runs`,
-  `ap_run_create/approve/mark_paid/cancel`, KAM-PAY-YYYY-NNNN). Migrations continue at 0205.
+  `ap_run_create/approve/mark_paid/cancel`, KAM-PAY-YYYY-NNNN). Migrations continue at 0206.
 
 ## Improvement backlog (agreed with user, work top-down)
 

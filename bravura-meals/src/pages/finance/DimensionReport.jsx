@@ -43,7 +43,7 @@ export default function DimensionReport() {
   const grand = groups.reduce((s, g) => s + g.total, 0)
   const max = Math.max(1, ...groups.map(g => Math.abs(g.total)))
 
-  if (!can('FI01')) return <Denied />
+  if (!can('finance.view')) return <Denied />
 
   return (
     <div style={{ maxWidth: '960px' }}>

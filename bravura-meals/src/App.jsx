@@ -764,7 +764,8 @@ function getSheqPage(page, can, setPage) {
     case 'sq_emp_profile':      return <SheqEmployeeProfile setPage={setPage} />
     case 'sq_inductions':       return <SheqInductions setPage={setPage} />
     case 'sq_legal':            return <SheqLegalRegister setPage={setPage} />
-    case 'sq_doc_control':      return <SheqDocControl setPage={setPage} />
+    // Controlled documents live in DocShare (0195) — SHEQ opens the library on its SHEQ category.
+    case 'sq_doc_control':      return <DocShareLibrary setPage={setPage} initialCategory="SHEQ" />
     case 'sq_contractor_compliance': return <SheqContractorCompliance setPage={setPage} />
     case 'sq_emergency_plans':  return <SheqEmergencyPlans setPage={setPage} />
     case 'sq_emergency_drills': return <SheqEmergencyDrills setPage={setPage} />

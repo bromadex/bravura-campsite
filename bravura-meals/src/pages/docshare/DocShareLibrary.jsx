@@ -6,7 +6,7 @@ import { THEME } from '../../utils/permissions'
 import Denied from '../../components/Denied'
 import DocumentViewer from '../../components/DocumentViewer'
 
-const CATEGORIES = ['General','Policy','SOP','Manual','Certificate','Report','Contract','Drawing','Other']
+const CATEGORIES = ['General','Policy','SOP','Manual','Certificate','Report','Contract','Drawing','SHEQ','Other']
 const ALLOWED_TYPES = [
   'application/pdf',
   'image/png','image/jpeg','image/gif','image/webp','image/svg+xml',
@@ -50,7 +50,8 @@ function fileIconColor(fileType) {
   return THEME.textLow
 }
 
-export default function DocShareLibrary({ setPage }) {
+// initialCategory: opens pre-filtered (e.g. SHEQ Doc Control shows the SHEQ category — one document store for the ERP).
+export default function DocShareLibrary({ setPage, initialCategory = null }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   if (!can('ds.view')) return <Denied />
@@ -59,7 +60,7 @@ export default function DocShareLibrary({ setPage }) {
   const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('All')
+  const [categoryFilter, setCategoryFilter] = useState(initialCategory || 'All')
   const [currentFolderId, setCurrentFolderId] = useState(null)
   const [viewMode, setViewMode] = useState('grid')
   const [sortBy, setSortBy] = useState('updated_at')
@@ -68,10 +69,10 @@ export default function DocShareLibrary({ setPage }) {
   const [showUpload, setShowUpload] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadTitle, setUploadTitle] = useState('')
-  const [uploadCategory, setUploadCategory] = useState('General')
+  const [uploadCategory, setUploadCategory] = useState(initialCategory || 'General')
   const [uploadDescription, setUploadDescription] = useState('')
   const [uploadFile, setUploadFile] = useState(null)
-  const [uploadDocMode, setUploadDocMode] = useState('general')
+  const [uploadDocMode, setUploadDocMode] = useState(initialCategory ? 'controlled' : 'general')
   const fileInputRef = useRef(null)
 
   const [showNewFolder, setShowNewFolder] = useState(false)
@@ -349,7 +350,7 @@ export default function DocShareLibrary({ setPage }) {
                           <span className="material-symbols-rounded" style={{ fontSize: 20, color: fileIconColor(d.file_type) }}>{fileIcon(d.file_type)}</span>
                           <div>
                             <div style={{ fontWeight: 500, color: THEME.text }}>{d.title}</div>
-                            <div style={{ fontSize: 11, color: THEME.textLow }}>{d.file_name}</div>
+                            <div style={{ fontSize: 11, color: THEME.textLow }}>{d.document_number ? `${d.document_number} · ` : ''}{d.file_name}</div>
                           </div>
                           {d.doc_mode === 'controlled' && (
                             <span style={{ fontSize: 10, padding: '2px 6px', background: '#E3F2FD', color: '#1565C0', borderRadius: 4, fontWeight: 600 }}>CONTROLLED</span>

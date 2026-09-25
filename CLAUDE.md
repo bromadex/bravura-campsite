@@ -340,7 +340,11 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   blocks journals dated in a closed month). Modernised (0210): FinShell (`components/FinShell.jsx`) scopes the finance palette onto old ui-based
   screens; hubs FI26 Ledger, FI27 Claims & Petty Cash (Quick spend), FI28 Fixed Assets; 11 duplicate pages
   deleted; supplier statement recs (`supplier_statement_recs`, `ap_supplier_position`); Finance Home
-  per-user layout + saved Explorer views (`finance_home_layouts`). Migrations continue at 0211.
+  per-user layout + saved Explorer views (`finance_home_layouts`). 0211 cross-module postings: stores
+  issues/returns/count gains+losses (`trg_inv_movement_gl`; camp-type departments → 6420), approved casual
+  timesheets (6510) and hired-equipment usage (6520) accrue to 2200, closed SHEQ incidents with actual_cost
+  (6951). fleet_maintenance.actual_cost is deliberately NOT posted (parts via stores, workshops via bills).
+  Migrations continue at 0212.
 
 ## Improvement backlog (agreed with user, work top-down)
 

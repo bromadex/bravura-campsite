@@ -66,6 +66,8 @@ export const TXN_CODES = [
   { code: 'FL17', path: '/fleet/fleet_reports',        label: 'Fleet Reports',          module: 'fleet' },
   { code: 'FL18', path: '/fleet/fleet_settings',       label: 'Fleet Settings',         module: 'fleet' },
   { code: 'FL19', path: '/fleet/fleet_preventive',     label: 'Preventive Maintenance & Downtime', module: 'fleet' },
+  { code: 'FL20', path: '/fleet/fleet_prestart',       label: 'Pre-start Check',        module: 'fleet' },
+  { code: 'FL21', path: '/fleet/fleet_contracts',      label: 'Fleet Contracts',        module: 'fleet' },
 
   // ── Campsite (CA) ─────────────────────────────────────────────────────────
   { code: 'CA01', path: '/campsite/camp_headcount',   label: 'Camp Headcount',          module: 'campsite' },

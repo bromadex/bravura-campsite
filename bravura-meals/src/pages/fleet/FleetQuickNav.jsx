@@ -13,6 +13,7 @@ const PILLS = [
   { id: 'fleet_compliance',  label: 'Compliance',    icon: 'verified_user',  color: '#00838F' },
   { id: 'fleet_drivers',     label: 'Drivers',       icon: 'badge',          color: '#1565C0' },
   { id: 'fleet_meter_readings', label: 'Meters',     icon: 'speed',          color: '#4527A0' },
+  { id: 'fleet_prestart',    label: 'Pre-start',     icon: 'fact_check',     color: '#00695C' },
   { id: 'fleet_accidents',   label: 'Accidents',     icon: 'car_crash',      color: '#C62828' },
   { id: 'fleet_tyres',        label: 'Tyres',         icon: 'tire_repair',    color: '#37474F' },
   { id: 'fleet_contractors', label: 'Contractors',   icon: 'handshake',      color: '#795548' },

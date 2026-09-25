@@ -31,6 +31,7 @@ export default function FleetPreventive({ setPage }) {
   const [assets, setAssets] = useState([])
   const [types, setTypes] = useState([])
   const [down, setDown] = useState(null)
+  const [byType, setByType] = useState([])
   const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 90); return d.toISOString().slice(0, 10) })
   const [to, setTo] = useState(new Date().toISOString().slice(0, 10))
   const [modal, setModal] = useState(false)
@@ -54,6 +55,7 @@ export default function FleetPreventive({ setPage }) {
     if (!currentSiteId || tab !== 'downtime') return
     setDown(null)
     supabase.rpc('fleet_downtime', { p_site_id: currentSiteId, p_from: from, p_to: to }).then(({ data, error }) => { if (error) showToast(error.message, 'red'); setDown(data || []) })
+    supabase.rpc('fleet_reliability_by_type', { p_site_id: currentSiteId, p_from: from, p_to: to }).then(({ data }) => setByType(data || []))
   }, [currentSiteId, tab, from, to])
 
   async function generate() {
@@ -220,6 +222,25 @@ export default function FleetPreventive({ setPage }) {
               </table>
             )}
           </Card>
+          {byType.length > 0 && (
+            <Card style={{ padding: 0, overflowX: 'auto', marginTop: '12px' }}>
+              <div style={{ padding: '10px 14px', fontWeight: 600, color: THEME.text }}>By machine type</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '620px' }}>
+                <thead><tr style={{ background: THEME.surfaceVar, color: THEME.textMed }}>
+                  <th style={th}>Type</th><th style={{ ...th, textAlign: 'right' }}>Machines</th><th style={{ ...th, textAlign: 'right' }}>Availability</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Hours down</th><th style={{ ...th, textAlign: 'right' }}>Breakdowns</th>
+                  <th style={{ ...th, textAlign: 'right' }}>MTTR</th><th style={{ ...th, textAlign: 'right' }}>MTBF</th></tr></thead>
+                <tbody>{byType.map(r => (
+                  <tr key={r.machine_type} style={{ borderTop: `1px solid ${THEME.outlineVar}`, color: THEME.text }}>
+                    <td style={td}>{r.machine_type}</td><td style={tdn}>{r.machines}</td>
+                    <td style={{ ...tdn, fontWeight: 700 }}>{r.availability_pct != null ? `${Number(r.availability_pct).toFixed(1)}%` : '—'}</td>
+                    <td style={tdn}>{num(r.hours_down)}</td><td style={tdn}>{r.failures}</td>
+                    <td style={tdn}>{r.mttr_hours != null ? `${num(r.mttr_hours)} h` : '—'}</td>
+                    <td style={tdn}>{r.mtbf_hours != null ? `${num(r.mtbf_hours)} h` : '—'}</td>
+                  </tr>))}</tbody>
+              </table>
+            </Card>
+          )}
           <div style={{ fontSize: '12px', color: THEME.textLow, marginTop: '8px' }}>
             Down = time in Maintenance, Grounded or Awaiting parts, from each asset's status history (recorded automatically from now on).
             MTTR = average hours down per breakdown; MTBF = average hours running between breakdowns.

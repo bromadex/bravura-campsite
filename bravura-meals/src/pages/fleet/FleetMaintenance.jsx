@@ -84,6 +84,7 @@ export default function FleetMaintenance({ setPage }) {
   const [activeTab, setActiveTab] = useState('work_orders')
   const [modalOpen, setModalOpen] = useState(false)
   const [closeMode, setCloseMode] = useState(false)
+  const [woCosts, setWoCosts] = useState(null)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
@@ -228,6 +229,8 @@ export default function FleetMaintenance({ setPage }) {
 
   function openClose(wo) {
     setEditId(wo.id); setCloseMode(true)
+    setWoCosts(null)
+    supabase.rpc('fleet_wo_costs', { p_wo_id: wo.id }).then(({ data }) => setWoCosts(data))
     setForm({
       ...EMPTY_FORM,
       work_order_number: wo.work_order_number || '',
@@ -250,7 +253,7 @@ export default function FleetMaintenance({ setPage }) {
 
   const stockPartsCost = stockParts.reduce((sum, p) => sum + (Number(p.qty) || 0) * (Number(p.unit_cost) || 0), 0)
   const labourTotal = Number(form.labour_hours_actual || 0) * Number(form.labour_rate || 0)
-  const totalCost = labourTotal + Number(form.parts_cost || 0) + Number(form.other_cost || 0) + stockPartsCost
+  const totalCost = labourTotal + Number(form.parts_cost || 0) + Number(form.other_cost || 0) + stockPartsCost + Number(woCosts?.parts || 0) + Number(woCosts?.bills || 0)
 
   const filteredItems = useMemo(() => {
     if (!itemSearch.trim()) return allItems.slice(0, 20)
@@ -304,7 +307,9 @@ export default function FleetMaintenance({ setPage }) {
         project_id: form.project_id || null,
         site_id: currentSiteId,
       }
-      if (form.status === 'completed') payload.completed_at = new Date().toISOString()
+      // Closing: the job stays open here; fleet_wo_complete (below) marks it completed after parts are issued.
+      if (closeMode) { delete payload.status }
+      else if (form.status === 'completed') payload.completed_at = new Date().toISOString()
 
       if (editId) {
         const { error: err } = await supabase.from('fleet_work_orders').update(payload).eq('id', editId)
@@ -320,48 +325,22 @@ export default function FleetMaintenance({ setPage }) {
         })
       }
 
-      // If closing, also create a maintenance record
-      if (closeMode && form.asset_id) {
-        const maintPayload = {
-          site_id: currentSiteId,
-          asset_id: form.asset_id,
-          work_order_id: editId,
-          maintenance_type: 'corrective',
-          description: form.findings || form.fault_description,
-          technician: form.assigned_technician || null,
-          estimated_cost: form.cost_est ? Number(form.cost_est) : null,
-          actual_cost: totalCost > 0 ? totalCost : null,
-          labour_hours: form.labour_hours_actual ? Number(form.labour_hours_actual) : null,
-          service_date: new Date().toISOString().slice(0, 10),
-          completion_date: new Date().toISOString().slice(0, 10),
-          notes: form.notes || null,
+      // Closing (Fleet A3): issue parts from Stores to this job, then fleet_wo_complete writes the maintenance
+      // record with Stores parts + workshop bills (POs linked to the job) + labour, closes defects and frees the machine.
+      if (closeMode) {
+        const byStore = {}
+        for (const p of stockParts.filter(sp => sp.item_id && sp.warehouse_id && Number(sp.qty) > 0)) {
+          (byStore[p.warehouse_id] ||= []).push({ item_id: p.item_id, qty: Number(p.qty), notes: form.work_order_number })
         }
-        const { data: maintData } = await supabase.from('fleet_maintenance').insert(maintPayload).select('id').single()
-
-        // Insert stock parts into fleet_maintenance_parts and create inventory movements
-        if (maintData && stockParts.length > 0) {
-          const partsRows = stockParts.map(p => ({
-            maintenance_id: maintData.id,
-            part_name: p.description,
-            part_number: p.item_code,
-            quantity: Number(p.qty) || 0,
-            unit_cost: Number(p.unit_cost) || 0,
-            total_cost: (Number(p.qty) || 0) * (Number(p.unit_cost) || 0),
-          }))
-          await supabase.from('fleet_maintenance_parts').insert(partsRows)
-
-          // Create inventory issue movements for parts with a warehouse
-          // One stores issue per store, charged to this work order. The database prices it, moves the
-          // balance (once) and posts it to Finance with the work order's cost centre.
-          const byStore = {}
-          for (const p of stockParts.filter(sp => sp.item_id && sp.warehouse_id && Number(sp.qty) > 0)) {
-            (byStore[p.warehouse_id] ||= []).push({ item_id: p.item_id, qty: Number(p.qty), notes: form.work_order_number })
-          }
-          for (const [warehouse_id, lines] of Object.entries(byStore)) {
-            const { error: issueErr } = await supabase.rpc('inv_issue', { p: { warehouse_id, work_order_id: editId, source: 'fleet', lines } })
-            if (issueErr) throw issueErr
-          }
+        for (const [warehouse_id, lines] of Object.entries(byStore)) {
+          const { error: issueErr } = await supabase.rpc('inv_issue', { p: { warehouse_id, work_order_id: editId, source: 'fleet', lines } })
+          if (issueErr) throw issueErr
         }
+        const { error: doneErr } = await supabase.rpc('fleet_wo_complete', { p_wo_id: editId, p: {
+          findings: form.findings || '', labour_hours: form.labour_hours_actual || '', labour_rate: form.labour_rate || '',
+          other_cost: Number(form.other_cost || 0) + Number(form.parts_cost || 0), notes: form.notes || '',
+        } })
+        if (doneErr) throw doneErr
       } else if (stockParts.length > 0 && !closeMode) {
         // For non-close saves (creating/editing WO), find or create a maintenance record to attach parts
         // Parts are only saved when closing a WO, so we skip here
@@ -1009,17 +988,27 @@ export default function FleetMaintenance({ setPage }) {
                     background: THEME.surfaceVar, borderRadius: '10px', padding: '14px 16px', marginTop: '4px',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
-                      <span>Labour ({form.labour_hours_actual || 0} hrs x R{form.labour_rate || 0})</span>
-                      <span>R {labourTotal.toFixed(2)}</span>
+                      <span>Labour ({form.labour_hours_actual || 0} hrs × ${form.labour_rate || 0})</span>
+                      <span>${labourTotal.toFixed(2)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
                       <span>Parts (manual)</span>
-                      <span>R {Number(form.parts_cost || 0).toFixed(2)}</span>
+                      <span>${Number(form.parts_cost || 0).toFixed(2)}</span>
                     </div>
+                    {woCosts && Number(woCosts.parts) > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
+                        <span>Already issued from Stores to this job</span><span>${Number(woCosts.parts).toFixed(2)}</span>
+                      </div>
+                    )}
+                    {woCosts && Number(woCosts.bills) > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
+                        <span>Workshop bills ({woCosts.bill_lines.map(b => b.invoice).join(', ')})</span><span>${Number(woCosts.bills).toFixed(2)}</span>
+                      </div>
+                    )}
                     {stockPartsCost > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '4px' }}>
                         <span>Parts from stock ({stockParts.length} item{stockParts.length !== 1 ? 's' : ''})</span>
-                        <span>R {stockPartsCost.toFixed(2)}</span>
+                        <span>${stockPartsCost.toFixed(2)}</span>
                       </div>
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: THEME.textMed, marginBottom: '8px' }}>
@@ -1028,7 +1017,7 @@ export default function FleetMaintenance({ setPage }) {
                     </div>
                     <div style={{ borderTop: `1px solid ${THEME.outlineVar}`, paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, color: THEME.text }}>
                       <span>Total</span>
-                      <span>R {totalCost.toFixed(2)}</span>
+                      <span>${totalCost.toFixed(2)}</span>
                     </div>
                   </div>
 

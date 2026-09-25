@@ -536,6 +536,16 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   optional GRN line via `fleet_capitalise_sources`, non-stock lines only → `asset_capitalised_grn` Dr 1610/Cr 1320; else asset_capitalised
   Dr 1610/Cr 1650), "Move to another site" (`fleet_transfer_site`, `fleet_site_transfers`; clears dept/cost centre/project/operator;
   fixed asset moves with it; events asset_transfer_out(_accum) / asset_transfer_in(_accum) through 2500).
+  **A3 built (0241):** FL20 `fleet_prestart` (FleetPrestart.jsx, offline queue in localStorage 'fleet_prestart_queue', idempotent
+  client_ref) → `fleet_prestart_template(asset)` (site/type template else default list per category) + `fleet_prestart_submit(p)`:
+  inspection kind 'prestart', meter readings source 'prestart' (flags), `fleet_defects` per fail, one open job per machine
+  (critical fail → priority critical + grounded if fleet_settings.auto_ground_on_fail), _notify_permission fleet.edit.
+  `fleet_wo_costs(wo)` (Stores issues via inventory_movements.source_reference_id, bills via purchase_orders.work_order_id);
+  `fleet_wo_complete(wo, p)` writes fleet_maintenance (+ parts from Stores), closes defects, machine back to operational.
+  `trg_fleet_wo_status_to_asset`: in_progress → maintenance, waiting_for_parts → awaiting_parts (downtime clock).
+  **A4 built (0242):** FL21 `fleet_contracts` (FleetContracts.jsx; `fleet_contract_list`, annual cost, states), pg_cron
+  `fleet-contract-reminders` 04:45 UTC → `fleet_contract_reminders()` (once per end date, `reminded_for`);
+  `fleet_reliability_by_type` shown on FL19 Downtime tab. Service due list/plans per type already existed (fleet_pm_due).
   Meters at fuel fills: optional now, REQUIRED from 1 Nov 2026 (user, 25 Sep) — setting meter_required_from.
   A6 #67 **small assets issued to people (tools, radios, laptops) is REQUIRED** (user, 25 Sep): register, issue/sign/return with
   condition, who-holds-what, employee profile + exit checklist blocks until returned, overdue returns, counts.

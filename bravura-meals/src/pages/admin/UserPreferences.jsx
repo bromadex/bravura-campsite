@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { THEME, MODULE_COLORS, moduleAccess } from '../../utils/permissions'
 import { Card, Icon, Button, SectionLabel, PageHeader, showToast } from '../../components/ui'
+import EmailReports from '../../components/EmailReports'
 import QuickNav, { ADMIN_PILLS } from '../../components/QuickNav'
 import { getPrefs, savePrefs, applyDisplayPrefs, PREF_DEFAULTS, playNotificationSound } from '../../utils/userPrefs'
 
@@ -223,6 +224,7 @@ export default function UserPreferences({ setPage }) {
           </div>
         </SectionCard>
       </div>
+      <EmailReports />
     </div>
   )
 }

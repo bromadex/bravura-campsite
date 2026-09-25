@@ -325,6 +325,13 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {/* Scheduled report emails */}
+      <Section icon="forward_to_inbox" color={MODULE_COLORS.notifications || '#F57C00'} title="Email reports">
+        <Steps items={[
+          <>My Preferences (<Code>NT03</Code>) → <b>Email reports</b>: tick a report to have it emailed to you daily, weekly or monthly at the hour you choose, for the site you're on. <b>Preview</b> shows what it will contain. Only reports you have access to are offered: the site daily summary, fleet, procurement, people and finance.</>,
+        ]} />
+      </Section>
+
       {/* Employee self-service */}
       <Section icon="person" color={MODULE_COLORS.me || '#00897B'} title="My Workspace — your own HR on your phone">
         <Steps items={[

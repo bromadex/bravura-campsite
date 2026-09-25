@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0227.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0228.
 
 ## Improvement backlog (agreed with user, work top-down)
 

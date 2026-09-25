@@ -1,57 +1,94 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 // ── invite-user ──────────────────────────────────────────────────────────────
-// Small admin helper: sends a Supabase invite email using the service role
-// key. The user receives Supabase's own magic-link invitation — they click
-// it, choose their own password, and land on the app.
-//
-// The RBAC side is handled entirely by migration 0034: a matching row in
-// pending_role_assignments causes the auth.users insert trigger to create
-// the profile + user_roles rows automatically. No password is set here.
-//
-// Invocation:
-//   curl -X POST \
-//     -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-//     -H "Content-Type: application/json" \
-//     -d '{"email":"clement@bravura.com","full_name":"Clement Mpala"}' \
-//     https://<project>.supabase.co/functions/v1/invite-user
+// Admin → Invitations. Sends Supabase's invite email and records the role to give on acceptance.
+// Only people with users.edit (at any site) may call it.
+// POST { email, full_name?, username?, role_id, site_id? }          → invite a new person
+// POST { email, resend: true }                                       → invite again (someone who never signed in):
+//   Supabase will not re-invite an email that already has a login, so a sign-in link is emailed instead.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+const reply = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const REDIRECT_TO          = Deno.env.get('INVITE_REDIRECT_TO') || 'https://bravura-campsite.vercel.app'
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-})
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const redirectTo = Deno.env.get('INVITE_REDIRECT_TO') || undefined;
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
-Deno.serve(async (req) => {
-  if (req.method !== 'POST') {
-    return new Response('Use POST', { status: 405 })
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return reply({ error: 'Missing authorization header' }, 401);
+    const { data: { user: caller }, error: authError } = await adminClient.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authError || !caller) return reply({ error: 'Unauthorized' }, 401);
+
+    // Permission: users.edit at any site, checked as the caller.
+    const asCaller = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } });
+    const { data: sites } = await adminClient.from('sites').select('id');
+    let allowed = false;
+    for (const s of sites || []) {
+      const { data } = await asCaller.rpc('_has_permission', { p_code: 'users.edit', p_site_id: s.id });
+      if (data === true) { allowed = true; break; }
+    }
+    if (!allowed) return reply({ error: 'You do not have permission to invite users' }, 403);
+
+    const body = await req.json();
+    const email = String(body.email || '').trim().toLowerCase();
+    const { full_name, username, role_id, site_id, resend } = body;
+    if (!email || !email.includes('@')) return reply({ error: 'email is required' }, 400);
+
+    const { data: existingUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+    const existingUser = existingUsers?.users?.find((u: any) => u.email?.toLowerCase() === email);
+
+    if (existingUser) {
+      if (!resend) return reply({ error: 'A user with this email already exists' }, 409);
+      if (existingUser.last_sign_in_at) return reply({ error: `${email} has already accepted and signed in` }, 409);
+      // Re-invite: try Supabase's invite first (works while the invite is unconfirmed on some setups),
+      // otherwise email a one-time sign-in link.
+      const again = await adminClient.auth.admin.inviteUserByEmail(email, { redirectTo });
+      if (again.error) {
+        const pub = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
+        const { error: otpErr } = await pub.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo } });
+        if (otpErr) return reply({ error: otpErr.message }, 500);
+      }
+      await adminClient.auth.admin.updateUserById(existingUser.id, { app_metadata: { ...(existingUser.app_metadata || {}), last_invite_resent_at: new Date().toISOString() } });
+      return reply({ success: true, user_id: existingUser.id, message: `Invitation sent again to ${email}` });
+    }
+
+    if (!role_id) return reply({ error: 'email and role_id are required' }, 400);
+
+    const { data: existingInvite } = await adminClient.from('pending_role_assignments').select('id')
+      .eq('email', email).eq('is_archived', false).maybeSingle();
+    if (existingInvite) return reply({ error: 'A pending invitation already exists for this email' }, 409);
+
+    // Record the role first so the auth.users trigger (apply_pending_role_assignment) can assign it.
+    const { error: pendingError } = await adminClient.from('pending_role_assignments').insert({
+      email, full_name: full_name || null, username: username || null, role_id, site_id: site_id || null,
+      status: 'invited', invited_at: new Date().toISOString(),
+    });
+    if (pendingError) console.error('Failed to record pending assignment:', pendingError);
+
+    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
+      redirectTo, data: { full_name: full_name || null, username: username || null },
+    });
+    if (inviteError) return reply({ error: inviteError.message }, 500);
+
+    const newUserId = inviteData.user.id;
+    await adminClient.from('profiles').upsert({ id: newUserId, full_name: full_name || null, username: username || null }, { onConflict: 'id' });
+    // Make sure the role is there even if the trigger already consumed the pending row.
+    const { data: hasRole } = await adminClient.from('user_roles').select('id').eq('user_id', newUserId).eq('role_id', role_id).limit(1);
+    if (!hasRole?.length) await adminClient.from('user_roles').insert({ user_id: newUserId, role_id, site_id: site_id || null, is_active: true });
+
+    return reply({ success: true, user_id: newUserId, message: `Invitation email sent to ${email}` });
+  } catch (err) {
+    return reply({ error: (err as Error).message }, 500);
   }
-
-  let body: { email?: string; full_name?: string } = {}
-  try { body = await req.json() } catch { /* ignore */ }
-  const email     = (body.email || '').trim().toLowerCase()
-  const full_name = (body.full_name || '').trim()
-
-  if (!email || !email.includes('@')) {
-    return new Response(JSON.stringify({ error: 'email is required' }), {
-      status: 400, headers: { 'content-type': 'application/json' },
-    })
-  }
-
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: REDIRECT_TO,
-    data: full_name ? { full_name } : undefined,
-  })
-
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400, headers: { 'content-type': 'application/json' },
-    })
-  }
-
-  return new Response(JSON.stringify({ ok: true, user_id: data.user?.id }), {
-    status: 200, headers: { 'content-type': 'application/json' },
-  })
-})
+});

@@ -144,6 +144,8 @@ export default function PendingInvitations({ setPage }) {
         </div>
       </Card>
 
+      <InviteStatus tick={tick} canEdit={canEdit} />
+
       {loading ? (
         <div style={{ padding: '48px', textAlign: 'center', color: THEME.textLow }}>
           <Icon name="progress_activity" size={24} style={{ color: MODULE_COLOR }} />
@@ -268,5 +270,74 @@ export default function PendingInvitations({ setPage }) {
         confirmColor={MODULE_COLOR}
       />
     </div>
+  )
+}
+
+// Who has accepted their invite (0227 admin_invite_status — read from the login records, since the pending
+// row is removed as soon as the invite is sent). Times shown in the viewer's local time.
+const STAMP = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+const stamp = t => t ? new Date(t).toLocaleString('en-GB', STAMP) : '—'
+const INVITE_STATE = {
+  waiting: { bg: '#FFF4E5', color: '#9A5B00', label: 'Not accepted yet' },
+  accepted: { bg: '#E8F5E9', color: '#2E7D32', label: 'Accepted' },
+  blocked: { bg: '#FFEBEE', color: '#C62828', label: 'Blocked' },
+}
+function InviteStatus({ tick, canEdit }) {
+  const [rows, setRows] = useState(null)
+  const [filter, setFilter] = useState('waiting')
+  const [busy, setBusy] = useState(null)
+  const load = () => supabase.rpc('admin_invite_status').then(({ data, error }) => setRows(error ? [] : data || []))
+  useEffect(() => { load() }, [tick])
+  async function resend(r) {
+    setBusy(r.user_id)
+    const { data, error } = await supabase.functions.invoke('invite-user', { body: { email: r.email, resend: true } })
+    setBusy(null)
+    if (error || data?.error) return showToast(data?.error || error.message, 'red')
+    showToast(`Invite sent again to ${r.email}`, 'green'); load()
+  }
+  const list = (rows || []).filter(r => filter === 'all' || r.status === filter)
+  const count = k => (rows || []).filter(r => r.status === k).length
+  return (
+    <Card style={{ marginBottom: '16px', padding: '14px 16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: THEME.text }}>Invites sent</div>
+        <div role="tablist" style={{ display: 'flex', gap: 6 }}>
+          {[['waiting', `Not accepted (${count('waiting')})`], ['accepted', `Accepted (${count('accepted')})`], ['all', 'All']].map(([k, l]) => (
+            <button key={k} role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
+              style={{ padding: '4px 12px', borderRadius: 14, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer',
+                border: filter === k ? 'none' : `1px solid ${THEME.outlineVar}`, background: filter === k ? MODULE_COLOR : THEME.surface, color: filter === k ? '#fff' : THEME.textMed }}>{l}</button>
+          ))}
+        </div>
+      </div>
+      {!rows ? <div style={{ fontSize: 12, color: THEME.textLow }}>Loading…</div> : !list.length ? (
+        <div style={{ fontSize: 12, color: THEME.textLow, padding: '6px 0' }}>{filter === 'waiting' ? 'Everyone invited has accepted.' : 'No invites.'}</div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+            <thead><tr style={{ textAlign: 'left', color: THEME.textLow }}>
+              {['Person', 'Status', 'Invite sent', 'Accepted', 'Last signed in', 'Roles', ''].map(h => <th key={h} style={{ padding: '6px 8px', fontWeight: 600, borderBottom: `1px solid ${THEME.outlineVar}`, whiteSpace: 'nowrap' }}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {list.map(r => {
+                const st = INVITE_STATE[r.status] || INVITE_STATE.waiting
+                return (
+                  <tr key={r.user_id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
+                    <td style={{ padding: '7px 8px' }}><div style={{ fontWeight: 600, color: THEME.text }}>{r.full_name || r.email}</div>{r.full_name && <div style={{ color: THEME.textLow }}>{r.email}</div>}</td>
+                    <td style={{ padding: '7px 8px' }}><span style={{ padding: '2px 9px', borderRadius: 10, fontWeight: 600, fontSize: 11.5, background: st.bg, color: st.color, whiteSpace: 'nowrap' }}>{st.label}</span></td>
+                    <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{stamp(r.invited_at)}</td>
+                    <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{stamp(r.accepted_at)}</td>
+                    <td style={{ padding: '7px 8px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{stamp(r.last_sign_in_at)}</td>
+                    <td style={{ padding: '7px 8px', color: THEME.textMed }}>{(r.roles || []).join(', ') || '—'}</td>
+                    <td style={{ padding: '7px 8px', textAlign: 'right' }}>
+                      {canEdit && r.status === 'waiting' && <Button size="sm" onClick={() => resend(r)} disabled={busy === r.user_id}>{busy === r.user_id ? 'Sending…' : 'Resend'}</Button>}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
   )
 }

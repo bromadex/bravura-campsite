@@ -115,7 +115,30 @@ const TOOLS = [
     parameters: { type: 'object', properties: {
       supplier: { type: 'string' }, site: { type: 'string' }, date_from: { type: 'string' }, date_to: { type: 'string' },
     }, required: ['supplier', 'date_from', 'date_to'] } } },
+  ...([
+    ['fuel', 'Fuel: litres issued and delivered, top-using vehicles/machines, litres per day, tank levels now. Use for fuel consumption/usage/diesel questions. Optional search narrows to one vehicle (fleet no., reg, make).', true, true],
+    ['fleet', 'Fleet: vehicles/machines by status, open work orders, services due in 14 days, licence/insurance/roadworthy expiring in 30 days, maintenance jobs and cost in the period.', true, false],
+    ['stock', 'Stores: on-hand quantity and value for items matching the search (per store), or with no search the total stock value and items at/below reorder level.', false, true],
+    ['people', 'HR: active employees and by department, who is on leave today, leave waiting approval, attendance (absent, late, hours, overtime) in the period.', true, false],
+    ['sheq', 'Safety (SHEQ): incidents in the period, open incidents, open and overdue corrective actions.', true, false],
+    ['meals', 'Meals: breakfasts, lunches and suppers served in the period, per day.', true, false],
+    ['camp', 'Camp accommodation: rooms, beds, occupied now, who checks out in the next 7 days.', false, false],
+    ['procurement', 'Procurement status now: open requests, POs by status, POs waiting approval, late deliveries.', false, false],
+    ['find', 'Find a record by number or name across modules (POs, requests, suppliers, vehicles, employees, stock items, incidents). Use when the person names something specific.', false, true],
+  ] as [string, string, boolean, boolean][]).map(([name, description, dated, search]) => ({ type: 'function', function: { name, description,
+    parameters: { type: 'object', properties: {
+      site: { type: 'string', description: 'Site name, or "all". Default: the current site.' },
+      ...(dated ? { date_from: { type: 'string', description: 'YYYY-MM-DD' }, date_to: { type: 'string', description: 'YYYY-MM-DD' } } : {}),
+      ...(search ? { search: { type: 'string' } } : {}),
+    }, required: [...(dated ? ['date_from', 'date_to'] : []), ...(name === 'find' ? ['search'] : [])] } } })),
 ]
+
+// B2 (0221): one read-only ai_* function per module → [rpc, takes dates, takes search]
+const MODULE_RPC: Record<string, [string, boolean, boolean]> = {
+  fuel: ['ai_fuel', true, true], fleet: ['ai_fleet', true, false], stock: ['ai_stock', false, true], people: ['ai_people', true, false],
+  sheq: ['ai_sheq', true, false], meals: ['ai_meals', true, false], camp: ['ai_camp', false, false], procurement: ['ai_procurement', false, false],
+  find: ['ai_find', false, true],
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -154,10 +177,11 @@ Deno.serve(async (req) => {
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const system = `You are "Ask Bravura", the assistant inside Bravura's ERP. Bravura Zimbabwe runs mining camps; it only buys (no sales, no VAT), all amounts are USD.
+  const system = `You are "Ask Bravura", the assistant inside Bravura's ERP. Bravura Zimbabwe runs mining camps; it only buys (no sales, no VAT), all amounts are USD. Modules: finance, procurement, fuel, fleet, stores, HR, SHEQ (safety), meals, camp. You have a read tool for each — pick the one that fits (fuel usage → fuel, not spend_on).
 Today is ${today} (${new Date().toLocaleDateString('en-GB', { weekday: 'long' })}). Weeks start on Monday. The person is looking at site "${current?.name || 'unknown'}". Sites: ${siteList.map(s => s.name).join(', ')}.
 Rules:
 - Only state figures that come from the tools or the SCREEN section. Never guess or invent numbers. If the tools return nothing, say so plainly and suggest why (e.g. nothing posted yet in that period).
+- If a tool returns an error saying the person has no access, tell them plainly.
 - For money questions not answered by the SCREEN section, call a tool first. Work out exact dates yourself (e.g. "this week" = Monday of this week to today; "last month" = the previous calendar month).
 - Answer in 1–4 short sentences, then up to 5 bullet points if useful. Plain words, no jargon. Format money like $1,234.56.
 - Mention the record numbers (journal JV-…, PO numbers) you relied on so the person can check.
@@ -210,6 +234,13 @@ Rules:
           result = (await db.rpc('ai_spend_on', { p_site_ids: siteIds(args.site), p_from: args.date_from, p_to: args.date_to, p_search: args.search })).data
         } else if (c.function.name === 'supplier_history') {
           result = (await db.rpc('ai_supplier_history', { p_site_ids: siteIds(args.site), p_supplier: args.supplier, p_from: args.date_from, p_to: args.date_to })).data
+        } else if (MODULE_RPC[c.function.name]) {
+          const [fn, dated, search] = MODULE_RPC[c.function.name]
+          const p: Record<string, unknown> = { p_site_ids: siteIds(args.site) }
+          if (dated) { p.p_from = args.date_from; p.p_to = args.date_to }
+          if (search) p.p_search = args.search ?? null
+          const r = await db.rpc(fn, p)
+          result = r.error ? { error: r.error.message } : r.data
         } else result = { error: 'Unknown tool' }
         messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(result ?? { error: 'No result — check the dates' }).slice(0, 8000) })
       }

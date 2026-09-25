@@ -44,8 +44,11 @@ const SUGGEST = {
   finance: ['What does this screen show?', 'How much did we spend this week?', 'Total the overdue bills on this screen', 'What did we spend the most on this month?'],
   procurement: ['What needs my attention here?', 'Which orders on this screen are late?', 'Total the orders on this screen by supplier', 'How much have we spent on tyres this year?'],
   inventory: ['What does this screen show?', 'Which items here are below reorder level?', 'Total the stock value on this screen'],
-  fleet: ['Summarise this screen', 'Which vehicles here need attention?'],
-  home: ['How much did we spend this week?', 'What needs my attention today?', 'How much have we spent on diesel this month?', 'Which purchase orders are late?'],
+  fleet: ['Summarise this screen', 'Which vehicles need a service or have papers expiring?', 'How much fuel did each vehicle use this month?'],
+  fuel: ['How much fuel did we use this month?', 'Which vehicles used the most diesel this week?', 'How much is in the tanks now?'],
+  hr: ['Who is on leave today?', 'How many people do we have per department?'],
+  sheq: ['Any incidents this month?', 'Which corrective actions are overdue?'],
+  home: ['What needs my attention today?', 'How much fuel did we use this month?', 'How much did we spend this week?', 'Which purchase orders are late?', 'Who is on leave today?'],
   default: ['What does this screen show?', 'Summarise the numbers on this screen', 'How much did we spend this month?'],
 }
 
@@ -109,9 +112,11 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
                 <li><b>Do the maths</b> — totals, differences, averages, percentages, worked out exactly.</li>
                 <li><b>Spending</b> — how much, on what, by site, supplier, cost centre or week.</li>
                 <li><b>Suppliers</b> — orders, bills, what we owe, late deliveries.</li>
+                <li><b>Every module</b> — fuel used and tank levels, fleet services and expiring papers, stock on hand, who's on leave, safety incidents, meals served, camp beds.</li>
+                <li><b>Find anything</b> — a PO, request, supplier, vehicle, employee, stock item or incident by number or name.</li>
                 <li><b>Open records</b> — POs, requests and journals I mention are clickable.</li>
               </ul>
-              <div style={{ fontSize: 12, color: FIN.faint }}>Coming soon: every module, reading receipts and delivery notes you attach, and doing tasks you approve.</div>
+              <div style={{ fontSize: 12, color: FIN.faint }}>Coming soon: reading receipts and delivery notes you attach, and doing tasks you approve.</div>
             </div>
             <div style={{ fontSize: 12, color: FIN.muted }}>Try:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

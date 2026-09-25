@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0221.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0222.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -443,7 +443,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   handle; welcome message (capabilities + examples); `useAskContext(obj)` wired on ProcHome, ProcOrders,
   ProcReceiving, ProcRequests, PaySuppliers (others use visible text). Edge function v2: `calculate` tool (safe
   parser), SCREEN section in prompt, `links` for PO/request/JV/GRN/agreement numbers; routes proc_orders:<id> and
-  proc_requisitions:<id> open the record. FI29 page reuses AskChat.
+  proc_requisitions:<id> open the record. FI29 page reuses AskChat (removed from the finance sidebar; reach it via FI29). Answers render light markdown (bold, lists).
+  **B2 built (0221):** `_ai_sites_for(perm, sites)` + read-only `ai_fuel`, `ai_fleet`, `ai_stock`, `ai_people`, `ai_sheq`,
+  `ai_meals`, `ai_camp`, `ai_procurement`, `ai_find` (each gated by that module's .view per site); edge function v3 maps
+  tools fuel/fleet/stock/people/sheq/meals/camp/procurement/find via MODULE_RPC.
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

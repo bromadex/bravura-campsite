@@ -60,7 +60,6 @@ export default function InvHome({ setPage }) {
     <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Stores" siteText={label}
       actions={<>
         <SiteScopeToggle scope={scope} setScope={setScope} multi={multi} />
-        <button style={finBtn2} onClick={() => setPage('inv_scan')}>Scan</button>
         {can('inventory.create') && <button style={finBtn} onClick={() => setPage('inv_issues')}>Issue stock</button>}
       </>}>
       {!d ? <div style={{ ...finCard, color: FIN.faint }}>Loading…</div> : <>

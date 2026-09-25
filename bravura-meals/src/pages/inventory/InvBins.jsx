@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import QRCode from 'qrcode'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -9,8 +8,7 @@ import { FIN, finCard, finBtn, finBtn2, finInput } from '../../utils/financeThem
 import { showToast } from '../../components/ui'
 import { friendlyError } from '../../utils/friendlyError'
 
-// IN17 — shelves / bins inside each store, with printable QR labels (issue #59, I2).
-// A label encodes BIN:<store code>:<bin code> so a phone scan can find the bin later (I4).
+// IN17 — shelves / bins inside each store, with printable labels (issue #59, I2). Plain text labels — no scanning.
 export default function InvBins({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
@@ -72,15 +70,14 @@ export default function InvBins({ setPage }) {
   async function printLabels() {
     const list = bins.filter(b => picked.size === 0 || picked.has(b.id))
     if (!list.length) return
-    const imgs = await Promise.all(list.map(b => QRCode.toDataURL(`BIN:${storeRow?.code || storeRow?.name}:${b.code}`, { margin: 1, width: 220 })))
     const w = window.open('', '_blank')
     if (!w) return showToast('Allow pop-ups to print labels', 'red')
     const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
     w.document.write(`<!doctype html><title>Bin labels — ${esc(storeRow?.name)}</title>
       <style>body{font-family:Arial,sans-serif;margin:12mm}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm}
       .l{border:1px solid #999;border-radius:3mm;padding:4mm;text-align:center;break-inside:avoid}
-      .l img{width:32mm;height:32mm}.c{font-size:20pt;font-weight:700;letter-spacing:1px}.s{font-size:9pt;color:#444}</style>
-      <div class="g">${list.map((b, i) => `<div class="l"><img src="${imgs[i]}"><div class="c">${esc(b.code)}</div><div class="s">${esc(b.name || '')}</div><div class="s">${esc(storeRow?.name)}</div></div>`).join('')}</div>
+      .c{font-size:20pt;font-weight:700;letter-spacing:1px}.s{font-size:9pt;color:#444}</style>
+      <div class="g">${list.map(b => `<div class="l"><div class="c">${esc(b.code)}</div><div class="s">${esc(b.name || '')}</div><div class="s">${esc(storeRow?.name)}</div></div>`).join('')}</div>
       <script>window.onload=()=>window.print()</script>`)
     w.document.close()
   }
@@ -92,7 +89,7 @@ export default function InvBins({ setPage }) {
 
   return (
     <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Bins & labels"
-      subtitle="Shelves and bins inside each store. Print QR labels to stick on them."
+      subtitle="Shelves and bins inside each store. Print labels to stick on them."
       actions={<>
         <select aria-label="Store" value={store} onChange={e => setStore(e.target.value)} style={finInput}>
           {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}

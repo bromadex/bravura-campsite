@@ -423,7 +423,6 @@ export function inventoryNav(role, can) {
   // Grouped by what people do (inventory review, #59 I4).
   return [
     { id: 'inv_dashboard',    label: 'Stores dashboard',     section: 'Overview',  icon: 'dashboard' },
-    { id: 'inv_scan',         label: 'Scan',                 section: 'Overview',  icon: 'qr_code_scanner' },
     { id: 'inv_position',     label: 'Stock position',       section: 'Stock',     icon: 'stacked_bar_chart' },
     { id: 'inv_items',        label: 'Items',                section: 'Stock',     icon: 'category' },
     { id: 'inv_balances',     label: 'Balances',             section: 'Stock',     icon: 'inventory' },
@@ -440,7 +439,7 @@ export function inventoryNav(role, can) {
     { id: 'inv_health',       label: 'Stock health',         section: 'Reports',   icon: 'monitor_heart' },
     { id: 'inv_reports',      label: 'More reports',         section: 'Reports',   icon: 'bar_chart' },
     { id: 'inv_warehouses',   label: 'Stores',               section: 'Setup',     icon: 'warehouse' },
-    { id: 'inv_bins',         label: 'Bins & labels',        section: 'Setup',     icon: 'qr_code_2' },
+    { id: 'inv_bins',         label: 'Bins & labels',        section: 'Setup',     icon: 'shelves' },
     { id: 'inv_levels',       label: 'Store levels',         section: 'Setup',     icon: 'tune' },
     { id: 'inv_categories',   label: 'Categories & units',   section: 'Setup',     icon: 'account_tree' },
     { id: 'inv_kits',         label: 'Kits',                 section: 'Setup',     icon: 'medical_services' },

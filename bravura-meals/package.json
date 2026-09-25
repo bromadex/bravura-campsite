@@ -17,7 +17,6 @@
     "dxf-viewer": "^1.0.49",
     "mammoth": "^1.12.3",
     "pdfjs-dist": "^4.10.38",
-    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.18.0",

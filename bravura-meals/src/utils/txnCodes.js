@@ -185,7 +185,7 @@ export const TXN_CODES = [
   { code: 'IN19', path: '/inventory/inv_import',       label: 'Import items',         module: 'inventory' },
   { code: 'IN20', path: '/inventory/inv_transfers',    label: 'Transfers (in transit)', module: 'inventory' },
   { code: 'IN21', path: '/inventory/inv_position',     label: 'Stock position & reservations', module: 'inventory' },
-  { code: 'IN22', path: '/inventory/inv_scan',         label: 'Scan (phone)',         module: 'inventory' },
+  { code: 'IN22', path: '/inventory/inv_scan',         label: 'Scan (not used)',         module: 'inventory' },
   { code: 'IN23', path: '/inventory/inv_health',       label: 'Stock health reports', module: 'inventory' },
   { code: 'IN24', path: '/inventory/inv_kits',         label: 'Kits',                 module: 'inventory' },
 

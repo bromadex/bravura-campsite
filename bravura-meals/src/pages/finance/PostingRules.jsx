@@ -34,6 +34,11 @@ const EVENTS = [
   { code: 'petty_cash_expense', group: 'Petty cash',  label: 'Petty cash spent',                      debit: 'Sundry site expenses',             credit: 'Petty cash (asset)' },
   { code: 'petty_cash_short',   group: 'Petty cash',  label: 'Cash count short',                      debit: 'Cash shortages (expense)',         credit: 'Petty cash (asset)' },
   { code: 'petty_cash_over',    group: 'Petty cash',  label: 'Cash count over',                       debit: 'Petty cash (asset)',               credit: 'Cash shortages (reduces the expense — not revenue)' },
+  { code: 'asset_capitalised',  group: 'Fixed assets', label: 'Asset capitalised (only if not already posted by procurement)', debit: 'Fixed assets at cost', credit: 'Asset clearing / Bank' },
+  { code: 'asset_depreciation', group: 'Fixed assets', label: 'Monthly depreciation',                debit: 'Depreciation expense',             credit: 'Accumulated depreciation' },
+  { code: 'asset_disposal_accum', group: 'Fixed assets', label: 'Disposal — clear accumulated depreciation', debit: 'Accumulated depreciation', credit: 'Fixed assets at cost' },
+  { code: 'asset_disposal_loss', group: 'Fixed assets', label: 'Disposal — remaining book value written off', debit: 'Loss on disposal of assets', credit: 'Fixed assets at cost' },
+  { code: 'asset_disposal_proceeds', group: 'Fixed assets', label: 'Disposal — scrap proceeds received', debit: 'Bank',                        credit: 'Loss on disposal of assets (reduces the loss — not revenue)' },
   { code: 'imtt',               group: 'Bank',        label: 'IMTT on payments (invoices, payroll, claims)', debit: 'Bank charges — IMTT',        credit: 'Bank' },
 ]
 const EVENT_LABEL = Object.fromEntries(EVENTS.map(e => [e.code, e.label]))

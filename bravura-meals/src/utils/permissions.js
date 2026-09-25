@@ -293,7 +293,10 @@ export function financeNav(role, can) {
     { id: 'fi_cost_report',       label: 'Cost Centre Report',section: 'Cost Tracking',  icon: 'bar_chart' },
     { id: 'fi_expense_claims',    label: 'Expense Claims',    section: 'Spending',       icon: 'receipt_long' },
     { id: 'fi_petty_cash',        label: 'Petty Cash',        section: 'Spending',       icon: 'savings' },
-  ]
+    { id: 'fi_fixed_assets',      label: 'Asset Register',    section: 'Fixed Assets',   icon: 'inventory', show: !can || can('assets.view') },
+    { id: 'fi_asset_depreciation', label: 'Depreciation',     section: 'Fixed Assets',   icon: 'trending_down', show: !can || can('assets.view') },
+    { id: 'fi_asset_verification', label: 'Asset Counts',     section: 'Fixed Assets',   icon: 'fact_check', show: !can || can('assets.view') },
+  ].filter(item => item.show !== false)
 }
 
 export function contractorsNav(role, can) {

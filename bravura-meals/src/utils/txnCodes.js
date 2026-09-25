@@ -220,6 +220,9 @@ export const TXN_CODES = [
   { code: 'FI13', path: '/finance/fi_posting_rules',  label: 'Posting Rules',           module: 'finance' },
   { code: 'FI14', path: '/finance/fi_expense_claims', label: 'Expense Claims',          module: 'finance' },
   { code: 'FI15', path: '/finance/fi_petty_cash',      label: 'Petty Cash',              module: 'finance' },
+  { code: 'FI16', path: '/finance/fi_fixed_assets',    label: 'Fixed Asset Register',    module: 'finance' },
+  { code: 'FI17', path: '/finance/fi_asset_depreciation', label: 'Asset Depreciation',   module: 'finance' },
+  { code: 'FI18', path: '/finance/fi_asset_verification', label: 'Asset Counts',         module: 'finance' },
 
   // ── Batch Plant Operations ──
   { code: 'CO01', path: '/concrete/co_dashboard',       label: 'Concrete Dashboard',   module: 'concrete' },

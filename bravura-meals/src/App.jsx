@@ -179,6 +179,9 @@ const FIDashboard          = lazy(() => import('./pages/finance/FinanceDashboard
 const FIPostingRules       = lazy(() => import('./pages/finance/PostingRules'))
 const FIExpenseClaims      = lazy(() => import('./pages/finance/ExpenseClaims'))
 const FIPettyCash          = lazy(() => import('./pages/finance/PettyCash'))
+const FIFixedAssets        = lazy(() => import('./pages/finance/FixedAssets'))
+const FIAssetDepreciation  = lazy(() => import('./pages/finance/AssetDepreciation'))
+const FIAssetVerification  = lazy(() => import('./pages/finance/AssetVerification'))
 const MeHome               = lazy(() => import('./pages/me/MeHome'))
 const MyPayslips           = lazy(() => import('./pages/me/MyPayslips'))
 const MyLeave              = lazy(() => import('./pages/me/MyLeave'))
@@ -695,6 +698,9 @@ function getFinancePage(page, can, setPage) {
     case 'fi_posting_rules':     return <FIPostingRules setPage={setPage} />
     case 'fi_expense_claims':    return <FIExpenseClaims setPage={setPage} />
     case 'fi_petty_cash':        return <FIPettyCash setPage={setPage} />
+    case 'fi_fixed_assets':      return <FIFixedAssets setPage={setPage} />
+    case 'fi_asset_depreciation': return <FIAssetDepreciation setPage={setPage} />
+    case 'fi_asset_verification': return <FIAssetVerification setPage={setPage} />
     default:                     return <FIDashboard setPage={setPage} />
   }
 }

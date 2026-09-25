@@ -357,6 +357,17 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {can('assets.view') && (
+        <Section icon="inventory" color={MODULE_COLORS.finance} title="Finance — fixed assets">
+          <Steps items={[
+            <>Asset Register (<Code>FI16</Code>): set up <b>Categories</b> with a default method and life, then <b>Import fleet</b> to bring every vehicle and machine in as a draft (numbered like KAM-FA-2026-0001). Enter each asset's cost, acquisition date and useful life, then <b>Capitalise</b> it — cost and depreciation settings lock from then on.</>,
+            <>Moving an asset, changing its custodian, category, cost centre or project is logged in its history automatically.</>,
+            <>Depreciation (<Code>FI17</Code>): pick a month and <b>Run depreciation</b>. Each asset in use is charged once (straight line or reducing balance, never below salvage value) and posted to the ledger through the "Monthly depreciation" rule in Posting Rules (<Code>FI13</Code>).</>,
+            <>Asset Counts (<Code>FI18</Code>): start a count, mark each asset found (with condition) or missing, then close it. Missing assets alert whoever can dispose of assets; <b>Dispose</b> or write off from the register — the ledger entries post automatically.</>,
+          ]} />
+        </Section>
+      )}
+
       {(can('expenses.view') || can('expenses.approve') || can('expenses.edit') || can('pettycash.view') || can('pettycash.edit')) && (
         <Section icon="savings" color={MODULE_COLORS.finance} title="Finance — expense claims and petty cash">
           <Steps items={[

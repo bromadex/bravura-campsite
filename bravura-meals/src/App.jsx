@@ -594,14 +594,14 @@ function getProcurementPage(page, can, setPage) {
   const view = can('procurement.view')
   const framed = (title, el) => view ? <ProcShell title={title} setPage={setPage}>{el}</ProcShell> : null
   if (base === 'proc_rfq_compare') return view ? <ProcOrders setPage={setPage} initialTab="quotes" /> : null  // quotes live in the PO hub (#53)
-  switch (page) {
+  switch (base) {
     case 'proc_budgets':      return view ? <FIBudgets setPage={setPage} /> : null  // one budget screen (0207)
-    case 'proc_requisitions': return (view || can('procurement.create')) ? <ProcRequests setPage={setPage} /> : null
+    case 'proc_requisitions': return (view || can('procurement.create')) ? <ProcRequests setPage={setPage} openId={param} key={param || 'list'} /> : null
     case 'proc_supplier_performance':
     case 'proc_suppliers':    return view ? <ProcSuppliers setPage={setPage} /> : null
     case 'proc_agreements':   return view ? <ProcAgreements setPage={setPage} /> : null
     case 'proc_rfqs':         return view ? <ProcOrders setPage={setPage} initialTab="quotes" /> : null
-    case 'proc_orders':       return view ? <ProcOrders setPage={setPage} /> : null
+    case 'proc_orders':       return view ? <ProcOrders setPage={setPage} openPo={param} key={param || 'list'} /> : null
     case 'proc_grn':          return (view || can('inventory.view')) ? <ProcReceiving setPage={setPage} /> : null
     case 'proc_invoices':     return can('finance.view') ? <FIPaySuppliers setPage={setPage} initialTab="bills" /> : framed('Supplier bills', <ProcInvoices setPage={setPage} />)  // bills live in Finance (#56)
     case 'proc_tracking':     return view ? <ProcOrders setPage={setPage} initialTab="tracking" /> : null

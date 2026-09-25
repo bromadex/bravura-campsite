@@ -4,6 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
+import { useAskContext } from '../../components/AskBravura'
 import { exportCsv } from '../../utils/csv'
 import { FIN, finCard, finBtn, finBtn2, finInput, money, useFinanceFonts } from '../../utils/financeTheme'
 const ProcInvoices = lazy(() => import('../procurement/ProcInvoices'))
@@ -131,6 +132,11 @@ export default function PaySuppliers({ setPage, initialTab = 'to_pay' }) {
     exportCsv(`${run.run_number}-bank-payments.csv`, ['Supplier', 'Bank', 'Branch', 'Account number', 'Amount (USD)', 'Reference'], rows)
   }
 
+  useAskContext({ screen: 'Pay Suppliers (bills owed and payment runs)', site: currentSite?.name, tab,
+    totals: { owed: kpi.owed, overdue: kpi.overdue, due_next_7_days: kpi.week, bills_not_matching: kpi.mismatch },
+    bills_on_screen: list.slice(0, 60).map(b => ({ bill: b.invoice_number, supplier: b.supplier?.supplier_name, amount: Number(b.total_amount), due: b.due_date,
+      status: b.status, match: b.match_status, po: b.po?.po_number, payment_run: b.run?.run_number })),
+    payment_runs: tab === 'runs' ? runs.slice(0, 20).map(r => ({ run: r.run_number, status: r.status, total: Number(r.total_amount), bills: r.bill_count, pay_date: r.pay_date })) : undefined })
   if (!can('finance.view') && !can('finance.edit')) return <Denied />
 
   const tabs = [

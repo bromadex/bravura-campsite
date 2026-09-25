@@ -468,6 +468,16 @@ export default function QuickStartGuide() {
           ]} />
         </Section>
       )}
+      {(can('finance.view') || can('procurement.view') || can('inventory.view')) && (
+        <Section icon="auto_awesome" color={MODULE_COLORS.finance} title="Ask Bravura — the assistant">
+          <Steps items={[
+            <>Press the <b>✦ Ask Bravura</b> button at the bottom centre of any screen (or <b>Ctrl J</b>). Ask in plain words — "what needs my attention here?", "total the overdue bills on this screen", "how much did we spend on diesel this month?".</>,
+            <>It reads the screen you're on (untick <b>Using this screen</b> if you don't want that), looks things up in your records — only sites and modules you have access to — and does sums exactly. Records it mentions (POs, requests, journals) appear as links you can open.</>,
+            <>It never changes anything. Drag the panel's header to move it and any edge or corner to resize it; double-click the header to reset. Rate answers 👍 / 👎 so we know what to improve.</>,
+          ]} />
+        </Section>
+      )}
+
       {(can('procurement.view') || can('procurement.create') || can('inventory.create')) && (
         <Section icon="assignment" color={MODULE_COLORS.procurement || MODULE_COLORS.finance} title="Procurement — requests and Procurement Home">
           <Steps items={[

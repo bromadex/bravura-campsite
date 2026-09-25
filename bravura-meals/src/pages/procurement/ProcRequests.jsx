@@ -5,6 +5,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { Modal, showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
+import { useAskContext } from '../../components/AskBravura'
 import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
 import { FIN, finCard, finBtn, finBtn2, finInput, money } from '../../utils/financeTheme'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
@@ -36,7 +37,7 @@ function Pill({ status }) {
   return <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 12, background: s.bg, color: s.fg, whiteSpace: 'nowrap' }}>{s.label}</span>
 }
 
-export default function ProcRequests({ setPage }) {
+export default function ProcRequests({ setPage, openId }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const { profile } = useAuth()
@@ -67,6 +68,8 @@ export default function ProcRequests({ setPage }) {
     setApprovals(Object.fromEntries(acts.map(([r, ok]) => [r.entity_id, { id: r.id, canAct: ok, step: r.current_step }])))
   }, [sc.siteIds])
   useEffect(() => { load() }, [load, rt])
+  // A link (e.g. from Ask Bravura) can open one request directly.
+  useEffect(() => { if (openId && rows && !open) { const r = rows.find(x => x.id === openId); if (r) { setOpen(r); setTab('all') } } }, [openId, rows]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const counts = useMemo(() => {
     const r = rows || []
@@ -91,6 +94,10 @@ export default function ProcRequests({ setPage }) {
     return r
   }, [rows, tab, q, profile?.id, sc.siteIds])
 
+  useAskContext({ screen: 'Requests', sites: sc.label, tab, search: q || undefined,
+    requests_on_screen: shown.slice(0, 60).map(r => ({ request: r.requisition_no, title: r.title, type: r.request_type, status: r.status, priority: r.priority,
+      site: r.site?.name, from_site: r.source?.name, needed_by: r.needed_by, asked_by: r.requester?.full_name, estimated_total: lineTotal(r),
+      lines: (r.lines || []).filter(l => !l.is_archived).map(l => `${Number(l.quantity)} ${l.unit || ''} ${lineName(l)}`.trim()) })) })
   if (!can('procurement.view') && !can('inventory.view') && !can('procurement.create') && !can('inventory.create')) return <Denied />
   const canCreate = can('procurement.create') || can('inventory.create')
   const TABS = [

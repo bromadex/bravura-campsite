@@ -4,6 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
+import { useAskContext } from '../../components/AskBravura'
 import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
 import { FIN, finCard, finBtn, finBtn2, finInput } from '../../utils/financeTheme'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
@@ -31,6 +32,10 @@ export default function ProcReceiving({ setPage }) {
   }, [sc.siteIds])
   useEffect(() => { load() }, [load, rt])
 
+  useAskContext({ screen: 'Receiving', sites: sc.label, tab,
+    open_orders_to_receive: (pos || []).slice(0, 50).map(p => ({ po: p.po_number, supplier: p.supplier?.supplier_name, site: p.site?.name, due: p.expected_date,
+      confirmed_by_supplier: !!p.acknowledged_at,
+      lines: (p.lines || []).filter(l => !l.is_archived).map(l => ({ what: l.item ? l.item.description : l.description, ordered: Number(l.quantity), received: Number(l.received_qty), unit: l.unit })) })) })
   if (!can('procurement.view') && !can('inventory.view')) return <Denied />
   const today = new Date().toISOString().slice(0, 10)
 

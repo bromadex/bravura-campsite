@@ -437,6 +437,13 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   read + match to supplier/PO, no save); B4 actions (receive items via proc_receive_po + file on GRN, draft bill,
   petty cash, request, PO from quote, approvals); B5 ds_document_links + DocumentViewer on any record; B6 daily
   brief + alerts + report commentary; B7 voice notes (Whisper on Groq). A1 (FI29) is live.
+  **B1 built:** `components/AskBravura.jsx` — AskProvider inside ModuleLayout's content area (contentRef for DOM-text
+  fallback), floating ✦ button bottom-centre portalled to body (Ctrl J / 'open-ask-bravura' event), desktop panel
+  movable + resizable on all edges/corners (geometry in localStorage 'ask_box'), phone bottom sheet with drag
+  handle; welcome message (capabilities + examples); `useAskContext(obj)` wired on ProcHome, ProcOrders,
+  ProcReceiving, ProcRequests, PaySuppliers (others use visible text). Edge function v2: `calculate` tool (safe
+  parser), SCREEN section in prompt, `links` for PO/request/JV/GRN/agreement numbers; routes proc_orders:<id> and
+  proc_requisitions:<id> open the record. FI29 page reuses AskChat.
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

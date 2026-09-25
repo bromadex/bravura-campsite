@@ -1,10 +1,11 @@
 // ── ask-bravura ─────────────────────────────────────────────────────────────
-// AI assistant, stage A1 (issue #49): questions about spending.
+// AI assistant (issues #49, #58). A1: spending questions. B1: reads the screen the person is on
+// (structured context from useAskContext, or the visible text), exact `calculate` tool, record links.
 // Principles: the model never sees tables — it can only call the read-only ai_* database functions,
 // and those run as the person asking (their login is forwarded), so permissions and sites still apply.
 // Every question/answer is logged in ai_questions. Provider: Groq (OpenAI-compatible), Qwen preferred.
 //
-// POST { question, site_id, history?: [{role, content}] }  → { answer, tools, model, id }
+// POST { question, site_id, history?, page?: {module, page, title, context, screen_text} } → { answer, links, tools, model, id }
 // POST { ping: true }                                       → { model, models }
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -38,7 +39,61 @@ async function pickModel(): Promise<string> {
   return chosenModel
 }
 
+// ── Exact arithmetic (the model must not do sums in its head) ────────────────
+// Numbers, + - * / ^ %, parentheses and sum/avg/min/max/round/abs/count. No variables, no code.
+function calc(expr: string): number {
+  const src = expr.replace(/,(?=\d{3}(\D|$))/g, '').replace(/\$/g, '')
+  let i = 0
+  const peek = () => src[i]
+  const ws = () => { while (/\s/.test(src[i] || '')) i++ }
+  const num = (): number => {
+    ws(); const m = /^-?\d+(\.\d+)?/.exec(src.slice(i)); if (!m) throw new Error('Expected a number at ' + i); i += m[0].length; return parseFloat(m[0])
+  }
+  const fnArgs = (): number[] => { ws(); if (peek() !== '(') throw new Error('Expected ('); i++; const a = [expr_()]; ws(); while (peek() === ',') { i++; a.push(expr_()); ws() } if (peek() !== ')') throw new Error('Expected )'); i++; return a }
+  const atom = (): number => {
+    ws()
+    const f = /^(sum|avg|average|min|max|round|abs|count)\b/i.exec(src.slice(i))
+    if (f) { i += f[0].length; const a = fnArgs(); const n = f[0].toLowerCase()
+      if (n === 'sum') return a.reduce((x, y) => x + y, 0)
+      if (n === 'avg' || n === 'average') return a.reduce((x, y) => x + y, 0) / a.length
+      if (n === 'min') return Math.min(...a)
+      if (n === 'max') return Math.max(...a)
+      if (n === 'abs') return Math.abs(a[0])
+      if (n === 'count') return a.length
+      return Math.round(a[0] * 10 ** (a[1] ?? 2)) / 10 ** (a[1] ?? 2) }
+    if (peek() === '(') { i++; const v = expr_(); ws(); if (peek() !== ')') throw new Error('Expected )'); i++; return v }
+    if (peek() === '-') { i++; return -atom() }
+    return num()
+  }
+  const pow = (): number => { let v = atom(); ws(); while (peek() === '^') { i++; v = v ** atom(); ws() } return v }
+  const term = (): number => { let v = pow(); ws(); while (peek() === '*' || peek() === '/' || peek() === '%') { const o = src[i++]; const r = pow(); v = o === '*' ? v * r : o === '/' ? v / r : v % r; ws() } return v }
+  function expr_(): number { let v = term(); ws(); while (peek() === '+' || peek() === '-') { const o = src[i++]; const r = term(); v = o === '+' ? v + r : v - r; ws() } return v }
+  const v = expr_(); ws(); if (i < src.length) throw new Error('Unexpected "' + src.slice(i, i + 10) + '"')
+  if (!isFinite(v)) throw new Error('Result is not a number (division by zero?)')
+  return Math.round(v * 1e6) / 1e6
+}
+
+// Record numbers mentioned in the answer / tool results → links that open the record.
+async function findLinks(db: ReturnType<typeof createClient>, text: string, siteId?: string) {
+  const uniq = (re: RegExp) => [...new Set(text.match(re) || [])].slice(0, 8)
+  const links: { label: string; path: string }[] = []
+  const pos = uniq(/\b[A-Z]{2,5}-PO-\d{4}-\d{3,6}(?:-\d+)?\b/g)
+  if (pos.length) { const { data } = await db.from('purchase_orders').select('id, po_number').in('po_number', pos); for (const r of data || []) links.push({ label: r.po_number, path: `/procurement/proc_orders:${r.id}` }) }
+  const reqs = uniq(/\b[A-Z]{2,5}-PR-\d{4}-\d{3,6}\b/g)
+  if (reqs.length) { const { data } = await db.from('purchase_requisitions').select('id, requisition_no').in('requisition_no', reqs); for (const r of data || []) links.push({ label: r.requisition_no, path: `/procurement/proc_requisitions:${r.id}` }) }
+  const jvs = uniq(/\bJV-\d{3,6}\b/g)
+  if (jvs.length && siteId) { const { data } = await db.from('journal_entries').select('id, entry_number').eq('site_id', siteId).in('entry_number', jvs); for (const r of data || []) links.push({ label: r.entry_number, path: `/finance/fi_journal_detail:${r.id}` }) }
+  for (const g of uniq(/\b[A-Z]{2,5}-GRN-\d{4}-\d{3,6}\b/g)) links.push({ label: g, path: '/procurement/proc_grn' })
+  for (const a of uniq(/\b[A-Z]{2,5}-AG-\d{4}-\d{3,6}\b/g)) links.push({ label: a, path: '/procurement/proc_agreements' })
+  return links
+}
+
 const TOOLS = [
+  { type: 'function', function: {
+    name: 'calculate',
+    description: 'Exact arithmetic. ALWAYS use this for any total, difference, average, percentage or per-unit figure instead of working it out yourself. Example: "sum(120.50, 80, 45.25)" or "(4380 - 3900) / 3900 * 100".',
+    parameters: { type: 'object', properties: { expression: { type: 'string' }, label: { type: 'string', description: 'What is being calculated, e.g. "total overdue"' } }, required: ['expression'] } } },
+
   { type: 'function', function: {
     name: 'spend_summary',
     description: 'Total posted costs (USD) for a date range, broken down. Use for "how much did we spend this week/month", "what did we spend most on", spend by site/cost centre/project/week.',
@@ -74,7 +129,8 @@ Deno.serve(async (req) => {
   const user = userData?.user
   if (!user) return json({ error: 'Sign in first' }, 401)
 
-  let body: { question?: string; site_id?: string; history?: { role: string; content: string }[]; ping?: boolean } = {}
+  let body: { question?: string; site_id?: string; history?: { role: string; content: string }[]; ping?: boolean;
+    page?: { module?: string; page?: string; title?: string; context?: unknown; screen_text?: string } | null } = {}
   try { body = await req.json() } catch { /* empty */ }
   const model = await pickModel()
   if (body.ping) return json({ model, models: modelList.filter(m => /qwen|llama|gpt-oss/i.test(m)) })
@@ -101,14 +157,20 @@ Deno.serve(async (req) => {
   const system = `You are "Ask Bravura", the assistant inside Bravura's ERP. Bravura Zimbabwe runs mining camps; it only buys (no sales, no VAT), all amounts are USD.
 Today is ${today} (${new Date().toLocaleDateString('en-GB', { weekday: 'long' })}). Weeks start on Monday. The person is looking at site "${current?.name || 'unknown'}". Sites: ${siteList.map(s => s.name).join(', ')}.
 Rules:
-- Only state figures that come from the tools. Never guess or invent numbers. If the tools return nothing, say so plainly and suggest why (e.g. nothing posted yet in that period).
-- Call a tool before answering any question about money. Work out exact dates yourself (e.g. "this week" = Monday of this week to today; "last month" = the previous calendar month).
+- Only state figures that come from the tools or the SCREEN section. Never guess or invent numbers. If the tools return nothing, say so plainly and suggest why (e.g. nothing posted yet in that period).
+- For money questions not answered by the SCREEN section, call a tool first. Work out exact dates yourself (e.g. "this week" = Monday of this week to today; "last month" = the previous calendar month).
 - Answer in 1–4 short sentences, then up to 5 bullet points if useful. Plain words, no jargon. Format money like $1,234.56.
 - Mention the record numbers (journal JV-…, PO numbers) you relied on so the person can check.
 - Booked cost = already in the books; ordered on POs = committed but maybe not billed yet — say which you mean.
-- If the question is not about spending, suppliers or costs, say you can only answer spending questions for now.`
+- For ANY arithmetic (totals, differences, averages, percentages), call the calculate tool and use its result. Show the working briefly.
+- When the person asks about "this screen", "here", "these", use the SCREEN section below. Only use figures that appear there or come from tools.
+- If you can't answer from the screen or the tools, say what you can answer instead. You can't change anything in the system.`
+  const pg = body.page
+  const screen = pg ? `\n\nSCREEN the person is looking at — module: ${pg.module || '?'}, page: ${pg.title || pg.page || '?'}\n` +
+    (pg.context ? 'Structured data shown on screen:\n' + JSON.stringify(pg.context).slice(0, 7000)
+                : (pg.screen_text ? 'Visible text on screen:\n' + String(pg.screen_text).slice(0, 5000) : '(nothing captured)')) : ''
 
-  const messages: Record<string, unknown>[] = [{ role: 'system', content: system }]
+  const messages: Record<string, unknown>[] = [{ role: 'system', content: system + screen }]
   for (const h of (body.history || []).slice(-6)) {
     if ((h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string') messages.push({ role: h.role, content: h.content.slice(0, 2000) })
   }
@@ -139,7 +201,10 @@ Rules:
         try { args = JSON.parse(c.function.arguments || '{}') } catch { /* bad args */ }
         used.push({ name: c.function.name, args })
         let result: unknown
-        if (c.function.name === 'spend_summary') {
+        if (c.function.name === 'calculate') {
+          try { result = { expression: args.expression, result: calc(String(args.expression || '')), label: args.label } }
+          catch (e) { result = { error: (e as Error).message, expression: args.expression } }
+        } else if (c.function.name === 'spend_summary') {
           result = (await db.rpc('ai_spend_summary', { p_site_ids: siteIds(args.site), p_from: args.date_from, p_to: args.date_to, p_group: args.group_by || 'account' })).data
         } else if (c.function.name === 'spend_on') {
           result = (await db.rpc('ai_spend_on', { p_site_ids: siteIds(args.site), p_from: args.date_from, p_to: args.date_to, p_search: args.search })).data
@@ -155,7 +220,10 @@ Rules:
     answer = 'Sorry — the AI service did not answer. Please try again in a minute.'
   }
 
-  const { data: logged } = await db.from('ai_questions').insert({ user_id: user.id, site_id: body.site_id || null, question, answer, tools: used, model, tokens, error })
+  const toolText = messages.filter(m => m.role === 'tool').map(m => String(m.content)).join('\n')
+  const links = error ? [] : await findLinks(db, answer + '\n' + toolText, body.site_id).catch(() => [])
+  const { data: logged } = await db.from('ai_questions').insert({ user_id: user.id, site_id: body.site_id || null, question, answer,
+    tools: [...used, ...(pg ? [{ name: 'screen', args: { page: pg.page, structured: !!pg.context } }] : [])], model, tokens, error })
     .select('id').single()
-  return json({ answer, tools: used, model, id: logged?.id, error })
+  return json({ answer, links, tools: used, model, id: logged?.id, error })
 })

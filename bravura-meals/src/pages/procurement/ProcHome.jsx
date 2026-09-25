@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import Denied from '../../components/Denied'
+import { useAskContext } from '../../components/AskBravura'
 import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
 import { FIN, finCard, finBtn, money } from '../../utils/financeTheme'
 
@@ -35,6 +36,8 @@ export default function ProcHome({ setPage }) {
     return () => { live = false }
   }, [sc.siteIds])
 
+  useAskContext(data ? { screen: 'Procurement Home', sites: sc.label, counts_waiting: data.tiles, ordered_this_month_vs_budget_by_site: data.spend_by_site,
+    needs_attention: data.attention } : { screen: 'Procurement Home', loading: true })
   if (!can('procurement.view') && !can('inventory.view')) return <Denied />
   const t = data?.tiles || {}
   const maxSpend = Math.max(1, ...(data?.spend_by_site || []).map(s => Math.max(Number(s.ordered), Number(s.budget))))

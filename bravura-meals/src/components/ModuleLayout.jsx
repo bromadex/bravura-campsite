@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
@@ -8,6 +8,7 @@ import { resolveNotifStyle } from '../utils/notify'
 import { supabase } from '../supabaseClient'
 import { isMuted, playNotificationSound, subscribePrefs } from '../utils/userPrefs'
 import SiteSwitcher from './SiteSwitcher'
+import { AskProvider } from './AskBravura'
 import { TXN_CODES } from '../utils/txnCodes'
 
 const TXN_PAGE_LABELS = Object.fromEntries(
@@ -105,6 +106,7 @@ function useIsMobile() {
 
 export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navItems, page, setPage, onHome, children }) {
   const { profile, signOut } = useAuth()
+  const contentRef = useRef(null)
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const role = profile?.role
@@ -417,8 +419,10 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
         />
 
         {/* Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px' : '24px', background: THEME.bg }}>
-          {children}
+        <div ref={contentRef} style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px' : '24px', paddingBottom: isMobile ? '80px' : '88px', background: THEME.bg }}>
+          <AskProvider moduleId={moduleId} page={page} title={PAGE_TITLES[page] || TXN_PAGE_LABELS[page] || page} contentRef={contentRef}>
+            {children}
+          </AskProvider>
         </div>
       </div>
 

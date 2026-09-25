@@ -4,6 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { Modal, showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
+import { useAskContext } from '../../components/AskBravura'
 import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
 import { FIN, finCard, finBtn, finBtn2, finInput, money } from '../../utils/financeTheme'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
@@ -37,7 +38,7 @@ function Received({ r }) {
   return <span style={{ fontSize: 12, color: FIN.muted }}><span style={{ color: t[1] }}>{t[0]}</span> · <span style={{ color: billed[1] }}>{billed[0]}</span></span>
 }
 
-export default function ProcOrders({ setPage, initialTab = 'orders' }) {
+export default function ProcOrders({ setPage, initialTab = 'orders', openPo }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const sc = useSiteScope()
@@ -47,7 +48,7 @@ export default function ProcOrders({ setPage, initialTab = 'orders' }) {
   const [toOrder, setToOrder] = useState(null)
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('open')
-  const [openId, setOpenId] = useState(null)
+  const [openId, setOpenId] = useState(openPo || null)  // links from Ask Bravura open a PO directly
   const [suppliers, setSuppliers] = useState([])
   useEffect(() => { setTab(initialTab) }, [initialTab])
 
@@ -84,6 +85,11 @@ export default function ProcOrders({ setPage, initialTab = 'orders' }) {
     return r
   }, [rows, filter, q])
 
+  useAskContext({ screen: 'Purchase Orders', sites: sc.label, tab, filter, search: q || undefined,
+    orders_on_screen: tab === 'orders' ? orders.slice(0, 60).map(r => ({ po: r.po_number, supplier: r.supplier, site: r.site, status: r.status, total: Number(r.total),
+      due: r.expected_date, late: r.late, received: r.receipt, billed: Number(r.billed), confirmed_by_supplier: !!r.acknowledged_at, requests: r.requests })) : undefined,
+    quotes_on_screen: tab === 'quotes' ? quotes.map(g => g.map(x => ({ po: x.po_number, supplier: x.supplier, status: x.status, total: Number(x.total) }))) : undefined,
+    request_lines_to_order: tab === 'toorder' ? (toOrder || []).slice(0, 60).map(l => ({ request: l.requisition_no, what: l.what, qty: Number(l.remaining), estimated_cost: l.estimated_cost, last_price: l.last_price, site: l.site })) : undefined })
   if (!can('procurement.view') && !can('inventory.view')) return <Denied />
   const canCreate = can('procurement.create')
   const TABS = [

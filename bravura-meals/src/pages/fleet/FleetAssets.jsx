@@ -4,6 +4,8 @@ import { StatusBadge, ModalOverlay } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import FleetQuickNav from './FleetQuickNav'
+import FleetAssetDetail from './FleetAssetDetail'
+import { useTypeSpecs } from './MachineBook'
 
 const color = MODULE_COLORS.fleet
 
@@ -30,14 +32,19 @@ const EMPTY_FORM = {
   vin: '', serial_number: '', fleet_number: '',
   year: '', make: '', model: '',
   tank_capacity_litres: '', department_id: '', status: 'operational',
+  expected_consumption_lpkm: '', expected_consumption_lph: '', purchase_date: '', purchase_cost: '', specs: {},
 }
+const num = v => (v === '' || v == null ? null : Number(v))
 
-export default function FleetAssets({ setPage }) {
+// Fleet A2 (#63): one Machines list for every type (FL02–FL05 open it with a type filter).
+export default function FleetAssets({ setPage, initialCategory = 'all' }) {
   const { can } = usePermissions()
   const { assets, assetTypes, departments, loading, addAsset, updateAsset, archiveAsset } = useFleet()
 
   const [search, setSearch] = useState('')
-  const [filterCategory, setFilterCategory] = useState('all')
+  const [filterCategory, setFilterCategory] = useState(initialCategory)
+  const [detail, setDetail] = useState(null)
+  const typeSpecs = useTypeSpecs()
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterDept, setFilterDept] = useState('all')
   const [viewMode, setViewMode] = useState('card')
@@ -93,6 +100,8 @@ export default function FleetAssets({ setPage }) {
       tank_capacity_litres: asset.tank_capacity_litres || '',
       department_id: asset.department_id || '',
       status: asset.status || 'operational',
+      expected_consumption_lpkm: asset.expected_consumption_lpkm ?? '', expected_consumption_lph: asset.expected_consumption_lph ?? '',
+      purchase_date: asset.purchase_date || '', purchase_cost: asset.purchase_cost ?? '', specs: asset.specs || {},
     })
     setError('')
     setModalOpen(true)
@@ -111,6 +120,9 @@ export default function FleetAssets({ setPage }) {
         year: form.year ? Number(form.year) : null,
         tank_capacity_litres: form.tank_capacity_litres ? Number(form.tank_capacity_litres) : null,
         department_id: form.department_id || null,
+        expected_consumption_lpkm: num(form.expected_consumption_lpkm), expected_consumption_lph: num(form.expected_consumption_lph),
+        purchase_date: form.purchase_date || null, purchase_cost: num(form.purchase_cost),
+        specs: Object.fromEntries(Object.entries(form.specs || {}).filter(([, v]) => v !== '' && v != null)),
       }
       if (editId) {
         await updateAsset(editId, payload)
@@ -152,8 +164,8 @@ export default function FleetAssets({ setPage }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <div style={{ fontSize: '20px', fontWeight: 500, color: THEME.text }}>Fleet Assets</div>
-          <div style={{ fontSize: '12px', color: THEME.textMed }}>{filtered.length} asset{filtered.length !== 1 ? 's' : ''}</div>
+          <div style={{ fontSize: '20px', fontWeight: 500, color: THEME.text }}>Machines</div>
+          <div style={{ fontSize: '12px', color: THEME.textMed }}>{filtered.length} machine{filtered.length !== 1 ? 's' : ''} — click one to open it</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {/* View toggle */}
@@ -175,7 +187,7 @@ export default function FleetAssets({ setPage }) {
               background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             }}>
               <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add</span>
-              Add Asset
+              Add machine
             </button>
           )}
         </div>
@@ -217,11 +229,11 @@ export default function FleetAssets({ setPage }) {
             return (
               <div
                 key={a.id}
-                onClick={() => can('fleet.edit') ? openEdit(a) : null}
+                onClick={() => setDetail(a)}
                 style={{
                   background: THEME.surface, borderRadius: '14px', padding: '18px',
                   border: `1px solid ${THEME.outlineVar}`,
-                  cursor: can('fleet.edit') ? 'pointer' : 'default',
+                  cursor: 'pointer',
                   transition: 'box-shadow .15s',
                 }}
                 onMouseEnter={e => e.currentTarget.style.boxShadow = THEME.shadow2}
@@ -244,6 +256,12 @@ export default function FleetAssets({ setPage }) {
                     </div>
                   </div>
                   <StatusBadge status={a.status} />
+                  {can('fleet.edit') && (
+                    <button aria-label="Edit machine" onClick={e => { e.stopPropagation(); openEdit(a) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textMed, padding: 2 }}>
+                      <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>edit</span>
+                    </button>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '12px', color: THEME.textMed }}>
                   {a.make && <span>{a.make} {a.model || ''}</span>}
@@ -270,7 +288,7 @@ export default function FleetAssets({ setPage }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: THEME.surfaceVar }}>
-                {['Number', 'Description', 'Type', 'Registration', 'Make/Model', 'Status', 'Department'].map(h => (
+                {['Number', 'Description', 'Type', 'Registration', 'Make/Model', 'Status', 'Department', ''].map(h => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: THEME.textMed, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: `1px solid ${THEME.outlineVar}` }}>
                     {h}
                   </th>
@@ -281,8 +299,8 @@ export default function FleetAssets({ setPage }) {
               {filtered.map(a => (
                 <tr
                   key={a.id}
-                  onClick={() => can('fleet.edit') ? openEdit(a) : null}
-                  style={{ cursor: can('fleet.edit') ? 'pointer' : 'default', borderBottom: `1px solid ${THEME.outlineVar}` }}
+                  onClick={() => setDetail(a)}
+                  style={{ cursor: 'pointer', borderBottom: `1px solid ${THEME.outlineVar}` }}
                   onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceHover}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                 >
@@ -293,6 +311,7 @@ export default function FleetAssets({ setPage }) {
                   <td style={{ padding: '10px 14px', color: THEME.textMed }}>{[a.make, a.model].filter(Boolean).join(' ') || '—'}</td>
                   <td style={{ padding: '10px 14px' }}><StatusBadge status={a.status} /></td>
                   <td style={{ padding: '10px 14px', color: THEME.textMed }}>{a.departments?.name || '—'}</td>
+                  <td style={{ padding: '10px 6px' }}>{can('fleet.edit') && <button aria-label="Edit machine" onClick={e => { e.stopPropagation(); openEdit(a) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: THEME.textMed }}><span className="material-symbols-rounded" style={{ fontSize: '18px' }}>edit</span></button>}</td>
                 </tr>
               ))}
             </tbody>
@@ -309,7 +328,7 @@ export default function FleetAssets({ setPage }) {
             boxShadow: THEME.shadow3,
           }}>
             <div style={{ fontSize: '18px', fontWeight: 600, color: THEME.text, marginBottom: '20px' }}>
-              {editId ? 'Edit Asset' : 'Add Asset'}
+              {editId ? 'Edit machine' : 'Add machine'}
             </div>
 
             {error && (
@@ -379,6 +398,39 @@ export default function FleetAssets({ setPage }) {
                   {Object.entries(STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
               </div>
+              <div>
+                <div style={lbl}>Expected use (L/100 km)</div>
+                <input type="number" value={form.expected_consumption_lpkm} onChange={e => setForm({ ...form, expected_consumption_lpkm: e.target.value })} style={inp} />
+              </div>
+              <div>
+                <div style={lbl}>Expected use (L/hour)</div>
+                <input type="number" value={form.expected_consumption_lph} onChange={e => setForm({ ...form, expected_consumption_lph: e.target.value })} style={inp} />
+              </div>
+              <div>
+                <div style={lbl}>Bought on</div>
+                <input type="date" value={form.purchase_date} onChange={e => setForm({ ...form, purchase_date: e.target.value })} style={inp} />
+              </div>
+              <div>
+                <div style={lbl}>Purchase cost</div>
+                <input type="number" value={form.purchase_cost} onChange={e => setForm({ ...form, purchase_cost: e.target.value })} style={inp} />
+              </div>
+              {(() => {
+                const cat = assetTypes.find(t => t.id === form.asset_type_id)?.category
+                const fields = typeSpecs.filter(sp => sp.category === cat)
+                if (!fields.length) return null
+                return (
+                  <>
+                    <div style={{ gridColumn: '1 / -1', fontSize: '13px', fontWeight: 600, color: THEME.text, marginTop: '6px' }}>Specifications</div>
+                    {fields.map(sp => (
+                      <div key={sp.key}>
+                        <div style={lbl}>{sp.label}{sp.unit ? ` (${sp.unit})` : ''}</div>
+                        <input type={sp.input === 'number' ? 'number' : 'text'} value={form.specs?.[sp.key] ?? ''} style={inp}
+                          onChange={e => setForm({ ...form, specs: { ...(form.specs || {}), [sp.key]: sp.input === 'number' && e.target.value !== '' ? Number(e.target.value) : e.target.value } })} />
+                      </div>
+                    ))}
+                  </>
+                )
+              })()}
             </div>
 
             <div style={{ display: 'flex', justifyContent: editId ? 'space-between' : 'flex-end', marginTop: '20px', gap: '10px' }}>
@@ -412,6 +464,7 @@ export default function FleetAssets({ setPage }) {
           </div>
         </ModalOverlay>
       )}
+      {detail && <FleetAssetDetail asset={detail} onClose={() => setDetail(null)} setPage={setPage} />}
     </div>
   )
 }

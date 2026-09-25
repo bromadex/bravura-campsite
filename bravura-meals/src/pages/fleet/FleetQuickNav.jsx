@@ -5,10 +5,7 @@ const FLEET_CLR = MODULE_COLORS.fleet
 
 const PILLS = [
   { id: 'fleet_dispatch',    label: 'Dispatch',      icon: 'hub',            color: '#1A6B52' },
-  { id: 'fleet_vehicles',    label: 'Vehicles',      icon: 'directions_car', color: '#1A6B52' },
-  { id: 'fleet_equipment',   label: 'Equipment',     icon: 'construction',   color: '#5D4037' },
-  { id: 'fleet_generators',  label: 'Generators',    icon: 'bolt',           color: '#E65100' },
-  { id: 'fleet_assets',      label: 'All Assets',    icon: 'inventory_2',    color: '#455A64' },
+  { id: 'fleet_assets',      label: 'Machines',      icon: 'agriculture',    color: '#455A64' },
   { id: 'fleet_assignments', label: 'Assignments',   icon: 'assignment_ind', color: '#2E7D32' },
   { id: 'fleet_inspections', label: 'Inspections',   icon: 'checklist',      color: '#0277BD' },
   { id: 'fleet_trips',       label: 'Trip Logs',     icon: 'route',          color: '#6A1B9A' },

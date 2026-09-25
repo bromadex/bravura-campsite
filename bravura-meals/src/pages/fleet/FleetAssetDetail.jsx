@@ -8,6 +8,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { useFleet } from '../../contexts/FleetContext'
 import LinkedDocuments from '../../components/LinkedDocuments'
 import DiscussButton from '../../components/DiscussButton'
+import MachineBook from './MachineBook'
 
 const CLR = MODULE_COLORS.fleet
 
@@ -303,6 +304,8 @@ function OverviewTab({ asset, assignments, setPage }) {
           })}
         </div>
       </div>
+
+      <MachineBook asset={asset} />
 
       {/* Cross-module: linked documents & discuss */}
       <div style={{ marginTop: 20, display: 'flex', gap: 8, alignItems: 'center' }}>

@@ -99,9 +99,6 @@ const FleetDashboard      = lazy(() => import('./pages/fleet/FleetDashboard'))
 const FleetDispatch       = lazy(() => import('./pages/fleet/FleetDispatch'))
 const FleetTyres          = lazy(() => import('./pages/fleet/FleetTyres'))
 const FleetAssets         = lazy(() => import('./pages/fleet/FleetAssets'))
-const FleetVehicles       = lazy(() => import('./pages/fleet/FleetVehicles'))
-const FleetHeavyEquipment = lazy(() => import('./pages/fleet/FleetHeavyEquipment'))
-const FleetGenerators     = lazy(() => import('./pages/fleet/FleetGenerators'))
 const FleetAssignments    = lazy(() => import('./pages/fleet/FleetAssignments'))
 const FleetInspections    = lazy(() => import('./pages/fleet/FleetInspections'))
 const FleetTrips          = lazy(() => import('./pages/fleet/FleetTrips'))
@@ -552,9 +549,10 @@ function getFleetPage(page, setPage) {
     case 'fleet_dashboard':   return <FleetDashboard setPage={setPage} />
     case 'fleet_dispatch':    return <FleetDispatch setPage={setPage} />
     case 'fleet_assets':      return <FleetAssets setPage={setPage} />
-    case 'fleet_vehicles':    return <FleetVehicles setPage={setPage} />
-    case 'fleet_equipment':   return <FleetHeavyEquipment setPage={setPage} />
-    case 'fleet_generators':  return <FleetGenerators setPage={setPage} />
+    // Fleet A2: one Machines list — the old register codes open it filtered.
+    case 'fleet_vehicles':    return <FleetAssets key="veh" setPage={setPage} initialCategory="vehicle" />
+    case 'fleet_equipment':   return <FleetAssets key="heavy" setPage={setPage} initialCategory="heavy_equipment" />
+    case 'fleet_generators':  return <FleetAssets key="gen" setPage={setPage} initialCategory="generator" />
     case 'fleet_assignments': return <FleetAssignments setPage={setPage} />
     case 'fleet_inspections': return <FleetInspections setPage={setPage} />
     case 'fleet_trips':       return <FleetTrips setPage={setPage} />

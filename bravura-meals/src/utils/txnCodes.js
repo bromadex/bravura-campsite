@@ -51,7 +51,7 @@ export const TXN_CODES = [
   { code: 'FL02', path: '/fleet/fleet_vehicles',       label: 'Fleet Vehicles',         module: 'fleet' },
   { code: 'FL03', path: '/fleet/fleet_equipment',      label: 'Heavy Equipment',        module: 'fleet' },
   { code: 'FL04', path: '/fleet/fleet_generators',     label: 'Generators',             module: 'fleet' },
-  { code: 'FL05', path: '/fleet/fleet_assets',         label: 'All Fleet Assets',       module: 'fleet' },
+  { code: 'FL05', path: '/fleet/fleet_assets',         label: 'Machines',               module: 'fleet' },
   { code: 'FL06', path: '/fleet/fleet_dispatch',       label: 'Dispatch Board',         module: 'fleet' },
   { code: 'FL07', path: '/fleet/fleet_assignments',    label: 'Fleet Assignments',      module: 'fleet' },
   { code: 'FL08', path: '/fleet/fleet_inspections',    label: 'Fleet Inspections',      module: 'fleet' },

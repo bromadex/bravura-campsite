@@ -530,6 +530,12 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   fuel_transactions.hours_reading/meter_broken/meter_note; `trg_fuel_to_meter` → fleet_meter_readings (flags backwards / >max jump,
   fleet_settings.max_km_jump/max_hours_jump); statuses normalised + CHECK; fleet DELETE policies dropped; compliance → asset expiry
   dates (read-only on asset form); `fleet_meter_gaps` panel on meter readings; FL16 removed from menu.
+  **A2 built (0240):** one Machines list FL05 `fleet_assets` (FleetVehicles/HeavyEquipment/Generators deleted; FL02–04 open it filtered
+  via initialCategory); `fleet_type_specs` (per type category) → `fleet_assets.specs` jsonb (old generator columns copied, kept);
+  `MachineBook.jsx` on FleetAssetDetail: specs, book value (`fleet_machine_book`), "Add to fixed assets" (`fleet_capitalise` —
+  optional GRN line via `fleet_capitalise_sources`, non-stock lines only → `asset_capitalised_grn` Dr 1610/Cr 1320; else asset_capitalised
+  Dr 1610/Cr 1650), "Move to another site" (`fleet_transfer_site`, `fleet_site_transfers`; clears dept/cost centre/project/operator;
+  fixed asset moves with it; events asset_transfer_out(_accum) / asset_transfer_in(_accum) through 2500).
   Meters at fuel fills: optional now, REQUIRED from 1 Nov 2026 (user, 25 Sep) — setting meter_required_from.
   A6 #67 **small assets issued to people (tools, radios, laptops) is REQUIRED** (user, 25 Sep): register, issue/sign/return with
   condition, who-holds-what, employee profile + exit checklist blocks until returned, overdue returns, counts.

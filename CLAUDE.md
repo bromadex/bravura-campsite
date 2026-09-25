@@ -467,6 +467,22 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   `supabase/functions/ask-bravura/audit.js` figure check (tested in src/test/askAudit.test.js) → `ai_questions.unverified` + ⚠ note,
   AD12 `admin_ask` page (`ai_admin_overview`: usage, needs-a-look, actions, limits, AI register).
   Procurement Home touch-up (0225 `proc_home_insights`): headline band, 6-month trend, top suppliers, 30-day pipeline.
+- **Ask Bravura leftovers done (0231):** approve/reject from the approvals inbox (`ai_prepare_approval` → `approval_decide`),
+  quote → draft PO (`ai_prepare_po` → `proc_po_save`), chat history 30 days on the server (`ai_questions.hidden` = New conversation),
+  `useAskContext` on Finance Home, Budgets, Reports, Fuel dashboard, Fleet dashboard, Fleet maintenance, Stock balances.
+  No keyboard shortcut (Ctrl J opens browser Downloads). "Your day" on home is hidden when nothing is waiting.
+- Home screen order: Finance, Procurement, Inventory, Fuel, Fleet (Fleet is now a top-level tile), then Batch Plant and groups.
+- DocShare storage (0230): `docshare-files` read needs ds.view, upload ds.create, at the site in the path's first folder (`_ds_storage_site`).
+- **NEXT: Inventory rewrite (#59, Stage 14)** — review + dashboard design: https://claude.ai/artifact/QdzVfFMx8DRqYeBMomSctT.
+  Finance look (FinShell). Found: outgoing moves saved at unit_cost 0 (issues/returns/adjust/IN08 → $0 GL and zero-value transfers),
+  negative stock allowed, inventory RLS uses `ur.site_id = w.site_id` (all-site roles see nothing), screens insert movements directly,
+  one items.average_cost for all stores, reorder per item. Phases: I1 correct (RLS, move RPCs with DB-set cost, no negatives, cost per
+  store, remove IN08 / camp_supply_txns / stock_transfers) · I2 bins + QR, min/max per store, UoM conversions, Excel import, opening count ·
+  I3 reservations, available/on order/in transit, transfers with in-transit, "truck" cart · I4 `inv_home` dashboard, FinShell, menu
+  Overview/Stock/Move/Replenish/Reports/Setup, phone scanning · I5 ageing, dead stock, ABC, shrinkage, FEFO, return condition, kits ·
+  I6 Ask Bravura issue cards + stock alerts.
+- **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
+- **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

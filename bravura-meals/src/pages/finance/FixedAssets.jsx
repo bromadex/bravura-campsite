@@ -40,7 +40,7 @@ export default function FixedAssets() {
   const [q, setQ] = useState('')
   const [modal, setModal] = useState(null)   // {edit: asset|null} | {dispose: asset} | {history: asset} | 'cats' | 'import'
   const [form, setForm] = useState(EMPTY)
-  const [history, setHistory] = useState([])
+  const [history, setHistory] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
@@ -287,9 +287,9 @@ export default function FixedAssets() {
           <div style={{ display: 'grid', gap: '16px' }}>
             <div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '6px' }}>Depreciation</div>
-              {history.dep.length === 0 ? <div style={{ fontSize: '13px', color: THEME.textLow }}>None posted yet.</div> : (
+              {(history.dep || []).length === 0 ? <div style={{ fontSize: '13px', color: THEME.textLow }}>None posted yet.</div> : (
                 <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
-                  <tbody>{history.dep.map(d => (
+                  <tbody>{(history.dep || []).map(d => (
                     <tr key={d.id} style={{ borderTop: `1px solid ${THEME.outlineVar}`, color: THEME.text }}>
                       <td style={{ padding: '4px 0' }}>{new Date(d.period + 'T00:00:00').toLocaleDateString([], { month: 'short', year: 'numeric' })}</td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{usd(d.amount)}</td>
@@ -301,7 +301,7 @@ export default function FixedAssets() {
             </div>
             <div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '6px' }}>Activity</div>
-              {history.moves.map(m => (
+              {(history.moves || []).map(m => (
                 <div key={m.id} style={{ fontSize: '13px', color: THEME.textMed, padding: '4px 0', borderTop: `1px solid ${THEME.outlineVar}` }}>
                   <b style={{ color: THEME.text }}>{MOVE[m.change_type] || m.change_type}</b> · {new Date(m.created_at).toLocaleString()}
                   {m.notes && <> · {m.notes}</>}

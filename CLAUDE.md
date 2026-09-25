@@ -526,6 +526,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   FL16 frozen table in menu. Phases A1 correct · A2 one machine record · A3 pre-starts + work orders · A4 service planning + contracts ·
   A5 dashboard/cost per hour/finance look · A6 small assets + Ask Bravura (+ optional Traccar).
   Sub-issues: A1 #62 · A2 #63 · A3 #64 · A4 #65 · A5 #66 (dashboard in the FINANCE look — FinShell/financeTheme, user 25 Sep) ·
+  **A1 built (0239, 0239b):** fuel issues priced by `trg_fuel_price_and_meter` (last delivery price; 135 backfilled, $19,485.20);
+  fuel_transactions.hours_reading/meter_broken/meter_note; `trg_fuel_to_meter` → fleet_meter_readings (flags backwards / >max jump,
+  fleet_settings.max_km_jump/max_hours_jump); statuses normalised + CHECK; fleet DELETE policies dropped; compliance → asset expiry
+  dates (read-only on asset form); `fleet_meter_gaps` panel on meter readings; FL16 removed from menu.
   Meters at fuel fills: optional now, REQUIRED from 1 Nov 2026 (user, 25 Sep) — setting meter_required_from.
   A6 #67 **small assets issued to people (tools, radios, laptops) is REQUIRED** (user, 25 Sep): register, issue/sign/return with
   condition, who-holds-what, employee profile + exit checklist blocks until returned, overdue returns, counts.

@@ -28,6 +28,7 @@ export default function FleetMeterReadings({ setPage }) {
   const userId = profile?.id
 
   const [readings, setReadings] = useState([])
+  const [gaps, setGaps] = useState([])
   const [loadingReadings, setLoadingReadings] = useState(true)
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
@@ -203,6 +204,7 @@ export default function FleetMeterReadings({ setPage }) {
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
       <FleetQuickNav setPage={setPage} current="fleet_meter_readings" />
+      <MeterGaps siteId={currentSiteId} gaps={gaps} setGaps={setGaps} />
 
       {/* KPI Banner */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px', marginBottom: '20px' }}>
@@ -423,6 +425,32 @@ export default function FleetMeterReadings({ setPage }) {
           </div>
         </ModalOverlay>
       )}
+    </div>
+  )
+}
+
+// Fleet A1 (#62): machines with no km / hours reading in 7 days — who fuelled them last.
+function MeterGaps({ siteId, gaps, setGaps }) {
+  useEffect(() => {
+    if (!siteId) return
+    supabase.rpc('fleet_meter_gaps', { p_site_id: siteId, p_days: 7 }).then(({ data }) => setGaps(data || []))
+  }, [siteId, setGaps])
+  if (!gaps.length) return null
+  return (
+    <div style={{ background: THEME.surface, borderRadius: '14px', padding: '16px', border: `1px solid ${THEME.outlineVar}`, marginBottom: '20px' }}>
+      <div style={{ fontWeight: 700, marginBottom: 8 }}>No reading in 7 days ({gaps.length})</div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+          <thead><tr style={{ textAlign: 'left', color: THEME.textMed }}>
+            <th>Machine</th><th>Last reading</th><th>Days</th><th>Fills since</th><th>Last fuelled by</th></tr></thead>
+          <tbody>{gaps.map(g => (
+            <tr key={g.asset_id} style={{ borderTop: `1px solid ${THEME.outlineVar}` }}>
+              <td style={{ padding: '6px 4px' }}>{g.machine}</td>
+              <td>{g.last_reading_date ? `${Number(g.last_reading).toLocaleString()} (${g.last_reading_date})` : 'never'}</td>
+              <td>{g.days_without ?? '—'}</td><td>{g.fuels_since ?? 0}</td><td>{g.last_fuelled_by || '—'}</td>
+            </tr>))}</tbody>
+        </table>
+      </div>
     </div>
   )
 }

@@ -344,7 +344,6 @@ export function fleetNav(role, can) {
     { id: 'fleet_accidents',   label: 'Accidents',       section: 'Safety',       icon: 'car_crash' },
     { id: 'fleet_tyres',      label: 'Tyres',            section: 'Maintenance',  icon: 'tire_repair' },
     { id: 'fleet_dispatch',   label: 'Dispatch Board',   section: 'Operations',   icon: 'hub' },
-    { id: 'fleet_contractors', label: 'Contractor Equipment', section: 'Registry', icon: 'handshake' },
     { id: 'fleet_reports',     label: 'Reports',         section: 'Reports',      icon: 'bar_chart' },
     { id: 'fleet_settings',    label: 'Settings',        section: 'Admin',        icon: 'settings' },
   ]

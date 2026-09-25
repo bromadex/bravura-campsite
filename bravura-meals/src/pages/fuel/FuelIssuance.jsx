@@ -295,6 +295,9 @@ const mkBlank = () => ({
   meter_start:      '',
   meter_end:        '',
   odometer_km:      '',
+  hours_reading:    '',
+  meter_broken:     false,
+  meter_note:       '',
   litres_manual:    '',
   docket_number:    '',
   project_id:       '',
@@ -325,7 +328,7 @@ export default function FuelIssuance({ setPage }) {
   const makeBulkRow = useCallback(() => ({
     time: nowTime(), transaction_date: todayStr,
     asset_type: 'vehicle', vehicle_id: '', equipment_id: '',
-    litres: '', operator_id: '', purpose: '', notes: '',
+    litres: '', operator_id: '', purpose: '', notes: '', reading: '',
   }), [todayStr])
   const [bulkRows, setBulkRows] = useState(() => Array.from({ length: 5 }, () => makeBulkRow()))
   const [bulkTankId, setBulkTankId] = useState('')
@@ -453,6 +456,26 @@ export default function FuelIssuance({ setPage }) {
     return last
   }, [form.asset_type, form.vehicle_id, vehicles, transactions])
 
+  const lastKnownHours = useMemo(() => {
+    if (!isEquipmentLike(form.asset_type) || !form.equipment_id) return null
+    const e = equipment.find(x => x.id === form.equipment_id)
+    let last = e?.current_hours != null && Number(e.current_hours) > 0 ? Number(e.current_hours) : null
+    for (const t of transactions) {
+      if (t.fleet_asset_id === form.equipment_id && t.hours_reading != null && (last == null || Number(t.hours_reading) > last)) last = Number(t.hours_reading)
+    }
+    return last
+  }, [form.asset_type, form.equipment_id, equipment, transactions])
+
+  // Date from which a meter reading is required at every fill (fleet settings; 1 Nov 2026 by default).
+  const [meterRequiredFrom, setMeterRequiredFrom] = useState('2026-11-01')
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase.from('fleet_settings').select('meter_required_from').eq('site_id', currentSiteId).maybeSingle()
+      .then(({ data }) => { if (data?.meter_required_from) setMeterRequiredFrom(data.meter_required_from) })
+  }, [currentSiteId])
+  const meterRequired = form.transaction_date >= meterRequiredFrom
+  const meterDateLabel = new Date(meterRequiredFrom + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+
   // Last delivery price per litre (from most recent delivery transaction for this tank's fuel type)
   const lastPricePerLitre = useMemo(() => {
     if (!selectedTank) return null
@@ -510,8 +533,14 @@ export default function FuelIssuance({ setPage }) {
     // Odometer is required for vehicles so the L/100km analytics have a
     // valid distance signal. Equipment doesn't have km — hours would apply
     // there but that's a follow-up.
-    if (form.asset_type === 'vehicle' && !form.odometer_km) {
-      showToast('Enter the vehicle odometer reading (km)', 'red'); return
+    // Meter readings (#62): optional until the site's date (1 Nov 2026 by default), required after — unless the meter is broken.
+    const hasMeter = form.asset_type === 'vehicle' ? !!form.odometer_km : !!form.hours_reading
+    if (form.meter_broken && !form.meter_note.trim()) { showToast('Say what is wrong with the meter', 'red'); return }
+    if (!hasMeter && !form.meter_broken && form.transaction_date >= meterRequiredFrom) {
+      showToast(`Enter the ${form.asset_type === 'vehicle' ? 'odometer (km)' : 'hour meter'} reading, or tick "Meter broken"`, 'red'); return
+    }
+    if (isEquipmentLike(form.asset_type) && form.hours_reading && lastKnownHours != null && Number(form.hours_reading) < lastKnownHours) {
+      showToast(`Hours ${Number(form.hours_reading).toLocaleString()} are LOWER than the last recorded ${lastKnownHours.toLocaleString()} h — check for a typo`, 'red'); return
     }
     // Sanity-check the reading against the vehicle's last known odometer:
     // below it = almost certainly a typo (block); an implausible jump
@@ -561,6 +590,9 @@ export default function FuelIssuance({ setPage }) {
         meter_start: form.use_meter && form.meter_start ? Number(form.meter_start) : null,
         meter_end:   form.use_meter && form.meter_end   ? Number(form.meter_end)   : null,
         odometer_km: form.asset_type === 'vehicle' && form.odometer_km ? Number(form.odometer_km) : null,
+        hours_reading: isEquipmentLike(form.asset_type) && form.hours_reading ? Number(form.hours_reading) : null,
+        meter_broken:  !!form.meter_broken,
+        meter_note:    form.meter_broken ? form.meter_note.trim() : null,
         docket_number:     form.docket_number.trim() || null,
         project_id:        form.project_id || null,
         notes:             form.notes.trim() || null,
@@ -762,6 +794,8 @@ export default function FuelIssuance({ setPage }) {
         litres:           Number(r.litres),
         operator_id:      r.operator_id || null,
         notes:            bulkRowNotes(r),
+        odometer_km:      r.asset_type === 'vehicle' && r.reading ? Number(r.reading) : null,
+        hours_reading:    isEquipmentLike(r.asset_type) && r.reading ? Number(r.reading) : null,
       }))
 
       const { data, error } = await supabase.rpc('rpc_bulk_fuel_issuance', {
@@ -804,6 +838,8 @@ export default function FuelIssuance({ setPage }) {
                                : null,
               operator_id:       r.operator_id || null,
               notes:             bulkRowNotes(r),
+              odometer_km:       r.asset_type === 'vehicle' && r.reading ? Number(r.reading) : null,
+              hours_reading:     isEquipmentLike(r.asset_type) && r.reading ? Number(r.reading) : null,
               authorised_by_name:     bulkAuth.trim(),
               authorisation_reason:   bulkReason.trim(),
               acknowledgement_status: 'pending',
@@ -1110,6 +1146,7 @@ export default function FuelIssuance({ setPage }) {
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '90px' }}>Fuel Type</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Vehicle / Equipment</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '100px' }}>Litres</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '110px' }}>km / hours</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>Operator</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '140px' }}>Purpose</th>
                   <th style={{ padding: '10px 12px', width: '40px' }} />
@@ -1165,6 +1202,10 @@ export default function FuelIssuance({ setPage }) {
                       <input type="number" step="0.1" min="0" value={row.litres} onChange={e => updateBulkRow(idx, 'litres', e.target.value)}
                         onKeyDown={e => handleBulkKeyDown(e, idx, 3)}
                         placeholder="0" style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
+                    </td>
+                    <td style={{ padding: '8px 4px' }}>
+                      <input type="number" step="0.1" min="0" aria-label="Meter reading" value={row.reading} onChange={e => updateBulkRow(idx, 'reading', e.target.value)}
+                        placeholder={row.asset_type === 'vehicle' ? 'km' : 'hours'} style={{ ...inp({ padding: '7px 8px', fontSize: '12px' }) }} />
                     </td>
                     <td style={{ padding: '8px 4px' }}>
                       <select value={row.operator_id} onChange={e => updateBulkRow(idx, 'operator_id', e.target.value)}
@@ -1398,7 +1439,7 @@ export default function FuelIssuance({ setPage }) {
                 />
                 <div style={{ marginTop: '10px' }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px' }}>
-                    Vehicle odometer reading (km) <span style={{ color: THEME.error }}>*</span>
+                    Vehicle odometer reading (km) {meterRequired ? <span style={{ color: THEME.error }}>*</span> : <span style={{ fontWeight: 400, color: THEME.textLow }}>— optional until {meterDateLabel}</span>}
                   </label>
                   <input
                     type="number"
@@ -1409,7 +1450,7 @@ export default function FuelIssuance({ setPage }) {
                     onChange={e => set('odometer_km', e.target.value)}
                     placeholder="e.g. 128450"
                     style={inp({ borderColor:
-                      (form.vehicle_id && !form.odometer_km) ||
+                      (meterRequired && !form.meter_broken && form.vehicle_id && !form.odometer_km) ||
                       (lastKnownOdometer != null && form.odometer_km && Number(form.odometer_km) < lastKnownOdometer)
                         ? THEME.error : THEME.outline })}
                   />
@@ -1447,6 +1488,31 @@ export default function FuelIssuance({ setPage }) {
                 renderItem={eqLabel}
                 renderSelected={eqLabel}
               />
+            )}
+            {isEquipmentLike(form.asset_type) && (
+              <div style={{ marginTop: '10px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px' }}>
+                  Hour meter reading (h) {meterRequired ? <span style={{ color: THEME.error }}>*</span> : <span style={{ fontWeight: 400, color: THEME.textLow }}>— optional until {meterDateLabel}</span>}
+                </label>
+                <input type="number" inputMode="decimal" step="0.1" min="0" aria-label="Hour meter reading"
+                  value={form.hours_reading} onChange={e => set('hours_reading', e.target.value)} placeholder="e.g. 7412"
+                  style={inp({ borderColor: lastKnownHours != null && form.hours_reading && Number(form.hours_reading) < lastKnownHours ? THEME.error : THEME.outline })} />
+                <div style={{ fontSize: '11px', color: THEME.textLow, marginTop: '4px' }}>
+                  {lastKnownHours != null ? `Last recorded: ${lastKnownHours.toLocaleString()} h. ` : ''}Read from the machine's hour meter. Used for service planning and litres per hour.
+                </div>
+              </div>
+            )}
+            {(form.vehicle_id || form.equipment_id) && (
+              <div style={{ marginTop: '10px' }}>
+                <label style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: THEME.textMed, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={form.meter_broken} onChange={e => set('meter_broken', e.target.checked)} />
+                  Meter broken / can't be read
+                </label>
+                {form.meter_broken && (
+                  <input aria-label="What is wrong with the meter" value={form.meter_note} onChange={e => set('meter_note', e.target.value)}
+                    placeholder="What is wrong? e.g. gauge not working" style={{ ...inp(), marginTop: '6px' }} />
+                )}
+              </div>
             )}
           </FieldWrap>
 

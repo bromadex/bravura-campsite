@@ -352,6 +352,9 @@ export default function FleetVehicles({ setPage }) {
       ]
       return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+          <div style={{ gridColumn: '1 / -1', fontSize: 12, color: THEME.textMed, marginBottom: 8 }}>
+            These dates come from Compliance (the latest paper of each type). Record new papers there.
+          </div>
           {fields.map(f => {
             const st = expiryStatus(form[f.key])
             const ec = EXPIRY_COLORS[st]
@@ -362,7 +365,8 @@ export default function FleetVehicles({ setPage }) {
                   style={expiryInputStyle(form[f.key])}
                   type="date"
                   value={form[f.key]}
-                  onChange={e => set(f.key, e.target.value)}
+                  readOnly
+                  title="Comes from Compliance — add the paper there"
                 />
                 {st !== 'none' && st !== 'ok' && (
                   <div style={{ fontSize: '11px', marginTop: '4px', color: ec.text, fontWeight: 600 }}>

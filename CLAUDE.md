@@ -54,6 +54,11 @@ Supabase (PostgREST + RLS) backend, Vercel auto-deploys from `main` —
 Kamativi (KAM — all real data), Selous, Manhizi, Harare (head office).
 Default site on login: Kamativi.
 
+**Operating model (from user, Sept 2026):** Harare HQ houses Accounting and Procurement. They buy and
+pay centrally, and every purchase or payment names the site it's for (site_id = the destination site,
+entered by HQ staff). Petty cash is the only money run on site, and it is funded by Accounting (HQ).
+Procurement will be restyled using the finance theme and components (FinShell, financeTheme).
+
 ## Module map
 
 meals (ME), fuel (FU), fleet (FL), campsite (CA), workforce/HR (HR),

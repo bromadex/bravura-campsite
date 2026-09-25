@@ -22,7 +22,7 @@ export default function Suppliers({ setPage }) {
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState('')
 
-  const blank = { supplier_name: '', contact_person: '', phone: '', email: '', address: '', category: '', notes: '' }
+  const blank = { supplier_name: '', contact_person: '', phone: '', email: '', address: '', category: '', notes: '', payment_terms_days: 30, bank_name: '', bank_branch: '', bank_account_number: '' }
   const [form, setForm] = useState(blank)
 
   const filtered = useMemo(() => {
@@ -53,6 +53,10 @@ export default function Suppliers({ setPage }) {
       address:        s.address || '',
       category:       s.category || '',
       notes:          s.notes || '',
+      payment_terms_days: s.payment_terms_days ?? 30,
+      bank_name:      s.bank_name || '',
+      bank_branch:    s.bank_branch || '',
+      bank_account_number: s.bank_account_number || '',
     })
     setEditing(s)
     setError('')
@@ -255,6 +259,24 @@ export default function Suppliers({ setPage }) {
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }}>Category</label>
                 <input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="e.g. Fuel, General, Construction" style={inputStyle} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label htmlFor="sup-terms" style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }}>Payment terms (days)</label>
+                  <input id="sup-terms" type="number" min="0" max="365" value={form.payment_terms_days} onChange={e => setForm(f => ({ ...f, payment_terms_days: Number(e.target.value) }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label htmlFor="sup-bank" style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }}>Bank</label>
+                  <input id="sup-bank" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} placeholder="e.g. CBZ" style={inputStyle} />
+                </div>
+                <div>
+                  <label htmlFor="sup-branch" style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }}>Branch</label>
+                  <input id="sup-branch" value={form.bank_branch} onChange={e => setForm(f => ({ ...f, bank_branch: e.target.value }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label htmlFor="sup-acct" style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }}>Account number</label>
+                  <input id="sup-acct" value={form.bank_account_number} onChange={e => setForm(f => ({ ...f, bank_account_number: e.target.value }))} style={inputStyle} />
+                </div>
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed, marginBottom: '4px', display: 'block' }}>Notes</label>

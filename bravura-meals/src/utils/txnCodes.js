@@ -230,6 +230,7 @@ export const TXN_CODES = [
   { code: 'FI18', path: '/finance/fi_asset_verification', label: 'Asset Counts',         module: 'finance' },
   { code: 'FI19', path: '/finance/fi_dimension_report', label: 'Costs by Cost Centre & Project', module: 'finance' },
   { code: 'FI20', path: '/finance/fi_setup',           label: 'Set Up the Books',        module: 'finance' },
+  { code: 'FI21', path: '/finance/fi_pay_suppliers',   label: 'Pay Suppliers',           module: 'finance' },
 
   // ── Batch Plant Operations ──
   { code: 'CO01', path: '/concrete/co_dashboard',       label: 'Concrete Dashboard',   module: 'concrete' },

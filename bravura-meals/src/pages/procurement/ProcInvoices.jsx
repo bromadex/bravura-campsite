@@ -39,7 +39,7 @@ export default function ProcInvoices({ setPage }) {
     if (!currentSiteId) return
     setLoading(true)
     const [invRes, poRes, grnRes, sRes] = await Promise.all([
-      supabase.from('purchase_invoices').select('*, invoice_lines(*), po:purchase_orders(po_number), grn:goods_received_notes(grn_number), supplier:procurement_suppliers(supplier_name), creator:profiles!created_by(full_name, username), approver_profile:profiles!approved_by(full_name, username)')
+      supabase.from('purchase_invoices').select('*, invoice_lines(*), po:purchase_orders(po_number), grn:goods_received_notes(grn_number), supplier:procurement_suppliers(supplier_name)')  // created_by/approved_by reference auth.users, not profiles — no embed
         .eq('site_id', currentSiteId).order('created_at', { ascending: false }),
       supabase.from('purchase_orders').select('id, po_number, supplier_id, supplier:procurement_suppliers(supplier_name)')
         .eq('site_id', currentSiteId).in('status', ['approved', 'ordered', 'partial']).order('po_number'),

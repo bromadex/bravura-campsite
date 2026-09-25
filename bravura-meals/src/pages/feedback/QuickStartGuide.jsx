@@ -429,6 +429,17 @@ export default function QuickStartGuide() {
         </Section>
       )}
 
+      {(can('finance.view') || can('finance.edit')) && (
+        <Section icon="payments" color={MODULE_COLORS.finance} title="Finance — paying suppliers">
+          <Steps items={[
+            <>Bills are recorded against their PO and GRN in Procurement → Purchase Invoices (<Code>PR09</Code>) and approved there. The due date fills in from the supplier's payment terms (set on the supplier, with their bank details).</>,
+            <>Every bill is checked automatically: <b>PO · GRN · bill match</b>, <b>Price differs</b> (billed more than received at the PO price), <b>Quantity differs</b> or <b>Not received yet</b>. Sort out mismatches before paying.</>,
+            <>In <b>Pay Suppliers</b> (<Code>FI21</Code>) tick approved bills under <b>To pay</b> or <b>Overdue</b> and press <b>Pay</b> to prepare a payment run. The 2% IMTT is shown on top.</>,
+            <>Someone with finance approval permission approves the run. Download the <b>Bank list (CSV)</b> for the bank, make the transfer, then press <b>Mark paid</b> with the bank reference — every bill in the run is marked paid and posted to the ledger with its IMTT.</>,
+          ]} />
+        </Section>
+      )}
+
       {/* Finance */}
       {(can('finance.view') || can('finance.edit')) && (
         <Section icon="account_balance" color={MODULE_COLORS.finance} title="Finance — automatic posting">

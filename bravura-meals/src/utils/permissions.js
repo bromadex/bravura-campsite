@@ -284,6 +284,7 @@ export function financeNav(role, can) {
   return [
     { id: 'fi_dashboard',         label: 'Dashboard',         section: 'Overview',       icon: 'dashboard' },
     { id: 'fi_setup',             label: 'Set Up the Books',  section: 'Overview',       icon: 'checklist' },
+    { id: 'fi_pay_suppliers',     label: 'Pay Suppliers',     section: 'Payables',       icon: 'payments' },
     { id: 'fi_chart_of_accounts', label: 'Chart of Accounts', section: 'General Ledger', icon: 'account_balance' },
     { id: 'fi_journal_entries',   label: 'Journal Entries',   section: 'General Ledger', icon: 'receipt_long' },
     { id: 'fi_posting_rules',     label: 'Posting Rules',     section: 'General Ledger', icon: 'rule' },

@@ -29,7 +29,7 @@ export default function DeptTeam({ setPage }) {
       supabase.from('departments').select('*').eq('site_id', currentSiteId).eq('is_archived', false),
       supabase.from('department_members').select('*, employee:employees(id, name, employee_number, position_title, status), department:departments(id, name, color, icon, site_id)').order('created_at'),
       supabase.from('employees').select('id, name, employee_number').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
-      supabase.from('dept_tasks').select('assigned_to, status, project:dept_projects!inner(site_id)').eq('project.site_id', currentSiteId).eq('is_archived', false),
+      supabase.from('dept_tasks').select('assigned_to, status, project:projects!inner(site_id)').eq('project.site_id', currentSiteId).eq('is_archived', false),
     ])
 
     const depts = deptRes.data || []

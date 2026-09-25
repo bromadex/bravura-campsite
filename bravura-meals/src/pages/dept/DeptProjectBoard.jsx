@@ -26,7 +26,7 @@ export default function DeptProjectBoard({ setPage, projectId }) {
     if (!projectId || !currentSiteId) return
     setLoading(true)
     const [projRes, taskRes, empRes] = await Promise.all([
-      supabase.from('dept_projects').select('*, department:departments(id, name, color, icon, custom_buckets)').eq('id', projectId).maybeSingle(),
+      supabase.from('projects').select('*, department:departments(id, name, color, icon, custom_buckets)').eq('id', projectId).maybeSingle(),
       supabase.from('dept_tasks').select('*, assignee:employees!dept_tasks_assigned_to_fkey(id, name)').eq('project_id', projectId).eq('is_archived', false).order('sort_order'),
       supabase.from('employees').select('id, name').eq('site_id', currentSiteId).eq('status', 'active').order('name'),
     ])

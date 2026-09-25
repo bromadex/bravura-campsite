@@ -8,9 +8,9 @@ import { Icon } from '../../components/ui'
 const color = MODULE_COLORS.dept || '#1565C0'
 
 const STATUS_OPTS = ['active', 'completed', 'on_hold', 'cancelled']
-const PRIORITY_OPTS = ['urgent', 'important', 'medium', 'low']
+const PRIORITY_OPTS = ['critical', 'high', 'medium', 'low']
 const STATUS_CLR = { active: '#2E7D32', completed: '#0277BD', on_hold: '#D97706', cancelled: '#E53935' }
-const PRIORITY_CLR = { urgent: '#E53935', important: '#D97706', medium: '#1E88E5', low: '#78909C' }
+const PRIORITY_CLR = { critical: '#E53935', high: '#D97706', medium: '#1E88E5', low: '#78909C' }
 
 export default function DeptProjects({ setPage }) {
   const { currentSiteId } = useSite()
@@ -28,7 +28,7 @@ export default function DeptProjects({ setPage }) {
     if (!currentSiteId) return
     setLoading(true)
     const [projRes, deptRes] = await Promise.all([
-      supabase.from('dept_projects').select('*, department:departments(id, name, color, icon)').eq('site_id', currentSiteId).eq('is_archived', false).order('created_at', { ascending: false }),
+      supabase.from('projects').select('*, department:departments(id, name, color, icon)').eq('site_id', currentSiteId).not('department_id', 'is', null).eq('is_archived', false).order('created_at', { ascending: false }),
       supabase.from('departments').select('*').eq('site_id', currentSiteId).eq('is_archived', false),
     ])
     setProjects(projRes.data || [])
@@ -41,11 +41,13 @@ export default function DeptProjects({ setPage }) {
   async function handleSave() {
     if (!form.name.trim() || !form.department_id) return
     setSaving(true)
-    const payload = { ...form, site_id: currentSiteId, start_date: form.start_date || null, due_date: form.due_date || null }
+    // Department projects are rows in the shared `projects` table (0198) — same record costs are tagged to.
+    const { due_date, ...rest } = form
+    const payload = { ...rest, site_id: currentSiteId, start_date: form.start_date || null, target_end_date: due_date || null }
     if (editId) {
-      await supabase.from('dept_projects').update(payload).eq('id', editId)
+      await supabase.from('projects').update(payload).eq('id', editId)
     } else {
-      await supabase.from('dept_projects').insert(payload)
+      await supabase.from('projects').insert(payload)
     }
     setSaving(false)
     setShowForm(false)
@@ -55,12 +57,12 @@ export default function DeptProjects({ setPage }) {
   }
 
   async function handleArchive(id) {
-    await supabase.from('dept_projects').update({ is_archived: true }).eq('id', id)
+    await supabase.from('projects').update({ is_archived: true }).eq('id', id)
     load()
   }
 
   function openEdit(p) {
-    setForm({ name: p.name, department_id: p.department_id, status: p.status, priority: p.priority, start_date: p.start_date || '', due_date: p.due_date || '', description: p.description || '' })
+    setForm({ name: p.name, department_id: p.department_id, status: p.status, priority: p.priority, start_date: p.start_date || '', due_date: p.target_end_date || '', description: p.description || '' })
     setEditId(p.id)
     setShowForm(true)
   }
@@ -133,7 +135,7 @@ export default function DeptProjects({ setPage }) {
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: (STATUS_CLR[p.status] || '#78909C') + '18', color: STATUS_CLR[p.status] || '#78909C', fontWeight: 600 }}>{p.status}</span>
                   <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: (PRIORITY_CLR[p.priority] || '#78909C') + '18', color: PRIORITY_CLR[p.priority] || '#78909C', fontWeight: 600 }}>{p.priority}</span>
-                  {p.due_date && <span style={{ fontSize: '11px', color: THEME.textLow }}>{p.due_date}</span>}
+                  {p.target_end_date && <span style={{ fontSize: '11px', color: THEME.textLow }}>{p.target_end_date}</span>}
                 </div>
                 {can('dept.edit') && (
                   <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
@@ -166,7 +168,7 @@ export default function DeptProjects({ setPage }) {
                   <td style={{ padding: '10px 14px' }}>
                     <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: (PRIORITY_CLR[p.priority] || '#78909C') + '18', color: PRIORITY_CLR[p.priority], fontWeight: 600 }}>{p.priority}</span>
                   </td>
-                  <td style={{ padding: '10px 14px', color: THEME.textLow }}>{p.due_date || '—'}</td>
+                  <td style={{ padding: '10px 14px', color: THEME.textLow }}>{p.target_end_date || '—'}</td>
                 </tr>
               ))}
             </tbody>

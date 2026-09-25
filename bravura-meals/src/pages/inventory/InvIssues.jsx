@@ -107,10 +107,11 @@ export default function InvIssues({ setPage }) {
         department_id: form.department_id || null,
         employee_id: form.issued_to_employee_id || null,
         notes: form.notes || null,
+        condition: mode === 'return' ? (form.condition || 'good') : undefined,
         lines: [{ item_id, qty: q, batch_no: form.batch_no || null }],
       } })
       if (error) throw error
-      showToast(`${mode === 'issue' ? 'Issued' : 'Returned'} — ${data.voucher} · $${Number(data.value || 0).toFixed(2)}`, 'green')
+      showToast(`${mode === 'issue' ? 'Issued' : 'Returned'} — ${data.voucher} · $${Number(data.value || 0).toFixed(2)}${data.written_off ? ` ($${Number(data.written_off).toFixed(2)} written off)` : ''}`, 'green')
       setModalOpen(false)
       fetch()
     } catch (err) {
@@ -253,6 +254,16 @@ export default function InvIssues({ setPage }) {
               </select>
             </div>
           </div>
+          {mode === 'return' && (
+            <div>
+              <SectionLabel>Condition</SectionLabel>
+              <select aria-label="Condition" value={form.condition || 'good'} onChange={e => setForm({ ...form, condition: e.target.value })} style={inp}>
+                <option value="good">Good — back on the shelf</option>
+                <option value="damaged">Damaged — credit the department, write it off</option>
+                <option value="scrap">Scrap — credit the department, write it off</option>
+              </select>
+            </div>
+          )}
           <div>
             <SectionLabel>Notes</SectionLabel>
             <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} style={inp} />

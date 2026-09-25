@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0236.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0238.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -506,6 +506,17 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (BarcodeDetector camera or typed / handheld; item → stock per store + Issue / Count (inv_adjust 'Spot count'); `BIN:store:code` → bin
   contents). Inventory menu grouped Overview · Stock · Move · Replenish · Reports · Setup; older stores screens wrapped with `invFramed`
   (FinShell module Inventory); QuickNav hides inside any Finance/Procurement/Stores frame.
+  **I5 built (0236):** FEFO in `trg_inventory_movement_batch` (outgoing move with no batch takes the earliest-expiry batch, empties it
+  and splits the rest onto a new movement; `inv.split_child` stops the reservation guard double-counting). Returns carry `condition`
+  good/damaged/scrap (damaged/scrap = return then 'returned …' adjustment loss). Kits: `items.is_kit` + `item_kit_components`,
+  `_inv_expand_kits` in inv_issue/inv_return/inv_dispatch, `trg_inv_0_no_kit` (kits hold no stock); IN24 `inv_kits`.
+  `inv_report(kind, sites, from, to)` kinds ageing/dead/abc/shrinkage/usage/counts → IN23 `inv_health` (CSV).
+  **I6 built (0237):** `ai_stock` from inv_position (free/reserved/on order/on the way/bin; short list, on the road, expiring);
+  proposals `ai_prepare_stock_issue` (to department / person / work order) and `ai_prepare_stock_transfer` → `ai_action_confirm`
+  kinds stock_issue (inv_issue) / stock_transfer (inv_dispatch); edge fn v12 tools propose_stock_issue / propose_stock_transfer.
+  `_ai_alerts_core` = `_ai_alerts_base` (old) ∪ `_ai_alerts_stock` (out of stock — reads tables directly for the cron, shipment
+  on the road >5 d, count off >5%, batch expiring ≤14 d).
+  **Vercel note:** if pushes stop deploying (daily build limit), redeploy from the Vercel dashboard or MCP create_deployment.
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search

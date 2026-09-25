@@ -215,6 +215,8 @@ const InvTransfers   = lazy(() => import('./pages/inventory/InvTransfers'))
 const InvPosition    = lazy(() => import('./pages/inventory/InvPosition'))
 const InvHome        = lazy(() => import('./pages/inventory/InvHome'))
 const InvScan        = lazy(() => import('./pages/inventory/InvScan'))
+const InvHealth      = lazy(() => import('./pages/inventory/InvHealth'))
+const InvKits        = lazy(() => import('./pages/inventory/InvKits'))
 
 // ── Procurement ───────────────────────────────────────────────────────────────
 const ProcHome = lazy(() => import('./pages/procurement/ProcHome'))
@@ -625,6 +627,8 @@ function getInventoryPage(page, can, setPage) {
   switch (page) {
     case 'inv_dashboard':   return <InvHome setPage={setPage} />
     case 'inv_scan':        return <InvScan setPage={setPage} />
+    case 'inv_health':      return <InvHealth setPage={setPage} />
+    case 'inv_kits':        return <InvKits setPage={setPage} />
     case 'inv_items':       return invFramed('Items', <InvItems setPage={setPage} />)
     case 'inv_categories':  return invFramed('Categories & units', <InvCategories setPage={setPage} />)
     case 'inv_warehouses':  return invFramed('Stores', <InvWarehouses setPage={setPage} />)

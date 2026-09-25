@@ -381,13 +381,15 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
 }
 
 const ACTION_TITLE = { receive_delivery: 'Receive delivery', draft_bill: 'Draft bill', petty_cash_spend: 'Petty cash spend', purchase_request: 'Draft purchase request',
-  approval_decision: 'Approval', po_from_quote: 'Draft purchase order' }
+  approval_decision: 'Approval', po_from_quote: 'Draft purchase order', stock_issue: 'Issue stock', stock_transfer: 'Send stock' }
 function ActionCard({ x, onConfirm, onCancel, onOpen }) {
   const d = x.details || {}
   const rows = x.kind === 'receive_delivery' ? (d.lines || []).filter(l => l.qty > 0).map(l => [l.what, `${l.qty} ${l.unit || ''} of ${l.still_to_come} still to come`])
     : x.kind === 'draft_bill' ? (d.lines || []).map(l => [l.what, `${l.qty} × $${Number(l.unit_price).toFixed(2)}`])
     : x.kind === 'purchase_request' ? (d.lines || []).map(l => [l.what, `${l.quantity} ${l.unit || ''}${l.estimated_cost ? ` · ~$${Number(l.estimated_cost).toFixed(2)} each` : ''}`])
     : x.kind === 'po_from_quote' ? (d.lines || []).map(l => [l.what, `${l.qty} × $${Number(l.unit_price).toFixed(2)}`])
+    : x.kind === 'stock_issue' ? [...(d.lines || []).map(l => [l.what, `${l.qty} ${l.unit || ''} (${l.free} free)`]), ['To', d.to], ['From', d.store]]
+    : x.kind === 'stock_transfer' ? [...(d.lines || []).map(l => [l.what, `${l.qty} ${l.unit || ''}`]), ['From', d.from], ['To', d.to], ...(d.vehicle ? [['Vehicle', d.vehicle]] : [])]
     : x.kind === 'approval_decision' ? [['Decision', d.approve ? 'Approve' : 'Reject'], ['Item', d.title], ['Requested by', d.from || '—'], ['Step', d.step || '—'], ...(d.comment ? [['Comment', d.comment]] : [])]
     : [['From', d.fund], ['Balance after', `$${Number(d.balance_after || 0).toFixed(2)}`]]
   const warn = x.kind === 'draft_bill' && d.supplier_hold && d.supplier_hold !== 'none' ? `Supplier is on hold (${d.supplier_hold})` : null

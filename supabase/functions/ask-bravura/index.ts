@@ -188,6 +188,21 @@ const TOOLS = [
       search: { type: 'string', description: 'Words from its title, number or the requester name' }, approve: { type: 'boolean' }, comment: { type: 'string' },
     }, required: ['search', 'approve'] } } },
   { type: 'function', function: {
+    name: 'propose_stock_issue',
+    description: "Propose issuing stock from a store to a department, a person or a fleet work order (e.g. 'issue 4 oil filters to the Workshop', 'give John 2 pairs of gloves', 'parts for WO-118'). The card shows what is free; nothing moves until the person confirms.",
+    parameters: { type: 'object', properties: {
+      to: { type: 'string', description: 'Department name, person name / employee number, or work order number' },
+      store: { type: 'string', description: 'Store name if not the main store' }, notes: { type: 'string' },
+      lines: { type: 'array', items: { type: 'object', properties: { what: { type: 'string', description: 'Item code or description' }, qty: { type: 'number' } } } }, site: { type: 'string' },
+    }, required: ['to', 'lines'] } } },
+  { type: 'function', function: {
+    name: 'propose_stock_transfer',
+    description: "Propose sending stock from a store here to another store or site (a truck). It stays in transit until the other end receives it.",
+    parameters: { type: 'object', properties: {
+      to_store: { type: 'string', description: 'Destination store or site name' }, from_store: { type: 'string' }, vehicle: { type: 'string' },
+      lines: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, qty: { type: 'number' } } } }, site: { type: 'string' },
+    }, required: ['to_store', 'lines'] } } },
+  { type: 'function', function: {
     name: 'propose_po_from_quote',
     description: "Propose a DRAFT purchase order from a supplier's quote (usually an attached quote). Lines need what, qty and unit_price.",
     parameters: { type: 'object', properties: {
@@ -197,7 +212,7 @@ const TOOLS = [
   ...([
     ['fuel', 'Fuel: litres issued and delivered, top-using vehicles/machines, litres per day, tank levels now. Use for fuel consumption/usage/diesel questions. Optional search narrows to one vehicle (fleet no., reg, make).', true, true],
     ['fleet', 'Fleet: vehicles/machines by status, open work orders, services due in 14 days, licence/insurance/roadworthy expiring in 30 days, maintenance jobs and cost in the period.', true, false],
-    ['stock', 'Stores: on-hand quantity and value for items matching the search (per store), or with no search the total stock value and items at/below reorder level.', false, true],
+    ['stock', 'Stores: for items matching the search (code, name, barcode) — on hand, reserved, free, on order, on the way, bin, reorder point and value per store; with no search — total stock value, items short even after orders, shipments on the road and batches expiring in 30 days.', false, true],
     ['people', 'HR: active employees and by department, who is on leave today, leave waiting approval, attendance (absent, late, hours, overtime) in the period.', true, false],
     ['sheq', 'Safety (SHEQ): incidents in the period, open incidents, open and overdue corrective actions.', true, false],
     ['meals', 'Meals: breakfasts, lunches and suppers served in the period, per day.', true, false],
@@ -277,6 +292,10 @@ const PROPOSE: Record<string, [string, string, (a: Record<string, any>, s: strin
     p => `${p.approve ? 'Approve' : 'Reject'} ${p.what}: ${p.title}${p.amount ? ` (${money(p.amount)})` : ''}${p.from ? ` from ${p.from}` : ''}${p.comment ? ` — "${p.comment}"` : ''}`],
   propose_po_from_quote: ['po_from_quote', 'ai_prepare_po', (a, s) => ({ p_site_ids: s, p_supplier: a.supplier, p_lines: a.lines || [], p_quote_ref: a.quote_ref || null, p_expected: a.expected_date || null }),
     p => `Draft PO to ${p.supplier} for ${money(p.total)}${p.quote_ref ? ` (quote ${p.quote_ref})` : ''}`],
+  propose_stock_issue: ['stock_issue', 'ai_prepare_stock_issue', (a, s) => ({ p_site_ids: s, p_lines: a.lines || [], p_to: a.to, p_store: a.store || null, p_notes: a.notes || null }),
+    p => `Issue from ${p.store} to ${p.to}: ` + (p.lines || []).map((l: any) => `${l.qty} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ') + ` (about ${money(p.value)})`],
+  propose_stock_transfer: ['stock_transfer', 'ai_prepare_stock_transfer', (a, s) => ({ p_site_ids: s, p_lines: a.lines || [], p_to_store: a.to_store, p_from_store: a.from_store || null, p_vehicle: a.vehicle || null }),
+    p => `Send from ${p.from} to ${p.to}: ` + (p.lines || []).map((l: any) => `${l.qty} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ') + ` (about ${money(p.value)})`],
   propose_purchase_request: ['purchase_request', 'ai_prepare_request', (a, s) => ({ p_site_ids: s, p_title: a.title, p_lines: a.lines || [], p_needed_by: a.needed_by || null, p_priority: a.priority || 'normal' }),
     p => `Draft request "${p.title}": ` + (p.lines || []).map((l: any) => `${l.quantity} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ')],
 }
@@ -363,7 +382,7 @@ Rules:
 - Booked cost = already in the books; ordered on POs = committed but maybe not billed yet — say which you mean.
 - For ANY arithmetic (totals, differences, averages, percentages), call the calculate tool and use its result. Show the working briefly.
 - When the person asks about "this screen", "here", "these", use the SCREEN section below. Only use figures that appear there or come from tools.
-- If you can't answer from the screen or the tools, say what you can answer instead.\n- You never change anything yourself. For receiving a delivery, drafting a bill, recording a petty cash spend, drafting a purchase request, approving or rejecting something in their approvals inbox, or turning a quote into a draft PO, call the matching propose_ tool: the person gets a card and must press Confirm. Only propose when the person asks for it or clearly wants it (e.g. 'record this', 'receive it', 'draft the bill'). Other changes (payments, sending POs to suppliers) are done on their screens — say which one.`
+- If you can't answer from the screen or the tools, say what you can answer instead.\n- You never change anything yourself. For receiving a delivery, drafting a bill, recording a petty cash spend, drafting a purchase request, approving or rejecting something in their approvals inbox, turning a quote into a draft PO, issuing stock from a store (to a department, person or work order) or sending stock to another store or site, call the matching propose_ tool: the person gets a card and must press Confirm. Only propose when the person asks for it or clearly wants it (e.g. 'record this', 'receive it', 'draft the bill'). Other changes (payments, sending POs to suppliers) are done on their screens — say which one.`
   const pg = body.page
   const screen = pg ? `\n\nSCREEN the person is looking at — module: ${pg.module || '?'}, page: ${pg.title || pg.page || '?'}\n` +
     (pg.context ? 'Structured data shown on screen:\n' + JSON.stringify(pg.context).slice(0, 7000)

@@ -79,7 +79,7 @@ export default function InvScan({ setPage }) {
   const bin = res?.kind === 'bin' ? res : null
 
   return (
-    <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Scan"
+    <FinShell module="Stores" homePage="inv_dashboard" setPage={setPage} title="Scan"
       subtitle="Scan an item barcode or a bin label to see stock and act on it.">
       <div style={{ ...finCard, display: 'grid', gap: 10, maxWidth: 560 }}>
         <form onSubmit={e => { e.preventDefault(); lookup(code) }} style={{ display: 'flex', gap: 8 }}>

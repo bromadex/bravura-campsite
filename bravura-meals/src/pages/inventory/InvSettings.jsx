@@ -82,7 +82,7 @@ export default function InvSettings({ setPage }) {
   return (
     <div>
       <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_settings" />
-      <PageHeader title="Inventory Settings" site={currentSite} />
+      <PageHeader title="Stores settings" site={currentSite} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
         {/* Item Code Settings */}

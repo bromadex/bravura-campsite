@@ -164,7 +164,7 @@ export default function InvReports({ setPage }) {
   return (
     <div>
       <QuickNav pills={INVENTORY_PILLS} setPage={setPage} current="inv_reports" />
-      <PageHeader title="Inventory Reports" site={currentSite} actions={
+      <PageHeader title="Stores reports" site={currentSite} actions={
         activeReport && data.length > 0 && <Button icon="download" onClick={exportReport}>Export</Button>
       } />
 

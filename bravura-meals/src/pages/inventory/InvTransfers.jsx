@@ -72,7 +72,7 @@ export default function InvTransfers({ setPage }) {
   const td = { padding: '10px 12px', borderBottom: `1px solid ${FIN.lineSoft}`, fontSize: 14 }
 
   return (
-    <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Transfers"
+    <FinShell module="Stores" homePage="inv_dashboard" setPage={setPage} title="Transfers"
       subtitle="Stock on the move between stores and sites. It stays in transit until the receiving store confirms it."
       tabs={[{ key: 'incoming', label: 'Coming in', count: incoming.length }, { key: 'outgoing', label: 'Sent, on the way', count: outgoing.length },
              { key: 'done', label: 'Received' }, can('inventory.create') && { key: 'send', label: 'Load a truck' }]}

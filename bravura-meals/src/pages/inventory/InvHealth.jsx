@@ -71,7 +71,7 @@ export default function InvHealth({ setPage }) {
   const numeric = c => c[2] === q || c[2] === $ || /pct|days|lines_off/.test(c[0])
 
   return (
-    <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Stock health" siteText={label}
+    <FinShell module="Stores" homePage="inv_dashboard" setPage={setPage} title="Stock health" siteText={label}
       actions={<>
         <SiteScopeToggle scope={scope} setScope={setScope} multi={multi} />
         <button style={finBtn2} onClick={() => exportCsv(`stock_${kind}.csv`, R.cols.map(c => c[1]), rows.map(r => R.cols.map(c => r[c[0]] ?? '')))}>Export CSV</button>

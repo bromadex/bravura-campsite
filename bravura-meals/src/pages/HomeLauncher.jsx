@@ -18,7 +18,7 @@ const TOP_LEVEL_MODULES = [
   // Order agreed Sept 2026: Finance, Procurement, Inventory, Fuel, Fleet, then everything else.
   { id: 'finance', label: 'Finance', icon: 'account_balance', color: MODULE_COLORS.finance, access: moduleAccess.finance },
   { id: 'procurement', label: 'Procurement', icon: 'storefront', color: MODULE_COLORS.procurement, access: moduleAccess.procurement },
-  { id: 'inventory', label: 'Inventory', icon: 'inventory_2', color: MODULE_COLORS.inventory, access: moduleAccess.inventory },
+  { id: 'inventory', label: 'Stores', icon: 'inventory_2', color: MODULE_COLORS.inventory, access: moduleAccess.inventory },
   { id: 'fuel', label: 'Fuel Management', icon: 'local_gas_station', color: MODULE_COLORS.fuel, access: moduleAccess.fuel },
   { id: 'fleet', label: 'Fleet', icon: 'local_shipping', color: MODULE_COLORS.fleet, access: moduleAccess.fleet },
   { id: 'concrete', label: 'Batch Plant', icon: 'factory', color: MODULE_COLORS.concrete, access: moduleAccess.concrete },

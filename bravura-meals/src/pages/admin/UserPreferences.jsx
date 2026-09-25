@@ -25,7 +25,7 @@ const LANDING_OPTIONS = [
   { value: 'fuel', label: 'Fuel' },
   { value: 'fleet', label: 'Fleet' },
   { value: 'campsite', label: 'Campsite' },
-  { value: 'inventory', label: 'Inventory' },
+  { value: 'inventory', label: 'Stores' },
   { value: 'workforce', label: 'HR' },
   { value: 'finance', label: 'Finance' },
   { value: 'procurement', label: 'Procurement' },

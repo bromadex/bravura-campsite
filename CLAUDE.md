@@ -516,6 +516,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   kinds stock_issue (inv_issue) / stock_transfer (inv_dispatch); edge fn v12 tools propose_stock_issue / propose_stock_transfer.
   `_ai_alerts_core` = `_ai_alerts_base` (old) ∪ `_ai_alerts_stock` (out of stock — reads tables directly for the cron, shipment
   on the road >5 d, count off >5%, batch expiring ≤14 d).
+  **Module is called "Stores" on screen (user, 25 Sep)** — code ids stay `inventory` / `inv_*` / `inventory.*` permissions.
   **No scanning (user, 25 Sep):** Scan (IN22) removed from menu/dashboard, bin labels are plain text (no QR, qrcode package removed).
   **Vercel note:** if pushes stop deploying (daily build limit), redeploy from the Vercel dashboard or MCP create_deployment.
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.

@@ -91,7 +91,7 @@ export default function InvPosition({ setPage }) {
   )
 
   return (
-    <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Stock position" siteText={label}
+    <FinShell module="Stores" homePage="inv_dashboard" setPage={setPage} title="Stock position" siteText={label}
       subtitle="What is on the shelf, what is spoken for, and what is coming."
       actions={<>
         <SiteScopeToggle scope={scope} setScope={setScope} multi={multi} />

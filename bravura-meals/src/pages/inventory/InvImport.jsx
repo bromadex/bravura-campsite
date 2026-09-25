@@ -96,7 +96,7 @@ export default function InvImport({ setPage }) {
   const td = { padding: '6px 10px', borderBottom: `1px solid ${FIN.lineSoft}`, fontSize: 13, whiteSpace: 'nowrap' }
 
   return (
-    <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Import items"
+    <FinShell module="Stores" homePage="inv_dashboard" setPage={setPage} title="Import items"
       subtitle="Add or update items from a spreadsheet, place them in bins, set store levels and post opening stock."
       actions={<button style={finBtn2} onClick={template}>Download template</button>}>
       <div style={{ ...finCard, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>

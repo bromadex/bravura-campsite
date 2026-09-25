@@ -57,7 +57,7 @@ export default function InvHome({ setPage }) {
   ].filter(c => n(c[0]) > 0)
 
   return (
-    <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Stores" siteText={label}
+    <FinShell module="Stores" homePage="inv_dashboard" setPage={setPage} title="Stores" siteText={label}
       actions={<>
         <SiteScopeToggle scope={scope} setScope={setScope} multi={multi} />
         {can('inventory.create') && <button style={finBtn} onClick={() => setPage('inv_issues')}>Issue stock</button>}

@@ -371,7 +371,7 @@ const MODULE_META = {
   fleet:       { label: 'Fleet Management',      icon: 'directions_car',   navFn: fleetNav        },
   finance:     { label: 'Finance',                    icon: 'account_balance',  navFn: financeNav      },
   contractors: { label: 'Contract & Contractor Management', icon: 'handshake', navFn: contractorsNav },
-  inventory:   { label: 'Inventory Management',  icon: 'inventory_2',      navFn: inventoryNav    },
+  inventory:   { label: 'Stores',                 icon: 'inventory_2',      navFn: inventoryNav    },
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
   projects:    { label: 'Project Management',    icon: 'engineering',      navFn: projectsNav     },
   concrete:    { label: 'Batch Plant Operations', icon: 'factory',          navFn: concreteNav     },
@@ -623,7 +623,7 @@ function getProcurementPage(page, can, setPage) {
 function getInventoryPage(page, can, setPage) {
   if (!can('inventory.view')) return null
   // Stores rewrite (#59, I4): older stores screens sit inside the finance-look frame.
-  const invFramed = (title, el) => <FinShell module="Inventory" homePage="inv_dashboard" title={title} setPage={setPage}>{el}</FinShell>
+  const invFramed = (title, el) => <FinShell module="Stores" homePage="inv_dashboard" title={title} setPage={setPage}>{el}</FinShell>
   switch (page) {
     case 'inv_dashboard':   return <InvHome setPage={setPage} />
     case 'inv_scan':        return <InvScan setPage={setPage} />

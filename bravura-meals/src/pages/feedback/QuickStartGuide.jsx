@@ -279,7 +279,7 @@ export default function QuickStartGuide() {
 
       {/* Inventory */}
       {can('inventory.view') && (
-        <Section icon="inventory_2" color={MODULE_COLORS.inventory} title="Inventory — items, stock & warehouses">
+        <Section icon="inventory_2" color={MODULE_COLORS.inventory} title="Stores — items, stock & containers">
           <Steps items={[
             <>The Dashboard (<Code>IN01</Code>) shows total inventory value, SKU count, low-stock alerts and stock by category.</>,
             <>Items (<Code>IN02</Code>) is your central catalogue — every material, spare, consumable and supply gets one item code (auto-generated ITM-####).</>,

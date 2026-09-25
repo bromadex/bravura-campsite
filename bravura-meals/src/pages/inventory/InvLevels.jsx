@@ -94,7 +94,7 @@ export default function InvLevels({ setPage }) {
   const changed = Object.keys(dirty).length
 
   return (
-    <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Store levels"
+    <FinShell module="Stores" homePage="inv_dashboard" setPage={setPage} title="Store levels"
       subtitle="Where each item sits and when to reorder it — for this store. Blank uses the item's own levels."
       actions={<>
         <select aria-label="Store" value={store} onChange={e => setStore(e.target.value)} style={finInput}>

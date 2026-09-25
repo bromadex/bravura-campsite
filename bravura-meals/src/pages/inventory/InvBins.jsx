@@ -88,7 +88,7 @@ export default function InvBins({ setPage }) {
   const td = { padding: '10px 12px', borderBottom: `1px solid ${FIN.lineSoft}`, fontSize: 14 }
 
   return (
-    <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Bins & labels"
+    <FinShell module="Stores" homePage="inv_dashboard" setPage={setPage} title="Bins & labels"
       subtitle="Shelves and bins inside each store. Print labels to stick on them."
       actions={<>
         <select aria-label="Store" value={store} onChange={e => setStore(e.target.value)} style={finInput}>

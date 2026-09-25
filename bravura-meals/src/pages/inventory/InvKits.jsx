@@ -64,7 +64,7 @@ export default function InvKits({ setPage }) {
   const link = { background: 'none', border: 'none', padding: 0, color: FIN.blue, cursor: 'pointer', font: 'inherit' }
 
   return (
-    <FinShell module="Inventory" homePage="inv_dashboard" setPage={setPage} title="Kits"
+    <FinShell module="Stores" homePage="inv_dashboard" setPage={setPage} title="Kits"
       subtitle="A kit is a list of items issued together. Issuing one kit issues every component.">
       <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', alignItems: 'start' }}>
         <div style={{ ...finCard, display: 'grid', gap: 10 }}>

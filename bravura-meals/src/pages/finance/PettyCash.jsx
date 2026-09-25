@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { FIN } from '../../utils/financeTheme'
+import { useFinEmbedded } from '../../components/finEmbed'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
@@ -9,7 +11,7 @@ import Denied from '../../components/Denied'
 import { usd, uploadReceipt, openReceipt } from '../me/shared'
 import { EXPENSE_CATEGORIES } from '../me/MyExpenses'
 
-const FI = MODULE_COLORS.finance
+const FI = FIN.maroon  // finance design: maroon actions (issue #49)
 const CAT = Object.fromEntries(EXPENSE_CATEGORIES)
 const TYPE_LABEL = { top_up: 'Top-up', expense: 'Spending', claim_payment: 'Claim paid', advance: 'Advance paid', adjustment: 'Count adjustment' }
 const inp = {

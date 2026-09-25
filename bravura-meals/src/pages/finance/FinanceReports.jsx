@@ -22,11 +22,12 @@ function presetRange(p) {
 }
 const amt = n => { const v = Number(n || 0); return v < 0 ? `(${money(-v)})` : money(v) }
 
-export default function FinanceReports({ setPage }) {
+export default function FinanceReports({ setPage, initialTab = 'costs' }) {
   useFinanceFonts()
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
-  const [tab, setTab] = useState('costs')
+  const [tab, setTab] = useState(initialTab)
+  useEffect(() => { setTab(initialTab) }, [initialTab])
   const [preset, setPreset] = useState('this_month')
   const [range, setRange] = useState(presetRange('this_month'))
   const [d, setD] = useState(null)

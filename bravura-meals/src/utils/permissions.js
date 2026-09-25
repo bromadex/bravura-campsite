@@ -281,26 +281,18 @@ export function procurementNav(role, can) {
 }
 
 export function financeNav(role, can) {
+  // Finance rewrite (issue #49): one place per job — hubs with tabs instead of 20 separate pages.
   return [
-    { id: 'fi_dashboard',         label: 'Finance Home',      section: 'Overview',       icon: 'dashboard' },
-    { id: 'fi_setup',             label: 'Set Up the Books',  section: 'Overview',       icon: 'checklist' },
-    { id: 'fi_pay_suppliers',     label: 'Pay Suppliers',     section: 'Payables',       icon: 'payments' },
-    { id: 'fi_budgets',           label: 'Budgets',           section: 'Cost Tracking',  icon: 'savings' },
-    { id: 'fi_chart_of_accounts', label: 'Chart of Accounts', section: 'General Ledger', icon: 'account_balance' },
-    { id: 'fi_journal_entries',   label: 'Journal Entries',   section: 'General Ledger', icon: 'receipt_long' },
-    { id: 'fi_posting_rules',     label: 'Posting Rules',     section: 'General Ledger', icon: 'rule' },
-    { id: 'fi_bank',              label: 'Bank & Cash',       section: 'Banking',        icon: 'account_balance' },
-    { id: 'fi_bank_accounts',     label: 'Bank Accounts',     section: 'Banking',        icon: 'account_balance_wallet' },
-    { id: 'fi_reports',           label: 'Reports & Explorer', section: 'Reports',       icon: 'bar_chart' },
-    { id: 'fi_month_end',         label: 'Month-end',         section: 'Reports',        icon: 'event_available' },
-    { id: 'fi_cost_centres',      label: 'Cost Centres',      section: 'Cost Tracking',  icon: 'category' },
-    { id: 'fi_cost_report',       label: 'Cost Centre Report',section: 'Cost Tracking',  icon: 'bar_chart' },
-    { id: 'fi_dimension_report',  label: 'Costs by Centre & Project', section: 'Cost Tracking', icon: 'stacked_bar_chart' },
-    { id: 'fi_expense_claims',    label: 'Expense Claims',    section: 'Spending',       icon: 'receipt_long' },
-    { id: 'fi_petty_cash',        label: 'Petty Cash',        section: 'Spending',       icon: 'savings' },
-    { id: 'fi_fixed_assets',      label: 'Asset Register',    section: 'Fixed Assets',   icon: 'inventory', show: !can || can('assets.view') },
-    { id: 'fi_asset_depreciation', label: 'Depreciation',     section: 'Fixed Assets',   icon: 'trending_down', show: !can || can('assets.view') },
-    { id: 'fi_asset_verification', label: 'Asset Counts',     section: 'Fixed Assets',   icon: 'fact_check', show: !can || can('assets.view') },
+    { id: 'fi_dashboard',     label: 'Finance Home',        section: 'Overview',  icon: 'dashboard' },
+    { id: 'fi_pay_suppliers', label: 'Pay Suppliers',       section: 'Money out', icon: 'payments' },
+    { id: 'fi_spending',      label: 'Claims & Petty Cash', section: 'Money out', icon: 'savings' },
+    { id: 'fi_bank',          label: 'Bank & Cash',         section: 'Money out', icon: 'account_balance' },
+    { id: 'fi_budgets',       label: 'Budgets',             section: 'Planning',  icon: 'donut_small' },
+    { id: 'fi_reports',       label: 'Reports & Explorer',  section: 'Reports',   icon: 'bar_chart' },
+    { id: 'fi_month_end',     label: 'Month-end',           section: 'Reports',   icon: 'event_available' },
+    { id: 'fi_ledger',        label: 'Ledger',              section: 'Books',     icon: 'menu_book' },
+    { id: 'fi_assets',        label: 'Fixed Assets',        section: 'Books',     icon: 'inventory', show: !can || can('assets.view') || can('finance.view') },
+    { id: 'fi_setup',         label: 'Set Up the Books',    section: 'Books',     icon: 'checklist' },
   ].filter(item => item.show !== false)
 }
 

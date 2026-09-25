@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { THEME } from '../../utils/permissions'
+import { useFinEmbedded } from '../../components/finEmbed'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast } from '../../components/ui'
 
 export default function CostCentres({ setPage }) {
+  const embedded = useFinEmbedded()
   const { can } = usePermissions()
   const { currentSite } = useSite()
   const currentSiteId = currentSite?.id
@@ -73,10 +75,10 @@ export default function CostCentres({ setPage }) {
   const inputStyle = { padding: '8px 10px', borderRadius: 8, border: `1px solid ${THEME.outline}`, fontSize: 13, fontFamily: 'inherit', background: THEME.surface, color: THEME.text, width: '100%', boxSizing: 'border-box' }
 
   return (
-    <div style={{ padding: '24px', maxWidth: 1100, margin: '0 auto' }}>
+    <div style={embedded ? {} : { padding: '24px', maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: THEME.text }}>Cost Centres</h1>
+          {!embedded && <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: THEME.text }}>Cost Centres</h1>}
           <div style={{ fontSize: 13, color: THEME.textMed, marginTop: 2 }}>{centres.length} cost centres</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { FIN } from '../../utils/financeTheme'
+import { useFinEmbedded } from '../../components/finEmbed'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { Card, Button, PageHeader, showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
 import { exportCsv } from '../../utils/csv'
 
-const FI = MODULE_COLORS.finance
+const FI = FIN.maroon  // finance design: maroon actions (issue #49)
 const usd = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const monthLabel = p => new Date(p + 'T00:00:00').toLocaleDateString([], { month: 'long', year: 'numeric' })
 

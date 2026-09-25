@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { FIN } from '../../utils/financeTheme'
+import { useFinEmbedded } from '../../components/finEmbed'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
@@ -10,7 +12,7 @@ import { StatusPill, usd, openReceipt } from '../me/shared'
 import { EXPENSE_CATEGORIES } from '../me/MyExpenses'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
-const FI = MODULE_COLORS.finance
+const FI = FIN.maroon  // finance design: maroon actions (issue #49)
 const CAT = Object.fromEntries(EXPENSE_CATEGORIES)
 const TABS = [
   { id: 'submitted', label: 'To approve' },

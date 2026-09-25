@@ -164,19 +164,11 @@ const CLSettings            = lazy(() => import('./pages/contractors/CLSettings'
 const CLCasualPayroll       = lazy(() => import('./pages/contractors/CLCasualPayroll'))
 
 // ── Finance ──────────────────────────────────────────────────────────────────
-const FIChartOfAccounts   = lazy(() => import('./pages/finance/ChartOfAccounts'))
-const FIJournalEntries    = lazy(() => import('./pages/finance/JournalEntries'))
 const FIJournalEntryDetail = lazy(() => import('./pages/finance/JournalEntryDetail'))
-const FIBankAccounts       = lazy(() => import('./pages/finance/BankAccounts'))
-const FICostCentres        = lazy(() => import('./pages/finance/CostCentres'))
-const FICostCentreReport   = lazy(() => import('./pages/finance/CostCentreReport'))
-const FIPostingRules       = lazy(() => import('./pages/finance/PostingRules'))
-const FIExpenseClaims      = lazy(() => import('./pages/finance/ExpenseClaims'))
-const FIPettyCash          = lazy(() => import('./pages/finance/PettyCash'))
-const FIFixedAssets        = lazy(() => import('./pages/finance/FixedAssets'))
-const FIAssetDepreciation  = lazy(() => import('./pages/finance/AssetDepreciation'))
-const FIAssetVerification  = lazy(() => import('./pages/finance/AssetVerification'))
-const FIDimensionReport    = lazy(() => import('./pages/finance/DimensionReport'))
+const FILedger             = lazy(() => import('./pages/finance/FinanceLedger'))
+const FISpending           = lazy(() => import('./pages/finance/FinanceSpending'))
+const FIAssets             = lazy(() => import('./pages/finance/FinanceAssets'))
+const FinShell             = lazy(() => import('./components/FinShell'))
 const FIFinanceSetup       = lazy(() => import('./pages/finance/FinanceSetup'))
 const FIPaySuppliers       = lazy(() => import('./pages/finance/PaySuppliers'))
 const FIFinanceHome        = lazy(() => import('./pages/finance/FinanceHome'))
@@ -696,30 +688,33 @@ function getDeptPage(page, can, setPage) {
 function getFinancePage(page, can, setPage) {
   const [base, param] = (page || '').split(':')
   switch (base) {
-    case 'fi_chart_of_accounts': return <FIChartOfAccounts setPage={setPage} />
-    case 'fi_journal_entries':   return <FIJournalEntries setPage={setPage} />
-    case 'fi_journal_detail':    return <FIJournalEntryDetail setPage={setPage} entryId={param} />
-    case 'fi_bank_accounts':     return <FIBankAccounts setPage={setPage} />
+    case 'fi_chart_of_accounts': return <FILedger setPage={setPage} initialTab="accounts" />
+    case 'fi_journal_entries':   return <FILedger setPage={setPage} initialTab="journals" />
+    case 'fi_journal_detail':    return <FinShell title="Journal entry" setPage={setPage}><FIJournalEntryDetail setPage={setPage} entryId={param} /></FinShell>
+    case 'fi_bank_accounts':     return <FIBank setPage={setPage} />
     case 'fi_reconciliation':    return <FIBank setPage={setPage} />  // replaced by Bank & cash matching (0208)
     case 'fi_trial_balance': return <FIReports setPage={setPage} />  // one Reports screen (0209)
     case 'fi_profit_and_loss': return <FIReports setPage={setPage} />  // one Reports screen (0209)
     case 'fi_balance_sheet': return <FIReports setPage={setPage} />  // one Reports screen (0209)
     case 'fi_cash_flow': return <FIReports setPage={setPage} />  // one Reports screen (0209)
-    case 'fi_cost_centres':      return <FICostCentres setPage={setPage} />
-    case 'fi_cost_report':       return <FICostCentreReport setPage={setPage} />
+    case 'fi_cost_centres':      return <FILedger setPage={setPage} initialTab="centres" />
+    case 'fi_cost_report':       return <FIReports setPage={setPage} initialTab="explore" />
     case 'fi_dashboard':         return <FIFinanceHome setPage={setPage} />  // new Finance Home (0207)
-    case 'fi_posting_rules':     return <FIPostingRules setPage={setPage} />
-    case 'fi_expense_claims':    return <FIExpenseClaims setPage={setPage} />
-    case 'fi_petty_cash':        return <FIPettyCash setPage={setPage} />
-    case 'fi_fixed_assets':      return <FIFixedAssets setPage={setPage} />
-    case 'fi_asset_depreciation': return <FIAssetDepreciation setPage={setPage} />
-    case 'fi_asset_verification': return <FIAssetVerification setPage={setPage} />
-    case 'fi_dimension_report':  return <FIDimensionReport setPage={setPage} />
+    case 'fi_posting_rules':     return <FILedger setPage={setPage} initialTab="rules" />
+    case 'fi_expense_claims':    return <FISpending setPage={setPage} initialTab="claims" />
+    case 'fi_petty_cash':        return <FISpending setPage={setPage} initialTab="petty" />
+    case 'fi_fixed_assets':      return <FIAssets setPage={setPage} initialTab="register" />
+    case 'fi_asset_depreciation': return <FIAssets setPage={setPage} initialTab="depreciation" />
+    case 'fi_asset_verification': return <FIAssets setPage={setPage} initialTab="counts" />
+    case 'fi_dimension_report':  return <FIReports setPage={setPage} initialTab="explore" />
     case 'fi_setup':             return <FIFinanceSetup setPage={setPage} />
     case 'fi_pay_suppliers':     return <FIPaySuppliers setPage={setPage} />
     case 'fi_budgets':           return <FIBudgets setPage={setPage} />
     case 'fi_bank':              return <FIBank setPage={setPage} />
     case 'fi_reports':           return <FIReports setPage={setPage} />
+    case 'fi_ledger':            return <FILedger setPage={setPage} />
+    case 'fi_spending':          return <FISpending setPage={setPage} />
+    case 'fi_assets':            return <FIAssets setPage={setPage} />
     case 'fi_month_end':         return <FIMonthEnd setPage={setPage} />
     default:                     return <FIFinanceHome setPage={setPage} />
   }

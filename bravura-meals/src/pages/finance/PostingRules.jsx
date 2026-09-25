@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { FIN } from '../../utils/financeTheme'
+import { useFinEmbedded } from '../../components/finEmbed'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { Card, Button, Icon, showToast, PageHeader, TableWrap, THead, Th, TRow, Td } from '../../components/ui'
 import Denied from '../../components/Denied'
 
-const FI_CLR = MODULE_COLORS.finance
+const FI_CLR = FIN.maroon  // finance design: maroon actions (issue #49)
 
 // A mine only incurs costs: every event is an expense, stock or liability movement — no revenue.
 export const EVENTS = [

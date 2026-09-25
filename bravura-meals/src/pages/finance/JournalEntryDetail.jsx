@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { FIN } from '../../utils/financeTheme'
+import { useFinEmbedded } from '../../components/finEmbed'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast, ModalOverlay } from '../../components/ui'
 
-const color = MODULE_COLORS.finance || '#1565C0'
+const color = FIN.maroon  // finance design: maroon actions (issue #49)
 
 const STATUS_STYLES = {
   draft:  { bg: THEME.statusNeutralBg,  text: THEME.statusNeutralText,  label: 'Draft' },
@@ -14,6 +16,7 @@ const STATUS_STYLES = {
 }
 
 export default function JournalEntryDetail({ setPage, entryId }) {
+  const embedded = useFinEmbedded()
   const { can } = usePermissions()
   const { currentSite } = useSite()
   const currentSiteId = currentSite?.id
@@ -117,7 +120,7 @@ export default function JournalEntryDetail({ setPage, entryId }) {
   const isPosted = entry.status === 'posted'
 
   return (
-    <div style={{ padding: '24px', maxWidth: 1000, margin: '0 auto' }}>
+    <div style={embedded ? {} : { padding: '24px', maxWidth: 1000, margin: '0 auto' }}>
       {/* Back + header */}
       <button onClick={() => setPage('fi_journal_entries')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: color, fontSize: 13, fontFamily: 'inherit', padding: 0, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
         <span className="material-symbols-rounded" style={{ fontSize: 18 }}>arrow_back</span> Back to Journal Entries

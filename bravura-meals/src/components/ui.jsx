@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { formatDatePref, getPrefs } from '../utils/userPrefs'
 import { THEME } from '../utils/permissions'
+import { useFinEmbedded } from './finEmbed'
 
 // ── Material Symbol icon helper ───────────────────────────────────────────────
 export const Icon = ({ name, size = 20, filled = false, style = {} }) => (
@@ -480,6 +481,17 @@ export const MONTHS = ['January','February','March','April','May','June','July',
 // `site` accepts a site object {name} or a plain string. `actions` renders
 // to the right. `children` renders below the title row (e.g. StatusBadge).
 export function PageHeader({ title, site, actions, children }) {
+  // Inside a Finance hub the hub shows the title; keep only the actions (and any sub-line).
+  const embedded = useFinEmbedded()
+  if (embedded) {
+    if (!actions && !children) return null
+    return (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
+        <div>{children}</div>
+        {actions && <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>{actions}</div>}
+      </div>
+    )
+  }
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',

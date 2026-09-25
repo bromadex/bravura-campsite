@@ -235,6 +235,9 @@ export const TXN_CODES = [
   { code: 'FI23', path: '/finance/fi_bank',            label: 'Bank & Cash Matching',    module: 'finance' },
   { code: 'FI24', path: '/finance/fi_reports',         label: 'Finance Reports & Explorer', module: 'finance' },
   { code: 'FI25', path: '/finance/fi_month_end',       label: 'Month-end Close',         module: 'finance' },
+  { code: 'FI26', path: '/finance/fi_ledger',          label: 'Ledger (accounts, journals, rules, cost centres)', module: 'finance' },
+  { code: 'FI27', path: '/finance/fi_spending',        label: 'Claims & Petty Cash (quick spend)', module: 'finance' },
+  { code: 'FI28', path: '/finance/fi_assets',          label: 'Fixed Assets (register, depreciation, counts)', module: 'finance' },
 
   // ── Batch Plant Operations ──
   { code: 'CO01', path: '/concrete/co_dashboard',       label: 'Concrete Dashboard',   module: 'concrete' },

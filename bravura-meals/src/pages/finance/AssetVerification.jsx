@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../supabaseClient'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { FIN } from '../../utils/financeTheme'
+import { useFinEmbedded } from '../../components/finEmbed'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { Card, Button, PageHeader, showToast, fmtDate } from '../../components/ui'
 import Denied from '../../components/Denied'
 
-const FI = MODULE_COLORS.finance
+const FI = FIN.maroon  // finance design: maroon actions (issue #49)
 const CONDITIONS = ['good', 'fair', 'poor', 'damaged']
 const pill = (on, color) => ({ minHeight: '36px', padding: '6px 12px', borderRadius: '999px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px',
   fontWeight: 600, border: `1px solid ${on ? color : THEME.outlineVar}`, background: on ? color : THEME.surface, color: on ? '#fff' : THEME.textMed })

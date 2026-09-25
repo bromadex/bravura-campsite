@@ -6,6 +6,7 @@ import { usePermissions } from '../contexts/PermissionsContext'
 import { useSite } from '../contexts/SiteContext'
 import { useAuth } from '../auth/AuthContext'
 import { FIN } from '../utils/financeTheme'
+import { attachFileToRecord } from '../utils/docshareUpload'
 
 // Ask Bravura B1 (issue #58): floating assistant on every screen.
 //  • Screens publish what they show with useAskContext({...}) — name, filters, selected record, visible rows,
@@ -126,6 +127,7 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
   const [reading, setReading] = useState(false)
   const [fileErr, setFileErr] = useState('')
   const fileInput = useRef(null)
+  const rawFiles = useRef({})   // message index → original File objects (memory only), filed on a record after Confirm
   const end = useRef(null)
 
   async function addFiles(list) {
@@ -133,7 +135,7 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
     if (!picked.length) return
     setReading(true); setFileErr('')
     const out = []
-    for (const f of picked) { try { out.push(await prepareFile(f)) } catch (e) { setFileErr(e.message) } }
+    for (const f of picked) { try { out.push({ ...(await prepareFile(f)), raw: f }) } catch (e) { setFileErr(e.message) } }
     setFiles(fs => [...fs, ...out].slice(0, 3))
     setReading(false)
   }
@@ -151,7 +153,7 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
       screen_text: pageInfo.pageData?.current ? '' : screenText(pageInfo.contentRef),
     } : null
     const fileNames = sending.map(f => f.name)
-    setChat(c => [...c, { q: question || (fileNames.length ? 'What is this? Match it to our records.' : ''), a: null, screen: !!page, files: fileNames }])
+    setChat(c => { rawFiles.current[c.length] = sending.map(f => f.raw).filter(Boolean); return [...c, { q: question || (fileNames.length ? 'What is this? Match it to our records.' : ''), a: null, screen: !!page, files: fileNames }] })
     const { data, error } = await supabase.functions.invoke('ask-bravura', { body: { question, site_id: currentSiteId, history, page,
       files: sending.map(f => ({ name: f.name, type: f.type, images: f.images, text: f.text })) } })
     const a = error ? (await error.context?.json?.().catch(() => null))?.error || 'The assistant could not be reached. Try again in a minute.' : data?.answer
@@ -166,7 +168,16 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
     setAction(mi, x.id, { state: 'running' })
     const { data, error } = await supabase.rpc('ai_action_confirm', { p_id: x.id })
     if (error) { await supabase.rpc('ai_action_cancel', { p_id: x.id, p_error: error.message }); return setAction(mi, x.id, { state: 'failed', message: error.message }) }
-    setAction(mi, x.id, { state: 'done', message: data?.message, path: data?.path })
+    let message = data?.message
+    const raws = rawFiles.current[mi] || []
+    if (raws.length && data?.record_id && data?.record_table) {
+      try {
+        for (const f of raws) await attachFileToRecord(f, { siteId: data.site_id || currentSiteId, table: data.record_table, recordId: data.record_id,
+          category: data.record_table === 'petty_cash_transactions' ? 'Finance' : 'Procurement' })
+        message += ` · ${raws.map(f => f.name).join(', ')} saved on the record`
+      } catch (e) { message += ` · the file could not be saved on the record (${e.message})` }
+    }
+    setAction(mi, x.id, { state: 'done', message, path: data?.path })
   }
   async function cancelAction(mi, x) {
     await supabase.rpc('ai_action_cancel', { p_id: x.id, p_error: null })
@@ -198,12 +209,12 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
                 <li><b>Spending</b> — how much, on what, by site, supplier, cost centre or week.</li>
                 <li><b>Suppliers</b> — orders, bills, what we owe, late deliveries.</li>
                 <li><b>Every module</b> — fuel used and tank levels, fleet services and expiring papers, stock on hand, who's on leave, safety incidents, meals served, camp beds.</li>
-                <li><b>Read a document</b> — attach a photo or PDF of an invoice, delivery note, quote or receipt (📎, paste or drop it). I read it, find the supplier and PO, and point out differences. Nothing is saved.</li>
+                <li><b>Read a document</b> — attach a photo or PDF of an invoice, delivery note, quote or receipt (📎, paste or drop it). I read it, find the supplier and PO, and point out differences. Nothing is saved unless you confirm an action — then the file is kept on that record.</li>
                 <li><b>Do things — with your OK</b> — receive a delivery, draft a bill from an invoice, record a petty cash spend, or draft a purchase request. I show a card; nothing is saved until you press Confirm.</li>
                 <li><b>Find anything</b> — a PO, request, supplier, vehicle, employee, stock item or incident by number or name.</li>
                 <li><b>Open records</b> — POs, requests and journals I mention are clickable.</li>
               </ul>
-              <div style={{ fontSize: 12, color: FIN.faint }}>Coming soon: approvals, POs from quotes, and linking documents to any record.</div>
+              <div style={{ fontSize: 12, color: FIN.faint }}>Coming soon: approvals, POs from quotes, and a daily brief.</div>
             </div>
             <div style={{ fontSize: 12, color: FIN.muted }}>Try:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

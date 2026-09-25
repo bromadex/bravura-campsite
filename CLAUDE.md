@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0226.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0227.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -455,6 +455,11 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   `propose_*` save a proposal (`ai_action_propose`) and return `actions` → ActionCard in AskChat with Confirm/Cancel →
   `ai_action_confirm` (SECURITY INVOKER: proc_receive_po, purchase_invoices draft insert, petty_cash_record, proc_request_save)
   / `ai_action_cancel`. Proposals expire after 2 h. Groq free tier: `groqChat` falls back qwen → gpt-oss-120b → gpt-oss-20b.
+  **B5 built (0226):** `ds_document_links` created (was referenced but missing — LinkedDocuments failed silently); archive-only
+  (`ds_unlink`); `ds_attach_file` = upload-and-link (`utils/docshareUpload.js` attachFileToRecord). LinkedDocuments now has
+  Upload / Link existing / remove, on PO detail, request detail, supplier profile (+ employees, contractors, incidents, fleet assets).
+  `ai_action_confirm` returns record_table/record_id; AskChat files the chat attachment on that record after Confirm.
+  Procurement Home touch-up (0225 `proc_home_insights`): headline band, 6-month trend, top suppliers, 30-day pipeline.
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

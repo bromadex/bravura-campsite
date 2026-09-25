@@ -7,6 +7,7 @@ import { Modal, showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
 import { useAskContext } from '../../components/AskBravura'
 import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
+import LinkedDocuments from '../../components/LinkedDocuments'
 import { FIN, finCard, finBtn, finBtn2, finInput, money } from '../../utils/financeTheme'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
@@ -296,6 +297,7 @@ function RequestDetail({ r, approval, profileId, onClose, onEdit, onChanged }) {
             ))}
           </section>
         )}
+        <LinkedDocuments linkedTable="purchase_requisitions" linkedId={r.id} siteId={r.site_id} category="Procurement" title="Attachments (specs, photos, quotes)" />
       </div>
     </Modal>
   )

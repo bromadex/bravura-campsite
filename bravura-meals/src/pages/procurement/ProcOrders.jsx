@@ -6,6 +6,7 @@ import { Modal, showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
 import { useAskContext } from '../../components/AskBravura'
 import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
+import LinkedDocuments from '../../components/LinkedDocuments'
 import { FIN, finCard, finBtn, finBtn2, finInput, money } from '../../utils/financeTheme'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
@@ -495,6 +496,8 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
             {trail.events.map((e, i) => <div key={'e' + i} style={{ color: FIN.muted }}>· {String(e.at).slice(0, 10)} {e.type.replace(/_/g, ' ')}{e.notes ? ` — ${e.notes}` : ''}</div>)}
           </section>
         )}
+
+        {po.id && <LinkedDocuments linkedTable="purchase_orders" linkedId={po.id} siteId={po.site_id} category="Procurement" title="Quotes, invoices & delivery notes" />}
 
         <label><span style={lab}>Notes to the supplier</span>
           <textarea disabled={!editable} rows={2} value={po.notes || ''} onChange={e => set({ notes: e.target.value })} style={{ ...inp, resize: 'vertical' }} /></label>

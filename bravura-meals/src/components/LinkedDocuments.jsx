@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { THEME } from '../utils/permissions'
 import { usePermissions } from '../contexts/PermissionsContext'
 import { useSite } from '../contexts/SiteContext'
 import { useAuth } from '../auth/AuthContext'
 import DocumentViewer from './DocumentViewer'
+import { attachFileToRecord } from '../utils/docshareUpload'
+import { showToast } from './ui'
 
 const FILE_ICONS = {
   'application/pdf': 'picture_as_pdf',
@@ -29,7 +31,9 @@ function fileTypeBadge(fileType) {
   return ext ? ext.toUpperCase().slice(0, 4) : '?'
 }
 
-export default function LinkedDocuments({ linkedTable, linkedId, canAttach }) {
+// Documents on any record (B5, issue #58). Upload a new file straight onto the record, link an existing
+// DocShare document, view inline, or remove the link (archived, never deleted).
+export default function LinkedDocuments({ linkedTable, linkedId, canAttach, siteId, category = 'General', title = 'Documents' }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const { profile } = useAuth()
@@ -44,15 +48,36 @@ export default function LinkedDocuments({ linkedTable, linkedId, canAttach }) {
   const [attaching, setAttaching] = useState(false)
 
   const canView = can('ds.view')
+  const mayAttach = canAttach ?? can('ds.create')
+  const site = siteId || currentSiteId
+  const fileRef = useRef(null)
+  const [uploading, setUploading] = useState(false)
+
+  async function handleUpload(list) {
+    const files = [...(list || [])]
+    if (!files.length) return
+    setUploading(true)
+    try { for (const f of files) await attachFileToRecord(f, { siteId: site, table: linkedTable, recordId: linkedId, category }); showToast(files.length > 1 ? `${files.length} files added` : 'File added') }
+    catch (e) { showToast(e.message, 'red') }
+    setUploading(false)
+    fetchLinked()
+  }
+  async function handleRemove(link) {
+    const { error } = await supabase.rpc('ds_unlink', { p_link: link.id })
+    if (error) return showToast(error.message, 'red')
+    fetchLinked()
+  }
 
   const fetchLinked = useCallback(async () => {
     if (!linkedTable || !linkedId || !currentSiteId || !canView) return
     setLoading(true)
     const { data } = await supabase
       .from('ds_document_links')
-      .select('id, document_id, ds_documents(id, title, file_path, file_name, file_size, file_type, category)')
+      .select('id, document_id, created_at, ds_documents(id, title, file_path, file_name, file_size, file_type, category, is_archived)')
       .eq('linked_table', linkedTable)
       .eq('linked_id', linkedId)
+      .eq('is_archived', false)
+      .order('created_at')
     setDocs((data || []).filter(d => d.ds_documents && !d.ds_documents.is_archived))
     setLoading(false)
   }, [linkedTable, linkedId, currentSiteId, canView])
@@ -106,9 +131,17 @@ export default function LinkedDocuments({ linkedTable, linkedId, canAttach }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span className="material-symbols-rounded" style={{ fontSize: 16, color: THEME.primary }}>folder_open</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.04em' }}>Linked Documents</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', letterSpacing: '.04em' }}>{title}</span>
         </div>
-        {canAttach && (
+        {mayAttach && (
+          <div style={{ display: 'flex', gap: 6 }}>
+          <input ref={fileRef} type="file" multiple hidden onChange={e => { handleUpload(e.target.files); e.target.value = '' }} />
+          <button onClick={() => fileRef.current?.click()} disabled={uploading}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6, border: 'none',
+              background: THEME.primary, cursor: 'pointer', fontSize: 11, fontWeight: 600, color: THEME.onPrimary, fontFamily: 'inherit' }}>
+            <span className="material-symbols-rounded" style={{ fontSize: 14 }}>upload</span>
+            {uploading ? 'Uploading…' : 'Upload'}
+          </button>
           <button
             onClick={() => setShowAttach(true)}
             style={{
@@ -119,15 +152,19 @@ export default function LinkedDocuments({ linkedTable, linkedId, canAttach }) {
             }}
           >
             <span className="material-symbols-rounded" style={{ fontSize: 14 }}>attach_file</span>
-            Attach
+            Link existing
           </button>
+          </div>
         )}
       </div>
 
       {loading ? (
         <div style={{ fontSize: 12, color: THEME.textLow, padding: '8px 0' }}>Loading...</div>
       ) : docs.length === 0 ? (
-        <div style={{ fontSize: 12, color: THEME.textLow, padding: '8px 0' }}>No documents linked.</div>
+        <div onDragOver={e => mayAttach && e.preventDefault()} onDrop={e => { if (!mayAttach) return; e.preventDefault(); handleUpload(e.dataTransfer.files) }}
+          style={{ fontSize: 12, color: THEME.textLow, padding: '10px 12px', border: `1px dashed ${THEME.outline}`, borderRadius: 8 }}>
+          {mayAttach ? 'No documents yet — upload or drop a file here (quote, invoice, delivery note, photo…).' : 'No documents.'}
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {docs.map(link => {
@@ -156,6 +193,12 @@ export default function LinkedDocuments({ linkedTable, linkedId, canAttach }) {
                   <span className="material-symbols-rounded" style={{ fontSize: 13 }}>visibility</span>
                   View
                 </button>
+                {mayAttach && (
+                  <button onClick={() => handleRemove(link)} aria-label={`Remove ${d.title || d.file_name}`} title="Remove from this record (kept in DocShare)"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: THEME.textLow }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: 16 }}>close</span>
+                  </button>
+                )}
               </div>
             )
           })}

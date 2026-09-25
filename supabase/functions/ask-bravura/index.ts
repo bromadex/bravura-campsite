@@ -145,11 +145,14 @@ const TOOLS = [
 // The browser sends images (photos, scans, PDF pages rendered to JPEG) and any text layer of a PDF.
 // A vision model turns each into structured JSON; the chat model then matches it with match_document.
 type AskFile = { name?: string; type?: string; images?: string[]; text?: string }
-async function pickVisionModel(): Promise<string> {
-  if (Deno.env.get('GROQ_VISION_MODEL')) return Deno.env.get('GROQ_VISION_MODEL')!
-  if (!modelList.length) await pickModel()
-  return modelList.find(m => /llama-4-scout/i.test(m)) || modelList.find(m => /llama-4-maverick/i.test(m))
-    || modelList.find(m => /vision/i.test(m)) || 'meta-llama/llama-4-scout-17b-16e-instruct'
+// Vision models come and go on Groq, so try every image-capable model the account lists, in order.
+async function visionCandidates(): Promise<string[]> {
+  if (!modelList.length) {
+    try { const r = await fetch(`${GROQ}/models`, { headers: { Authorization: `Bearer ${GROQ_KEY}` } }); modelList = ((await r.json()).data || []).map((m: { id: string }) => m.id) } catch { /* none */ }
+  }
+  const pref = [/llama-4-maverick/i, /llama-4-scout/i, /vision/i, /[-_/]vl\b|-vl-/i, /gemma-?3/i, /llava/i, /pixtral/i, /qwen.*(2\.5|3).*vl/i]
+  const found = pref.flatMap(re => modelList.filter(m => re.test(m)))
+  return [...new Set([Deno.env.get('GROQ_VISION_MODEL') || '', ...found].filter(Boolean))]
 }
 const READ_PROMPT = `Read this business document (a supplier invoice, delivery note, quotation, receipt, statement or other). Return ONLY JSON:
 {"doc_type": "invoice|delivery_note|quote|receipt|statement|other", "supplier": "", "doc_number": "", "date": "YYYY-MM-DD", "po_ref": "", "currency": "",
@@ -161,12 +164,23 @@ async function readFile(f: AskFile): Promise<Record<string, unknown>> {
   if (!images.length && !text) return { file: f.name, error: 'Nothing readable in this file' }
   const content: unknown[] = [{ type: 'text', text: READ_PROMPT + (text ? '\n\nText layer of the document:\n' + text : '') }]
   for (const u of images) content.push({ type: 'image_url', image_url: { url: u } })
-  const model = images.length ? await pickVisionModel() : await pickModel()
-  const payload: Record<string, unknown> = { model, messages: [{ role: 'user', content: images.length ? content : (content[0] as { text: string }).text }], temperature: 0, max_tokens: 1500, response_format: { type: 'json_object' } }
-  if (/qwen3/i.test(model)) payload.reasoning_format = 'hidden'
-  const r = await fetch(`${GROQ}/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(payload) })
-  const d = await r.json()
-  if (!r.ok) return { file: f.name, error: d?.error?.message || 'Could not read the file' }
+  const models = images.length ? await visionCandidates() : [await pickModel()]
+  if (!models.length) return { file: f.name, error: 'No picture-reading model is available on the AI account. Available: ' + modelList.join(', ') }
+  let d: Record<string, any> | null = null; let lastErr = ''
+  for (const model of models) {
+    for (const json_mode of [true, false]) {
+      const payload: Record<string, unknown> = { model, messages: [{ role: 'user', content: images.length ? content : (content[0] as { text: string }).text }], temperature: 0, max_tokens: 1500 }
+      if (json_mode) payload.response_format = { type: 'json_object' }
+      if (/qwen3/i.test(model)) payload.reasoning_format = 'hidden'
+      const r = await fetch(`${GROQ}/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+      const body = await r.json()
+      if (r.ok) { d = body; break }
+      lastErr = `${model}: ${body?.error?.message || r.status}`
+      if (/does not exist|not have access|decommission|not support.*image|image.*not support/i.test(lastErr)) break
+    }
+    if (d) break
+  }
+  if (!d) return { file: f.name, error: lastErr + ' | tried: ' + models.join(', ') + ' | available: ' + modelList.join(', ') }
   const raw = String(d.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '')
   try { return { file: f.name, ...JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)) } }
   catch { return { file: f.name, text: raw.slice(0, 3000) } }

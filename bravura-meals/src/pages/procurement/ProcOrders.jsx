@@ -106,6 +106,7 @@ export default function ProcOrders({ setPage, initialTab = 'orders' }) {
         <SiteScopeToggle {...sc} siteName={sc.sites.find(s => s.id === currentSiteId)?.name} />
         {canCreate && <button style={finBtn2} onClick={newBlank}>Blank order</button>}
       </>}>
+      {tab === 'toorder' && canCreate && <ShortagesBar siteId={currentSiteId} onDone={ids => { load(); if (ids?.length === 1) setOpenId(ids[0]); else setFilter('open'); setTab('orders') }} />}
       {tab === 'toorder' && <ToOrder lines={toOrder} suppliers={suppliers} canCreate={canCreate}
         onDone={ids => { load(); if (ids?.length === 1) setOpenId(ids[0]); else setTab('quotes') }} />}
 
@@ -270,6 +271,7 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
   const [approval, setApproval] = useState(null)
   const [busy, setBusy] = useState(false)
   const [addSup, setAddSup] = useState('')
+  const [trail, setTrail] = useState(null)
 
   const load = useCallback(async () => {
     const { data: p, error } = await supabase.from('purchase_orders')
@@ -289,6 +291,9 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
       supabase.from('approval_requests').select('id, current_step').eq('entity_type', 'purchase_orders').eq('entity_id', id).eq('status', 'pending').maybeSingle(),
     ])
     setRef({ whs: w.data || [], ccs: c.data || [], projects: pj.data || [], items: it.data || [] })
+    supabase.from('fleet_work_orders').select('id, work_order_number, fault_description').eq('site_id', p.site_id).order('created_at', { ascending: false }).limit(200)
+      .then(({ data }) => setRef(r => ({ ...r, wos: data || [] })))
+    supabase.rpc('proc_po_trail', { p_po: id }).then(({ data }) => setTrail(data || null))
     setAlts(al.data || [])
     if (ap.data) {
       const { data: ok } = await supabase.rpc('approval_can_act', { p_request_id: ap.data.id })
@@ -386,6 +391,13 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
             <input disabled={!editable} value={po.supplier_ref || ''} onChange={e => set({ supplier_ref: e.target.value })} style={inp} /></label>
           <label><span style={lab}>Delivery address</span>
             <input disabled={!editable} value={po.delivery_address || ''} onChange={e => set({ delivery_address: e.target.value })} placeholder={po.site?.name} style={inp} /></label>
+          <label><span style={lab}>Fleet work order</span>
+            <select disabled={!editable} value={po.work_order_id || ''} onChange={async e => {
+              const v = e.target.value || null; set({ work_order_id: v })
+              const { error } = await supabase.rpc('proc_po_set_work_order', { p_po: po.id, p_wo: v }); if (error) showToast(error.message, 'red')
+            }} style={inp}>
+              <option value="">—</option>{(ref.wos || []).map(w => <option key={w.id} value={w.id}>{w.work_order_number}{w.fault_description ? ' · ' + w.fault_description.slice(0, 30) : ''}</option>)}
+            </select></label>
         </div>
 
         <div>
@@ -467,6 +479,17 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
           </div>
         )}
 
+        {trail && (trail.requests.length + trail.receipts.length + trail.bills.length + trail.events.length > 0 || trail.work_order) && (
+          <section aria-label="Paper trail" style={{ border: `1px solid ${FIN.line}`, borderRadius: 10, padding: 12, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Paper trail</div>
+            {trail.work_order && <div>🔧 Work order <b>{trail.work_order.no}</b>{trail.work_order.asset ? ` · ${trail.work_order.asset}` : ''}{trail.work_order.fault ? ` — ${trail.work_order.fault}` : ''}</div>}
+            {trail.requests.map((r, i) => <div key={'r' + i}>📝 Request <b>{r.no}</b>{r.title ? ` — ${r.title}` : ''}{r.by ? ` · asked by ${r.by}` : ''} · {r.status}</div>)}
+            {trail.receipts.map((g, i) => <div key={'g' + i}>📦 Received <b>{g.no}</b> on {g.date}{g.ref ? ` · delivery note ${g.ref}` : ''}</div>)}
+            {trail.bills.map((b, i) => <div key={'b' + i}>🧾 Bill <b>{b.no}</b> ${money(b.amount)} · {b.status}{b.match ? ` · ${String(b.match).replace(/_/g, ' ')}` : ''}{b.run ? ` · payment run ${b.run}` : ''}{b.paid_at ? ` · paid ${String(b.paid_at).slice(0, 10)}` : ''}</div>)}
+            {trail.events.map((e, i) => <div key={'e' + i} style={{ color: FIN.muted }}>· {String(e.at).slice(0, 10)} {e.type.replace(/_/g, ' ')}{e.notes ? ` — ${e.notes}` : ''}</div>)}
+          </section>
+        )}
+
         <label><span style={lab}>Notes to the supplier</span>
           <textarea disabled={!editable} rows={2} value={po.notes || ''} onChange={e => set({ notes: e.target.value })} style={{ ...inp, resize: 'vertical' }} /></label>
       </div>
@@ -512,5 +535,24 @@ function AckPanel({ po, onChanged }) {
         </>
       )}
     </section>
+  )
+}
+
+// Stores shortages → draft POs (#57): one draft per preferred / price-list supplier, for a person to review.
+function ShortagesBar({ siteId, onDone }) {
+  const [busy, setBusy] = useState(false)
+  async function go() {
+    setBusy(true)
+    const { data, error } = await supabase.rpc('proc_po_from_reorder', { p_site: siteId, p_item_ids: null })
+    setBusy(false)
+    if (error) return showToast(error.message, 'red')
+    showToast(`${data.lines} item${data.lines === 1 ? '' : 's'} put on ${data.po_ids.length} draft order${data.po_ids.length === 1 ? '' : 's'} — review and confirm`)
+    onDone(data.po_ids)
+  }
+  return (
+    <div style={{ ...finCard, marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', padding: '12px 16px' }}>
+      <span style={{ fontSize: 13.5, color: FIN.muted }}>Stock items at this site below their reorder level can be put on draft orders in one go, grouped by preferred supplier.</span>
+      <button style={finBtn2} disabled={busy} onClick={go}>{busy ? 'Working…' : 'Draft orders for stores shortages'}</button>
+    </div>
   )
 }

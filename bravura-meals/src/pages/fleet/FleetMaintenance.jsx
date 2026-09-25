@@ -97,6 +97,7 @@ export default function FleetMaintenance({ setPage }) {
   const [itemSearch, setItemSearch] = useState('')
   const [showItemPicker, setShowItemPicker] = useState(false)
   const [existingWoParts, setExistingWoParts] = useState([]) // for viewing completed WO parts
+  const [woPOs, setWoPOs] = useState([]) // purchase orders raised for this work order (#57)
 
   const fetchMaintenance = useCallback(async () => {
     if (!currentSiteId) return
@@ -219,6 +220,9 @@ export default function FleetMaintenance({ setPage }) {
     setError(''); setModalOpen(true)
     fetchItems(); fetchSiteStock()
     if (wo.status === 'completed') fetchWoParts(wo.id)
+    setWoPOs([])
+    supabase.from('purchase_orders').select('id, po_number, status, total_amount, expected_date, supplier:procurement_suppliers(supplier_name)')
+      .eq('work_order_id', wo.id).neq('status', 'cancelled').order('created_at').then(({ data }) => setWoPOs(data || []))
   }
 
   function openClose(wo) {
@@ -732,6 +736,18 @@ export default function FleetMaintenance({ setPage }) {
                     </div>
 
                     {/* Existing WO parts (read-only for completed) */}
+                    {editId && woPOs.length > 0 && (
+                      <div style={{ border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '10px 12px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: THEME.textMed, marginBottom: '6px' }}>Purchase orders for this job</div>
+                        {woPOs.map(po => (
+                          <div key={po.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '13px', padding: '3px 0' }}>
+                            <span><b>{po.po_number}</b> · {po.supplier?.supplier_name || 'no supplier'} · {po.status.replace(/_/g, ' ')}</span>
+                            <span>${Number(po.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        ))}
+                        <div style={{ fontSize: '11.5px', color: THEME.textLow, marginTop: '4px' }}>Raise more from Procurement → Requests with this work order selected.</div>
+                      </div>
+                    )}
                     {editId && existingWoParts.length > 0 && form.status === 'completed' && (
                       <div style={{ marginBottom: '12px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>

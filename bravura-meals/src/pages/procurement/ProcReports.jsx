@@ -1,135 +1,82 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
-import { THEME, MODULE_COLORS } from '../../utils/permissions'
-import { Card, Icon, PageHeader, showToast } from '../../components/ui'
-import { DashCard, SectionTitle, ProgressRow } from '../../components/dash'
-import QuickNav from '../../components/QuickNav'
-import { PROCUREMENT_PILLS } from '../../components/QuickNav'
-import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
+import Denied from '../../components/Denied'
+import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
+import { FIN, finCard, finBtn2, finInput, money } from '../../utils/financeTheme'
+import { exportCsv } from '../../utils/csv'
 
-const CLR = MODULE_COLORS.procurement
+// PR06 — Procurement reports (issue #57). One screen, one picker; every report exports to CSV.
+const REPORTS = [
+  ['not_ordered', 'Requested, not ordered', 'Request lines still waiting for a purchase order'],
+  ['not_received', 'Ordered, not received', 'Order lines still to arrive, with due dates and days late'],
+  ['tracker', 'Procurement tracker', 'Request → order → received → billed → paid, per PO'],
+  ['item_history', 'Purchase history per item', 'How often, how much, lowest / highest / last price'],
+  ['by_supplier', 'Spend by supplier', 'Ordered and received value per supplier'],
+  ['by_site', 'Spend by site', 'Ordered and received value per site'],
+  ['by_category', 'Spend by category', 'Ordered value per stock category (services separately)'],
+  ['on_time', 'Supplier delivery performance', 'On-time %, average days late, confirmation rate'],
+]
+const iso = d => d.toISOString().slice(0, 10)
 
 export default function ProcReports({ setPage }) {
   const { can } = usePermissions()
-  const { currentSiteId, currentSite } = useSite()
-  const rt = useRealtimeRefresh('purchase_orders', { column: 'site_id', value: currentSiteId })
-  const [orders, setOrders] = useState([])
-  const [suppliers, setSuppliers] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { currentSiteId } = useSite()
+  const sc = useSiteScope()
+  const [kind, setKind] = useState('not_received')
+  const [from, setFrom] = useState(() => iso(new Date(new Date().getFullYear(), 0, 1)))
+  const [to, setTo] = useState(() => iso(new Date()))
+  const [data, setData] = useState(null)
+  const [err, setErr] = useState(null)
 
-  const fetch = useCallback(async () => {
-    if (!currentSiteId) return
-    setLoading(true)
-    const [poRes, supRes] = await Promise.all([
-      supabase.from('purchase_orders').select('id, po_number, supplier_id, total_amount, status, delivery_status, priority, created_at, delivered_at, shipped_at').eq('site_id', currentSiteId),
-      supabase.from('procurement_suppliers').select('id, supplier_name').eq('site_id', currentSiteId),
-    ])
-    setOrders(poRes.data || [])
-    setSuppliers(supRes.data || [])
-    setLoading(false)
-  }, [currentSiteId])
-
-  useEffect(() => { if (currentSiteId && can('procurement.view')) fetch() }, [currentSiteId, fetch, rt])
-
-  const stats = useMemo(() => {
-    const supMap = Object.fromEntries(suppliers.map(s => [s.id, s.supplier_name]))
-    const bySupplier = {}
-    orders.forEach(o => {
-      const name = supMap[o.supplier_id] || 'Unknown'
-      bySupplier[name] = (bySupplier[name] || 0) + (o.total_amount || 0)
+  useEffect(() => {
+    if (!sc.siteIds.length) return
+    let live = true
+    setData(null); setErr(null)
+    supabase.rpc('proc_report', { p_kind: kind, p_site_ids: sc.siteIds, p_from: from, p_to: to }).then(({ data, error }) => {
+      if (!live) return
+      if (error) setErr(error.message); else setData(data)
     })
-    const supplierSpend = Object.entries(bySupplier).sort((a, b) => b[1] - a[1]).slice(0, 10)
-    const totalSpend = orders.reduce((s, o) => s + (o.total_amount || 0), 0)
+    return () => { live = false }
+  }, [kind, from, to, sc.siteIds])
 
-    const byMonth = {}
-    orders.forEach(o => {
-      const m = o.created_at?.slice(0, 7)
-      if (m) byMonth[m] = (byMonth[m] || 0) + (o.total_amount || 0)
-    })
-    const monthlySpend = Object.entries(byMonth).sort((a, b) => a[0].localeCompare(b[0])).slice(-6)
-
-    let avgLeadDays = 0
-    const delivered = orders.filter(o => o.shipped_at && o.delivered_at)
-    if (delivered.length) {
-      const totalDays = delivered.reduce((s, o) => s + (new Date(o.delivered_at) - new Date(o.shipped_at)) / 86400000, 0)
-      avgLeadDays = Math.round(totalDays / delivered.length)
-    }
-
-    const byPriority = {}
-    orders.forEach(o => { byPriority[o.priority || 'normal'] = (byPriority[o.priority || 'normal'] || 0) + 1 })
-
-    return { supplierSpend, totalSpend, monthlySpend, avgLeadDays, byPriority, totalOrders: orders.length }
-  }, [orders, suppliers])
-
-  if (!can('procurement.view')) return <Card style={{ textAlign: 'center', padding: 40 }}><Icon name="lock" size={28} style={{ color: THEME.textLow }} /></Card>
-
-  const fmt = v => v >= 1000000 ? `$${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`
+  if (!can('procurement.view')) return <Denied />
+  const meta = REPORTS.find(r => r[0] === kind)
+  const isMoney = c => /\$/.test(c)
+  const cell = (v, col) => v == null ? '—' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : isMoney(col) && !isNaN(v) ? `$${money(v)}` : String(v)
 
   return (
-    <div>
-      <QuickNav pills={PROCUREMENT_PILLS} setPage={setPage} current="proc_reports" />
-      <PageHeader title="Procurement Reports" site={currentSite} />
-
-      {loading ? (
-        <Card style={{ textAlign: 'center', padding: 40, color: THEME.textMed }}>Loading...</Card>
+    <ProcShell title="Procurement reports" subtitle={meta[2]} setPage={setPage} siteText={sc.label}
+      actions={<>
+        <SiteScopeToggle {...sc} siteName={sc.sites.find(s => s.id === currentSiteId)?.name} />
+        <button style={finBtn2} disabled={!data?.rows?.length} onClick={() => exportCsv(`${kind}_${from}_${to}.csv`, data.columns, data.rows)}>Export CSV</button>
+      </>}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+        {REPORTS.map(([k, label]) => (
+          <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)} style={{ minHeight: 34, padding: '0 12px', borderRadius: 17, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+            ...(kind === k ? { border: 'none', background: FIN.maroon, color: '#fff' } : { border: `1px solid ${FIN.field}`, background: '#fff', color: FIN.ink }) }}>{label}</button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'end' }}>
+        <label style={{ fontSize: 12, color: FIN.muted }}>From<input type="date" value={from} onChange={e => setFrom(e.target.value)} style={{ ...finInput, display: 'block', marginTop: 4 }} /></label>
+        <label style={{ fontSize: 12, color: FIN.muted }}>To<input type="date" value={to} onChange={e => setTo(e.target.value)} style={{ ...finInput, display: 'block', marginTop: 4 }} /></label>
+      </div>
+      {err && <div role="alert" style={{ ...finCard, color: FIN.bad }}>{err}</div>}
+      {!data && !err ? <div style={{ ...finCard, color: FIN.faint }}>Loading…</div> : data && (data.rows.length === 0 ? (
+        <div style={{ ...finCard, color: FIN.muted }}>Nothing for this period.</div>
       ) : (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 18 }}>
-            <Card style={{ padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: CLR }}>{fmt(stats.totalSpend)}</div>
-              <div style={{ fontSize: 12, color: THEME.textMed }}>Total Spend</div>
-            </Card>
-            <Card style={{ padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: THEME.text }}>{stats.totalOrders}</div>
-              <div style={{ fontSize: 12, color: THEME.textMed }}>Total Orders</div>
-            </Card>
-            <Card style={{ padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#E65100' }}>{stats.avgLeadDays}</div>
-              <div style={{ fontSize: 12, color: THEME.textMed }}>Avg Lead Time (days)</div>
-            </Card>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, marginBottom: 18 }}>
-            <DashCard>
-              <SectionTitle title="Spend by Supplier (Top 10)" />
-              {stats.supplierSpend.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 24, color: THEME.textLow, fontSize: 13 }}>No data</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {stats.supplierSpend.map(([name, val]) => (
-                    <ProgressRow key={name} label={name} value={fmt(val)} pct={stats.totalSpend > 0 ? (val / stats.totalSpend) * 100 : 0} color={CLR} />
-                  ))}
-                </div>
-              )}
-            </DashCard>
-
-            <DashCard>
-              <SectionTitle title="Monthly Spend (Last 6 Months)" />
-              {stats.monthlySpend.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 24, color: THEME.textLow, fontSize: 13 }}>No data</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {stats.monthlySpend.map(([month, val]) => {
-                    const max = Math.max(...stats.monthlySpend.map(m => m[1]))
-                    return <ProgressRow key={month} label={month} value={fmt(val)} pct={max > 0 ? (val / max) * 100 : 0} color={CLR} />
-                  })}
-                </div>
-              )}
-            </DashCard>
-
-            <DashCard>
-              <SectionTitle title="Orders by Priority" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {Object.entries(stats.byPriority).map(([p, count]) => (
-                  <ProgressRow key={p} label={p} value={count} pct={stats.totalOrders > 0 ? (count / stats.totalOrders) * 100 : 0} color={p === 'urgent' ? THEME.error : p === 'high' ? '#E65100' : CLR} />
-                ))}
-              </div>
-            </DashCard>
-          </div>
-        </>
-      )}
-    </div>
+        <div style={{ ...finCard, padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+            <thead><tr>{data.columns.map((c, i) => <th key={c} style={{ padding: '10px 12px', textAlign: i === 0 ? 'left' : 'right', color: FIN.muted, fontSize: 12, fontWeight: 600, borderBottom: `1px solid ${FIN.line}`, whiteSpace: 'nowrap' }}>{c}</th>)}</tr></thead>
+            <tbody>{data.rows.map((r, i) => (
+              <tr key={i} style={{ borderBottom: `1px solid ${FIN.lineSoft}` }}>
+                {r.map((v, j) => <td key={j} style={{ padding: '8px 12px', textAlign: j === 0 ? 'left' : 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: j === 0 ? 'normal' : 'nowrap' }}>{cell(v, data.columns[j])}</td>)}
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      ))}
+    </ProcShell>
   )
 }

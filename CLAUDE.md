@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0217.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0220.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -370,7 +370,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 
 ## Open roadmap (Sept 2026) — tracked in #49 (finance + AI) and #47 (Stage 11)
 
-- **NEXT: Procurement rewrite (#50, Stage 12)** — plan agreed, phases are sub-issues:
+- **Procurement rewrite (#50, Stage 12) — P1–P7 BUILT.** Phases are sub-issues:
   P1 look/menu/Home (#51) · P2 Requests (#52) · P3 Purchase Orders hub, RFQ = draft PO + alternatives +
   approval levels + lock/amend (#53) · P4 Receiving + supplier acknowledgement link (#54) · P5 Suppliers
   profile + hold + price list + Agreements (#55) · P6 Bills move to Finance FI21 + inter-site 2500 postings
@@ -408,13 +408,27 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   `proc_supplier_scorecard`. ProcSuppliers (PR02; replaces Suppliers.jsx; scorecards & aging tab = old
   ProcSupplierPerformance). Agreements PR13 (`proc_agreements`, `proc_agreement_lines`, po_lines.agreement_line_id,
   `proc_agreement_save/set_status/list`, `proc_po_from_agreement`).
+  **P6 built (0218):** bills recorded/approved in Finance FI21 Pay Suppliers → tab "Record & approve bills"
+  (embeds ProcInvoices; route proc_invoices → FI21 for finance users). HQ pays for sites: finance_setup.funded_by_site_id
+  (Kamativi → Harare), `_paying_site(invoice)` (run bank account's site, else funder, else own). Paid bill of a
+  funded site posts `invoice_paid_by_hq` (site Dr 2100/Cr 2500) + `hq_paid_for_site` & IMTT at HQ (Dr 2500/Cr 1110);
+  petty cash top-ups `petty_cash_topup_hq` / `hq_funded_site_cash`. HQ-side postings are logged 'skipped' until
+  Harare has books (skipped entries are not retried automatically). Tab "Head office & sites": `fin_intersite_balances`,
+  `finance_set_funded_by`.
+  **P7 built (0219, 0219b):** purchase_orders.work_order_id (copied from requests by trg_po_line_work_order;
+  `proc_po_set_work_order`), FleetMaintenance work order modal lists its POs; `proc_po_from_reorder` (stores
+  shortages → draft POs by preferred/price-list supplier); `proc_po_trail` (Paper trail on PO detail);
+  `proc_report(kind, sites, from, to)` → ProcReports PR06 (8 reports + CSV).
+  **Ask Bravura A1 (0217):** FI29 `fi_ask` → edge function `supabase/functions/ask-bravura` (Groq, secret
+  GROQ_API_KEY, prefers qwen/qwen3-32b, env GROQ_MODEL overrides; 60 questions/user/day); tools = read-only
+  `ai_spend_summary`, `ai_spend_on`, `ai_supplier_history` (finance/procurement view per site via `_ai_sites`);
+  log `ai_questions` (rating 👍/👎).
 
 - Real opening balances for Kamativi (replace mock JV-0001 via `finance_setup_clear_mock_opening`).
 - Finance setup (FI20) for Selous, Manhizi, Harare — no CoA/rules yet, so nothing posts there.
 - Hired-vehicle usage log (daily/km) so vehicles accrue like hired equipment (`hired_plant_usage`).
 - Expected recurring bills with a missing-bill warning.
-- AI assistant A1–A6: Qwen via Groq free tier, key as edge-function secret; read-only RPCs run as the
-  asking user. Blocked on the user's Groq API key.
+- AI assistant: A1 built (see above). Next A2 project questions, A3 report commentary, A4 alerts, A5 receipts, A6 drafts.
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

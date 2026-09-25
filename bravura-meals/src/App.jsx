@@ -168,7 +168,6 @@ const FIChartOfAccounts   = lazy(() => import('./pages/finance/ChartOfAccounts')
 const FIJournalEntries    = lazy(() => import('./pages/finance/JournalEntries'))
 const FIJournalEntryDetail = lazy(() => import('./pages/finance/JournalEntryDetail'))
 const FIBankAccounts       = lazy(() => import('./pages/finance/BankAccounts'))
-const FIBankReconciliation = lazy(() => import('./pages/finance/BankReconciliation'))
 const FITrialBalance       = lazy(() => import('./pages/finance/TrialBalance'))
 const FIProfitAndLoss      = lazy(() => import('./pages/finance/ProfitAndLoss'))
 const FIBalanceSheet       = lazy(() => import('./pages/finance/BalanceSheet'))
@@ -186,6 +185,7 @@ const FIFinanceSetup       = lazy(() => import('./pages/finance/FinanceSetup'))
 const FIPaySuppliers       = lazy(() => import('./pages/finance/PaySuppliers'))
 const FIFinanceHome        = lazy(() => import('./pages/finance/FinanceHome'))
 const FIBudgets            = lazy(() => import('./pages/finance/FinanceBudgets'))
+const FIBank               = lazy(() => import('./pages/finance/FinanceBank'))
 const MeHome               = lazy(() => import('./pages/me/MeHome'))
 const MyPayslips           = lazy(() => import('./pages/me/MyPayslips'))
 const MyLeave              = lazy(() => import('./pages/me/MyLeave'))
@@ -702,7 +702,7 @@ function getFinancePage(page, can, setPage) {
     case 'fi_journal_entries':   return <FIJournalEntries setPage={setPage} />
     case 'fi_journal_detail':    return <FIJournalEntryDetail setPage={setPage} entryId={param} />
     case 'fi_bank_accounts':     return <FIBankAccounts setPage={setPage} />
-    case 'fi_reconciliation':    return <FIBankReconciliation setPage={setPage} bankAccountId={param} />
+    case 'fi_reconciliation':    return <FIBank setPage={setPage} />  // replaced by Bank & cash matching (0208)
     case 'fi_trial_balance':     return <FITrialBalance setPage={setPage} />
     case 'fi_profit_and_loss':   return <FIProfitAndLoss setPage={setPage} />
     case 'fi_balance_sheet':     return <FIBalanceSheet setPage={setPage} />
@@ -720,6 +720,7 @@ function getFinancePage(page, can, setPage) {
     case 'fi_setup':             return <FIFinanceSetup setPage={setPage} />
     case 'fi_pay_suppliers':     return <FIPaySuppliers setPage={setPage} />
     case 'fi_budgets':           return <FIBudgets setPage={setPage} />
+    case 'fi_bank':              return <FIBank setPage={setPage} />
     default:                     return <FIFinanceHome setPage={setPage} />
   }
 }

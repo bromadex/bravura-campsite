@@ -333,7 +333,9 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   auto due dates; three-way match (`match_status`, `match_diff`); payment runs (`ap_payment_runs`,
   `ap_run_create/approve/mark_paid/cancel`, KAM-PAY-YYYY-NNNN). 0206 fixed two legacy notification triggers (fuel issuance, meals) still using recipient_id/body/action_url. Phase 4 (0207): Finance Home FI12 (`fin_home` RPC, replaces FinanceDashboard) and Budgets FI22
   `fi_budgets` (also PR11) — one budget store `procurement_budgets` + `budget_months` (`monthly_split`),
-  `fin_budget_vs_actual` = plan vs ledger actual vs committed POs. Migrations continue at 0208.
+  `fin_budget_vs_actual` = plan vs ledger actual vs committed POs. Phase 5 (0208): Bank & Cash FI23 `fi_bank` (replaces fi_reconciliation) — `bank_import_lines` (dedupe),
+  `bank_auto_match` (journal same amount ±5d, then `bank_match_rules`), `bank_confirm_line`, `bank_unmatch_line`
+  (voids created JV), `bank_save_rule`, `bank_rec_summary`. Statement lines writable only via RPCs. Migrations continue at 0209.
 
 ## Improvement backlog (agreed with user, work top-down)
 

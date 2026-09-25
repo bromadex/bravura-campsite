@@ -430,6 +430,16 @@ export default function QuickStartGuide() {
       )}
 
       {(can('finance.view') || can('finance.edit')) && (
+        <Section icon="account_balance" color={MODULE_COLORS.finance} title="Finance — bank statements and reconciliation">
+          <Steps items={[
+            <>In <b>Bank &amp; Cash</b> (<Code>FI23</Code>) press <b>Import statement</b> and choose the CSV or Excel file from internet banking. Check the columns (date, description, amount or money in/out) and import — lines already imported are skipped.</>,
+            <>Lines are matched automatically: to a posted payment of the same amount within 5 days, or to a <b>matching rule</b> (e.g. description contains ZESA → Electricity, Camp). Press <b>Confirm</b>, or <b>Confirm all suggestions</b>.</>,
+            <>For anything else press <b>Find or post</b>: match it to a journal, or post it to an account and cost centre. Tick <b>Remember</b> to turn it into a rule for next time.</>,
+            <>The top of the page shows the balance per bank against the balance per books and how much is still to explain. <b>Unmatch</b> reopens a line (a journal it created is voided).</>,
+          ]} />
+        </Section>
+      )}
+      {(can('finance.view') || can('finance.edit')) && (
         <Section icon="savings" color={MODULE_COLORS.finance} title="Finance — Finance Home and budgets">
           <Steps items={[
             <><b>Finance Home</b> (<Code>FI12</Code>) shows the month at a glance: spend against budget, cash and bank, what is owed to suppliers, petty cash, a 12-month spend chart, where the money went, cost by site and project, bills due in the next 14 days, and a <b>Needs attention</b> list. Click anything to go to it.</>,

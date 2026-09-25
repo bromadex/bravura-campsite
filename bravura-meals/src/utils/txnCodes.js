@@ -20,7 +20,7 @@ export const TXN_CODES = [
   { code: 'ME11', path: '/meals/meals_range',          label: 'Meals Range Report',     module: 'meals' },
   { code: 'ME12', path: '/meals/meals_monthly',        label: 'Meals Monthly Report',   module: 'meals' },
   { code: 'ME13', path: '/meals/meals_billing',        label: 'Meals Billing',          module: 'meals' },
-  { code: 'ME14', path: '/meals/meals_finance_export', label: 'Meals Finance Export',   module: 'meals' },
+  { code: 'ME14', path: '/meals/meals_finance_export', label: 'Meals Finance Export (retired)', module: 'meals' },
   { code: 'ME20', path: '/meals/meals_providers',      label: 'Meal Providers',         module: 'meals' },
   { code: 'ME21', path: '/meals/meals_pricing',        label: 'Meal Pricing',           module: 'meals' },
   { code: 'ME22', path: '/meals/meals_settings',       label: 'Meals Settings',         module: 'meals' },
@@ -41,7 +41,7 @@ export const TXN_CODES = [
   { code: 'FU13', path: '/fuel/fuel_reports',             label: 'Fuel Reports',          module: 'fuel' },
   { code: 'FU14', path: '/fuel/fuel_report_variance',     label: 'Variance Report',       module: 'fuel' },
   { code: 'FU15', path: '/fuel/fuel_cost_allocation',     label: 'Cost Allocation',       module: 'fuel' },
-  { code: 'FU16', path: '/fuel/fuel_finance_export',      label: 'Fuel Finance Export',   module: 'fuel' },
+  { code: 'FU16', path: '/fuel/fuel_finance_export',      label: 'Fuel Finance Export (retired)', module: 'fuel' },
   { code: 'FU17', path: '/fuel/fuel_shift_report',        label: 'Shift Report',          module: 'fuel' },
   { code: 'FU18', path: '/fuel/fuel_bowsers',             label: 'Bowser Dispatch',       module: 'fuel' },
   { code: 'FU20', path: '/fuel/fuel_settings',            label: 'Fuel Settings',         module: 'fuel' },
@@ -119,6 +119,7 @@ export const TXN_CODES = [
   { code: 'HR36', path: '/workforce/wf_statutory',            label: 'Statutory Returns',    module: 'workforce' },
   { code: 'HR37', path: '/workforce/wf_detail_changes',       label: 'Employee Detail Changes', module: 'workforce' },
   { code: 'HR38', path: '/workforce/wf_salary_advances',      label: 'Salary Advances & Loans', module: 'workforce' },
+  { code: 'HR39', path: '/workforce/wf_holidays',             label: 'Public Holidays',      module: 'workforce' },
 
   // ── Contract & Contractor Management (CL) ──────────────────────────────
   { code: 'CL01', path: '/contractors/cl_dashboard',            label: 'CL Dashboard',         module: 'contractors' },

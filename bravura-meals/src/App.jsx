@@ -80,7 +80,7 @@ const Pricing        = lazy(() => import('./pages/meals/Pricing'))
 const MealProviders  = lazy(() => import('./pages/meals/MealProviders'))
 const Settings       = lazy(() => import('./pages/meals/Settings'))
 const MealForecasts  = lazy(() => import('./pages/meals/MealForecasts'))
-const MealFinanceExport = lazy(() => import('./pages/meals/MealFinanceExport'))
+const RetiredPage = lazy(() => import('./components/RetiredPage'))
 const UserManagement     = lazy(() => import('./pages/admin/UserManagement'))
 const AuditLogViewer     = lazy(() => import('./pages/admin/AuditLogViewer'))
 const AdminDashboard     = lazy(() => import('./pages/admin/AdminDashboard'))
@@ -142,7 +142,6 @@ const VarianceReport           = lazy(() => import('./pages/fuel/reports/Varianc
 const VehicleConsumption       = lazy(() => import('./pages/fuel/VehicleConsumption'))
 const Forecasting              = lazy(() => import('./pages/fuel/Forecasting'))
 const CostAllocation           = lazy(() => import('./pages/fuel/CostAllocation'))
-const FinanceExport            = lazy(() => import('./pages/fuel/FinanceExport'))
 
 // ── Contract & Contractor Management ─────────────────────────────────────────
 const CLDashboard           = lazy(() => import('./pages/contractors/CLDashboard'))
@@ -194,6 +193,7 @@ const MyAdvances           = lazy(() => import('./pages/me/MyAdvances'))
 const MyTeam               = lazy(() => import('./pages/me/MyTeam'))
 const HRDetailChanges      = lazy(() => import('./pages/hr/DetailChanges'))
 const HRSalaryAdvances     = lazy(() => import('./pages/hr/SalaryAdvances'))
+const HRPublicHolidays     = lazy(() => import('./pages/hr/PublicHolidays'))
 const CampFaults           = lazy(() => import('./pages/campsite/CampFaults'))
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
@@ -423,6 +423,7 @@ function getWorkforcePage(page, role, can, setPage) {
     case 'wf_medicals':          return can('hr.view') ? <HRMedicalSurveillance setPage={setPage} /> : null
     case 'wf_document_expiry':   return can('hr.view') ? <HRDocumentExpiry setPage={setPage} /> : null
     case 'wf_ppe':               return can('hr.view') ? <PPETracking setPage={setPage} /> : null
+    case 'wf_holidays':          return can('hr.view') ? <HRPublicHolidays setPage={setPage} /> : null
     case 'wf_detail_changes':    return can('hr.view') ? <HRDetailChanges setPage={setPage} /> : null
     case 'wf_salary_advances':   return can('hr.edit') || can('hr.approve') ? <HRSalaryAdvances setPage={setPage} /> : null
     // Employee list: the Phase 1 HR list supersedes the original page but
@@ -462,7 +463,7 @@ function getMealsPage(page, role, setPage, can) {
   switch (page) {
     case 'meals_dashboard': return <Dashboard setPage={setPage} />
     case 'meals_forecasts':      return can('meals.create')  ? <MealForecasts setPage={setPage} />     : null
-    case 'meals_finance_export': return can('meals.approve') ? <MealFinanceExport setPage={setPage} /> : null
+    case 'meals_finance_export': return can('meals.approve') ? <RetiredPage title="Meals Finance Export" reason="Retired: approved meal billing now post to the accounts automatically, using the accounts set in Posting Rules. There's nothing to export any more — see the entries in Journal Entries." links={[['Posting Rules (FI13)', '/finance/fi_posting_rules'], ['Journal Entries (FI02)', '/finance/fi_journal_entries']]} /> : null
     case 'meals_entry':     return can('meals.create') ? <DailyEntry setPage={setPage} />     : null
     case 'meals_approvals': return can('meals.approve') ? <Approvals setPage={setPage} />      : null
     case 'meals_kitchen':   return can('meals.edit') ? <KitchenConfirm setPage={setPage} /> : null
@@ -526,7 +527,7 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_vehicle_consumption': return can('fuel.view') ? <VehicleConsumption setPage={setPage} /> : null
     case 'fuel_forecasting':   return can('fuel.view')     ? <Forecasting setPage={setPage} />        : null
     case 'fuel_cost_allocation':   return can('fuel.view') ? <CostAllocation setPage={setPage} />      : null
-    case 'fuel_finance_export':    return can('fuel.edit') ? <FinanceExport setPage={setPage} />      : null
+    case 'fuel_finance_export':    return can('fuel.edit') ? <RetiredPage title="Fuel Finance Export" reason="Retired: approved fuel issues now post to the accounts automatically, using the accounts set in Posting Rules. There's nothing to export any more — see the entries in Journal Entries." links={[['Posting Rules (FI13)', '/finance/fi_posting_rules'], ['Journal Entries (FI02)', '/finance/fi_journal_entries']]} />      : null
     case 'fuel_reports':   return can('fuel.view')     ? <FuelReports setPage={setPage} />   : null
     case 'fuel_tanks':     return can('fuel.view')   ? <FuelTanks setPage={setPage} />     : null
     case 'fuel_types':     return can('fuel.edit')   ? <FuelTypes setPage={setPage} />         : null

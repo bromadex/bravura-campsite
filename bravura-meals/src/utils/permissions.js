@@ -159,6 +159,7 @@ export function workforceNav(role) {
     { id: 'wf_org_chart',    label: 'Org Chart',        section: 'Organisation', icon: 'account_tree' },
     { id: 'wf_shifts',       label: 'Shift Management', section: 'Attendance', icon: 'schedule' },
     { id: 'wf_attendance',   label: 'Attendance Log',   section: 'Attendance', icon: 'fact_check' },
+    { id: 'wf_holidays',     label: 'Public Holidays',  section: 'Attendance', icon: 'event' },
     { id: 'wf_training',     label: 'Training Programs',section: 'Training',   icon: 'school' },
     { id: 'wf_skills',       label: 'Skills Matrix',    section: 'Training',   icon: 'psychology' },
     { id: 'wf_medicals',        label: 'Medical Surveillance', section: 'Compliance', icon: 'medical_services' },

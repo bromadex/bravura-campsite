@@ -127,7 +127,7 @@ export default function Settings({ setPage }) {
           </div>
         </div>
         <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '16px' }}>
-          Chart-of-accounts codes used by the Meal Finance Export when generating journal entries.
+          No longer used — the Finance Export page is retired. Postings to the accounts now use Finance → Posting Rules (FI13).
         </div>
         {MEAL_MAPPING_META.map(m => (
           <div key={m.type} style={{ marginBottom: '14px' }}>

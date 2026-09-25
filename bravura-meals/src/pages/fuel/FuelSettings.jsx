@@ -455,7 +455,7 @@ export default function FuelSettings() {
               Finance Account Mapping
             </div>
             <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '18px' }}>
-              Chart-of-accounts codes used by the Finance Export page when generating journal entries.
+              No longer used — the Finance Export page is retired. Postings to the accounts now use Finance → Posting Rules (FI13).
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

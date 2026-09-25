@@ -352,7 +352,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   0212: `purchase_invoices.bill_type` ('goods'|'accrued'); an accrued bill posts `invoice_accrual`
   Dr 2200 / Cr 2100 instead of clearing GRNI. 0213: `bill_accrual_links` matches a bill to the exact timesheets / usage logs /
   incidents (`ap_unbilled_accruals`, `ap_set_bill_accruals`); on approval the difference posts as
-  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0232.
+  `accrual_release` / `accrual_topup` so exactly the matched accrual leaves 2200. Migrations continue at 0234.
 
 ## Improvement backlog (agreed with user, work top-down)
 
@@ -481,6 +481,18 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   I3 reservations, available/on order/in transit, transfers with in-transit, "truck" cart · I4 `inv_home` dashboard, FinShell, menu
   Overview/Stock/Move/Replenish/Reports/Setup, phone scanning · I5 ageing, dead stock, ABC, shrinkage, FEFO, return condition, kits ·
   I6 Ask Bravura issue cards + stock alerts.
+  **I1 built (0232, 0232a):** inventory RLS via `_inv_can(action, warehouse)` / `_inv_any` (_has_permission; all-site roles work);
+  stock_balances / inventory_movements / inventory_batches are read-only to clients — every move goes through `inv_issue`, `inv_return`,
+  `inv_adjust` (reason, inventory.edit), `inv_transfer` (same site only), `inv_receive_nopo` (opening/donation/found/returned/other),
+  `inv_opening`, `inv_count_post` (one step, variance $ on stock_takes). Balance trigger prices outgoing moves at the store's moving
+  average (incoming $0 → store rate), blocks negatives unless `warehouses.allow_negative`, items.average_cost = weighted across stores.
+  GL: `stock_opening` (1320/3900), cross-site `stock_transfer_out` (2500/1320) / `stock_transfer_in` (1320/2500) via
+  `inventory_movements.counter_warehouse_id`; PO receipts without a store go to `_inv_main_store(site)`; requests issued from stock
+  track `requisition_lines.issued_qty` and close as fulfilled. Fleet WO parts issue via inv_issue (work_order_id). camp_supply_txns +
+  stock_transfers frozen (`trg_retired`); CA06/CA07 open Stores screens; IN08 = Move between stores.
+  **I2 built (0233):** `warehouse_bins` + QR labels (IN17 `inv_bins`), `item_store_settings` bin/min/max/reorder per store (IN18
+  `inv_levels`; `_inv_reorder_core` uses them first), `items.purchase_uom_id` + `purchase_factor` (GRN converts PO-unit qty × factor,
+  cost ÷ factor), `inv_import_items(rows, store)` + IN19 `inv_import` (Excel template, upsert by item_code, bins/levels, opening stock).
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search

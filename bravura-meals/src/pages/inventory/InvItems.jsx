@@ -12,7 +12,7 @@ import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 const ACCENT = MODULE_COLORS.inventory
 
 const EMPTY = {
-  item_code: '', description: '', category_id: '', uom_id: '',
+  item_code: '', description: '', category_id: '', uom_id: '', purchase_uom_id: '', purchase_factor: '1',
   brand: '', manufacturer: '', part_number: '', barcode: '',
   min_stock: '', max_stock: '', reorder_level: '', reorder_qty: '',
   standard_cost: '', location: '', photo_url: '', status: 'active',
@@ -86,6 +86,8 @@ export default function InvItems({ setPage }) {
       description: item.description || '',
       category_id: item.category_id || '',
       uom_id: item.uom_id || '',
+      purchase_uom_id: item.purchase_uom_id || '',
+      purchase_factor: String(item.purchase_factor ?? 1),
       brand: item.brand || '',
       manufacturer: item.manufacturer || '',
       part_number: item.part_number || '',
@@ -110,6 +112,8 @@ export default function InvItems({ setPage }) {
         description: form.description.trim(),
         category_id: form.category_id || null,
         uom_id: form.uom_id || null,
+        purchase_uom_id: form.purchase_uom_id || null,
+        purchase_factor: Number(form.purchase_factor) > 0 ? Number(form.purchase_factor) : 1,
         brand: form.brand.trim() || null,
         manufacturer: form.manufacturer.trim() || null,
         part_number: form.part_number.trim() || null,
@@ -292,6 +296,19 @@ export default function InvItems({ setPage }) {
               {uoms.map(u => <option key={u.id} value={u.id}>{u.name} ({u.abbreviation})</option>)}
             </select>
           </div>
+          <div>
+            <SectionLabel>Bought in (purchase unit)</SectionLabel>
+            <select aria-label="Purchase unit" value={form.purchase_uom_id} onChange={e => setForm({ ...form, purchase_uom_id: e.target.value })} style={inp}>
+              <option value="">— Same as stock unit —</option>
+              {uoms.map(u => <option key={u.id} value={u.id}>{u.name} ({u.abbreviation})</option>)}
+            </select>
+          </div>
+          {form.purchase_uom_id && (
+            <div>
+              <SectionLabel>Stock units per purchase unit</SectionLabel>
+              <input aria-label="Units per purchase unit" type="number" min="0.0001" step="any" value={form.purchase_factor} onChange={e => setForm({ ...form, purchase_factor: e.target.value })} style={inp} />
+            </div>
+          )}
           <div>
             <SectionLabel>Brand</SectionLabel>
             <input value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} style={inp} />

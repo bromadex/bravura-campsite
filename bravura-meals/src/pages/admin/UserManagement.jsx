@@ -38,6 +38,11 @@ export default function UserManagement({ setPage }) {
   const [linkingEmployee, setLinkingEmployee] = useState(false)
 
   useEffect(() => { fetchAll() }, [])
+  // Invite status per login (0227 admin_invite_status): sent / accepted / last signed in.
+  const [invites, setInvites] = useState({})
+  useEffect(() => {
+    supabase.rpc('admin_invite_status').then(({ data }) => setInvites(Object.fromEntries((data || []).map(r => [r.user_id, r]))))
+  }, [])
 
   async function fetchAll() {
     setLoading(true)
@@ -271,6 +276,7 @@ export default function UserManagement({ setPage }) {
                           )}
                         </div>
                         <div style={{ fontSize: '11px', color: THEME.textLow }}>@{p.username}</div>
+                        <InviteLine inv={invites[p.id]} />
                       </div>
                     </div>
                   </Td>
@@ -491,6 +497,21 @@ export default function UserManagement({ setPage }) {
         confirmLabel="Deactivate"
         danger
       />
+    </div>
+  )
+}
+
+const WHEN = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+const when = t => new Date(t).toLocaleString('en-GB', WHEN)
+function InviteLine({ inv }) {
+  if (!inv) return null
+  const waiting = inv.status === 'waiting'
+  return (
+    <div style={{ fontSize: '11px', marginTop: 2, color: waiting ? '#9A5B00' : THEME.textLow }}
+      title={`Invite sent ${inv.invited_at ? when(inv.invited_at) : '—'}${inv.accepted_at ? ` · accepted ${when(inv.accepted_at)}` : ''}`}>
+      {waiting ? `● Invite not accepted yet · sent ${when(inv.invited_at)}`
+        : inv.status === 'blocked' ? 'Blocked from signing in'
+        : `Accepted ${when(inv.accepted_at)}${inv.last_sign_in_at ? ` · last seen ${when(inv.last_sign_in_at)}` : ''}`}
     </div>
   )
 }

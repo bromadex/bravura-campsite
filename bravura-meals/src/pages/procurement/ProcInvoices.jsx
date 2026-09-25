@@ -328,6 +328,11 @@ export default function ProcInvoices({ setPage }) {
               </tfoot>
             </table>
 
+            {!detail.grn_id && (detail.bill_type === 'accrued' || ['draft', 'pending_approval'].includes(detail.status)) && (
+              <AccrualMatch invoice={detail} editable={['draft', 'pending_approval'].includes(detail.status) && (can('procurement.edit') || can('finance.edit'))}
+                onSaved={() => { fetchAll() }} />
+            )}
+
             <div style={{ fontSize: '12px', color: THEME.textMed, marginBottom: '12px' }}>
               Created by: {detail.creator?.full_name || detail.creator?.username || '—'}
               {detail.approver_profile && <span> · Approved by: {detail.approver_profile.full_name || detail.approver_profile.username}</span>}
@@ -362,5 +367,85 @@ export default function ProcInvoices({ setPage }) {
         </ModalOverlay>
       )}
     </div>
+  )
+}
+
+// Match an accrued bill to the approved timesheets, hired-plant usage logs and closed incidents it
+// covers. On approval the matched amount leaves Other accruals exactly; any difference between the
+// bill and what was accrued is posted as a release or top-up (0213).
+function AccrualMatch({ invoice, editable, onSaved }) {
+  const [items, setItems] = useState(null)
+  const [picked, setPicked] = useState(new Set())
+  const [q, setQ] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    let live = true
+    supabase.rpc('ap_unbilled_accruals', { p_site: invoice.site_id, p_invoice: invoice.id }).then(({ data, error }) => {
+      if (!live) return
+      if (error) { showToast(error.message, 'red'); setItems([]); return }
+      setItems(data || [])
+      setPicked(new Set((data || []).filter(x => x.selected).map(x => x.source_id)))
+    })
+    return () => { live = false }
+  }, [invoice.id, invoice.site_id])
+
+  if (!items) return <div style={{ fontSize: '12px', color: THEME.textLow, marginBottom: '12px' }}>Loading accrued work…</div>
+  const shown = editable ? items.filter(x => !q || `${x.party || ''} ${x.worker || ''} ${x.description}`.toLowerCase().includes(q.toLowerCase())) : items.filter(x => x.selected)
+  if (!editable && shown.length === 0) return null
+  const matched = items.filter(x => picked.has(x.source_id)).reduce((a, x) => a + Number(x.amount), 0)
+  const diff = Number(invoice.total_amount || 0) - matched
+  const fmt = n => '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  function toggle(id) { setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n }) }
+  async function save() {
+    setBusy(true)
+    const payload = items.filter(x => picked.has(x.source_id)).map(x => ({ source_table: x.source_table, source_id: x.source_id }))
+    const { error } = await supabase.rpc('ap_set_bill_accruals', { p_invoice: invoice.id, p_items: payload })
+    setBusy(false)
+    if (error) return showToast(error.message, 'red')
+    showToast(payload.length ? `Bill matched to ${payload.length} item${payload.length > 1 ? 's' : ''}` : 'Matching cleared')
+    onSaved?.()
+  }
+
+  return (
+    <section aria-label="Accrued work this bill covers" style={{ border: `1px solid ${THEME.outlineVar}`, borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+        <div style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>Accrued work this bill covers</div>
+        <div style={{ fontSize: '12px', color: THEME.textMed, fontVariantNumeric: 'tabular-nums' }}>
+          Matched {fmt(matched)} of {fmt(invoice.total_amount || 0)}
+          {picked.size > 0 && Math.abs(diff) >= 0.005 && (
+            <span style={{ color: diff > 0 ? THEME.statusWarningText : THEME.statusSuccessText || THEME.textMed }}>
+              {' · '}{diff > 0 ? `${fmt(diff)} more than accrued — booked as extra cost` : `${fmt(-diff)} less than accrued — released back`}
+            </span>
+          )}
+        </div>
+      </div>
+      {editable && items.length > 0 && (
+        <input aria-label="Filter accrued work" placeholder="Filter by contractor, worker or description" value={q} onChange={e => setQ(e.target.value)} style={{ ...inp, marginBottom: '8px' }} />
+      )}
+      {shown.length === 0 ? (
+        <div style={{ fontSize: '12px', color: THEME.textLow }}>No approved timesheets, hired-plant logs or incident costs are waiting for a bill.</div>
+      ) : (
+        <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {shown.map(x => (
+            <label key={x.source_id} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '6px 4px', borderRadius: '6px', cursor: editable ? 'pointer' : 'default',
+              background: picked.has(x.source_id) ? THEME.surfaceVar : 'transparent', fontSize: '13px' }}>
+              {editable && <input type="checkbox" checked={picked.has(x.source_id)} onChange={() => toggle(x.source_id)} />}
+              <span style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, minWidth: '76px' }}>{x.kind}</span>
+              <span style={{ flex: 1, color: THEME.text }}>
+                {x.worker ? `${x.worker} · ` : ''}{x.description}{x.party ? <span style={{ color: THEME.textLow }}> · {x.party}</span> : null}
+              </span>
+              <span style={{ color: THEME.textLow, fontSize: '12px' }}>{new Date(x.date).toLocaleDateString()}</span>
+              <span style={{ minWidth: '80px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{fmt(x.amount)}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      {editable && items.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+          <Button onClick={save} disabled={busy} style={{ background: CLR, color: '#fff' }}>{busy ? 'Saving…' : 'Save matching'}</Button>
+        </div>
+      )}
+    </section>
   )
 }

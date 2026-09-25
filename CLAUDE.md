@@ -331,7 +331,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   Phase 3 Pay Suppliers FI21 `fi_pay_suppliers` (0204): RLS now ON for purchase_invoices,
   invoice_lines, goods_received_notes, grn_lines (`_ap_can`); supplier payment terms + bank details;
   auto due dates; three-way match (`match_status`, `match_diff`); payment runs (`ap_payment_runs`,
-  `ap_run_create/approve/mark_paid/cancel`, KAM-PAY-YYYY-NNNN). Migrations continue at 0206.
+  `ap_run_create/approve/mark_paid/cancel`, KAM-PAY-YYYY-NNNN). 0206 fixed two legacy notification triggers (fuel issuance, meals) still using recipient_id/body/action_url. Migrations continue at 0207.
 
 ## Improvement backlog (agreed with user, work top-down)
 

@@ -360,8 +360,19 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 7. ~~Shared utils~~ (done — `utils/csv.js`, `components/Denied.jsx`, `utils/friendlyError.js`)
 8. ~~Smoke tests for RPCs + billing math; CI~~ (done — vitest + 3 test suites, GitHub Actions CI)
 9. ~~FuelContext pagination~~ (done — ref data fetched once, transactions date-filtered 30 days default)
-10. Realtime/staleness handling for flags & approvals (later)
+10. ~~Realtime/staleness handling for flags & approvals~~ (done — #21)
 11. ~~Breadcrumb shows raw T-codes~~ (done — ModuleLayout now falls back to txnCodes labels)
+
+## Open roadmap (Sept 2026) — tracked in #49 (finance + AI) and #47 (Stage 11)
+
+- Real opening balances for Kamativi (replace mock JV-0001 via `finance_setup_clear_mock_opening`).
+- Finance setup (FI20) for Selous, Manhizi, Harare — no CoA/rules yet, so nothing posts there.
+- Hired-vehicle usage log (daily/km) so vehicles accrue like hired equipment (`hired_plant_usage`).
+- Expected recurring bills with a missing-bill warning.
+- AI assistant A1–A6: Qwen via Groq free tier, key as edge-function secret; read-only RPCs run as the
+  asking user. Blocked on the user's Groq API key.
+- UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search
+  firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 
 ## Database access
 

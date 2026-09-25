@@ -264,7 +264,9 @@ function RulesStep({ siteId, status, canEdit, busy, setBusy, next, reload, setPa
 }
 
 // ── Step 4 ────────────────────────────────────────────────────────────────
-function OpeningStep({ siteId, status, canEdit, busy, setBusy, next, setPage }) {
+function OpeningStep({ siteId, status, canEdit, busy, setBusy, next, reload, setPage }) {
+  const { can } = usePermissions()
+  const [mock, setMock] = useState(false)
   const [accounts, setAccounts] = useState([])
   const [amounts, setAmounts] = useState({})
   const [date, setDate] = useState(yesterday())
@@ -284,15 +286,26 @@ function OpeningStep({ siteId, status, canEdit, busy, setBusy, next, setPage }) 
     if (!lines.length) return showToast('Enter at least one balance', 'red')
     if (!window.confirm(`Post opening balances dated ${date}? They can't be edited afterwards — corrections are made with a journal entry.`)) return
     setBusy(true)
-    const { error } = await supabase.rpc('finance_setup_opening_balances', { p_site: siteId, p_date: date, p_lines: lines })
+    const { error } = await supabase.rpc('finance_setup_opening_balances', { p_site: siteId, p_date: date, p_lines: lines, p_mock: mock })
     setBusy(false)
     if (error) return showToast(error.message, 'red')
     showToast('Opening balances posted'); next()
   }
+  async function clearMock() {
+    if (!window.confirm('Clear the MOCK opening balances? The mock journal is voided (kept for the record) and account balances go back to zero, so the real figures can be entered.')) return
+    setBusy(true)
+    const { error } = await supabase.rpc('finance_setup_clear_mock_opening', { p_site: siteId })
+    setBusy(false)
+    if (error) return showToast(error.message, 'red')
+    showToast('Mock opening balances cleared'); reload()
+  }
   if (status.opening_journal_id) return (<>
     <StepHead title="Opening balances" />
-    <Note tone="good">Opening balances were posted on {status.opening_date}. To correct them, post a journal entry.</Note>
+    {status.opening_is_mock
+      ? <Note tone="warn"><b>MOCK opening balances</b> (test figures, as at {status.opening_date}). Clear them before entering the real figures and going live.</Note>
+      : <Note tone="good">Opening balances were posted on {status.opening_date}. To correct them, post a journal entry.</Note>}
     <Footer>
+      {status.opening_is_mock && can('finance.approve') && <button style={{ ...finBtn2, color: FIN.bad, borderColor: FIN.bad }} disabled={busy} onClick={clearMock}>Clear mock balances</button>}
       <button style={finBtn2} onClick={() => setPage('fi_journal_detail:' + status.opening_journal_id)}>View the opening journal</button>
       <button style={finBtn} onClick={next}>Continue</button>
     </Footer>
@@ -324,6 +337,10 @@ function OpeningStep({ siteId, status, canEdit, busy, setBusy, next, setPage }) 
       <span>Debits <b>${money(totals.dr)}</b></span><span>Credits <b>${money(totals.cr)}</b></span>
       <span style={{ color: diff ? FIN.ochreText : FIN.good }}>Opening balance equity {diff === 0 ? 'not needed' : <b>${money(Math.abs(diff))} {diff > 0 ? 'credit' : 'debit'}</b>}</span>
     </div>
+    <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: FIN.muted }}>
+      <input type="checkbox" checked={mock} onChange={e => setMock(e.target.checked)} style={{ width: 18, height: 18, accentColor: FIN.maroon }} />
+      These are MOCK figures for testing (they can be cleared later)
+    </label>
     <Footer>
       <button style={finBtn2} onClick={next}>Skip for now</button>
       {canEdit && <button style={finBtn} disabled={busy} onClick={post}>Post opening balances</button>}
@@ -401,7 +418,7 @@ function LiveStep({ siteId, status, done, goTo, canApprove, busy, setBusy, reloa
   const checks = [
     ['Chart of accounts', `${status.accounts} accounts`, done[1], 1],
     ['Posting rules', `${status.rules} of ${status.events} events`, done[2], 2],
-    ['Opening balances', status.opening_date ? `Posted as at ${status.opening_date}` : 'Not entered — everything starts at zero', done[3], 3],
+    ['Opening balances', status.opening_date ? `${status.opening_is_mock ? 'MOCK figures — clear before going live · ' : ''}Posted as at ${status.opening_date}` : 'Not entered — everything starts at zero', done[3] && !status.opening_is_mock, 3],
     ['Bank accounts', `${status.bank_accounts} linked`, done[4], 4],
   ]
   if (status.go_live_date) return (<>

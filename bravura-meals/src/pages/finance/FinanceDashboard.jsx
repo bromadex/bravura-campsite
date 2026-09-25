@@ -357,7 +357,7 @@ export default function FinanceDashboard({ setPage }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', background: FIN.ochreTint, border: `1px solid ${FIN.ochreLine}`, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#6B4208' }}>Finish setting up the books</div>
           <div style={{ fontSize: 13, color: '#6B4208', flex: 1, minWidth: 220 }}>
-            {setup.accounts ? `${setup.accounts} accounts` : 'No chart of accounts yet'} · posting rules {setup.rules} of {setup.events} · opening balances {setup.opening_journal_id ? 'entered' : 'not entered'}. Ledger postings start once the books go live.
+            {setup.accounts ? `${setup.accounts} accounts` : 'No chart of accounts yet'} · posting rules {setup.rules} of {setup.events} · opening balances {setup.opening_journal_id ? (setup.opening_is_mock ? 'MOCK (test figures)' : 'entered') : 'not entered'}. Ledger postings start once the books go live.
           </div>
           <button onClick={() => setPage('fi_setup')} style={{ minHeight: 36, padding: '0 14px', borderRadius: 8, border: 'none', background: FIN.maroon, color: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Continue setup</button>
         </div>

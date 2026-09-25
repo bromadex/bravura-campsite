@@ -324,7 +324,9 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 - Finance rewrite (issue #49): Phase 1 design agreed (maroon nav + buttons, blue links/charts,
   IBM Plex, tokens in `utils/financeTheme.js`). Phase 2 Setup wizard FI20 `fi_setup` built (0202:
   `finance_setup`, mining CoA template, rule template, opening balances, go-live — `gl_auto_post`
-  skips postings dated before go-live). Migrations continue at 0203.
+  skips postings dated before go-live). 0203: opening balances can be MOCK (`opening_is_mock`),
+  cleared by `finance_setup_clear_mock_opening` (voids JV). Kamativi has the CoA, 31 rules and
+  MOCK opening balances JV-0001 as at 30 Sep 2026 — NOT live yet. Migrations continue at 0204.
 
 ## Improvement backlog (agreed with user, work top-down)
 

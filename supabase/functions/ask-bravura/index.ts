@@ -122,6 +122,12 @@ const TOOLS = [
       supplier: { type: 'string', description: 'Supplier name as printed' }, doc_number: { type: 'string', description: 'Invoice / delivery note number' },
       po_ref: { type: 'string', description: 'Our PO number if printed on it' }, total: { type: 'number' }, site: { type: 'string' },
     }, required: ['supplier'] } } },
+  { type: 'function', function: {
+    name: 'notifications',
+    description: "The person's own notifications (approvals waiting, reminders, alerts): unread count, by category and the latest items with title, message and time. Use for 'do I have notifications', 'what needs my approval', 'any alerts'.",
+    parameters: { type: 'object', properties: {
+      unread_only: { type: 'boolean', description: 'Default true' }, search: { type: 'string', description: 'Optional word or category, e.g. approval, leave, fuel' },
+    } } } },
   ...([
     ['fuel', 'Fuel: litres issued and delivered, top-using vehicles/machines, litres per day, tank levels now. Use for fuel consumption/usage/diesel questions. Optional search narrows to one vehicle (fleet no., reg, make).', true, true],
     ['fleet', 'Fleet: vehicles/machines by status, open work orders, services due in 14 days, licence/insurance/roadworthy expiring in 30 days, maintenance jobs and cost in the period.', true, false],
@@ -232,7 +238,7 @@ Deno.serve(async (req) => {
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const system = `You are "Ask Bravura", the assistant inside Bravura's ERP. Bravura Zimbabwe runs mining camps; it only buys (no sales, no VAT), all amounts are USD. Modules: finance, procurement, fuel, fleet, stores, HR, SHEQ (safety), meals, camp. You have a read tool for each — pick the one that fits (fuel usage → fuel, not spend_on).
+  const system = `You are "Ask Bravura", the assistant inside Bravura's ERP. Bravura Zimbabwe runs mining camps; it only buys (no sales, no VAT), all amounts are USD. You can also read the person's own notifications. Modules: finance, procurement, fuel, fleet, stores, HR, SHEQ (safety), meals, camp. You have a read tool for each — pick the one that fits (fuel usage → fuel, not spend_on).
 Today is ${today} (${new Date().toLocaleDateString('en-GB', { weekday: 'long' })}). Weeks start on Monday. The person is looking at site "${current?.name || 'unknown'}". Sites: ${siteList.map(s => s.name).join(', ')}.
 Rules:
 - Only state figures that come from the tools or the SCREEN section. Never guess or invent numbers. If the tools return nothing, say so plainly and suggest why (e.g. nothing posted yet in that period).
@@ -292,6 +298,9 @@ Rules:
           result = (await db.rpc('ai_spend_on', { p_site_ids: siteIds(args.site), p_from: args.date_from, p_to: args.date_to, p_search: args.search })).data
         } else if (c.function.name === 'supplier_history') {
           result = (await db.rpc('ai_supplier_history', { p_site_ids: siteIds(args.site), p_supplier: args.supplier, p_from: args.date_from, p_to: args.date_to })).data
+        } else if (c.function.name === 'notifications') {
+          const r = await db.rpc('ai_notifications', { p_unread_only: String(args.unread_only) !== 'false', p_search: args.search || null })
+          result = r.error ? { error: r.error.message } : r.data
         } else if (c.function.name === 'match_document') {
           const r = await db.rpc('ai_match_document', { p_site_ids: siteIds(args.site), p_supplier: args.supplier, p_doc_number: args.doc_number || null,
             p_po_ref: args.po_ref || null, p_total: args.total ? Number(args.total) : null })

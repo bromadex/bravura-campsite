@@ -407,92 +407,14 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
 
       {/* ── Main ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Top App Bar */}
-        <div style={{
-          background: THEME.surface,
-          borderBottom: `1px solid ${THEME.outlineVar}`,
-          padding: isMobile ? '0 8px' : '0 16px', height: '60px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexShrink: 0, boxShadow: THEME.shadow1, gap: '8px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-            <button
-              onClick={() => isMobile ? setMobileNavOpen(true) : setCollapsed(c => !c)}
-              style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                color: THEME.textMed, borderRadius: '50%', width: '38px', height: '38px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}
-            >
-              <Icon name="menu" size={22} />
-            </button>
-            {/* Breadcrumb — collapses to just the page title on mobile */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
-              {!isMobile && (
-                <>
-                  <span
-                    onClick={onHome}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '4px',
-                      fontSize: '12px', fontWeight: 500, color, cursor: 'pointer',
-                      padding: '3px 10px', borderRadius: '6px', background: color + '14',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon name={moduleIcon} size={13} style={{ color }} />
-                    {moduleLabel}
-                  </span>
-                  <Icon name="chevron_right" size={16} style={{ color: THEME.textLow, flexShrink: 0 }} />
-                </>
-              )}
-              <span style={{
-                fontSize: isMobile ? '15px' : '17px', fontWeight: isMobile ? 600 : 400, color: THEME.text,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
-                {PAGE_TITLES[page] || TXN_PAGE_LABELS[page] || page}
-              </span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '2px' : '8px', flexShrink: 0 }}>
-            {/* Notification bell */}
-            <button
-              onClick={() => setNotifOpen(o => !o)}
-              title="Notifications"
-              style={{ position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', color: THEME.textMed, borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Icon name="notifications" size={22} />
-              {unreadCount > 0 && (
-                <span style={{ position: 'absolute', top: '4px', right: '4px', minWidth: '16px', height: '16px', borderRadius: '6px', background: THEME.error, color: '#fff', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
-            <SiteSwitcher />
-            {!isMobile && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '5px',
-                padding: '5px 12px', borderRadius: '6px',
-                background: THEME.surfaceVar, border: `1px solid ${THEME.outlineVar}`,
-                fontSize: '12px', fontWeight: 500, color: THEME.textMed,
-              }}>
-                <Icon name="calendar_today" size={13} style={{ color }} />
-                {new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
-              </div>
-            )}
-            {flagCount > 0 && (
-              <div onClick={() => setPage('meals_flags')} style={{
-                display: 'flex', alignItems: 'center', gap: '5px',
-                padding: '5px 12px', borderRadius: '6px',
-                background: THEME.statusErrorBg, border: `1px solid ${THEME.error}55`,
-                fontSize: '12px', fontWeight: 600, color: THEME.error, cursor: 'pointer',
-              }}>
-                <Icon name="flag" size={13} style={{ color: THEME.error }} />
-                {flagCount} flag{flagCount > 1 ? 's' : ''}
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Top App Bar — two-line title with module eyebrow, jump-to search, grouped status capsule */}
+        <TopBar
+          isMobile={isMobile} color={color} moduleIcon={moduleIcon} moduleLabel={moduleLabel} onHome={onHome}
+          title={PAGE_TITLES[page] || TXN_PAGE_LABELS[page] || page}
+          onMenu={() => isMobile ? setMobileNavOpen(true) : setCollapsed(c => !c)}
+          unreadCount={unreadCount} onBell={() => setNotifOpen(o => !o)}
+          flagCount={flagCount} onFlags={() => setPage('meals_flags')}
+        />
 
         {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px' : '24px', background: THEME.bg }}>
@@ -593,5 +515,117 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
         </>
       )}
     </div>
+  )
+}
+
+// ── Top bar ────────────────────────────────────────────────────────────────
+// Title "Fixed Assets (register, depreciation, counts)" splits into a bold name and a quiet subtitle.
+function splitTitle(t) {
+  const m = /^(.*?)\s*\((.+)\)\s*$/.exec(t || '')
+  return m ? [m[1], m[2]] : [t, '']
+}
+function useClock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => { const id = setInterval(() => setNow(new Date()), 30000); return () => clearInterval(id) }, [])
+  return now
+}
+function BarIconButton({ icon, label, onClick, badge, color }) {
+  const [h, setH] = useState(false)
+  return (
+    <button onClick={onClick} title={label} aria-label={label} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+      style={{ position: 'relative', background: h ? color + '14' : 'transparent', border: 'none', cursor: 'pointer',
+        color: h ? color : THEME.textMed, borderRadius: '12px', width: '38px', height: '38px', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', transition: 'background .15s, color .15s', flexShrink: 0 }}>
+      <Icon name={icon} size={21} />
+      {badge > 0 && (
+        <span style={{ position: 'absolute', top: '3px', right: '2px', minWidth: '17px', height: '17px', borderRadius: '9px',
+          background: `linear-gradient(135deg, ${THEME.error}, ${color})`, color: '#fff', fontSize: '10px', fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', lineHeight: 1,
+          boxShadow: `0 0 0 2px ${THEME.surface}` }}>
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
+    </button>
+  )
+}
+function TopBar({ isMobile, color, moduleIcon, moduleLabel, onHome, title, onMenu, unreadCount, onBell, flagCount, onFlags }) {
+  const now = useClock()
+  const [name, sub] = splitTitle(title)
+  const [searchHover, setSearchHover] = useState(false)
+  const hour = now.getHours()
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  return (
+    <header style={{
+      position: 'relative', flexShrink: 0, height: isMobile ? '60px' : '72px',
+      padding: isMobile ? '0 8px' : '0 22px', display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '16px',
+      background: `linear-gradient(100deg, ${color}12 0%, ${THEME.surface} 38%, ${THEME.surface} 100%)`,
+    }}>
+      {/* hairline that fades out from the module colour */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '2px',
+        background: `linear-gradient(90deg, ${color} 0%, ${color}55 30%, ${THEME.outlineVar} 60%, ${THEME.outlineVar} 100%)` }} />
+
+      <BarIconButton icon="menu" label="Menu" onClick={onMenu} color={color} />
+
+      <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px' }}>
+        {!isMobile && (
+          <button onClick={onHome} style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none',
+            border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', color, fontSize: '10.5px', fontWeight: 700,
+            letterSpacing: '.12em', textTransform: 'uppercase' }}>
+            <span style={{ width: '18px', height: '18px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: `linear-gradient(135deg, ${color}, ${color}B3)`, boxShadow: `0 2px 6px ${color}40` }}>
+              <Icon name={moduleIcon} size={12} style={{ color: '#fff' }} />
+            </span>
+            {moduleLabel}
+          </button>
+        )}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', minWidth: 0 }}>
+          <h1 style={{ margin: 0, fontSize: isMobile ? '16px' : '20px', fontWeight: 650, letterSpacing: '-.01em', color: THEME.text,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>{name}</h1>
+          {sub && !isMobile && (
+            <span style={{ fontSize: '12.5px', color: THEME.textLow, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>
+          )}
+        </div>
+      </div>
+
+      {!isMobile && (
+        <button onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+          onMouseEnter={() => setSearchHover(true)} onMouseLeave={() => setSearchHover(false)}
+          aria-label="Search or jump to a screen"
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: 'clamp(180px, 22vw, 300px)', height: '40px', padding: '0 8px 0 14px',
+            borderRadius: '12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', color: THEME.textLow, textAlign: 'left',
+            background: searchHover ? THEME.surface : THEME.surfaceVar, border: `1px solid ${searchHover ? color + '66' : 'transparent'}`,
+            boxShadow: searchHover ? `0 4px 14px ${color}1A` : 'none', transition: 'all .15s', flexShrink: 1 }}>
+          <Icon name="search" size={18} style={{ color: searchHover ? color : THEME.textLow }} />
+          <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Search or jump to…</span>
+          <kbd style={{ fontFamily: 'inherit', fontSize: '11px', fontWeight: 600, color: THEME.textMed, background: THEME.surface,
+            border: `1px solid ${THEME.outlineVar}`, borderRadius: '6px', padding: '2px 6px' }}>Ctrl K</kbd>
+        </button>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '2px' : '10px', flexShrink: 0 }}>
+        {isMobile && <BarIconButton icon="search" label="Search" onClick={() => window.dispatchEvent(new Event('open-command-palette'))} color={color} />}
+        {flagCount > 0 && (
+          <button onClick={onFlags} style={{ display: 'flex', alignItems: 'center', gap: '5px', height: '34px', padding: '0 12px', borderRadius: '999px',
+            background: THEME.statusErrorBg, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, color: THEME.error }}>
+            <Icon name="flag" size={14} style={{ color: THEME.error }} />
+            {flagCount}{isMobile ? '' : ` flag${flagCount > 1 ? 's' : ''}`}
+          </button>
+        )}
+        <SiteSwitcher />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: isMobile ? 0 : '3px 3px 3px 14px', borderRadius: '14px',
+          background: isMobile ? 'transparent' : THEME.surfaceVar }}>
+          {!isMobile && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.15, marginRight: '8px' }}>
+              <span style={{ fontSize: '10.5px', color: THEME.textLow, fontWeight: 500 }}>{greet}</span>
+              <span style={{ fontSize: '12.5px', fontWeight: 650, color: THEME.text, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                {now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                <span style={{ color: THEME.textLow, fontWeight: 500 }}> · {now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+              </span>
+            </div>
+          )}
+          <BarIconButton icon="notifications" label="Notifications" onClick={onBell} badge={unreadCount} color={color} />
+        </div>
+      </div>
+    </header>
   )
 }

@@ -28,16 +28,16 @@ export default function SiteSwitcher() {
         onClick={() => setOpen(o => !o)}
         title="Switch site"
         style={{
-          display: 'flex', alignItems: 'center', gap: '5px',
-          padding: '5px 12px', borderRadius: '6px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '7px', height: '38px',
+          padding: '0 12px 0 10px', borderRadius: '12px', cursor: 'pointer',
           background: open ? THEME.surfaceVar : THEME.surface,
-          border: `1px solid ${THEME.outlineVar}`,
-          fontSize: '12px', fontWeight: 600, color: THEME.primary,
+          border: `1px solid ${THEME.outlineVar}`, boxShadow: '0 1px 2px rgba(0,0,0,.04)',
+          fontSize: '13px', fontWeight: 600, color: THEME.text,
         }}
       >
-        <Icon name="location_on" size={14} style={{ color: THEME.primary }} />
+        <span aria-hidden="true" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22A06B', boxShadow: '0 0 0 3px #22A06B26' }} />
         {currentSite?.name || 'Select site'}
-        <Icon name={open ? 'expand_less' : 'expand_more'} size={14} style={{ color: THEME.textLow }} />
+        <Icon name={open ? 'expand_less' : 'expand_more'} size={16} style={{ color: THEME.textLow }} />
       </div>
 
       {open && (

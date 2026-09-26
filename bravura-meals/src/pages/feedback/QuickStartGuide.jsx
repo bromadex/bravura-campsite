@@ -157,6 +157,7 @@ export default function QuickStartGuide() {
             <>Fuel Tanks shows each tank's book level, how full it is and the <b>days of cover</b> at the last 30 days' use.</>,
             <>Record a delivery once (Tank Deliveries): it saves the delivery, the tank record and the dip after in one step, and refuses a delivery bigger than the tank can hold. A wrong delivery is <b>cancelled with a reason</b> and stays in the history — nothing is deleted.</>,
             <>Filling a drum or bowser from a tank is a <b>transfer</b> (Fuel Tanks → Transfer), so the tank's book level stays right.</>,
+            <>Each tank is also a store in <b>Stores</b> (for example KAM-FT-MAINTANK), so fuel stock and its value show with the rest of the stock. Fuel is still only moved from the Fuel screens — Stores will refuse to issue or count a fuel tank.</>,
             <>Manual issuances without an approved request need the authoriser's name and a reason.</>,
           ]} />
         </Section>

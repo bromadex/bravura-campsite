@@ -34,6 +34,11 @@ export default function TankPositionStrip({ siteId }) {
               {r.method === 'dipstick' ? (r.last_dip_date ? `Last dip ${r.last_dip_date}: ${n(r.last_dip)} L` : 'No dip yet') : 'Running total (no dips)'}
               {r.gap_30d != null && <span style={{ color: gapBad ? THEME.error : THEME.textLow }}> · dip gaps 30 d: {Number(r.gap_30d) > 0 ? '+' : ''}{n(r.gap_30d)} L</span>}
             </div>
+            {r.stock_value != null && (
+              <div style={{ fontSize: 12, color: THEME.textLow, marginTop: 2 }}>
+                Stores {r.store_code}: ${Number(r.stock_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} at ${Number(r.cost_per_litre || 0).toFixed(2)}/L
+              </div>
+            )}
           </div>
         )
       })}

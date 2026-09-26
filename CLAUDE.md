@@ -579,7 +579,13 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   Delete button removed); 4 Apr–May deliveries got their transactions; `fuel_transfer(p)` (transfer_out/in pair; `_fuel_txn_level_effect` now
   counts transfers); `trg_fuel_dip_gap` sets fuel_dip_readings.system_level_litres/variance (back-filled), fuel_tanks.dip_tolerance_litres
   (120); `_fuel_tank_book(tank)` / `fuel_tank_position(site)` → TankPositionStrip on Fuel Tanks; DipReadings shows Book + Gap.
-  **F1 part 2 (next):** tanks on the Stores engine (tank = store, diesel = item, fills = issues, dips = counts) + GL switch.
+  **F1 part 2 built (0247):** each tank = a Stores store (warehouses.type 'fuel_store', fuel_tanks.warehouse_id, code e.g. KAM-FT-MAINTANK,
+  allow_negative), each fuel type = item FUEL-<code> (fuel_types.item_id), auto-created by trg_fuel_tank_store. `trg_fuel_to_stores` mirrors
+  every fuel transaction insert/edit/cancel into inventory_movements (source_module 'fuel'; issue/return/grn/transfer/adjustment by the change
+  in litres). `trg_inv_00_fuel_guard` blocks Stores RPCs on fuel stores. One GL path: fuel_issue/fuel_delivery stay; trg_inv_movement_gl skips
+  source_module 'fuel'. Issues priced at the tank's moving average (fallback last delivery). Cut-over = one 'opening' per tank at the dip-based
+  book level × last delivery price (KAM Main Tank 800 L × 1.88); history not replayed (negatives wreck the average). Dips are NOT auto-posted
+  as counts — F2 confirms gaps as losses. fuel_tank_position adds store_code/store_litres/cost_per_litre/stock_value.
   optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
   POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;

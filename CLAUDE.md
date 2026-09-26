@@ -570,6 +570,16 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   drum/bowser = transfer, dip = count) with fuel-specific screens. Sub-issues: F1 #69 correct/secure/Stores engine · F2 #70 daily
   reconciliation + pump shift close · F3 #71 deliveries via Procurement · F4 #72 attendant phone screen, driver signs, allowances,
   second-fill rule, hired plant recharge · F5 #73 charge-out + finance-look dashboard, menu by use · F6 #74 Ask Bravura, alerts, imports,
+  **Decisions (26 Sep):** history restored (0245, 434 issues 47,832 L); attendant phone screen wanted (office keys paper slips today); POs for
+  fuel from now; hired plant: Bravura pays unless the hire contract says contractor pays; dip tolerance in dipstick marks (1 cm ≈ 60 L on KAM
+  Main Tank → default ±120 L per dip, judge weekly/delivery-to-delivery); requests optional (issues mostly verbal); manual dips (no sensors).
+  **F1 part 1 built (0246):** RLS — fuel.* permissions replace `site_write` (transactions, tanks, pumps, operators; types/settings/finance
+  mapping/tank_calibrations), no DELETE policies on fuel tables; `fuel_delivery_save(p)` / `fuel_delivery_void(id, reason)` write
+  fuel_deliveries + companion transaction (fuel_deliveries.transaction_id) + dip after in one step with capacity check (FuelReceipts uses them;
+  Delete button removed); 4 Apr–May deliveries got their transactions; `fuel_transfer(p)` (transfer_out/in pair; `_fuel_txn_level_effect` now
+  counts transfers); `trg_fuel_dip_gap` sets fuel_dip_readings.system_level_litres/variance (back-filled), fuel_tanks.dip_tolerance_litres
+  (120); `_fuel_tank_book(tank)` / `fuel_tank_position(site)` → TankPositionStrip on Fuel Tanks; DipReadings shows Book + Gap.
+  **F1 part 2 (next):** tanks on the Stores engine (tank = store, diesel = item, fills = issues, dips = counts) + GL switch.
   optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
   POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.

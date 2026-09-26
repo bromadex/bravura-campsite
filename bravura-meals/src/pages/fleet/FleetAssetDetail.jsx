@@ -40,6 +40,10 @@ const STATUS_MAP = {
 }
 
 
+function Badge({ label, bg, color }) {
+  return <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: bg, color }}>{label}</span>
+}
+
 function StatCard({ label, value, sub, icon }) {
   return (
     <div style={{

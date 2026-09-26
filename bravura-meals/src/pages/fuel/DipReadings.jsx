@@ -451,8 +451,9 @@ export default function DipReadings() {
     setLoading(true)
     let q = supabase
       .from('fuel_dip_readings')
-      .select('*, tank:fuel_tanks(name), operator:fuel_operators(employees(name))')
+      .select('*, tank:fuel_tanks(name, dip_tolerance_litres), operator:fuel_operators(employees(name))')
       .eq('site_id', currentSiteId)
+      .eq('is_archived', false)
       .order('reading_date', { ascending: false })
       .order('reading_time', { ascending: false })
     if (filterTank) q = q.eq('tank_id', filterTank)
@@ -476,7 +477,7 @@ export default function DipReadings() {
   }, [readings])
 
   const exportCsv = () => {
-    const headers = ['Date', 'Time', 'Tank', 'Dip Start (mm)', 'Dip End (mm)', 'Start Level (L)', 'End Level (L)', 'Done By', 'Notes']
+    const headers = ['Date', 'Time', 'Tank', 'Dip Start (mm)', 'Dip End (mm)', 'Start Level (L)', 'End Level (L)', 'Book (L)', 'Gap (L)', 'Done By', 'Notes']
     const lines = derived.map(({ r, dipStartMm, dipEndMm, fuelStart, fuelEnd }) => [
       r.reading_date,
       r.reading_time || '',
@@ -485,6 +486,8 @@ export default function DipReadings() {
       dipEndMm != null ? dipEndMm : '',
       fuelStart != null ? fuelStart.toFixed(1) : '',
       fuelEnd != null ? fuelEnd.toFixed(1) : '',
+      r.system_level_litres ?? '',
+      r.variance_litres ?? '',
       r.operator?.employees?.name || '',
       (r.notes || '').replace(/,/g, ';'),
     ].map(v => `"${v}"`).join(','))
@@ -565,7 +568,7 @@ export default function DipReadings() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: THEME.surfaceVar, borderBottom: `2px solid ${THEME.outlineVar}` }}>
-                  {['Date', 'Tank', 'Dip Start (mm)', 'Dip End (mm)', 'Start Level (L)', 'End Level (L)', 'Done By'].map(h => (
+                  {['Date', 'Tank', 'Dip Start (mm)', 'Dip End (mm)', 'Start Level (L)', 'End Level (L)', 'Book (L)', 'Gap (L)', 'Done By'].map(h => (
                     <th key={h} style={{ padding: '10px 12px', textAlign: h.includes('(') ? 'right' : 'left', fontSize: '11px', fontWeight: 600, color: THEME.textMed, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -590,6 +593,15 @@ export default function DipReadings() {
                       <td style={{ padding: '10px 12px', color: THEME.textMed, textAlign: 'right' }}>{dipEndMm != null ? fmtNum(dipEndMm, 1) : '—'}</td>
                       <td style={{ padding: '10px 12px', color: THEME.text, textAlign: 'right' }}>{fuelStart != null ? fmtNum(fuelStart, 0) : '—'}</td>
                       <td style={{ padding: '10px 12px', color: THEME.text, textAlign: 'right', fontWeight: 600 }}>{fuelEnd != null ? fmtNum(fuelEnd, 0) : '—'}</td>
+                      <td style={{ padding: '10px 12px', color: THEME.textMed, textAlign: 'right' }} title="Previous dip + deliveries − issues ± transfers since">{r.system_level_litres != null ? fmtNum(Number(r.system_level_litres), 0) : '—'}</td>
+                      {(() => {
+                        const g = r.variance_litres != null ? Number(r.variance_litres) : null
+                        const tol = Number(r.tank?.dip_tolerance_litres ?? 120)
+                        const over = g != null && Math.abs(g) > tol
+                        return <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: over ? 700 : 400, color: g == null ? THEME.textLow : over ? THEME.error : THEME.textMed }}
+                          title={over ? `More than ±${tol} L (about 2 dipstick marks) — check the dip or look for unrecorded fuel` : 'Within dipstick reading error'}>
+                          {g == null ? '—' : `${g > 0 ? '+' : ''}${fmtNum(g, 0)}`}</td>
+                      })()}
                       <td style={{ padding: '10px 12px', color: THEME.textMed, whiteSpace: 'nowrap' }}>{r.operator?.employees?.name || '—'}</td>
                     </tr>
                 ))}

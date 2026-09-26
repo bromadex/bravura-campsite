@@ -1,3 +1,4 @@
+import { supabase } from '../../supabaseClient'
 import { useState, useMemo, useCallback } from 'react'
 import { primaryTank } from '../../utils/tanks'
 import { useNavigate } from 'react-router-dom'
@@ -11,6 +12,7 @@ import {
   showToast, TableWrap, THead, Th, TRow, Td, fmtDate,
 } from '../../components/ui'
 import FuelQuickNav from './FuelQuickNav'
+import TankPositionStrip from './TankPositionStrip'
 import FuelTankVisual from '../../components/FuelTankVisual'
 
 const FUEL_CLR = MODULE_COLORS.fuel
@@ -212,21 +214,9 @@ export default function FuelTanks({ setPage }) {
     if (!trfCanSubmit) return
     setTrfSaving(true)
     try {
-      const outRow = await addTransaction({
-        tank_id: trfFrom,
-        transaction_type: 'transfer_out',
-        litres: trfLitresNum,
-        docket_number: trfDocket || null,
-        notes: trfNotes ? `Transfer to ${trfToTank.name}. ${trfNotes}` : `Transfer to ${trfToTank.name}`,
-      })
-      await addTransaction({
-        tank_id: trfTo,
-        transaction_type: 'transfer_in',
-        litres: trfLitresNum,
-        original_transaction_id: outRow.id,
-        docket_number: trfDocket || null,
-        notes: trfNotes ? `Transfer from ${trfFromTank.name}. ${trfNotes}` : `Transfer from ${trfFromTank.name}`,
-      })
+      // F1 (#69): one database step writes both sides, checks the receiving tank has room.
+      const { error } = await supabase.rpc('fuel_transfer', { p: { from_tank_id: trfFrom, to_tank_id: trfTo, litres: trfLitresNum, docket: trfDocket || '', notes: trfNotes || '' } })
+      if (error) throw error
       showToast(`Transferred ${trfLitresNum.toLocaleString()} L from ${trfFromTank.name} to ${trfToTank.name}`, 'green')
       setTrfLitres(''); setTrfNotes(''); setTrfDocket(''); setTrfFrom(''); setTrfTo('')
       await refresh()
@@ -337,6 +327,7 @@ export default function FuelTanks({ setPage }) {
           </div>
         }
       />
+      <TankPositionStrip siteId={currentSite?.id} />
 
       {/* ── Tabs ── */}
       <div style={{ display: 'flex', gap: '0', borderBottom: `2px solid ${THEME.outlineVar}`, marginBottom: '20px' }}>

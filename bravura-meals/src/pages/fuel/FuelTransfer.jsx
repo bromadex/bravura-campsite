@@ -1,3 +1,4 @@
+import { supabase } from '../../supabaseClient'
 import { useState, useMemo, useCallback } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { useSite } from '../../contexts/SiteContext'
@@ -39,22 +40,9 @@ export default function FuelTransfer() {
     if (!canSubmit) return
     setSaving(true)
     try {
-      const outRow = await addTransaction({
-        tank_id: fromTankId,
-        transaction_type: 'transfer_out',
-        litres: litresNum,
-        docket_number: docket || null,
-        notes: notes ? `Transfer to ${toTank.name}. ${notes}` : `Transfer to ${toTank.name}`,
-      })
-
-      await addTransaction({
-        tank_id: toTankId,
-        transaction_type: 'transfer_in',
-        litres: litresNum,
-        original_transaction_id: outRow.id,
-        docket_number: docket || null,
-        notes: notes ? `Transfer from ${fromTank.name}. ${notes}` : `Transfer from ${fromTank.name}`,
-      })
+      // F1 (#69): one database step writes both sides, checks the receiving tank has room.
+      const { error } = await supabase.rpc('fuel_transfer', { p: { from_tank_id: fromTankId, to_tank_id: toTankId, litres: litresNum, docket: docket || '', notes: notes || '' } })
+      if (error) throw error
 
       showToast(`Transferred ${litresNum.toLocaleString()} L from ${fromTank.name} to ${toTank.name}`, 'green')
       setLitres('')

@@ -288,108 +288,27 @@ export default function FuelReceipts() {
 
     setSaving(true)
     try {
-      const deliveryNumber = 'DEL-' + Date.now()
-
-      const payload = {
-        site_id:              currentSiteId,
-        delivery_date:        form.delivery_date,
-        supplier_name:        form.supplier_name.trim(),
-        delivery_note_number: form.delivery_note_number.trim() || null,
-        tank_id:              form.tank_id,
-        quantity_ordered:     form.quantity_ordered ? Number(form.quantity_ordered) : null,
-        quantity_delivered:   Number(form.quantity_delivered),
-        unit_price:           form.unit_price ? Number(form.unit_price) : null,
-        total_cost:           form.total_cost ? Number(form.total_cost) : null,
-        dip_before_mm:        form.dip_before_mm ? Number(form.dip_before_mm) : null,
-        dip_before:           form.dip_before ? Number(form.dip_before) : null,
-        dip_after_mm:         form.dip_after_mm ? Number(form.dip_after_mm) : null,
-        dip_after:            form.dip_after ? Number(form.dip_after) : null,
-        notes:                form.notes.trim() || null,
-        created_by:           userId,
-      }
-
-      if (editId) {
-        const { error } = await supabase
-          .from('fuel_deliveries')
-          .update({
-            delivery_date:        payload.delivery_date,
-            supplier_name:        payload.supplier_name,
-            delivery_note_number: payload.delivery_note_number,
-            tank_id:              payload.tank_id,
-            quantity_ordered:     payload.quantity_ordered,
-            quantity_delivered:   payload.quantity_delivered,
-            unit_price:           payload.unit_price,
-            total_cost:           payload.total_cost,
-            dip_before_mm:        payload.dip_before_mm,
-            dip_before:           payload.dip_before,
-            dip_after_mm:         payload.dip_after_mm,
-            dip_after:            payload.dip_after,
-            receiving_officer:    form.receiving_officer?.trim() || null,
-            notes:                payload.notes,
-            updated_by:           userId || null,
-          })
-          .eq('id', editId)
-          .eq('site_id', currentSiteId)
-        if (error) throw error
-
-        // Update tank level if dip_after provided and this is the latest reading
-        if (payload.dip_after != null) {
-          const tank = tanks.find(t => t.id === payload.tank_id)
-          const isLatest = !tank?.last_dip_date || payload.delivery_date >= tank.last_dip_date
-          if (isLatest) {
-            await supabase
-              .from('fuel_tanks')
-              .update({ current_level_litres: payload.dip_after, last_dip_date: payload.delivery_date, last_dip_reading: payload.dip_after, updated_at: new Date().toISOString() })
-              .eq('id', payload.tank_id)
-              .eq('site_id', currentSiteId)
-          }
-        }
-
-        showToast('Delivery updated', 'green')
-      } else {
-        payload.delivery_number = deliveryNumber
-
-        const { error } = await supabase
-          .from('fuel_deliveries')
-          .insert([payload])
-        if (error) throw error
-
-        // Record in fuel_transactions for history
-        await addTransaction({
-          transaction_type:  'delivery',
-          transaction_date:  form.delivery_date,
-          tank_id:           form.tank_id,
-          litres:            Number(form.quantity_delivered),
-          unit_price:        form.unit_price ? Number(form.unit_price) : null,
-          total_cost:        form.total_cost ? Number(form.total_cost) : null,
-          supplier:          form.supplier_name.trim(),
-          docket_number:     form.delivery_note_number.trim() || null,
-          notes:             form.receiving_officer ? `Received by: ${form.receiving_officer.trim()}${form.notes ? ' | ' + form.notes.trim() : ''}` : (form.notes.trim() || null),
-        })
-
-        // Auto-create dip reading for the dipstick log (trigger sets tank level)
-        if (payload.dip_after != null) {
-          const { error: dipErr } = await supabase
-            .from('fuel_dip_readings')
-            .insert([{
-              site_id:            currentSiteId,
-              tank_id:            form.tank_id,
-              reading_date:       form.delivery_date,
-              reading_time:       form.delivery_time || null,
-              dip_start_mm:       payload.dip_before_mm,
-              dip_end_mm:         payload.dip_after_mm,
-              dip_mm:             payload.dip_after_mm,
-              level_litres:       payload.dip_after,
-              level_start_litres: payload.dip_before,
-              level_end_litres:   payload.dip_after,
-              recorded_by:        userId || null,
-              notes:              `Auto-recorded from delivery ${deliveryNumber}`,
-            }])
-          if (dipErr) console.error('Dip reading auto-insert failed:', dipErr.message)
-        }
-
-        showToast('Delivery recorded', 'green')
-      }
+      // F1 (#69): one database step writes the delivery, its tank transaction and the dip after — with a capacity check.
+      const { error } = await supabase.rpc('fuel_delivery_save', { p: {
+        id: editId || '',
+        tank_id: form.tank_id,
+        delivery_date: form.delivery_date,
+        delivery_time: form.delivery_time || '',
+        supplier_name: form.supplier_name.trim(),
+        delivery_note_number: form.delivery_note_number.trim(),
+        quantity_ordered: form.quantity_ordered || '',
+        quantity_delivered: Number(form.quantity_delivered),
+        unit_price: form.unit_price || '',
+        total_cost: form.total_cost || '',
+        dip_before_mm: form.dip_before_mm || '',
+        dip_before: form.dip_before || '',
+        dip_after_mm: form.dip_after_mm || '',
+        dip_after: form.dip_after || '',
+        receiving_officer: form.receiving_officer?.trim() || '',
+        notes: form.notes.trim(),
+      } })
+      if (error) throw error
+      showToast(editId ? 'Delivery updated' : 'Delivery recorded', 'green')
 
       setShowForm(false)
       setEditId(null)
@@ -404,16 +323,13 @@ export default function FuelReceipts() {
 
   async function cancelDelivery() {
     if (!editId) return
-    if (!confirm('Cancel this delivery? This will mark it as cancelled (it will not be deleted).')) return
+    const reason = prompt('Why is this delivery being cancelled? (e.g. entered twice, wrong tank)')
+    if (!reason || !reason.trim()) return
     setSaving(true)
     try {
-      const { error } = await supabase
-        .from('fuel_deliveries')
-        .update({ status: 'cancelled', updated_by: userId })
-        .eq('id', editId)
-        .eq('site_id', currentSiteId)
+      const { error } = await supabase.rpc('fuel_delivery_void', { p_id: editId, p_reason: reason.trim() })
       if (error) throw error
-      showToast('Delivery cancelled', 'green')
+      showToast('Delivery cancelled — kept in the history', 'green')
       setShowForm(false)
       setEditId(null)
       fetchDeliveries()
@@ -424,25 +340,6 @@ export default function FuelReceipts() {
       setSaving(false)
     }
   }
-
-  async function permanentlyDeleteDelivery() {
-    if (!editId) return
-    if (!confirm('PERMANENTLY delete this delivery? This cannot be undone. The deletion will be recorded in the audit trail.')) return
-    setSaving(true)
-    try {
-      await deleteDelivery(editId)
-      showToast('Delivery permanently deleted', 'green')
-      setShowForm(false)
-      setEditId(null)
-      fetchDeliveries()
-      refreshFuel()
-    } catch (err) {
-      showToast(err.message || 'Failed to delete delivery', 'red')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   async function deleteLegacyRow(txnId) {
     if (!confirm('Delete this legacy transaction record? It will be archived, not permanently removed.')) return
     try {
@@ -738,14 +635,7 @@ export default function FuelReceipts() {
                   background: 'transparent', color: THEME.error, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
                   display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
-                  <Icon name="block" size={15} style={{ color: THEME.error }} /> Cancel
-                </button>
-                <button onClick={permanentlyDeleteDelivery} disabled={saving} style={{
-                  padding: '10px 20px', borderRadius: '6px', border: 'none',
-                  background: THEME.error, color: '#fff', fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                }}>
-                  <Icon name="delete_forever" size={15} style={{ color: '#fff' }} /> Delete
+                  <Icon name="block" size={15} style={{ color: THEME.error }} /> Cancel delivery
                 </button>
               </div>
             )}

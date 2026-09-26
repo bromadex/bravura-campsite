@@ -153,7 +153,10 @@ export default function QuickStartGuide() {
           <Steps items={[
             <>Issue fuel with <Code>ISS</Code>. Select the tank, vehicle and operator.</>,
             <><b>Always enter the vehicle's odometer reading</b> — the form shows the last recorded km and blocks obvious typos. This feeds consumption monitoring.</>,
-            <>Record daily tank dips in <Code>DIP</Code> — tank levels come from dips, not arithmetic.</>,
+            <>Record daily tank dips in <Code>DIP</Code>. Each dip now shows the <b>book level</b> (last dip + deliveries − issues ± transfers since) and the <b>gap</b>; a gap bigger than about 2 dipstick marks (±120 L on the Main Tank) shows in red — check the dip, or look for fuel given out but not recorded.</>,
+            <>Fuel Tanks shows each tank's book level, how full it is and the <b>days of cover</b> at the last 30 days' use.</>,
+            <>Record a delivery once (Tank Deliveries): it saves the delivery, the tank record and the dip after in one step, and refuses a delivery bigger than the tank can hold. A wrong delivery is <b>cancelled with a reason</b> and stays in the history — nothing is deleted.</>,
+            <>Filling a drum or bowser from a tank is a <b>transfer</b> (Fuel Tanks → Transfer), so the tank's book level stays right.</>,
             <>Manual issuances without an approved request need the authoriser's name and a reason.</>,
           ]} />
         </Section>

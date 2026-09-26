@@ -32,7 +32,7 @@ export const TXN_CODES = [
   { code: 'FU04', path: '/fuel/fuel_dips',                label: 'Dipstick Log',          module: 'fuel' },
   { code: 'FU05', path: '/fuel/fuel_requests_list',       label: 'Fuel Requests',         module: 'fuel' },
   { code: 'FU06', path: '/fuel/fuel_request_form',        label: 'Request Fuel',          module: 'fuel' },
-  { code: 'FU07', path: '/fuel/fuel_issuance',            label: 'Fuel Issuance',         module: 'fuel' },
+  { code: 'FU07', path: '/fuel/fuel_issuance',            label: 'Batch issue entry',         module: 'fuel' },
   { code: 'FU08', path: '/fuel/fuel_issues',              label: 'Issuance History',      module: 'fuel' },
   { code: 'FU09', path: '/fuel/fuel_transactions',        label: 'Fuel Transactions',     module: 'fuel' },
   { code: 'FU10', path: '/fuel/fuel_reconciliation',      label: 'Fuel Reconciliation',   module: 'fuel' },
@@ -45,7 +45,7 @@ export const TXN_CODES = [
   { code: 'FU17', path: '/fuel/fuel_shift_report',        label: 'Shift Report (retired)',          module: 'fuel' },
   { code: 'FU18', path: '/fuel/fuel_bowsers',             label: 'Bowser Dispatch (retired)',       module: 'fuel' },
   { code: 'FU20', path: '/fuel/fuel_settings',            label: 'Fuel Settings',         module: 'fuel' },
-  { code: 'FU21', path: '/fuel/fuel_pump',                label: 'Issue at pump',         module: 'fuel' },
+  { code: 'FU21', path: '/fuel/fuel_pump',                label: 'Issue fuel',         module: 'fuel' },
   { code: 'FU22', path: '/fuel/fuel_allowances',          label: 'Allowances & recharges', module: 'fuel' },
 
   // ── Fleet (FL) ────────────────────────────────────────────────────────────

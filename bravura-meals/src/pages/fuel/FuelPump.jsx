@@ -32,6 +32,7 @@ export default function FuelPump() {
   const [form, setForm] = useState(blank())
   const [search, setSearch] = useState('')
   const [dsearch, setDsearch] = useState('')
+  const [openList, setOpenList] = useState(null)   // 'machine' | 'driver' — the picker showing its list
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const [queue, setQueue] = useState(readQ())
@@ -138,8 +139,8 @@ export default function FuelPump() {
 
   if (!can('fuel.create')) return <Denied />
   if (!siteId) return null
-  const machines = (lists?.machines || []).filter(m => !search || m.label.toLowerCase().includes(search.toLowerCase())).slice(0, 40)
-  const drivers = (lists?.drivers || []).filter(d => !dsearch || `${d.name} ${d.number || ''}`.toLowerCase().includes(dsearch.toLowerCase())).slice(0, 40)
+  const machines = (lists?.machines || []).filter(m => !search || m.label.toLowerCase().includes(search.toLowerCase())).slice(0, 200)
+  const drivers = (lists?.drivers || []).filter(d => !dsearch || `${d.name} ${d.number || ''}`.toLowerCase().includes(dsearch.toLowerCase())).slice(0, 200)
   const pumps = (lists?.pumps || []).filter(p => !form.tank_id || p.tank_id === form.tank_id)
 
   return (
@@ -168,12 +169,13 @@ export default function FuelPump() {
       </select>
 
       <label style={label} htmlFor="p-machine">Machine</label>
-      <input id="p-machine" placeholder="Type fleet no. or registration" value={machine ? machine.label : search}
-        onChange={e => { set('fleet_asset_id', ''); setSearch(e.target.value) }} style={big} />
-      {!machine && search && (
+      <input id="p-machine" placeholder="Tap to choose, or type fleet no. / registration" value={machine ? machine.label : search}
+        onFocus={() => setOpenList('machine')} onClick={() => setOpenList('machine')}
+        onChange={e => { set('fleet_asset_id', ''); setSearch(e.target.value); setOpenList('machine') }} style={{ ...big, cursor: 'pointer' }} />
+      {openList === 'machine' && (
         <div style={{ border: `1px solid ${THEME.outlineVar}`, borderRadius: 10, marginTop: 4, maxHeight: 240, overflowY: 'auto', background: THEME.surface }}>
           {machines.map(m => (
-            <div key={m.id} onClick={() => { set('fleet_asset_id', m.id); setSearch('') }} style={{ padding: '12px', borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontSize: 15 }}>
+            <div key={m.id} onClick={() => { set('fleet_asset_id', m.id); setSearch(''); setOpenList(null) }} style={{ padding: '12px', borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontSize: 15 }}>
               {m.label}{m.hired && <span style={{ marginLeft: 6, fontSize: 11, color: THEME.warning }}>HIRED · recharge</span>}
             </div>
           ))}
@@ -183,12 +185,13 @@ export default function FuelPump() {
       {machine?.hired && <div style={{ fontSize: 12, color: THEME.warning, marginTop: 4 }}>Hired machine — the contractor pays for this fuel; it will be charged back.</div>}
 
       <label style={label} htmlFor="p-driver">Driver / operator</label>
-      <input id="p-driver" placeholder="Type name or employee no." value={driver ? driver.name : dsearch}
-        onChange={e => { set('operator_id', ''); setDsearch(e.target.value) }} style={big} />
-      {!driver && dsearch && (
+      <input id="p-driver" placeholder="Tap to choose, or type name / employee no." value={driver ? driver.name : dsearch}
+        onFocus={() => setOpenList('driver')} onClick={() => setOpenList('driver')}
+        onChange={e => { set('operator_id', ''); setDsearch(e.target.value); setOpenList('driver') }} style={{ ...big, cursor: 'pointer' }} />
+      {openList === 'driver' && (
         <div style={{ border: `1px solid ${THEME.outlineVar}`, borderRadius: 10, marginTop: 4, maxHeight: 240, overflowY: 'auto', background: THEME.surface }}>
           {drivers.map(d => (
-            <div key={d.id} onClick={() => { setForm(f => ({ ...f, operator_id: d.id, signed_by_name: f.signed_by_name || '' })); setDsearch('') }}
+            <div key={d.id} onClick={() => { setForm(f => ({ ...f, operator_id: d.id, signed_by_name: f.signed_by_name || '' })); setDsearch(''); setOpenList(null) }}
               style={{ padding: '12px', borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontSize: 15 }}>
               {d.name} <span style={{ fontSize: 12, color: THEME.textMed }}>{d.number}</span>
             </div>
@@ -200,7 +203,7 @@ export default function FuelPump() {
         {driver.licence_expiry ? `Licence expired ${driver.licence_expiry}` : 'No licence on record'} — you will be asked for a reason.</div>}
 
       <label style={label} htmlFor="p-litres">Litres</label>
-      <input id="p-litres" type="number" inputMode="decimal" value={form.litres} onChange={e => set('litres', e.target.value)} style={{ ...big, fontSize: 26, fontWeight: 700 }} />
+      <input id="p-litres" onFocus={() => setOpenList(null)} type="number" inputMode="decimal" value={form.litres} onChange={e => set('litres', e.target.value)} style={{ ...big, fontSize: 26, fontWeight: 700 }} />
 
       <label style={label} htmlFor="p-meter">{isVehicle ? 'Odometer (km)' : 'Hour meter'}{meterNeeded ? '' : ' (optional until ' + (lists?.meter_required_from || '') + ')'}</label>
       <input id="p-meter" type="number" inputMode="decimal" disabled={form.meter_broken}

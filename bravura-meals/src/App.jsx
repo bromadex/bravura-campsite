@@ -118,14 +118,12 @@ const FleetSettings       = lazy(() => import('./pages/fleet/FleetSettings'))
 // ── Fuel pages ────────────────────────────────────────────────────────────────
 const FuelHome      = lazy(() => import('./pages/fuel/FuelHome'))
 const FuelSetup     = lazy(() => import('./pages/fuel/FuelSetup'))
+const FuelHub       = lazy(() => import('./pages/fuel/FuelHub'))
 const FuelLedger    = lazy(() => import('./pages/fuel/FuelLedger'))
 const FuelReceipts  = lazy(() => import('./pages/fuel/FuelReceipts'))
-const FuelIssues    = lazy(() => import('./pages/fuel/FuelIssues'))
 const DipReadings   = lazy(() => import('./pages/fuel/DipReadings'))
 const FuelTanks     = lazy(() => import('./pages/fuel/FuelTanks'))
-const FuelReports   = lazy(() => import('./pages/fuel/FuelReports'))
 const FuelIssuance    = lazy(() => import('./pages/fuel/FuelIssuance'))
-const FuelTransactions = lazy(() => import('./pages/fuel/FuelTransactions'))
 const FuelRequestForm = lazy(() => import('./pages/fuel/FuelRequestForm'))
 const FuelRequests    = lazy(() => import('./pages/fuel/FuelRequests'))
 const TankDetail         = lazy(() => import('./pages/fuel/TankDetail'))
@@ -135,12 +133,6 @@ const Operators          = lazy(() => import('./pages/fuel/Operators'))
 const Reconciliation     = lazy(() => import('./pages/fuel/Reconciliation'))
 const FuelPump           = lazy(() => import('./pages/fuel/FuelPump'))
 const FuelAllowances     = lazy(() => import('./pages/fuel/FuelAllowances'))
-const DailyTransactionReport   = lazy(() => import('./pages/fuel/reports/DailyTransactionReport'))
-const MonthlyConsumptionReport = lazy(() => import('./pages/fuel/reports/MonthlyConsumptionReport'))
-const DeliveryReport           = lazy(() => import('./pages/fuel/reports/DeliveryReport'))
-const VehicleConsumption       = lazy(() => import('./pages/fuel/VehicleConsumption'))
-const Forecasting              = lazy(() => import('./pages/fuel/Forecasting'))
-const CostAllocation           = lazy(() => import('./pages/fuel/CostAllocation'))
 
 // ── Contract & Contractor Management ─────────────────────────────────────────
 const CLDashboard           = lazy(() => import('./pages/contractors/CLDashboard'))
@@ -520,26 +512,26 @@ function getFuelPage(page, setPage, can) {
   const fuelFramed = (title, el) => <FinShell module="Fuel" homePage="fuel_dashboard" title={title} setPage={setPage}>{el}</FinShell>
   switch (page) {
     case 'fuel_dashboard': return (can('fuel.view') || can('fuel.create')) ? <FuelHome setPage={setPage} /> : null
-    case 'fuel_ledger':    return can('fuel.view')   ? fuelFramed('Transactions', <FuelTransactions setPage={setPage} />) : null
+    case 'fuel_ledger':    return can('fuel.view')   ? <FuelHub hub="history" initialTab="transactions" setPage={setPage} /> : null
     case 'fuel_receipts':  return can('fuel.create') ? fuelFramed('Tank deliveries', <FuelReceipts setPage={setPage} />) : null
-    case 'fuel_issues':    return can('fuel.view')         ? fuelFramed('Issuance history', <FuelIssues setPage={setPage} />) : null
-    case 'fuel_issuance':     return can('fuel.create') ? fuelFramed('Fuel issuance (office)', <FuelIssuance setPage={setPage} />) : null
-    case 'fuel_transactions': return can('fuel.view')   ? fuelFramed('Transactions', <FuelTransactions setPage={setPage} />) : null
+    case 'fuel_issues':    return can('fuel.view')         ? <FuelHub hub="history" initialTab="issues" setPage={setPage} /> : null
+    case 'fuel_issuance':     return can('fuel.create') ? fuelFramed('Batch issue entry', <FuelIssuance setPage={setPage} />) : null
+    case 'fuel_transactions': return can('fuel.view')   ? <FuelHub hub="history" initialTab="transactions" setPage={setPage} /> : null
     case 'fuel_dips':          return can('fuel.create') ? fuelFramed('Dipstick log', <DipReadings setPage={setPage} />) : null
     case 'fuel_bowsers':       return can('fuel.view') ? <RetiredPage title="Bowser Dispatch" reason="Retired: filling a bowser or drum is a transfer from the tank (Fuel Tanks → Transfer), and fills from the bowser are issued at the pump like any other tank." links={[['Fuel Tanks (FU02)', '/fuel/fuel_tanks'], ['Issue at pump (FU21)', '/fuel/fuel_pump']]} /> : null
     case 'fuel_reconciliation':return can('fuel.create') ? fuelFramed('Reconciliation', <Reconciliation setPage={setPage} />) : null
     case 'fuel_pump':          return can('fuel.create') ? <FuelPump setPage={setPage} />             : null
     case 'fuel_allowances':    return (can('fuel.view') || can('fuel.create')) ? fuelFramed('Allowances & recharges', <FuelAllowances setPage={setPage} />) : null
     case 'fuel_shift_report':  return can('fuel.view') ? <RetiredPage title="Shift Report" reason="Retired: pump shifts are opened and closed with the pump meter in Fuel Reconciliation → Pump shifts." links={[['Fuel Reconciliation (FU10)', '/fuel/fuel_reconciliation']]} /> : null
-    case 'fuel_report_daily':  return can('fuel.view')   ? fuelFramed('Daily transactions', <DailyTransactionReport setPage={setPage} />) : null
-    case 'fuel_report_monthly':return can('fuel.view')   ? fuelFramed('Monthly consumption', <MonthlyConsumptionReport setPage={setPage} />) : null
-    case 'fuel_report_deliveries': return can('fuel.view') ? fuelFramed('Deliveries', <DeliveryReport setPage={setPage} />) : null
+    case 'fuel_report_daily':  return can('fuel.view')   ? <FuelHub hub="reports" initialTab="daily" setPage={setPage} /> : null
+    case 'fuel_report_monthly':return can('fuel.view')   ? <FuelHub hub="reports" initialTab="monthly" setPage={setPage} /> : null
+    case 'fuel_report_deliveries': return can('fuel.view') ? <FuelHub hub="reports" initialTab="deliveries" setPage={setPage} /> : null
     case 'fuel_report_variance':   return can('fuel.view') ? <RetiredPage title="Variance Report" reason="Retired: every dip is compared with the book in Fuel Reconciliation, and the month's loss or gain is posted from there." links={[['Fuel Reconciliation (FU10)', '/fuel/fuel_reconciliation']]} /> : null
-    case 'fuel_vehicle_consumption': return can('fuel.view') ? fuelFramed('Consumption per machine', <VehicleConsumption setPage={setPage} />) : null
-    case 'fuel_forecasting':   return can('fuel.view')     ? fuelFramed('Forecasting', <Forecasting setPage={setPage} />) : null
-    case 'fuel_cost_allocation':   return can('fuel.view') ? fuelFramed('Cost allocation', <CostAllocation setPage={setPage} />) : null
+    case 'fuel_vehicle_consumption': return can('fuel.view') ? <FuelHub hub="reports" initialTab="machines" setPage={setPage} /> : null
+    case 'fuel_forecasting':   return can('fuel.view')     ? <FuelHub hub="reports" initialTab="forecast" setPage={setPage} /> : null
+    case 'fuel_cost_allocation':   return can('fuel.view') ? <FuelHub hub="reports" initialTab="allocation" setPage={setPage} /> : null
     case 'fuel_finance_export':    return can('fuel.edit') ? <RetiredPage title="Fuel Finance Export" reason="Retired: approved fuel issues now post to the accounts automatically, using the accounts set in Posting Rules. There's nothing to export any more — see the entries in Journal Entries." links={[['Posting Rules (FI13)', '/finance/fi_posting_rules'], ['Journal Entries (FI02)', '/finance/fi_journal_entries']]} />      : null
-    case 'fuel_reports':   return can('fuel.view')     ? fuelFramed('Reports', <FuelReports setPage={setPage} />) : null
+    case 'fuel_reports':   return can('fuel.view')     ? <FuelHub hub="reports" initialTab="summary" setPage={setPage} /> : null
     case 'fuel_tanks':     return can('fuel.view')   ? fuelFramed('Tanks', <FuelTanks setPage={setPage} />) : null
     case 'fuel_types': return can('fuel.edit') ? <FuelSetup setPage={setPage} initialTab="types" /> : null
     case 'fuel_settings': return can('fuel.edit') ? <FuelSetup setPage={setPage} initialTab="general" /> : null

@@ -18,6 +18,7 @@ const MonthlyConsumptionReport = lazy(() => import('./reports/MonthlyConsumption
 const DeliveryReport           = lazy(() => import('./reports/DeliveryReport'))
 
 const FUEL_CLR = MODULE_COLORS.fuel
+const TANK_CLR = '#00897B'
 
 // ── SVG chart primitives ──────────────────────────────────────────────────────
 

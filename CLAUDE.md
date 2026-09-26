@@ -607,6 +607,14 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   hired_vehicles/hired_equipment.fuel_paid_by bravura|contractor (fuel_included → contractor); `trg_fuel_recharge_flag` sets
   fuel_transactions.recharge_contractor_id + recharge_status pending → `fuel_recharge_list` / `fuel_recharge_mark` (deducted with bill no. / waived).
   FU22 `fuel_allowances` = FuelAllowances.jsx (tabs Allowances · Hired plant recharges).
+  **F5 built (0251):** fuel_transactions.department_id; `trg_fuel_dims` stamps department / cost centre / project from the machine
+  (GL already reads cost centre + project via _gl_source_dims); `trg_fleet_dims_to_fuel` fills the last 90 days' empty dims when a machine
+  gets them (0 of 45 KAM machines have any yet). fuel_settings.reorder_days (5). `fuel_home(site)` → FU01 FuelHome.jsx (FinShell module Fuel:
+  chips, tanks + days of cover + reorder/order litres, figures, 30-day trend, top users with L/h vs expected from fleet_machine_costs,
+  charge-out by department/cost centre/project + CSV). FU20 = FuelSetup hub (General · Rules · Fuel types; fuel_types route opens it).
+  All other fuel routes wrapped in `fuelFramed` (FuelQuickNav hides in frame); FU21 pump screen unframed. Menu Daily · Tanks · Control ·
+  Reports · Settings. Retired (RetiredPage): bowsers FU18, shift report FU17, variance report FU14; FuelDashboard/BowserDispatches/
+  ShiftReport/VarianceReport deleted.
   optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
   POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;

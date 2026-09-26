@@ -582,6 +582,8 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   **F1 part 2 (next):** tanks on the Stores engine (tank = store, diesel = item, fills = issues, dips = counts) + GL switch.
   optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
   POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
+- **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;
+  make them pickers (search drivers/employees by name). A machine can have 2 people (e.g. day + night operator, or operator + supervisor).
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search

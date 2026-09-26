@@ -158,6 +158,7 @@ export default function QuickStartGuide() {
             <>Record a delivery once (Tank Deliveries): it saves the delivery, the tank record and the dip after in one step, and refuses a delivery bigger than the tank can hold. A wrong delivery is <b>cancelled with a reason</b> and stays in the history — nothing is deleted.</>,
             <>Filling a drum or bowser from a tank is a <b>transfer</b> (Fuel Tanks → Transfer), so the tank's book level stays right.</>,
             <>Each tank is also a store in <b>Stores</b> (for example KAM-FT-MAINTANK), so fuel stock and its value show with the rest of the stock. Fuel is still only moved from the Fuel screens — Stores will refuse to issue or count a fuel tank.</>,
+            <>Fuel reconciliation (<Code>FU10</Code>): a dip gap bigger than the tank's tolerance needs a <b>reason</b>, then a fuel approver <b>signs it off</b>. A mistyped dip is fixed with <b>Correct dip</b> (the old figure and why are kept). Pump shifts: read the pump meter at open and close — the pump's litres are checked against the issues recorded on it. After month-end a fuel approver clicks <b>Close month &amp; post</b> to book the net loss or gain (Stores and the ledger); finance is told.</>,
             <>Manual issuances without an approved request need the authoriser's name and a reason.</>,
           ]} />
         </Section>

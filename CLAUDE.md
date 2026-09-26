@@ -586,6 +586,13 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   source_module 'fuel'. Issues priced at the tank's moving average (fallback last delivery). Cut-over = one 'opening' per tank at the dip-based
   book level × last delivery price (KAM Main Tank 800 L × 1.88); history not replayed (negatives wreck the average). Dips are NOT auto-posted
   as counts — F2 confirms gaps as losses. fuel_tank_position adds store_code/store_litres/cost_per_litre/stock_value.
+  **F2 built (0248, 0248a):** fuel_dip_readings.gap_status ok/needs_reason/explained/signed_off (+ gap_reason, gap_explained_by, gap_signed_*,
+  month_close_id); trg_fuel_dip_gap (BEFORE INSERT/UPDATE) sets it and notifies fuel.approve; `fuel_dip_explain` (fuel.edit), `fuel_dip_sign_off`
+  (fuel.approve), `fuel_dip_correct` (logs `fuel_dip_corrections`, recomputes next dip); `fuel_recon_days`. Pump shifts `fuel_pump_shifts`,
+  `fuel_shift_open/close/list` (pump litres vs issues on that pump; reason over tolerance). Month-end `fuel_month_preview` / `fuel_month_close`
+  (fuel.approve, month ended, all big gaps signed) → `fuel_month_closes` + Stores 'stock_take' (source fuel) + GL events fuel_loss / fuel_gain
+  (rules added: Dr stock-loss acct / Cr fuel stock acct and reverse), notifies finance.approve; only dips created after fuel_tanks.stores_from.
+  Screen FU10 `fuel_reconciliation` = pages/fuel/Reconciliation.jsx (tabs Dips & gaps · Pump shifts · Month-end; old fuel_reconciliations unused).
   optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
   POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;

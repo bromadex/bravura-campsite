@@ -723,70 +723,85 @@ function GroupModal({ group, onClose, onChildClick, chatUnread, isMobile }) {
   )
 }
 
-// ── Your day (Ask Bravura B6, issue #58) ─────────────────────────────────────
-// ai_daily_brief: approvals waiting for me, late deliveries, low stock, papers/documents expiring,
-// budgets at risk and alerts (unusual fuel draws, price jumps, duplicate or mismatched bills) — for the
-// sites and modules this person can see. Collapsible; the choice is remembered for the day.
+// ── Your day (Ask Bravura B6, issue #58; redesigned 26 Sep) ─────────────────
+// ai_daily_brief for the site you are on only: approvals, late deliveries, low stock, papers expiring, budgets at risk
+// and alerts. A count on the left, then one card per item with an icon for its area and a severity stripe.
+// Collapsible; the choice is remembered for the day.
+const AREA = [
+  [/^fuel|fuel draw/i, 'local_gas_station', '#C2410C'], [/stock|out of stock|batch|count|shipment/i, 'inventory_2', '#0F766E'],
+  [/machine|service|papers|fleet|small_asset/i, 'local_shipping', '#1A6B52'], [/bill|price|invoice/i, 'receipt_long', '#1F4E8C'],
+  [/approval/i, 'task_alt', '#7C3AED'], [/deliver/i, 'schedule', '#B45309'], [/budget/i, 'savings', '#B3261E'], [/expir/i, 'event_busy', '#9A5B00'],
+]
+const areaOf = t => AREA.find(([re]) => re.test(t || '')) || [null, 'notifications', '#5F6368']
 function DailyBrief({ navigate }) {
+  const { currentSite } = useSite()
   const [b, setB] = useState(null)
   const today = new Date().toISOString().slice(0, 10)
   const [hidden, setHidden] = useState(() => { try { return localStorage.getItem('brief_hidden') === today } catch { return false } })
-  useEffect(() => { supabase.rpc('ai_daily_brief', { p_site_ids: null }).then(({ data }) => setB(data || null)) }, [])
+  const [all, setAll] = useState(false)
+  useEffect(() => {
+    if (!currentSite?.id) return
+    supabase.rpc('ai_daily_brief', { p_site_ids: [currentSite.id] }).then(({ data }) => setB(data || null))
+  }, [currentSite?.id])
   if (!b) return null
   const go = p => { if (!p) return; navigate(p.startsWith('/') ? p : '/' + p) }
-  const chips = [
-    b.approvals_total > 0 && { n: b.approvals_total, label: `approval${b.approvals_total > 1 ? 's' : ''} waiting for you`, tone: 'warn', to: b.approvals?.[0]?.link || '/approvals' },
-    b.late_deliveries?.length > 0 && { n: b.late_deliveries.length, label: `late deliver${b.late_deliveries.length > 1 ? 'ies' : 'y'}`, tone: 'bad', to: '/procurement/proc_orders' },
-    b.low_stock > 0 && { n: b.low_stock, label: `item${b.low_stock > 1 ? 's' : ''} at or below reorder`, tone: 'warn', to: '/inventory/inv_balances' },
-    b.expiring?.length > 0 && { n: b.expiring.length, label: 'papers or documents expiring', tone: 'warn', to: '/fleet/fleet_compliance' },
-    b.budgets_at_risk?.length > 0 && { n: b.budgets_at_risk.length, label: `budget${b.budgets_at_risk.length > 1 ? 's' : ''} over 90% used`, tone: 'bad', to: '/finance/fi_budgets' },
-  ].filter(Boolean)
-  const alerts = b.alerts || []
-  const clear = !chips.length && !alerts.length
-  if (clear) return null   // only shown when something needs you
+  const items = [
+    b.approvals_total > 0 && { kind: 'approval', sev: 'warning', title: `${b.approvals_total} approval${b.approvals_total > 1 ? 's' : ''} waiting for you`, detail: b.approvals?.[0]?.title || '', link: b.approvals?.[0]?.link || '/approvals' },
+    b.late_deliveries?.length > 0 && { kind: 'deliver', sev: 'critical', title: `${b.late_deliveries.length} late deliver${b.late_deliveries.length > 1 ? 'ies' : 'y'}`, detail: 'Purchase orders past their date', link: '/procurement/proc_orders' },
+    b.low_stock > 0 && { kind: 'stock', sev: 'warning', title: `${b.low_stock} item${b.low_stock > 1 ? 's' : ''} at or below reorder`, detail: 'Stores', link: '/inventory/inv_balances' },
+    b.expiring?.length > 0 && { kind: 'expir', sev: 'warning', title: `${b.expiring.length} papers or documents expiring`, detail: 'Licences, insurance, documents', link: '/fleet/fleet_compliance' },
+    b.budgets_at_risk?.length > 0 && { kind: 'budget', sev: 'critical', title: `${b.budgets_at_risk.length} budget${b.budgets_at_risk.length > 1 ? 's' : ''} over 90% used`, detail: 'Budgets', link: '/finance/fi_budgets' },
+    ...(b.alerts || []).filter(a => !a.site || !currentSite?.name || a.site === currentSite.name).map(a => ({ kind: `${a.kind || ''} ${a.title}`, sev: a.severity, title: a.title, detail: a.detail, link: a.link })),
+  ].filter(Boolean).sort((x, y) => (y.sev === 'critical') - (x.sev === 'critical'))
+  if (!items.length) return null   // only shown when something needs you
   const toggle = () => { const h = !hidden; setHidden(h); try { h ? localStorage.setItem('brief_hidden', today) : localStorage.removeItem('brief_hidden') } catch { /* private mode */ } }
-  const tone = t => t === 'bad' ? { bg: '#FDECEA', fg: '#B3261E', bd: '#F2C4C0' } : { bg: '#FFF6E8', fg: '#9A5B00', bd: '#EBCB97' }
+  const urgent = items.filter(x => x.sev === 'critical').length
+  const shown = all ? items : items.slice(0, 6)
+  const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
   return (
-    <section aria-label="Your day" style={{ width: '100%', maxWidth: 880, marginBottom: 28, background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: 14, padding: hidden ? '10px 16px' : '14px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ color: '#982329', fontSize: 16 }}>✦</span>
-        <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: THEME.text }}>
-          Your day{clear && <span style={{ fontWeight: 400, color: '#2F7D4F' }}> — all clear, nothing waiting on you</span>}
+    <section aria-label="Your day" style={{ width: '100%', maxWidth: 1000, marginBottom: 28, borderRadius: 20, overflow: 'hidden',
+      border: `1px solid ${THEME.outlineVar}`, background: THEME.surface, boxShadow: '0 6px 24px rgba(20,20,40,.06)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+        <div style={{ flex: '0 0 220px', minWidth: 200, padding: '20px 22px', color: '#fff',
+          background: urgent ? 'linear-gradient(160deg, #982329 0%, #6E1A1F 100%)' : 'linear-gradient(160deg, #1F4E8C 0%, #173A68 100%)',
+          display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 11, letterSpacing: '.16em', opacity: .8, fontWeight: 700 }}>✦ YOUR DAY</div>
+          <div style={{ fontSize: 44, fontWeight: 800, lineHeight: 1 }}>{items.length}</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>thing{items.length > 1 ? 's' : ''} need{items.length > 1 ? '' : 's'} you{urgent ? ` · ${urgent} urgent` : ''}</div>
+          <div style={{ fontSize: 12, opacity: .8 }}>{currentSite?.name} · {dateLabel}</div>
+          <div style={{ marginTop: 'auto', display: 'flex', gap: 8, paddingTop: 10 }}>
+            <button onClick={() => window.dispatchEvent(new CustomEvent('open-ask-bravura', { detail: { question: 'What needs my attention today?' } }))}
+              style={{ border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', borderRadius: 999, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ask about it</button>
+            <button onClick={toggle} aria-expanded={!hidden} style={{ border: 'none', background: 'none', color: '#fff', opacity: .8, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}>{hidden ? 'Show' : 'Hide'}</button>
+          </div>
         </div>
-        {!clear && <button onClick={() => window.dispatchEvent(new CustomEvent('open-ask-bravura', { detail: { question: 'What needs my attention today?' } }))}
-          style={{ border: 'none', background: 'none', color: '#1F4E8C', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}>Ask about it</button>}
-        {!clear && <button onClick={toggle} aria-expanded={!hidden} style={{ border: 'none', background: 'none', color: THEME.textLow, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}>{hidden ? 'Show' : 'Hide'}</button>}
+        {!hidden && (
+          <div style={{ flex: '1 1 420px', padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 10, alignContent: 'start' }}>
+            {shown.map((x, i) => {
+              const [, icon, col] = areaOf(x.kind)
+              const sevCol = x.sev === 'critical' ? '#B3261E' : x.sev === 'warning' ? '#C8811E' : THEME.outline
+              return (
+                <button key={i} onClick={() => go(x.link)} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', textAlign: 'left', padding: '12px 12px 12px 14px',
+                  border: `1px solid ${THEME.outlineVar}`, borderLeft: `4px solid ${sevCol}`, borderRadius: 14, background: THEME.surface, cursor: 'pointer', fontFamily: 'inherit', minWidth: 0 }}>
+                  <span style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center', background: col + '1A', color: col }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: 20 }}>{icon}</span>
+                  </span>
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: THEME.text, lineHeight: 1.3 }}>{x.title}</span>
+                    {x.detail && <span style={{ display: 'block', fontSize: 12, color: THEME.textLow, marginTop: 2 }}>{x.detail}</span>}
+                  </span>
+                  <span className="material-symbols-rounded" style={{ fontSize: 18, color: THEME.textLow, alignSelf: 'center' }}>chevron_right</span>
+                </button>
+              )
+            })}
+            {items.length > 6 && (
+              <button onClick={() => setAll(!all)} style={{ border: `1px dashed ${THEME.outline}`, borderRadius: 14, background: 'none', color: THEME.textMed, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, padding: 12 }}>
+                {all ? 'Show fewer' : `+${items.length - 6} more`}
+              </button>
+            )}
+          </div>
+        )}
       </div>
-      {!hidden && !clear && (
-        <>
-          {chips.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-              {chips.map(c => { const t = tone(c.tone); return (
-                <button key={c.label} onClick={() => go(c.to)} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, padding: '6px 12px', borderRadius: 18, cursor: 'pointer', fontFamily: 'inherit',
-                  background: t.bg, color: t.fg, border: `1px solid ${t.bd}`, fontSize: 13 }}>
-                  <b style={{ fontSize: 15 }}>{c.n}</b>{c.label}
-                </button>) })}
-            </div>
-          )}
-          {alerts.length > 0 && (
-            <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {alerts.slice(0, 5).map((a, i) => (
-                <li key={i}>
-                  <button onClick={() => go(a.link)} style={{ width: '100%', textAlign: 'left', display: 'flex', gap: 10, alignItems: 'baseline', padding: '6px 4px', border: 'none', borderTop: `1px solid ${THEME.outlineVar}`, background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 4, flexShrink: 0, background: a.severity === 'critical' ? '#B3261E' : '#C8811E' }} />
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: THEME.text }}>{a.title}</span>
-                      <span style={{ fontSize: 12, color: THEME.textLow }}> · {a.detail}</span>
-                    </span>
-                    <span style={{ fontSize: 11.5, color: THEME.textLow }}>{a.site}</span>
-                  </button>
-                </li>
-              ))}
-              {alerts.length > 5 && <li style={{ fontSize: 12, color: THEME.textLow, padding: '4px' }}>+{alerts.length - 5} more — ask Ask Bravura for the full list</li>}
-            </ul>
-          )}
-        </>
-      )}
     </section>
   )
 }

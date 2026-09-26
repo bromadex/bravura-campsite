@@ -23,6 +23,7 @@ const PAGES = {
   deliveries:   lazy(() => import('./reports/DeliveryReport')),
   pump:         lazy(() => import('./FuelPump')),
   office:       lazy(() => import('./FuelIssuance')),
+  import:       lazy(() => import('./FuelImport')),
   diplog:       lazy(() => import('./DipReadings')),
   gaps:         lazy(() => import('./Reconciliation').then(m => ({ default: withSite(m.DipsTab) }))),
   shifts:       lazy(() => import('./Reconciliation').then(m => ({ default: withSite(m.ShiftsTab) }))),
@@ -39,7 +40,7 @@ function withSite(Comp) {
   }
 }
 export const HUBS = {
-  issue:    { title: 'Issue fuel', perm: 'fuel.create', tabs: [['pump', 'At the pump'], ['office', 'Office / batch']] },
+  issue:    { title: 'Issue fuel', perm: 'fuel.create', tabs: [['pump', 'At the pump'], ['office', 'Office / batch'], ['import', 'Import from Excel']] },
   dips:     { title: 'Dips', perm: 'fuel.create', tabs: [['diplog', 'Dipstick log'], ['gaps', 'Gaps & sign-off'], ['shifts', 'Pump shifts'], ['monthend', 'Month-end']] },
   requests: { title: 'Fuel requests', tabs: [['requests', 'Requests'], ['newrequest', 'New request']] },
   history: { title: 'Transactions', tabs: [['issues', 'Issues'], ['transactions', 'All movements']] },

@@ -622,6 +622,11 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   More hubs (user 26 Sep): 'issue' (At the pump = FuelPump · Office / batch = FuelIssuance; routes fuel_pump/fuel_issuance),
   'dips' (Dipstick log · Gaps & sign-off · Pump shifts · Month-end — Reconciliation.jsx exports DipsTab/ShiftsTab/MonthTab; routes fuel_dips/
   fuel_reconciliation), 'requests' (Requests · New request). App routes pass key= so setPage between tabs remounts the hub. Menu 10 items. FinanceExport.jsx + FuelTransfer.jsx (unused) deleted.
+  **F6 built (0252):** fuel_settings got the 6 columns the General tab saved (docket_prefix, docket_padding, require_approval,
+  alert_threshold_pct, default_price_per_litre, allow_manual_litres) — saves had been failing. `_ai_alerts_fuel` in `_ai_alerts_core`
+  (reorder, dip gap >1 day, no dip 2 days, allowance used up, recharge >14 d, 3+ second fills/week). `fuel_import_issues(site, rows)` →
+  each row via fuel_pump_issue (client_ref = md5 of row → no duplicates; reasons 'Imported from paper slip') → Issue fuel tab
+  "Import from Excel" (FuelImport.jsx, template). Ask Bravura's existing `ai_fuel` tool + alerts cover fuel questions.
   optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
   POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;

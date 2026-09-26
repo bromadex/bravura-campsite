@@ -2,34 +2,96 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
-import FinShell from '../../components/FinShell'
+import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import Denied from '../../components/Denied'
-import { FIN, finCard, finBtn, finBtn2, finInput, money } from '../../utils/financeTheme'
+import { FIN, finCard, finBtn2, finInput, money } from '../../utils/financeTheme'
 import { showToast } from '../../components/ui'
 import { friendlyError } from '../../utils/friendlyError'
 import { useAskContext } from '../../components/AskBravura'
 import { exportCsv } from '../../utils/csv'
 
-// FL01 — Fleet dashboard (issue #66, A5) in the finance look. Top: what needs me today. Then headline figures,
-// a board of every machine, service due and the costliest machines. Tab "Cost per machine": fleet_machine_costs.
+// FL01 — Fleet dashboard "Yard control" (user 26 Sep: own look, not the finance layout). A dark control band with
+// availability, the live yard count and alerts; then the yard itself — every machine a tile in its lane (Working ·
+// Standby · Workshop · Down) with a fuel-burn meter against expected; then service due, costliest machines, fuel trend.
+// Data: fleet_home(site). Tab "Cost per machine" = fleet_machine_costs.
 const n = v => Number(v || 0)
 const k = v => { const a = Math.abs(n(v)); return a >= 1e6 ? `$${(n(v) / 1e6).toFixed(1)}M` : a >= 1e3 ? `$${(n(v) / 1e3).toFixed(1)}k` : `$${n(v).toFixed(0)}` }
-const STATUS = {
-  operational: ['Working', FIN.good, FIN.goodTint], standby: ['Standby', FIN.muted, FIN.lineSoft],
-  maintenance: ['In workshop', FIN.ochreText, FIN.ochreTint], awaiting_parts: ['Waiting parts', FIN.ochreText, FIN.ochreTint],
-  grounded: ['Grounded', FIN.bad, FIN.maroonTint], decommissioned: ['Retired', FIN.faint, FIN.lineSoft],
+const Y = { night: '#0F1C1A', night2: '#16302B', line: 'rgba(255,255,255,.10)', text: '#E8F1EE', dim: '#9DB5AE',
+  go: '#2FBF71', idle: '#8FA3A0', shop: '#F2A93B', down: '#E5484D', accent: '#5EEAD4' }
+const LANES = [
+  ['working', 'Working', Y.go, ['operational']],
+  ['standby', 'Standby', Y.idle, ['standby']],
+  ['shop', 'In workshop', Y.shop, ['maintenance', 'awaiting_parts']],
+  ['down', 'Down', Y.down, ['grounded']],
+]
+const laneOf = s => LANES.find(l => l[3].includes(s)) || LANES[0]
+const card = { background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: 18, padding: 18 }
+const h3 = { margin: 0, fontSize: 15, fontWeight: 700, letterSpacing: '.01em', color: THEME.text }
+const sub = { fontSize: 12, color: THEME.textMed, marginTop: 2 }
+
+function Ring({ pct }) {
+  const r = 52, c = 2 * Math.PI * r, v = Math.max(0, Math.min(100, n(pct)))
+  const col = v >= 85 ? Y.go : v >= 70 ? Y.shop : Y.down
+  return (
+    <svg width="132" height="132" viewBox="0 0 132 132" role="img" aria-label={`Availability ${v}%`}>
+      <circle cx="66" cy="66" r={r} fill="none" stroke={Y.line} strokeWidth="12" />
+      <circle cx="66" cy="66" r={r} fill="none" stroke={col} strokeWidth="12" strokeLinecap="round"
+        strokeDasharray={`${(v / 100) * c} ${c}`} transform="rotate(-90 66 66)" />
+      <text x="66" y="66" textAnchor="middle" fontSize="30" fontWeight="800" fill={Y.text}>{pct != null ? `${Math.round(v)}%` : '—'}</text>
+      <text x="66" y="86" textAnchor="middle" fontSize="11" fill={Y.dim} letterSpacing="1.5">AVAILABLE</text>
+    </svg>
+  )
 }
-const h3 = { margin: 0, fontFamily: FIN.serif, fontSize: 18, fontWeight: 600 }
-const th = { textAlign: 'left', padding: '8px 8px', fontSize: 12, color: FIN.muted, fontWeight: 600, borderBottom: `1px solid ${FIN.line}`, whiteSpace: 'nowrap' }
-const thr = { ...th, textAlign: 'right' }
-const td = { padding: '8px 8px', borderBottom: `1px solid ${FIN.lineSoft}`, fontSize: 13, verticalAlign: 'top' }
-const tdr = { ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }
+
+function Spark({ rows }) {
+  if (!rows?.length) return <div style={{ ...sub }}>No fuel issued yet</div>
+  const W = 320, H = 90, max = Math.max(1, ...rows.map(r => n(r.litres)))
+  const pts = rows.map((r, i) => [rows.length === 1 ? W / 2 : (i / (rows.length - 1)) * (W - 20) + 10, H - 10 - (n(r.litres) / max) * (H - 30)])
+  const line = pts.map(p => p.join(',')).join(' ')
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 16}`} style={{ width: '100%', height: 'auto' }} role="img" aria-label="Fuel litres per month">
+      <polygon points={`${pts[0][0]},${H - 10} ${line} ${pts[pts.length - 1][0]},${H - 10}`} fill={MODULE_COLORS.fleet} opacity=".12" />
+      <polyline points={line} fill="none" stroke={MODULE_COLORS.fleet} strokeWidth="2.5" strokeLinejoin="round" />
+      {pts.map((p, i) => <g key={i}><circle cx={p[0]} cy={p[1]} r={i === pts.length - 1 ? 5 : 3} fill={MODULE_COLORS.fleet} />
+        <text x={p[0]} y={H + 12} textAnchor="middle" fontSize="10" fill={THEME.textMed}>{rows[i].month}</text>
+        {i === pts.length - 1 && <text x={p[0]} y={p[1] - 9} textAnchor="end" fontSize="11" fontWeight="700" fill={THEME.text}>{n(rows[i].litres).toLocaleString()} L</text>}</g>)}
+    </svg>
+  )
+}
+
+function Tile({ r, onOpen }) {
+  const [, , col] = laneOf(r.status)
+  const use = r.lph != null ? [r.lph, r.expected_lph, 'L/h'] : r.lp100 != null ? [r.lp100, r.expected_lp100, 'L/100km'] : null
+  const ratio = use && use[1] ? n(use[0]) / n(use[1]) : null
+  const meterCol = ratio == null ? THEME.outline : ratio > 1.15 ? Y.down : ratio > 1 ? Y.shop : Y.go
+  return (
+    <button onClick={onOpen} title={r.machine} style={{ textAlign: 'left', minWidth: 0, cursor: 'pointer', font: 'inherit', color: THEME.text,
+      background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: 14, padding: '10px 12px', position: 'relative', overflow: 'hidden',
+      boxShadow: '0 1px 2px rgba(0,0,0,.04)' }}>
+      <span style={{ position: 'absolute', inset: '0 auto 0 0', width: 4, background: col }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'center' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.machine}</span>
+        {r.service === 'overdue' && <span title="Service overdue" style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: Y.down, borderRadius: 6, padding: '1px 5px' }}>SVC</span>}
+        {r.service === 'due_soon' && <span title="Service due soon" style={{ fontSize: 10, fontWeight: 800, color: '#3b2600', background: Y.shop, borderRadius: 6, padding: '1px 5px' }}>SVC</span>}
+      </div>
+      <div style={{ fontSize: 11, color: THEME.textMed, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.type || 'Machine'}</div>
+      <div style={{ height: 5, background: THEME.surfaceVar, borderRadius: 3, marginTop: 8 }}>
+        <div style={{ width: `${ratio == null ? 0 : Math.min(100, ratio * 66)}%`, height: '100%', borderRadius: 3, background: meterCol }} />
+      </div>
+      <div style={{ fontSize: 10.5, color: ratio && ratio > 1.15 ? Y.down : THEME.textLow, marginTop: 3 }}>
+        {use ? `${use[0]} ${use[2]}${use[1] ? ` · expect ${use[1]}` : ''}` : 'no meter readings'}
+      </div>
+    </button>
+  )
+}
 
 export default function FleetHome({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const [tab, setTab] = useState('overview')
   const [d, setD] = useState(null)
+  const [lane, setLane] = useState('all')
+  const [q, setQ] = useState('')
 
   const load = useCallback(async () => {
     if (!currentSiteId) return
@@ -42,151 +104,169 @@ export default function FleetHome({ setPage }) {
   useAskContext(d ? { screen: 'Fleet dashboard', needs_attention: d.chips, figures_30_days: d.figures, costliest_machines: d.top_cost, service_due: d.service_due }
     : { screen: 'Fleet dashboard' })
 
+  const board = d?.board || []
+  const counts = useMemo(() => Object.fromEntries(LANES.map(l => [l[0], board.filter(r => laneOf(r.status)[0] === l[0]).length])), [board])
   if (!can('fleet.view')) return <Denied />
   const c = d?.chips || {}, f = d?.figures || {}
-  const chips = [
-    [c.down_now, 'machines down now', FIN.bad, 'fleet_maintenance'],
-    [c.service_overdue, 'services overdue', FIN.bad, 'fleet_preventive'],
-    [c.failed_prestarts, 'failed pre-starts this week', FIN.ochreText, 'fleet_prestart'],
-    [c.open_faults, 'open faults', FIN.ochreText, 'fleet_prestart'],
-    [c.papers_30, 'papers expire in 30 days', FIN.ochreText, 'fleet_compliance'],
-    [c.contracts_due, 'contracts to renew', FIN.ochreText, 'fleet_contracts'],
-    [c.open_jobs, 'open workshop jobs', FIN.blue, 'fleet_maintenance'],
-    [c.service_soon, 'services due soon', FIN.blue, 'fleet_preventive'],
-    [c.no_reading_7d, 'machines with no km/hours in 7 days', FIN.muted, 'fleet_meter_readings'],
+  const alerts = [
+    [c.down_now, 'down now', Y.down, 'fleet_maintenance'], [c.service_overdue, 'services overdue', Y.down, 'fleet_preventive'],
+    [c.failed_prestarts, 'failed pre-starts', Y.shop, 'fleet_prestart'], [c.open_faults, 'open faults', Y.shop, 'fleet_prestart'],
+    [c.papers_30, 'papers expiring', Y.shop, 'fleet_compliance'], [c.contracts_due, 'contracts to renew', Y.shop, 'fleet_contracts'],
+    [c.open_jobs, 'open jobs', Y.accent, 'fleet_maintenance'], [c.service_soon, 'services soon', Y.accent, 'fleet_preventive'],
+    [c.no_reading_7d, 'no km/hours in 7 d', Y.dim, 'fleet_meter_readings'],
   ].filter(x => n(x[0]) > 0)
+  const total = board.filter(r => r.status !== 'decommissioned').length || 1
+  const shown = board.filter(r => r.status !== 'decommissioned' && (lane === 'all' || laneOf(r.status)[0] === lane)
+    && (!q || `${r.machine} ${r.type || ''}`.toLowerCase().includes(q.toLowerCase())))
+
+  const Tabs = (
+    <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,.06)', padding: 4, borderRadius: 12, border: `1px solid ${Y.line}` }}>
+      {[['overview', 'Yard'], ['costs', 'Cost per machine']].map(([key, l]) => (
+        <button key={key} onClick={() => setTab(key)} style={{ border: 'none', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 700, padding: '7px 14px', borderRadius: 9,
+          background: tab === key ? Y.accent : 'transparent', color: tab === key ? Y.night : Y.text }}>{l}</button>
+      ))}
+    </div>
+  )
 
   return (
-    <FinShell module="Fleet" homePage="fleet_dashboard" setPage={setPage} title="Fleet"
-      tabs={[{ key: 'overview', label: 'Overview' }, { key: 'costs', label: 'Cost per machine' }]} tab={tab} onTab={setTab}
-      actions={<>
-        {(can('fleet.create') || can('fleet.edit')) && <button style={finBtn2} onClick={() => setPage('fleet_prestart')}>Pre-start check</button>}
-        {can('fleet.edit') && <button style={finBtn} onClick={() => setPage('fleet_maintenance')}>Workshop jobs</button>}
-      </>}>
-      {tab === 'costs' ? <MachineCosts siteId={currentSiteId} /> : !d ? <div style={{ ...finCard, color: FIN.faint }}>Loading…</div> : <>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {chips.length === 0 ? <div style={{ ...finCard, padding: '10px 14px', color: FIN.good, fontSize: 14 }}>Nothing needs attention in the fleet.</div>
-            : chips.map(([v, text, color, page]) => (
-              <button key={text} onClick={() => setPage(page)} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '10px 14px', borderRadius: 12,
-                border: `1px solid ${FIN.line}`, background: FIN.card, cursor: 'pointer', font: 'inherit', color: FIN.ink }}>
-                <strong style={{ fontSize: 20, fontFamily: FIN.serif, color }}>{v}</strong><span style={{ fontSize: 13 }}>{text}</span>
-              </button>
-            ))}
+    <div style={{ display: 'grid', gap: 16, fontFamily: 'inherit' }}>
+      {/* control band */}
+      <div style={{ background: `radial-gradient(120% 140% at 0% 0%, ${Y.night2} 0%, ${Y.night} 60%)`, color: Y.text, borderRadius: 22, padding: 20,
+        border: `1px solid ${Y.night2}`, display: 'grid', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 11, letterSpacing: '.18em', color: Y.accent, fontWeight: 700 }}>FLEET · YARD CONTROL</div>
+            <div style={{ fontSize: 24, fontWeight: 800, marginTop: 2 }}>{total} machines on site</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            {Tabs}
+            {(can('fleet.create') || can('fleet.edit')) && <button onClick={() => setPage('fleet_prestart')} style={{ border: `1px solid ${Y.line}`, background: 'transparent', color: Y.text,
+              borderRadius: 11, padding: '8px 14px', font: 'inherit', fontWeight: 700, cursor: 'pointer' }}>Pre-start</button>}
+            {can('fleet.edit') && <button onClick={() => setPage('fleet_maintenance')} style={{ border: 'none', background: Y.accent, color: Y.night,
+              borderRadius: 11, padding: '8px 14px', font: 'inherit', fontWeight: 800, cursor: 'pointer' }}>Workshop jobs</button>}
+          </div>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
-          <Kpi label="Availability" value={f.availability_30 != null ? `${f.availability_30}%` : '—'} sub="last 30 days, from status history" />
-          <Kpi label="Used" value={f.utilisation_30 != null ? `${f.utilisation_30}%` : '—'} sub={`of ${f.machines || 0} machines fuelled or run in 30 days`} />
-          <Kpi label="Fuel this month" value={`${n(f.fuel_month_litres).toLocaleString()} L`} sub={`$${money(f.fuel_month_cost)}`} />
-          <Kpi label="Cost per hour" value={f.cost_per_hour_30 != null ? `$${money(f.cost_per_hour_30)}` : '—'}
-            sub={f.cost_per_hour_30 != null ? `${n(f.hours_30).toLocaleString()} h run in 30 days` : 'needs hour-meter readings'} />
-          <Kpi label="Running cost, 30 days" value={k(f.running_cost_30)} sub="fuel + parts + workshop bills" />
-          <Kpi label="Fleet book value" value={k(f.book_value)} sub={`${f.capitalised || 0} of ${f.machines || 0} in Fixed Assets`} warn={n(f.capitalised) < n(f.machines)} />
-        </div>
-
-        <div style={finCard}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <h3 style={h3}>Every machine</h3>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 12 }}>
-              {Object.entries(STATUS).filter(([s]) => s !== 'decommissioned').map(([s, [l, fg]]) => <span key={s} style={{ color: fg }}>● {l}</span>)}
+        {tab === 'overview' && d && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 20, alignItems: 'center' }} className="yard-top">
+            <Ring pct={f.availability_30} />
+            <div style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+              <div style={{ display: 'flex', height: 14, borderRadius: 8, overflow: 'hidden', background: Y.line }} aria-label="Machines by status">
+                {LANES.map(l => counts[l[0]] ? <div key={l[0]} title={`${l[1]}: ${counts[l[0]]}`} style={{ width: `${(counts[l[0]] / total) * 100}%`, background: l[2] }} /> : null)}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
+                {LANES.map(l => (
+                  <button key={l[0]} onClick={() => setLane(lane === l[0] ? 'all' : l[0])} style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit', color: Y.text,
+                    background: lane === l[0] ? 'rgba(255,255,255,.10)' : 'transparent', border: `1px solid ${lane === l[0] ? l[2] : Y.line}`, borderRadius: 12, padding: '8px 12px' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: l[2], lineHeight: 1.1 }}>{counts[l[0]]}</div>
+                    <div style={{ fontSize: 12, color: Y.dim }}>{l[1]}</div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, fontSize: 12, color: Y.dim }}>
+                <div><b style={{ color: Y.text, fontSize: 16 }}>{f.utilisation_30 != null ? `${f.utilisation_30}%` : '—'}</b><br />used in 30 days</div>
+                <div><b style={{ color: Y.text, fontSize: 16 }}>{n(f.fuel_month_litres).toLocaleString()} L</b><br />fuel this month · ${money(f.fuel_month_cost)}</div>
+                <div><b style={{ color: Y.text, fontSize: 16 }}>{f.cost_per_hour_30 != null ? `$${money(f.cost_per_hour_30)}/h` : '—'}</b><br />running cost per hour</div>
+                <div><b style={{ color: Y.text, fontSize: 16 }}>{k(f.running_cost_30)}</b><br />running cost, 30 days</div>
+                <div><b style={{ color: Y.text, fontSize: 16 }}>{k(f.book_value)}</b><br />book value · {f.capitalised || 0}/{f.machines || 0} capitalised</div>
+              </div>
             </div>
           </div>
-          <div style={{ fontSize: 12, color: FIN.muted, margin: '2px 0 10px' }}>Litres per hour (or per 100 km) over the last 30 days against what it should use. Click a machine to open the list.</div>
-          <Board rows={d.board || []} onOpen={() => setPage('fleet_assets')} />
+        )}
+        {tab === 'overview' && d && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {alerts.length === 0 ? <span style={{ fontSize: 13, color: Y.go }}>● All clear — nothing needs attention</span>
+              : alerts.map(([v, t, col, page]) => (
+                <button key={t} onClick={() => setPage(page)} style={{ display: 'inline-flex', gap: 8, alignItems: 'center', cursor: 'pointer', font: 'inherit',
+                  background: 'rgba(255,255,255,.05)', border: `1px solid ${Y.line}`, color: Y.text, borderRadius: 999, padding: '6px 12px 6px 6px', fontSize: 13 }}>
+                  <span style={{ minWidth: 24, height: 24, borderRadius: 999, background: col, color: Y.night, fontWeight: 800, display: 'inline-grid', placeItems: 'center', padding: '0 6px' }}>{v}</span>{t}
+                </button>
+              ))}
+          </div>
+        )}
+      </div>
+
+      {tab === 'costs' ? <div style={card}><MachineCosts siteId={currentSiteId} /></div> : !d ? <div style={{ ...card, color: THEME.textMed }}>Loading the yard…</div> : <>
+        {/* the yard */}
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+            <div><h3 style={h3}>The yard{lane !== 'all' ? ` · ${LANES.find(l => l[0] === lane)[1]}` : ''}</h3>
+              <div style={sub}>Bar = fuel burn against expected (green under, amber over, red 15% over). Tap a machine to open it.</div></div>
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Find a machine…" aria-label="Find a machine"
+              style={{ padding: '8px 12px', borderRadius: 10, border: `1px solid ${THEME.outline}`, background: THEME.surfaceVar, color: THEME.text, font: 'inherit', minWidth: 200 }} />
+          </div>
+          {lane === 'all' ? LANES.map(l => {
+            const rows = shown.filter(r => laneOf(r.status)[0] === l[0])
+            if (!rows.length) return null
+            return (
+              <div key={l[0]} style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 800, letterSpacing: '.08em', color: THEME.textMed, margin: '4px 0 8px' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: l[2] }} />{l[1].toUpperCase()} · {rows.length}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 8 }}>
+                  {rows.map(r => <Tile key={r.id} r={r} onOpen={() => setPage('fleet_assets')} />)}
+                </div>
+              </div>
+            )
+          }) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 8 }}>
+              {shown.map(r => <Tile key={r.id} r={r} onOpen={() => setPage('fleet_assets')} />)}
+            </div>
+          )}
+          {!shown.length && <div style={sub}>No machines match.</div>}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
-          <div style={finCard}>
-            <h3 style={h3}>Service due</h3>
-            <div style={{ fontSize: 12, color: FIN.muted, margin: '2px 0 8px' }}>By km, hours or days — whichever comes first</div>
-            {(d.service_due || []).length === 0 ? <Empty text="Nothing due — or no service plans yet (PM & Downtime)" /> : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}><thead><tr><th style={th}>Machine</th><th style={th}>Service</th><th style={thr}>Used</th><th style={th}>Job</th></tr></thead>
-                <tbody>{d.service_due.map(s => (
-                  <tr key={`${s.asset_id}${s.plan_id}`}>
-                    <td style={td}>{s.asset_label}</td><td style={td}>{s.plan_name}</td>
-                    <td style={{ ...tdr, color: s.state === 'overdue' ? FIN.bad : FIN.ochreText, fontWeight: 600 }}>{s.pct_used}%</td>
-                    <td style={td}>{s.open_wo_number || <span style={{ color: FIN.faint }}>none</span>}</td>
-                  </tr>))}</tbody></table>
-            )}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+          <div style={card}>
+            <h3 style={h3}>Service countdown</h3><div style={sub}>Share of the service interval used — km, hours or days, whichever is first</div>
+            <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+              {(d.service_due || []).length === 0 ? <div style={sub}>Nothing due — or no service plans yet.</div> : d.service_due.map(s => {
+                const p = n(s.pct_used), col = s.state === 'overdue' ? Y.down : Y.shop
+                return (
+                  <div key={`${s.asset_id}${s.plan_id}`}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, gap: 8 }}>
+                      <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.asset_label} <span style={{ color: THEME.textMed, fontWeight: 400 }}>· {s.plan_name}</span></span>
+                      <b style={{ color: col }}>{p}%</b>
+                    </div>
+                    <div style={{ height: 8, background: THEME.surfaceVar, borderRadius: 4, marginTop: 4 }}><div style={{ width: `${Math.min(100, p)}%`, height: '100%', borderRadius: 4, background: col }} /></div>
+                    <div style={{ fontSize: 11, color: THEME.textLow, marginTop: 2 }}>{s.open_wo_number ? `Job ${s.open_wo_number} open` : 'No job raised yet'}</div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-          <div style={finCard}>
-            <h3 style={h3}>Costliest machines, 30 days</h3>
-            <div style={{ fontSize: 12, color: FIN.muted, margin: '2px 0 10px' }}>Fuel + Stores parts + workshop bills</div>
-            {(d.top_cost || []).length === 0 ? <Empty text="No costs in the last 30 days" /> : (() => {
-              const max = Math.max(...d.top_cost.map(x => n(x.cost)), 1)
-              return d.top_cost.map(x => (
-                <div key={x.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(100px, 180px) 1fr auto', gap: 10, alignItems: 'center', margin: '6px 0', fontSize: 13 }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.machine}>{x.machine}</span>
-                  <div style={{ height: 10, background: FIN.lineSoft, borderRadius: 5 }}><div style={{ width: `${(n(x.cost) / max) * 100}%`, height: '100%', background: FIN.blue, borderRadius: 5 }} /></div>
-                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>${money(x.cost)}{x.per_hour ? <span style={{ color: FIN.muted }}> · ${money(x.per_hour)}/h</span> : null}</span>
-                </div>
-              ))
-            })()}
+          <div style={card}>
+            <h3 style={h3}>Where the money goes</h3><div style={sub}>Costliest machines, 30 days — fuel + parts + workshop bills</div>
+            <div style={{ marginTop: 12 }}>
+              {(d.top_cost || []).length === 0 ? <div style={sub}>No costs in the last 30 days.</div> : (() => {
+                const max = Math.max(...d.top_cost.map(x => n(x.cost)), 1)
+                return d.top_cost.map((x, i) => (
+                  <div key={x.id} style={{ display: 'grid', gridTemplateColumns: '22px 1fr auto', gap: 10, alignItems: 'center', margin: '8px 0', fontSize: 13 }}>
+                    <span style={{ fontWeight: 800, color: i < 3 ? MODULE_COLORS.fleet : THEME.textLow }}>{i + 1}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.machine}>{x.machine}</div>
+                      <div style={{ height: 6, background: THEME.surfaceVar, borderRadius: 3, marginTop: 3 }}><div style={{ width: `${(n(x.cost) / max) * 100}%`, height: '100%', background: MODULE_COLORS.fleet, borderRadius: 3 }} /></div>
+                    </div>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}><b>${money(x.cost)}</b>{x.per_hour ? <div style={{ fontSize: 11, color: THEME.textMed }}>${money(x.per_hour)}/h</div> : null}</span>
+                  </div>
+                ))
+              })()}
+            </div>
           </div>
-          <div style={finCard}>
-            <h3 style={h3}>Fuel, 6 months</h3>
-            <div style={{ fontSize: 12, color: FIN.muted, margin: '2px 0 10px' }}>Litres issued to machines per month</div>
-            <FuelTrend rows={d.fuel_trend || []} />
+          <div style={card}>
+            <h3 style={h3}>Fuel burn</h3><div style={sub}>Litres issued to machines, last 6 months</div>
+            <div style={{ marginTop: 10 }}><Spark rows={d.fuel_trend || []} /></div>
           </div>
         </div>
       </>}
-    </FinShell>
-  )
-}
-
-function Kpi({ label, value, sub, warn }) {
-  return (
-    <div style={{ ...finCard, padding: '14px 16px' }}>
-      <div style={{ fontSize: 12, color: FIN.muted }}>{label}</div>
-      <div style={{ fontFamily: FIN.serif, fontSize: 26, fontWeight: 600, color: warn ? FIN.ochreText : FIN.ink, marginTop: 2 }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: FIN.faint, marginTop: 2 }}>{sub}</div>}
-    </div>
-  )
-}
-const Empty = ({ text }) => <div style={{ color: FIN.faint, fontSize: 13, padding: '8px 0' }}>{text}</div>
-
-function Board({ rows, onOpen }) {
-  if (!rows.length) return <Empty text="No machines at this site" />
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 8 }}>
-      {rows.map(r => {
-        const [label, fg, bg] = STATUS[r.status] || STATUS.operational
-        const use = r.lph != null ? [r.lph, r.expected_lph, 'L/h'] : r.lp100 != null ? [r.lp100, r.expected_lp100, 'L/100km'] : null
-        const over = use && use[1] && n(use[0]) > n(use[1]) * 1.15
-        return (
-          <button key={r.id} onClick={onOpen} title={r.machine} style={{ textAlign: 'left', border: `1px solid ${FIN.line}`, borderLeft: `4px solid ${fg}`, background: bg,
-            borderRadius: 10, padding: '8px 10px', cursor: 'pointer', font: 'inherit', color: FIN.ink, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.machine}</div>
-            <div style={{ fontSize: 11, color: FIN.muted }}>{r.type || '—'} · <span style={{ color: fg }}>{label}</span></div>
-            <div style={{ fontSize: 11, marginTop: 2, color: over ? FIN.bad : FIN.faint }}>
-              {use ? `${use[0]} ${use[2]}${use[1] ? ` (expect ${use[1]})` : ''}` : 'no readings'}
-              {r.service === 'overdue' ? <span style={{ color: FIN.bad }}> · service overdue</span> : r.service === 'due_soon' ? <span style={{ color: FIN.ochreText }}> · service soon</span> : null}
-            </div>
-          </button>
-        )
-      })}
+      <style>{`@media (max-width: 640px) { .yard-top { grid-template-columns: 1fr !important; justify-items: center; } }`}</style>
     </div>
   )
 }
 
-function FuelTrend({ rows }) {
-  if (!rows.length) return <Empty text="No fuel issued yet" />
-  const max = Math.max(...rows.map(r => n(r.litres)), 1)
-  const W = 300, H = 120, bw = W / rows.length
-  return (
-    <svg viewBox={`0 0 ${W} ${H + 18}`} style={{ width: '100%', height: 'auto' }} role="img" aria-label="Litres per month">
-      <line x1="0" x2={W} y1={H} y2={H} stroke={FIN.line} />
-      {rows.map((r, i) => {
-        const h = (n(r.litres) / max) * (H - 18)
-        return <g key={r.month}>
-          <rect x={i * bw + bw * 0.2} y={H - h} width={bw * 0.6} height={h} rx="3" fill={i === rows.length - 1 ? FIN.maroon : FIN.blue} />
-          <text x={i * bw + bw / 2} y={H - h - 4} textAnchor="middle" fontSize="9" fill={FIN.muted}>{n(r.litres).toLocaleString()}</text>
-          <text x={i * bw + bw / 2} y={H + 13} textAnchor="middle" fontSize="10" fill={FIN.muted}>{r.month}</text>
-        </g>
-      })}
-    </svg>
-  )
-}
+const th = { textAlign: 'left', padding: '8px 8px', fontSize: 12, color: FIN.muted, fontWeight: 600, borderBottom: `1px solid ${FIN.line}`, whiteSpace: 'nowrap' }
+const thr = { ...th, textAlign: 'right' }
+const td = { padding: '8px 8px', borderBottom: `1px solid ${FIN.lineSoft}`, fontSize: 13, verticalAlign: 'top' }
+const tdr = { ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }
 
 function MachineCosts({ siteId }) {
   const today = new Date().toISOString().slice(0, 10)

@@ -629,6 +629,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   "Import from Excel" (FuelImport.jsx, template). Ask Bravura's existing `ai_fuel` tool + alerts cover fuel questions.
   optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
   POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
+- **Fleet dashboard redesign (user 26 Sep: "be innovative, not the finance layout"):** FL01 FleetHome = "Yard control" — dark control band
+  (availability ring, status bar, lane counts that filter, key figures, alert pills) + the yard (machine tiles in lanes Working · Standby ·
+  In workshop · Down, fuel-burn meter vs expected, SVC badge) + service countdown bars, costliest ranking, fuel sparkline. Own palette (Y in
+  FleetHome.jsx), no FinShell on this page; "Cost per machine" tab unchanged.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;
   make them pickers (search drivers/employees by name). A machine can have 2 people (e.g. day + night operator, or operator + supervisor).
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.

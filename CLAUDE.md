@@ -561,6 +561,17 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   Meters at fuel fills: optional now, REQUIRED from 1 Nov 2026 (user, 25 Sep) — setting meter_required_from.
   A6 #67 **small assets issued to people (tools, radios, laptops) is REQUIRED** (user, 25 Sep): register, issue/sign/return with
   condition, who-holds-what, employee profile + exit checklist blocks until returned, overdue returns, counts.
+- **NEXT: Fuel rewrite (#68, Stage 16)** — review: https://claude.ai/artifact/UoGH91BvtPgQVEm9DhEbFX (vs Odoo, ERPNext, OFBiz, Dolibarr,
+  iDempiere + fuel-monitoring GitHub projects). Found: `site_write` RLS lets anyone at a site write/hard-delete fuel_transactions + fuel_tanks;
+  434 Apr–Jun issues (imported 2 Sep, type 'issue') soft-deleted 7 Sep, no reason; deliveries saved twice (fuel_deliveries 60,000 L vs
+  transactions 10,000 L at KAM Main Tank; Apr–May 40,000 L unpriced), not on POs, no fuel_delivery GL ever; 50 dips never reconciled
+  (5–21 Sep gap 446 L = 5.4%); no cost centre/project on issues; hired plant fuel not recharged; operators without licences.
+  Direction: fuel on the STORES ENGINE (tank = store, diesel = item, delivery = PO receipt, fill = stock issue to machine cost centre,
+  drum/bowser = transfer, dip = count) with fuel-specific screens. Sub-issues: F1 #69 correct/secure/Stores engine · F2 #70 daily
+  reconciliation + pump shift close · F3 #71 deliveries via Procurement · F4 #72 attendant phone screen, driver signs, allowances,
+  second-fill rule, hired plant recharge · F5 #73 charge-out + finance-look dashboard, menu by use · F6 #74 Ask Bravura, alerts, imports,
+  optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
+  POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (module eyebrow, split title, Ctrl K search

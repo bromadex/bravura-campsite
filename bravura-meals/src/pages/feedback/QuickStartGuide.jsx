@@ -159,6 +159,7 @@ export default function QuickStartGuide() {
             <>Filling a drum or bowser from a tank is a <b>transfer</b> (Fuel Tanks → Transfer), so the tank's book level stays right.</>,
             <>Each tank is also a store in <b>Stores</b> (for example KAM-FT-MAINTANK), so fuel stock and its value show with the rest of the stock. Fuel is still only moved from the Fuel screens — Stores will refuse to issue or count a fuel tank.</>,
             <>Fuel reconciliation (<Code>FU10</Code>): a dip gap bigger than the tank's tolerance needs a <b>reason</b>, then a fuel approver <b>signs it off</b>. A mistyped dip is fixed with <b>Correct dip</b> (the old figure and why are kept). Pump shifts: read the pump meter at open and close — the pump's litres are checked against the issues recorded on it. After month-end a fuel approver clicks <b>Close month &amp; post</b> to book the net loss or gain (Stores and the ledger); finance is told.</>,
+            <>Fuel is bought on a <b>purchase order</b> (item FUEL-DIESEL, or from a supply agreement). When the tanker arrives, pick the order in Tank Deliveries → Record delivery: the supplier and price come from the PO, a goods received note is made, and the bill is matched in Pay Suppliers. Cancelling it gives the litres back to the order.</>,
             <>Manual issuances without an approved request need the authoriser's name and a reason.</>,
           ]} />
         </Section>

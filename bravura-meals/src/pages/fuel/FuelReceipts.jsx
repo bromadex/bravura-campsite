@@ -46,6 +46,7 @@ function reverseInterpolate(calibration, litres) {
 const BLANK_FORM = {
   delivery_date:        new Date().toISOString().slice(0, 10),
   delivery_time:        new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  po_line_id:           '',
   supplier_name:        '',
   delivery_note_number: '',
   tank_id:              '',
@@ -130,6 +131,22 @@ export default function FuelReceipts() {
   const isIssuanceTracked = formTank?.level_tracking_method === 'issuance'
 
   const [procSuppliers, setProcSuppliers] = useState([])
+  // F3 (#71): fuel lines still to receive on purchase orders
+  const [poLines, setPoLines] = useState([])
+  useEffect(() => {
+    if (!currentSiteId || !showForm) return
+    supabase.rpc('fuel_open_po_lines', { p_site: currentSiteId }).then(({ data }) => setPoLines(data || []))
+  }, [currentSiteId, showForm, rt])
+  const pickPo = id => {
+    const l = poLines.find(x => x.po_line_id === id)
+    setForm(f => {
+      if (!l) return { ...f, po_line_id: '' }
+      const tank = f.tank_id || activeTanks.find(t => t.fuel_type_id === l.fuel_type_id)?.id || ''
+      const qty = f.quantity_delivered || String(l.remaining)
+      return { ...f, po_line_id: id, supplier_name: l.supplier || f.supplier_name, unit_price: String(l.unit_cost ?? ''), quantity_ordered: String(l.ordered),
+        tank_id: tank, quantity_delivered: qty, total_cost: l.unit_cost != null && qty ? (Number(l.unit_cost) * Number(qty)).toFixed(2) : f.total_cost }
+    })
+  }
   useEffect(() => {
     if (!currentSiteId) return
     supabase
@@ -281,7 +298,7 @@ export default function FuelReceipts() {
 
   async function save() {
     if (!form.tank_id) { showToast('Select a receiving tank', 'red'); return }
-    if (!form.supplier_name.trim()) { showToast('Enter the supplier name', 'red'); return }
+    if (!form.po_line_id && !form.supplier_name.trim()) { showToast('Enter the supplier name', 'red'); return }
     if (!form.quantity_delivered || isNaN(form.quantity_delivered) || Number(form.quantity_delivered) <= 0) {
       showToast('Enter a valid quantity delivered', 'red'); return
     }
@@ -291,6 +308,7 @@ export default function FuelReceipts() {
       // F1 (#69): one database step writes the delivery, its tank transaction and the dip after — with a capacity check.
       const { error } = await supabase.rpc('fuel_delivery_save', { p: {
         id: editId || '',
+        po_line_id: editId ? '' : (form.po_line_id || ''),
         tank_id: form.tank_id,
         delivery_date: form.delivery_date,
         delivery_time: form.delivery_time || '',
@@ -523,6 +541,23 @@ export default function FuelReceipts() {
               <Icon name="close" size={20} />
             </button>
           </div>
+
+          {!editId && (
+            <div style={{ marginBottom: '14px' }}>
+              <FieldWrap label="Purchase order">
+                <select value={form.po_line_id || ''} onChange={e => pickPo(e.target.value)} style={inputStyle}>
+                  <option value="">{poLines.length ? '— No purchase order (not recommended) —' : '— No open fuel orders —'}</option>
+                  {poLines.map(l => (
+                    <option key={l.po_line_id} value={l.po_line_id}>
+                      {l.po_number} · {l.supplier || 'Supplier'} · {l.fuel} · {Number(l.remaining).toLocaleString()} L to come @ ${Number(l.unit_cost || 0).toFixed(4)}
+                    </option>
+                  ))}
+                </select>
+              </FieldWrap>
+              {form.po_line_id && <div style={{ fontSize: 12, color: THEME.textMed, marginTop: 4 }}>
+                Received on the order: supplier and price come from the PO, a goods received note is created, and the supplier's bill is matched against it in Pay Suppliers.</div>}
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '14px' }}>
             <FieldWrap label="Delivery Date" required>

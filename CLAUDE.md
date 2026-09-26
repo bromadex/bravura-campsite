@@ -593,6 +593,12 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (fuel.approve, month ended, all big gaps signed) → `fuel_month_closes` + Stores 'stock_take' (source fuel) + GL events fuel_loss / fuel_gain
   (rules added: Dr stock-loss acct / Cr fuel stock acct and reverse), notifies finance.approve; only dips created after fuel_tanks.stores_from.
   Screen FU10 `fuel_reconciliation` = pages/fuel/Reconciliation.jsx (tabs Dips & gaps · Pump shifts · Month-end; old fuel_reconciliations unused).
+  **F3 built (0249, 0249b):** `fuel_open_po_lines(site)`; `fuel_delivery_save` with po_line_id → accepted GRN (goods_received_notes.fuel_tank_id)
+  + fuel transaction (grn_id) + delivery (po_id/po_line_id/grn_id); fuel GRNs update po_lines.received_qty / PO status but move no Stores stock and
+  post nothing (trg_grn_moves_stock / trg_gl_grn skip); the fuel transaction posts `fuel_delivery_po` (Dr fuel stock / Cr GRNI = grn_accepted credit)
+  so the bill clears GRNI; PO deliveries can't change litres/price/tank (cancel + receive again); `fuel_delivery_void` rejects the GRN (setting
+  fuel.grn_void), returns litres to the line, PO → partially_received (never back to 'sent' — that restarts approval), refuses if a bill is matched.
+  Tank Deliveries form has a "Purchase order" picker. Agreements (Zuva, RAM) = proc_po_from_agreement as usual.
   optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
   POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;

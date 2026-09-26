@@ -633,7 +633,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (availability ring, status bar, lane counts that filter, key figures, alert pills) + the yard (machine tiles in lanes Working · Standby ·
   In workshop · Down, fuel-burn meter vs expected, SVC badge) + service countdown bars, costliest ranking, fuel sparkline. Own palette (Y in
   FleetHome.jsx), no FinShell on this page; "Cost per machine" tab unchanged. Machine tiles ("the yard") REMOVED at user's request — lane counts open Machines.
-- **Your day redesign (0253, user 26 Sep):** HomeLauncher DailyBrief calls ai_daily_brief with the CURRENT site only; count panel
+- **Your day redesign (0253, user 26 Sep):** HomeLauncher DailyBrief calls ai_daily_brief with the CURRENT site only; now a slim full-width bar right under the top bar (count, pills per item scrolling sideways, Ask / Hide) — count panel
   (maroon if anything critical, else blue) + one card per item (area icon, severity stripe), 6 shown + "more". Backup drums/bowsers
   (level_tracking_method 'issuance') never raise 'Order fuel' alerts.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;

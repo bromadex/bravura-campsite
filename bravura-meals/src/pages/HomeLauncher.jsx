@@ -442,6 +442,8 @@ export default function HomeLauncher({ onEnterModule }) {
         </div>
       </div>
 
+      <DailyBrief navigate={navigate} />
+
       {/* ── Body ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 20px' }}>
 
@@ -451,8 +453,6 @@ export default function HomeLauncher({ onEnterModule }) {
             Welcome back, <span style={{ fontWeight: 700 }}>{profile?.full_name?.split(' ')[0] || profile?.username}</span>
           </h1>
         </div>
-
-        <DailyBrief navigate={navigate} />
 
         {/* Icon grid — always visible */}
         <UmbrellaGrid
@@ -738,7 +738,6 @@ function DailyBrief({ navigate }) {
   const [b, setB] = useState(null)
   const today = new Date().toISOString().slice(0, 10)
   const [hidden, setHidden] = useState(() => { try { return localStorage.getItem('brief_hidden') === today } catch { return false } })
-  const [all, setAll] = useState(false)
   useEffect(() => {
     if (!currentSite?.id) return
     supabase.rpc('ai_daily_brief', { p_site_ids: [currentSite.id] }).then(({ data }) => setB(data || null))
@@ -756,51 +755,38 @@ function DailyBrief({ navigate }) {
   if (!items.length) return null   // only shown when something needs you
   const toggle = () => { const h = !hidden; setHidden(h); try { h ? localStorage.setItem('brief_hidden', today) : localStorage.removeItem('brief_hidden') } catch { /* private mode */ } }
   const urgent = items.filter(x => x.sev === 'critical').length
-  const shown = all ? items : items.slice(0, 6)
-  const dateLabel = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
+  const bar = urgent ? '#6E1A1F' : '#173A68'
   return (
-    <section aria-label="Your day" style={{ width: '100%', maxWidth: 1000, marginBottom: 28, borderRadius: 20, overflow: 'hidden',
-      border: `1px solid ${THEME.outlineVar}`, background: THEME.surface, boxShadow: '0 6px 24px rgba(20,20,40,.06)' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-        <div style={{ flex: '0 0 220px', minWidth: 200, padding: '20px 22px', color: '#fff',
-          background: urgent ? 'linear-gradient(160deg, #982329 0%, #6E1A1F 100%)' : 'linear-gradient(160deg, #1F4E8C 0%, #173A68 100%)',
-          display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 11, letterSpacing: '.16em', opacity: .8, fontWeight: 700 }}>✦ YOUR DAY</div>
-          <div style={{ fontSize: 44, fontWeight: 800, lineHeight: 1 }}>{items.length}</div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>thing{items.length > 1 ? 's' : ''} need{items.length > 1 ? '' : 's'} you{urgent ? ` · ${urgent} urgent` : ''}</div>
-          <div style={{ fontSize: 12, opacity: .8 }}>{currentSite?.name} · {dateLabel}</div>
-          <div style={{ marginTop: 'auto', display: 'flex', gap: 8, paddingTop: 10 }}>
-            <button onClick={() => window.dispatchEvent(new CustomEvent('open-ask-bravura', { detail: { question: 'What needs my attention today?' } }))}
-              style={{ border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', borderRadius: 999, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ask about it</button>
-            <button onClick={toggle} aria-expanded={!hidden} style={{ border: 'none', background: 'none', color: '#fff', opacity: .8, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}>{hidden ? 'Show' : 'Hide'}</button>
-          </div>
+    <section aria-label="Your day" style={{ width: '100%', boxSizing: 'border-box', background: bar, color: '#fff', display: 'flex', alignItems: 'center',
+      gap: 14, padding: '10px 24px', minHeight: 64, borderTop: '1px solid rgba(255,255,255,.08)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <span style={{ minWidth: 34, height: 34, borderRadius: 10, background: urgent ? '#E5484D' : 'rgba(255,255,255,.18)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 16 }}>{items.length}</span>
+        <div style={{ lineHeight: 1.2 }}>
+          <div style={{ fontSize: 11, letterSpacing: '.14em', fontWeight: 700, opacity: .85 }}>✦ YOUR DAY</div>
+          <div style={{ fontSize: 12.5, opacity: .9 }}>{urgent ? `${urgent} urgent · ` : ''}{currentSite?.name}</div>
         </div>
-        {!hidden && (
-          <div style={{ flex: '1 1 420px', padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 10, alignContent: 'start' }}>
-            {shown.map((x, i) => {
-              const [, icon, col] = areaOf(x.kind)
-              const sevCol = x.sev === 'critical' ? '#B3261E' : x.sev === 'warning' ? '#C8811E' : THEME.outline
-              return (
-                <button key={i} onClick={() => go(x.link)} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', textAlign: 'left', padding: '12px 12px 12px 14px',
-                  border: `1px solid ${THEME.outlineVar}`, borderLeft: `4px solid ${sevCol}`, borderRadius: 14, background: THEME.surface, cursor: 'pointer', fontFamily: 'inherit', minWidth: 0 }}>
-                  <span style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center', background: col + '1A', color: col }}>
-                    <span className="material-symbols-rounded" style={{ fontSize: 20 }}>{icon}</span>
-                  </span>
-                  <span style={{ minWidth: 0, flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: THEME.text, lineHeight: 1.3 }}>{x.title}</span>
-                    {x.detail && <span style={{ display: 'block', fontSize: 12, color: THEME.textLow, marginTop: 2 }}>{x.detail}</span>}
-                  </span>
-                  <span className="material-symbols-rounded" style={{ fontSize: 18, color: THEME.textLow, alignSelf: 'center' }}>chevron_right</span>
-                </button>
-              )
-            })}
-            {items.length > 6 && (
-              <button onClick={() => setAll(!all)} style={{ border: `1px dashed ${THEME.outline}`, borderRadius: 14, background: 'none', color: THEME.textMed, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, padding: 12 }}>
-                {all ? 'Show fewer' : `+${items.length - 6} more`}
+      </div>
+      {!hidden && (
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'thin', padding: '2px 0' }}>
+          {items.map((x, i) => {
+            const [, icon] = areaOf(x.kind)
+            return (
+              <button key={i} onClick={() => go(x.link)} title={x.detail || ''} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: 420,
+                padding: '7px 12px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: '#fff',
+                background: 'rgba(255,255,255,.10)', border: `1px solid ${x.sev === 'critical' ? '#FF8A8A' : 'rgba(255,255,255,.18)'}` }}>
+                <span className="material-symbols-rounded" style={{ fontSize: 18, opacity: .9 }}>{icon}</span>
+                <span style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.title}</span>
+                {x.detail && <span style={{ opacity: .7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>· {x.detail}</span>}
               </button>
-            )}
-          </div>
-        )}
+            )
+          })}
+        </div>
+      )}
+      {hidden && <div style={{ flex: 1 }} />}
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        <button onClick={() => window.dispatchEvent(new CustomEvent('open-ask-bravura', { detail: { question: 'What needs my attention today?' } }))}
+          style={{ border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', borderRadius: 999, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Ask</button>
+        <button onClick={toggle} aria-expanded={!hidden} style={{ border: 'none', background: 'none', color: '#fff', opacity: .8, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}>{hidden ? 'Show' : 'Hide'}</button>
       </div>
     </section>
   )

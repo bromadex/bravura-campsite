@@ -45,6 +45,8 @@ export const TXN_CODES = [
   { code: 'FU17', path: '/fuel/fuel_shift_report',        label: 'Shift Report',          module: 'fuel' },
   { code: 'FU18', path: '/fuel/fuel_bowsers',             label: 'Bowser Dispatch',       module: 'fuel' },
   { code: 'FU20', path: '/fuel/fuel_settings',            label: 'Fuel Settings',         module: 'fuel' },
+  { code: 'FU21', path: '/fuel/fuel_pump',                label: 'Issue at pump',         module: 'fuel' },
+  { code: 'FU22', path: '/fuel/fuel_allowances',          label: 'Allowances & recharges', module: 'fuel' },
 
   // ── Fleet (FL) ────────────────────────────────────────────────────────────
   { code: 'FL01', path: '/fleet/fleet_dashboard',      label: 'Fleet Dashboard',        module: 'fleet' },

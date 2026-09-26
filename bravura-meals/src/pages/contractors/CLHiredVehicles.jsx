@@ -126,6 +126,7 @@ export default function CLHiredVehicles({ setPage }) {
         km_rate: form.km_rate ? parseFloat(form.km_rate) : null,
         driver_included: !!form.driver_included,
         fuel_included: !!form.fuel_included,
+        fuel_paid_by: form.fuel_included ? 'contractor' : 'bravura',
         assigned_operator: form.assigned_operator || null,
         status: form.status,
         start_date: form.start_date,
@@ -380,7 +381,7 @@ export default function CLHiredVehicles({ setPage }) {
                 <div style={{ ...fieldWrap, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '22px' }}>
                   <input type="checkbox" checked={form.fuel_included} onChange={e => set('fuel_included', e.target.checked)}
                     style={{ width: '16px', height: '16px', accentColor: color }} />
-                  <label style={{ fontSize: '13px', color: THEME.text, cursor: 'pointer' }} onClick={() => set('fuel_included', !form.fuel_included)}>Fuel Included</label>
+                  <label style={{ fontSize: '13px', color: THEME.text, cursor: 'pointer' }} onClick={() => set('fuel_included', !form.fuel_included)}>Contractor pays for fuel (our fills are charged back)</label>
                 </div>
                 <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
                   <label style={lbl}>Notes</label>

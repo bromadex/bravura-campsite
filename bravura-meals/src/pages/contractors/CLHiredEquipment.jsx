@@ -121,6 +121,7 @@ export default function CLHiredEquipment({ setPage }) {
         daily_rate: form.daily_rate ? parseFloat(form.daily_rate) : null,
         hourly_rate: form.hourly_rate ? parseFloat(form.hourly_rate) : null,
         fuel_included: !!form.fuel_included,
+        fuel_paid_by: form.fuel_included ? 'contractor' : 'bravura',
         operator_included: !!form.operator_included,
         status: form.status,
         start_date: form.start_date,
@@ -343,7 +344,7 @@ export default function CLHiredEquipment({ setPage }) {
                 <div style={{ ...fieldWrap, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '22px' }}>
                   <input type="checkbox" checked={form.fuel_included} onChange={e => set('fuel_included', e.target.checked)}
                     style={{ width: '16px', height: '16px', accentColor: color }} />
-                  <label style={{ fontSize: '13px', color: THEME.text, cursor: 'pointer' }} onClick={() => set('fuel_included', !form.fuel_included)}>Fuel Included</label>
+                  <label style={{ fontSize: '13px', color: THEME.text, cursor: 'pointer' }} onClick={() => set('fuel_included', !form.fuel_included)}>Contractor pays for fuel (our fills are charged back)</label>
                 </div>
                 <div style={{ ...fieldWrap, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '22px' }}>
                   <input type="checkbox" checked={form.operator_included} onChange={e => set('operator_included', e.target.checked)}

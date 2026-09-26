@@ -135,6 +135,8 @@ const Equipment          = lazy(() => import('./pages/fuel/Equipment'))
 const Operators          = lazy(() => import('./pages/fuel/Operators'))
 const BowserDispatches   = lazy(() => import('./pages/fuel/BowserDispatches'))
 const Reconciliation     = lazy(() => import('./pages/fuel/Reconciliation'))
+const FuelPump           = lazy(() => import('./pages/fuel/FuelPump'))
+const FuelAllowances     = lazy(() => import('./pages/fuel/FuelAllowances'))
 const ShiftReport        = lazy(() => import('./pages/fuel/ShiftReport'))
 const DailyTransactionReport   = lazy(() => import('./pages/fuel/reports/DailyTransactionReport'))
 const MonthlyConsumptionReport = lazy(() => import('./pages/fuel/reports/MonthlyConsumptionReport'))
@@ -529,6 +531,8 @@ function getFuelPage(page, setPage, can) {
     case 'fuel_dips':          return can('fuel.create') ? <DipReadings setPage={setPage} />          : null
     case 'fuel_bowsers':       return can('fuel.view')   ? <BowserDispatches setPage={setPage} />     : null
     case 'fuel_reconciliation':return can('fuel.create') ? <Reconciliation setPage={setPage} />       : null
+    case 'fuel_pump':          return can('fuel.create') ? <FuelPump setPage={setPage} />             : null
+    case 'fuel_allowances':    return (can('fuel.view') || can('fuel.create')) ? <FuelAllowances setPage={setPage} /> : null
     case 'fuel_shift_report':  return can('fuel.view')   ? <ShiftReport setPage={setPage} />          : null
     case 'fuel_report_daily':  return can('fuel.view')   ? <DailyTransactionReport setPage={setPage} /> : null
     case 'fuel_report_monthly':return can('fuel.view')   ? <MonthlyConsumptionReport setPage={setPage} /> : null

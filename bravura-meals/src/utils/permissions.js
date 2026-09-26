@@ -246,7 +246,9 @@ export function fuelNav(role, can) {
     // Request form is reachable via the "New Request" button on the Fuel Requests list — no need for a separate nav item
     { id: 'fuel_request_form',  label: 'Request Fuel',       section: 'Fuel Operations', icon: 'send',              show: false },
     { id: 'fuel_requests_list', label: 'Fuel Requests',      section: 'Fuel Operations', icon: 'assignment',        show: can('fuel.view')   },
+    { id: 'fuel_pump',          label: 'Issue at pump',      section: 'Fuel Operations', icon: 'phone_android',     show: can('fuel.create') },
     { id: 'fuel_issuance',      label: 'Fuel Issuance',      section: 'Fuel Operations', icon: 'local_gas_station', show: can('fuel.create') },
+    { id: 'fuel_allowances',    label: 'Allowances & recharges', section: 'Fuel Operations', icon: 'data_usage',    show: can('fuel.view') || can('fuel.create') },
     { id: 'fuel_issues',        label: 'Issuance History',   section: 'Fuel Operations', icon: 'history',           show: can('fuel.view') },
     { id: 'fuel_transactions',  label: 'Transactions',       section: 'Fuel Operations', icon: 'receipt_long',      show: can('fuel.view')   },
     { id: 'fuel_bowsers',       label: 'Bowser Dispatch',    section: 'Fuel Operations', icon: 'rv_hookup',         show: false },

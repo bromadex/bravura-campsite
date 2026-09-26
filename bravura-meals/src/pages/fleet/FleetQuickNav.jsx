@@ -1,3 +1,4 @@
+import { useFinEmbedded } from '../../components/finEmbed'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon } from '../../components/ui'
 
@@ -22,7 +23,8 @@ const PILLS = [
 ]
 
 export default function FleetQuickNav({ setPage, current }) {
-  if (!setPage) return null
+  const embedded = useFinEmbedded()   // inside the Fleet (finance-look) frame the side menu is enough
+  if (!setPage || embedded) return null
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px' }}>
       {PILLS.map(p => {

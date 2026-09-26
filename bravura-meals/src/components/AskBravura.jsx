@@ -381,7 +381,8 @@ export function AskChat({ compact = false, pageInfo, onClose }) {
 }
 
 const ACTION_TITLE = { receive_delivery: 'Receive delivery', draft_bill: 'Draft bill', petty_cash_spend: 'Petty cash spend', purchase_request: 'Draft purchase request',
-  approval_decision: 'Approval', po_from_quote: 'Draft purchase order', stock_issue: 'Issue stock', stock_transfer: 'Send stock' }
+  approval_decision: 'Approval', po_from_quote: 'Draft purchase order', stock_issue: 'Issue stock', stock_transfer: 'Send stock',
+  small_asset_issue: 'Issue small asset', small_asset_return: 'Take back small asset', fleet_job: 'Open workshop job', fleet_meter: 'Meter reading' }
 function ActionCard({ x, onConfirm, onCancel, onOpen }) {
   const d = x.details || {}
   const rows = x.kind === 'receive_delivery' ? (d.lines || []).filter(l => l.qty > 0).map(l => [l.what, `${l.qty} ${l.unit || ''} of ${l.still_to_come} still to come`])
@@ -390,9 +391,13 @@ function ActionCard({ x, onConfirm, onCancel, onOpen }) {
     : x.kind === 'po_from_quote' ? (d.lines || []).map(l => [l.what, `${l.qty} × $${Number(l.unit_price).toFixed(2)}`])
     : x.kind === 'stock_issue' ? [...(d.lines || []).map(l => [l.what, `${l.qty} ${l.unit || ''} (${l.free} free)`]), ['To', d.to], ['From', d.store]]
     : x.kind === 'stock_transfer' ? [...(d.lines || []).map(l => [l.what, `${l.qty} ${l.unit || ''}`]), ['From', d.from], ['To', d.to], ...(d.vehicle ? [['Vehicle', d.vehicle]] : [])]
+    : x.kind === 'small_asset_issue' ? [['Item', d.item], ['To', d.to], ...(d.due_back ? [['Back by', d.due_back]] : [])]
+    : x.kind === 'small_asset_return' ? [['Item', d.item], ['From', d.from], ['Condition', d.condition]]
+    : x.kind === 'fleet_job' ? [['Machine', d.machine], ['Fault', d.fault], ['Priority', d.priority]]
+    : x.kind === 'fleet_meter' ? [['Machine', d.machine], ...(d.km != null ? [['Odometer', `${d.km} km (last ${d.last_km ?? '—'})`]] : []), ...(d.hours != null ? [['Hours', `${d.hours} h (last ${d.last_hours ?? '—'})`]] : [])]
     : x.kind === 'approval_decision' ? [['Decision', d.approve ? 'Approve' : 'Reject'], ['Item', d.title], ['Requested by', d.from || '—'], ['Step', d.step || '—'], ...(d.comment ? [['Comment', d.comment]] : [])]
     : [['From', d.fund], ['Balance after', `$${Number(d.balance_after || 0).toFixed(2)}`]]
-  const warn = x.kind === 'draft_bill' && d.supplier_hold && d.supplier_hold !== 'none' ? `Supplier is on hold (${d.supplier_hold})` : null
+  const warn = x.kind === 'draft_bill' && d.supplier_hold && d.supplier_hold !== 'none' ? `Supplier is on hold (${d.supplier_hold})` : x.kind === 'fleet_meter' && d.warning ? d.warning : null
   const done = x.state === 'done', failed = x.state === 'failed', off = x.state === 'cancelled'
   return (
     <div style={{ marginTop: 10, border: `1px solid ${done ? FIN.good : failed ? FIN.bad : FIN.maroon}55`, borderLeftWidth: 4, borderRadius: 10, padding: '10px 12px', background: done ? FIN.goodTint : '#FFFBFA', opacity: off ? 0.6 : 1 }}>

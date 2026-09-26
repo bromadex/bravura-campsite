@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { Card, Icon, PageHeader, Button, Modal, SectionLabel, showToast, fmtDate } from '../../components/ui'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import LinkedDocuments from '../../components/LinkedDocuments'
+import SmallAssetsHeld from '../../components/SmallAssetsHeld'
 import DiscussButton from '../../components/DiscussButton'
 
 const ACCENT = MODULE_COLORS.workforce
@@ -353,6 +354,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
               <DiscussButton linkedTable="employees" linkedId={emp.id} label={`Employee: ${emp.name}`} setPage={setPage} />
             </div>
+            <div style={{ marginBottom: 12 }}><SmallAssetsHeld employeeId={emp.id} /></div>
             <LinkedDocuments linkedTable="employees" linkedId={emp.id} canAttach={can('ds.create')} />
           </Card>
         </div>

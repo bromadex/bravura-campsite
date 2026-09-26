@@ -7,6 +7,8 @@ import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { Icon, PageHeader, TableWrap, THead, Th, TRow, Td, Button, Modal, SectionLabel, showToast, fmtDate } from '../../components/ui'
 import QuickNav, { HR_PILLS } from '../../components/QuickNav'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
+import SmallAssetsHeld from '../../components/SmallAssetsHeld'
+import { friendlyError } from '../../utils/friendlyError'
 
 const ACCENT = MODULE_COLORS.workforce
 
@@ -139,7 +141,7 @@ export default function ExitManagement({ setPage }) {
       .eq('id', detailModal.id)
       .eq('site_id', currentSiteId)
     setDetailSaving(false)
-    if (error) { showToast('Failed to complete clearance', 'red'); console.error(error); return }
+    if (error) { showToast(friendlyError(error), 'red'); return }
     showToast('Clearance completed', 'green')
     setDetailModal(null)
     load()
@@ -228,6 +230,9 @@ export default function ExitManagement({ setPage }) {
               <div><SectionLabel>Exit Interview Date</SectionLabel><div style={{ fontSize: 14 }}>{detailModal.exit_interview_date ? fmtDate(detailModal.exit_interview_date) : '-'}</div></div>
               <div><SectionLabel>Status</SectionLabel><span style={badgeStyle(STATUS_META[detailModal.status] || STATUS_META.in_progress)}>{(STATUS_META[detailModal.status] || STATUS_META.in_progress).label}</span></div>
             </div>
+
+            <SectionLabel>Company tools & equipment</SectionLabel>
+            <SmallAssetsHeld employeeId={detailModal.employee_id} forExit />
 
             <SectionLabel>Clearance Checklist</SectionLabel>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

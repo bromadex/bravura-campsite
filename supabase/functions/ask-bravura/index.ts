@@ -203,6 +203,27 @@ const TOOLS = [
       lines: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, qty: { type: 'number' } } } }, site: { type: 'string' },
     }, required: ['to_store', 'lines'] } } },
   { type: 'function', function: {
+    name: 'propose_small_asset',
+    description: "Propose issuing a small asset (radio, tool, laptop…) to a person, or taking one back with its condition. Nothing changes until the person confirms.",
+    parameters: { type: 'object', properties: {
+      action: { type: 'string', enum: ['issue', 'return'] }, item: { type: 'string', description: 'Tag number, serial or item name' },
+      person: { type: 'string', description: 'For issue: employee name or number' }, due_back: { type: 'string', description: 'YYYY-MM-DD, for a loan' },
+      condition: { type: 'string', enum: ['new', 'good', 'fair', 'damaged', 'unserviceable'], description: 'For return' }, notes: { type: 'string' }, site: { type: 'string' },
+    }, required: ['action', 'item'] } } },
+  { type: 'function', function: {
+    name: 'propose_fleet_job',
+    description: "Propose opening a workshop job (work order) for a machine, e.g. 'open a job for ADT 02 — hydraulic leak'.",
+    parameters: { type: 'object', properties: {
+      machine: { type: 'string', description: 'Fleet number, registration or name' }, fault: { type: 'string' },
+      priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] }, site: { type: 'string' },
+    }, required: ['machine', 'fault'] } } },
+  { type: 'function', function: {
+    name: 'propose_meter_reading',
+    description: "Propose recording a machine's odometer (km) and/or hour meter reading.",
+    parameters: { type: 'object', properties: {
+      machine: { type: 'string' }, km: { type: 'number' }, hours: { type: 'number' }, site: { type: 'string' },
+    }, required: ['machine'] } } },
+  { type: 'function', function: {
     name: 'propose_po_from_quote',
     description: "Propose a DRAFT purchase order from a supplier's quote (usually an attached quote). Lines need what, qty and unit_price.",
     parameters: { type: 'object', properties: {
@@ -221,6 +242,8 @@ const TOOLS = [
     ['leave', 'Leave requests in a period (by applied or start date) with status approved / pending / rejected / cancelled, who, dates, days and the rejection reason. Optional search = a status to filter by.', true, true],
     ['brief', "The person's day: approvals waiting for them, late deliveries, low stock, papers/documents expiring, budgets over 90%, alerts. Use for 'what needs my attention', 'my day', 'anything urgent'.", false, false],
     ['alerts', 'Alerts worth a look: unusual fuel draws, supplier price jumps (>20%), possible duplicate bills, bills that do not match their order.', false, false],
+    ['small_assets', "Small assets issued to people (radios, tools, laptops, phones, gas detectors): search = a tag number / item name to see who has it, or a person's name to see what they hold; always returns overdue returns and totals. Use for 'who has radio 14', 'what is John holding'.", false, true],
+    ['fleet_costs', 'Cost per machine for a period: fuel (litres, $), Stores parts and workshop bills on its jobs, hours and km run, cost per hour and per km, litres per hour vs expected, book value and total cost of ownership. Optional search = machine fleet number / name. Use for "cost per hour for ADT 02", "most expensive machines".', true, true],
     ['find', 'Find a record by number or name across modules (POs, requests, suppliers, vehicles, employees, stock items, incidents). Use when the person names something specific.', false, true],
   ] as [string, string, boolean, boolean][]).map(([name, description, dated, search]) => ({ type: 'function', function: { name, description,
     parameters: { type: 'object', properties: {
@@ -296,6 +319,13 @@ const PROPOSE: Record<string, [string, string, (a: Record<string, any>, s: strin
     p => `Issue from ${p.store} to ${p.to}: ` + (p.lines || []).map((l: any) => `${l.qty} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ') + ` (about ${money(p.value)})`],
   propose_stock_transfer: ['stock_transfer', 'ai_prepare_stock_transfer', (a, s) => ({ p_site_ids: s, p_lines: a.lines || [], p_to_store: a.to_store, p_from_store: a.from_store || null, p_vehicle: a.vehicle || null }),
     p => `Send from ${p.from} to ${p.to}: ` + (p.lines || []).map((l: any) => `${l.qty} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ') + ` (about ${money(p.value)})`],
+  propose_small_asset: ['small_asset_issue', 'ai_prepare_small_asset', (a, s) => ({ p_site_ids: s, p_action: a.action === 'return' ? 'return' : 'issue', p_item: a.item,
+    p_person: a.person || null, p_due_back: a.due_back || null, p_condition: a.condition || null, p_notes: a.notes || null }),
+    p => p.employee_id ? `Issue ${p.item} to ${p.to}${p.due_back ? ` (back by ${p.due_back})` : ''}` : `Take back ${p.item} from ${p.from} — ${p.condition}`],
+  propose_fleet_job: ['fleet_job', 'ai_prepare_fleet_job', (a, s) => ({ p_site_ids: s, p_machine: a.machine, p_fault: a.fault, p_priority: a.priority || 'medium' }),
+    p => `Open a ${p.priority} job for ${p.machine}: ${p.fault}`],
+  propose_meter_reading: ['fleet_meter', 'ai_prepare_fleet_meter', (a, s) => ({ p_site_ids: s, p_machine: a.machine, p_km: a.km ?? null, p_hours: a.hours ?? null }),
+    p => `Reading for ${p.machine}: ` + [p.km != null ? `${p.km} km` : '', p.hours != null ? `${p.hours} h` : ''].filter(Boolean).join(', ') + (p.warning ? ` — ${p.warning}` : '')],
   propose_purchase_request: ['purchase_request', 'ai_prepare_request', (a, s) => ({ p_site_ids: s, p_title: a.title, p_lines: a.lines || [], p_needed_by: a.needed_by || null, p_priority: a.priority || 'normal' }),
     p => `Draft request "${p.title}": ` + (p.lines || []).map((l: any) => `${l.quantity} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ')],
 }
@@ -304,9 +334,9 @@ const PROPOSE: Record<string, [string, string, (a: Record<string, any>, s: strin
 const MODULE_RPC: Record<string, [string, boolean, boolean]> = {
   fuel: ['ai_fuel', true, true], fleet: ['ai_fleet', true, false], stock: ['ai_stock', false, true], people: ['ai_people', true, false],
   sheq: ['ai_sheq', true, false], meals: ['ai_meals', true, false], camp: ['ai_camp', false, false], procurement: ['ai_procurement', false, false],
-  find: ['ai_find', false, true], leave: ['ai_leave', true, true], brief: ['ai_daily_brief', false, false], alerts: ['ai_alerts', false, false],
+  find: ['ai_find', false, true], small_assets: ['ai_small_assets', false, true], fleet_costs: ['ai_fleet_costs', true, true], leave: ['ai_leave', true, true], brief: ['ai_daily_brief', false, false], alerts: ['ai_alerts', false, false],
 }
-const EXTRA_ARG: Record<string, string> = { leave: 'p_status' }
+const EXTRA_ARG: Record<string, string> = { leave: 'p_status', small_assets: 'p_query', fleet_costs: 'p_machine' }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -382,7 +412,7 @@ Rules:
 - Booked cost = already in the books; ordered on POs = committed but maybe not billed yet — say which you mean.
 - For ANY arithmetic (totals, differences, averages, percentages), call the calculate tool and use its result. Show the working briefly.
 - When the person asks about "this screen", "here", "these", use the SCREEN section below. Only use figures that appear there or come from tools.
-- If you can't answer from the screen or the tools, say what you can answer instead.\n- You never change anything yourself. For receiving a delivery, drafting a bill, recording a petty cash spend, drafting a purchase request, approving or rejecting something in their approvals inbox, turning a quote into a draft PO, issuing stock from a store (to a department, person or work order) or sending stock to another store or site, call the matching propose_ tool: the person gets a card and must press Confirm. Only propose when the person asks for it or clearly wants it (e.g. 'record this', 'receive it', 'draft the bill'). Other changes (payments, sending POs to suppliers) are done on their screens — say which one.`
+- If you can't answer from the screen or the tools, say what you can answer instead.\n- You never change anything yourself. For receiving a delivery, drafting a bill, recording a petty cash spend, drafting a purchase request, approving or rejecting something in their approvals inbox, turning a quote into a draft PO, issuing stock from a store (to a department, person or work order), sending stock to another store or site, issuing or taking back a small asset (radio, tool, laptop), opening a workshop job for a machine or recording a km / hour meter reading, call the matching propose_ tool: the person gets a card and must press Confirm. Only propose when the person asks for it or clearly wants it (e.g. 'record this', 'receive it', 'draft the bill'). Other changes (payments, sending POs to suppliers) are done on their screens — say which one.`
   const pg = body.page
   const screen = pg ? `\n\nSCREEN the person is looking at — module: ${pg.module || '?'}, page: ${pg.title || pg.page || '?'}\n` +
     (pg.context ? 'Structured data shown on screen:\n' + JSON.stringify(pg.context).slice(0, 7000)
@@ -430,7 +460,9 @@ Rules:
           result = (await db.rpc('ai_supplier_history', { p_site_ids: siteIds(args.site), p_supplier: args.supplier, p_from: args.date_from, p_to: args.date_to })).data
         } else if (PROPOSE[c.function.name]) {
           const a = args as Record<string, any>
-          const [kind, fn, params, summarise] = PROPOSE[c.function.name]
+          const [baseKind, fn, params, summarise] = PROPOSE[c.function.name]
+          // propose_small_asset covers both directions: taking back is its own action kind.
+          const kind = baseKind === 'small_asset_issue' && (a as Record<string, any>).action === 'return' ? 'small_asset_return' : baseKind
           const r = await db.rpc(fn, params(a, siteIds(a.site)))
           const prep = r.error ? { error: r.error.message } : r.data
           if (!prep || prep.error) result = { error: prep?.error || 'Could not prepare that', ...(prep?.matches ? { matches: prep.matches } : {}), ...(prep?.waiting ? { waiting: prep.waiting } : {}) }

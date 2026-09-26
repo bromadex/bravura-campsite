@@ -95,7 +95,9 @@ const EmployeeLinks        = lazy(() => import('./pages/admin/EmployeeLinks'))
 const UserPreferences      = lazy(() => import('./pages/admin/UserPreferences'))
 
 // ── Fleet pages ───────────────────────────────────────────────────────────────
-const FleetDashboard      = lazy(() => import('./pages/fleet/FleetDashboard'))
+const FleetHome           = lazy(() => import('./pages/fleet/FleetHome'))
+const FleetSmallAssets    = lazy(() => import('./pages/fleet/FleetSmallAssets'))
+const FleetSetup          = lazy(() => import('./pages/fleet/FleetSetup'))
 const FleetDispatch       = lazy(() => import('./pages/fleet/FleetDispatch'))
 const FleetTyres          = lazy(() => import('./pages/fleet/FleetTyres'))
 const FleetAssets         = lazy(() => import('./pages/fleet/FleetAssets'))
@@ -546,33 +548,36 @@ function getFuelPage(page, setPage, can) {
   }
 }
 
-function getFleetPage(page, setPage) {
+function getFleetPage(page, setPage, can) {
+  // Fleet A5 (#66): every fleet screen sits in the finance-look frame; the dashboard, small assets and settings bring their own.
+  const fleetFramed = (title, el) => <FinShell module="Fleet" homePage="fleet_dashboard" title={title} setPage={setPage}>{el}</FinShell>
   switch (page) {
-    case 'fleet_dashboard':   return <FleetDashboard setPage={setPage} />
-    case 'fleet_dispatch':    return <FleetDispatch setPage={setPage} />
-    case 'fleet_assets':      return <FleetAssets setPage={setPage} />
+    case 'fleet_dashboard':   return <FleetHome setPage={setPage} />
+    case 'fleet_small_assets': return <FleetSmallAssets setPage={setPage} />
+    case 'fleet_dispatch':    return fleetFramed('Dispatch board', <FleetDispatch setPage={setPage} />)
+    case 'fleet_assets':      return fleetFramed('Machines', <FleetAssets setPage={setPage} />)
     // Fleet A2: one Machines list — the old register codes open it filtered.
-    case 'fleet_vehicles':    return <FleetAssets key="veh" setPage={setPage} initialCategory="vehicle" />
-    case 'fleet_equipment':   return <FleetAssets key="heavy" setPage={setPage} initialCategory="heavy_equipment" />
-    case 'fleet_generators':  return <FleetAssets key="gen" setPage={setPage} initialCategory="generator" />
-    case 'fleet_assignments': return <FleetAssignments setPage={setPage} />
-    case 'fleet_inspections': return <FleetInspections setPage={setPage} />
-    case 'fleet_trips':       return <FleetTrips setPage={setPage} />
-    case 'fleet_maintenance': return <FleetMaintenance setPage={setPage} />
-    case 'fleet_preventive':  return <FleetPreventive setPage={setPage} />
-    case 'fleet_prestart':    return <FleetPrestart setPage={setPage} />
-    case 'fleet_contracts':   return <FleetContracts setPage={setPage} />
-    case 'fleet_compliance':  return <FleetCompliance setPage={setPage} />
-    case 'fleet_reports':     return <FleetReports setPage={setPage} />
-    case 'fleet_meter_readings': return <FleetMeterReadings setPage={setPage} />
-    case 'fleet_drivers':     return <FleetDrivers setPage={setPage} />
-    case 'fleet_accidents':   return <FleetAccidents setPage={setPage} />
-    case 'fleet_tyres':       return <FleetTyres setPage={setPage} />
+    case 'fleet_vehicles':    return fleetFramed('Machines', <FleetAssets key="veh" setPage={setPage} initialCategory="vehicle" />)
+    case 'fleet_equipment':   return fleetFramed('Machines', <FleetAssets key="heavy" setPage={setPage} initialCategory="heavy_equipment" />)
+    case 'fleet_generators':  return fleetFramed('Machines', <FleetAssets key="gen" setPage={setPage} initialCategory="generator" />)
+    case 'fleet_assignments': return fleetFramed('Who drives what', <FleetAssignments setPage={setPage} />)
+    case 'fleet_inspections': return fleetFramed('Inspections', <FleetInspections setPage={setPage} />)
+    case 'fleet_trips':       return fleetFramed('Trips', <FleetTrips setPage={setPage} />)
+    case 'fleet_maintenance': return fleetFramed('Workshop jobs', <FleetMaintenance setPage={setPage} />)
+    case 'fleet_preventive':  return fleetFramed('Service plans & downtime', <FleetPreventive setPage={setPage} />)
+    case 'fleet_prestart':    return fleetFramed('Pre-start check', <FleetPrestart setPage={setPage} />)
+    case 'fleet_contracts':   return fleetFramed('Contracts', <FleetContracts setPage={setPage} />)
+    case 'fleet_compliance':  return fleetFramed('Papers & compliance', <FleetCompliance setPage={setPage} />)
+    case 'fleet_reports':     return fleetFramed('Reports', <FleetReports setPage={setPage} />)
+    case 'fleet_meter_readings': return fleetFramed('Meter readings', <FleetMeterReadings setPage={setPage} />)
+    case 'fleet_drivers':     return <FleetSetup key="drivers" setPage={setPage} initialTab="drivers" />
+    case 'fleet_tyres':       return <FleetSetup key="tyres" setPage={setPage} initialTab="tyres" />
+    case 'fleet_accidents':   return fleetFramed('Accidents', <FleetAccidents setPage={setPage} />)
     // Hired plant is recorded once, in Contractors (0199); Fleet shows the same records.
-    case 'fleet_contractors': return (can('contractors.view') || can('fleet.view'))
-      ? <><CLHiredVehicles setPage={setPage} /><div style={{ height: 24 }} /><CLHiredEquipment setPage={setPage} /></> : null
-    case 'fleet_settings':    return <FleetSettings setPage={setPage} />
-    default:                  return <FleetDashboard setPage={setPage} />
+    case 'fleet_contractors': return (can?.('contractors.view') || can?.('fleet.view'))
+      ? fleetFramed('Hired plant', <><CLHiredVehicles setPage={setPage} /><div style={{ height: 24 }} /><CLHiredEquipment setPage={setPage} /></>) : null
+    case 'fleet_settings':    return <FleetSetup key="general" setPage={setPage} />
+    default:                  return <FleetHome setPage={setPage} />
   }
 }
 
@@ -920,7 +925,7 @@ function ModuleShell() {
   if (moduleId === 'meals')     content = getMealsPage(currentPage, role, setPage, can)
   if (moduleId === 'admin')     content = getAdminPage(currentPage, can, setPage)
   if (moduleId === 'fuel')      content = getFuelPage(currentPage, setPage, can)
-  if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage)
+  if (moduleId === 'fleet')     content = getFleetPage(currentPage, setPage, can)
   if (moduleId === 'finance')     content = getFinancePage(currentPage, can, setPage)
   if (moduleId === 'contractors') content = getContractorsPage(currentPage, can, setPage)
   if (moduleId === 'inventory')   content = getInventoryPage(currentPage, can, setPage)

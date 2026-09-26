@@ -327,24 +327,24 @@ export function projectsNav(role, can) {
 }
 
 export function fleetNav(role, can) {
+  // Ordered by use (issue #66, A5): Daily · Machines · Plan · Reports · Settings. Drivers and tyres are Settings tabs.
   return [
-    { id: 'fleet_dashboard',   label: 'Dashboard',       section: 'Overview',     icon: 'dashboard' },
-    { id: 'fleet_assets',      label: 'Machines',        section: 'Registry',     icon: 'agriculture' },
-    { id: 'fleet_assignments', label: 'Assignments',     section: 'Operations',   icon: 'assignment_ind' },
-    { id: 'fleet_inspections', label: 'Inspections',     section: 'Operations',   icon: 'checklist' },
-    { id: 'fleet_trips',       label: 'Trip Logs',       section: 'Operations',   icon: 'route' },
-    { id: 'fleet_maintenance', label: 'Maintenance',     section: 'Maintenance',  icon: 'build' },
-    { id: 'fleet_prestart',    label: 'Pre-start check', section: 'Operations',   icon: 'fact_check' },
-    { id: 'fleet_preventive',  label: 'PM & Downtime',   section: 'Maintenance',  icon: 'event_repeat' },
-    { id: 'fleet_contracts',   label: 'Contracts',       section: 'Maintenance',  icon: 'contract' },
-    { id: 'fleet_compliance',  label: 'Compliance',      section: 'Compliance',   icon: 'verified_user' },
-    { id: 'fleet_drivers',     label: 'Drivers',         section: 'Operations',   icon: 'badge' },
-    { id: 'fleet_meter_readings', label: 'Meter Readings', section: 'Operations', icon: 'speed' },
-    { id: 'fleet_accidents',   label: 'Accidents',       section: 'Safety',       icon: 'car_crash' },
-    { id: 'fleet_tyres',      label: 'Tyres',            section: 'Maintenance',  icon: 'tire_repair' },
-    { id: 'fleet_dispatch',   label: 'Dispatch Board',   section: 'Operations',   icon: 'hub' },
-    { id: 'fleet_reports',     label: 'Reports',         section: 'Reports',      icon: 'bar_chart' },
-    { id: 'fleet_settings',    label: 'Settings',        section: 'Admin',        icon: 'settings' },
+    { id: 'fleet_dashboard',   label: 'Dashboard',         section: 'Daily',     icon: 'dashboard' },
+    { id: 'fleet_prestart',    label: 'Pre-start check',   section: 'Daily',     icon: 'fact_check' },
+    { id: 'fleet_maintenance', label: 'Workshop jobs',     section: 'Daily',     icon: 'build' },
+    { id: 'fleet_meter_readings', label: 'Meter readings', section: 'Daily',     icon: 'speed' },
+    { id: 'fleet_trips',       label: 'Trips',             section: 'Daily',     icon: 'route' },
+    { id: 'fleet_dispatch',    label: 'Dispatch board',    section: 'Daily',     icon: 'hub' },
+    { id: 'fleet_assets',      label: 'Machines',          section: 'Machines',  icon: 'agriculture' },
+    { id: 'fleet_small_assets', label: 'Small assets',     section: 'Machines',  icon: 'handyman' },
+    { id: 'fleet_assignments', label: 'Who drives what',   section: 'Machines',  icon: 'assignment_ind' },
+    { id: 'fleet_compliance',  label: 'Papers',            section: 'Machines',  icon: 'verified_user' },
+    { id: 'fleet_preventive',  label: 'Service plans & downtime', section: 'Plan', icon: 'event_repeat' },
+    { id: 'fleet_contracts',   label: 'Contracts',         section: 'Plan',      icon: 'contract' },
+    { id: 'fleet_inspections', label: 'Inspections',       section: 'Plan',      icon: 'checklist' },
+    { id: 'fleet_accidents',   label: 'Accidents',         section: 'Plan',      icon: 'car_crash' },
+    { id: 'fleet_reports',     label: 'Reports',           section: 'Reports',   icon: 'bar_chart' },
+    { id: 'fleet_settings',    label: 'Settings',          section: 'Settings',  icon: 'settings' },
   ]
 }
 

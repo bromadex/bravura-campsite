@@ -546,6 +546,18 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   **A4 built (0242):** FL21 `fleet_contracts` (FleetContracts.jsx; `fleet_contract_list`, annual cost, states), pg_cron
   `fleet-contract-reminders` 04:45 UTC → `fleet_contract_reminders()` (once per end date, `reminded_for`);
   `fleet_reliability_by_type` shown on FL19 Downtime tab. Service due list/plans per type already existed (fleet_pm_due).
+  **A5 built (0243):** FL01 = `pages/fleet/FleetHome.jsx` (FinShell module Fleet; `fleet_home(site)`: chips, figures, board, service due,
+  top cost, fuel trend; tab "Cost per machine" = `fleet_machine_costs(site, from, to)` — fuel + Stores parts (inventory_movements.source_reference_id
+  = WO) + bills (POs with work_order_id), hours/km from unflagged meter readings, $/h, $/km, L/h vs expected, book value, TCO = purchase +
+  lifetime running − book value). FleetDashboard.jsx deleted. All fleet routes wrapped with `fleetFramed` in App.jsx; FleetQuickNav hides in
+  the frame. Menu Daily · Machines · Plan · Reports · Settings; FL18 = FleetSetup hub (General, Drivers & licences, Tyres).
+  **A6 built (0244, 0244b):** FL22 `fleet_small_assets` (FleetSmallAssets.jsx): `small_assets` + `small_asset_issues` (typed-name signature,
+  due back, condition out/in, lost), RPCs small_asset_save/_issue/_return/_count, small_assets_list/_history/_held; rights fleet.* or assets.*
+  (`_sa_can`), read also hr.view. `trg_exit_small_assets` blocks exit clearance while items are out; `components/SmallAssetsHeld.jsx` on
+  EmployeeDetail + ExitManagement. pg_cron `small-asset-overdue` 05:15 UTC. Ask Bravura v13: tools small_assets (`ai_small_assets`),
+  fleet_costs (`ai_fleet_costs`), propose_small_asset / propose_fleet_job / propose_meter_reading → ai_action_confirm kinds small_asset_issue,
+  small_asset_return, fleet_job, fleet_meter. `_ai_alerts_fleet` (down 2+ days, service overdue, papers ≤14 d, small asset overdue) in
+  `_ai_alerts_core`. Traccar (automatic km/hours) not built — optional later.
   Meters at fuel fills: optional now, REQUIRED from 1 Nov 2026 (user, 25 Sep) — setting meter_required_from.
   A6 #67 **small assets issued to people (tools, radios, laptops) is REQUIRED** (user, 25 Sep): register, issue/sign/return with
   condition, who-holds-what, employee profile + exit checklist blocks until returned, overdue returns, counts.

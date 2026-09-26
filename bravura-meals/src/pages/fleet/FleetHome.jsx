@@ -59,39 +59,11 @@ function Spark({ rows }) {
   )
 }
 
-function Tile({ r, onOpen }) {
-  const [, , col] = laneOf(r.status)
-  const use = r.lph != null ? [r.lph, r.expected_lph, 'L/h'] : r.lp100 != null ? [r.lp100, r.expected_lp100, 'L/100km'] : null
-  const ratio = use && use[1] ? n(use[0]) / n(use[1]) : null
-  const meterCol = ratio == null ? THEME.outline : ratio > 1.15 ? Y.down : ratio > 1 ? Y.shop : Y.go
-  return (
-    <button onClick={onOpen} title={r.machine} style={{ textAlign: 'left', minWidth: 0, cursor: 'pointer', font: 'inherit', color: THEME.text,
-      background: THEME.surface, border: `1px solid ${THEME.outlineVar}`, borderRadius: 14, padding: '10px 12px', position: 'relative', overflow: 'hidden',
-      boxShadow: '0 1px 2px rgba(0,0,0,.04)' }}>
-      <span style={{ position: 'absolute', inset: '0 auto 0 0', width: 4, background: col }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'center' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.machine}</span>
-        {r.service === 'overdue' && <span title="Service overdue" style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: Y.down, borderRadius: 6, padding: '1px 5px' }}>SVC</span>}
-        {r.service === 'due_soon' && <span title="Service due soon" style={{ fontSize: 10, fontWeight: 800, color: '#3b2600', background: Y.shop, borderRadius: 6, padding: '1px 5px' }}>SVC</span>}
-      </div>
-      <div style={{ fontSize: 11, color: THEME.textMed, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.type || 'Machine'}</div>
-      <div style={{ height: 5, background: THEME.surfaceVar, borderRadius: 3, marginTop: 8 }}>
-        <div style={{ width: `${ratio == null ? 0 : Math.min(100, ratio * 66)}%`, height: '100%', borderRadius: 3, background: meterCol }} />
-      </div>
-      <div style={{ fontSize: 10.5, color: ratio && ratio > 1.15 ? Y.down : THEME.textLow, marginTop: 3 }}>
-        {use ? `${use[0]} ${use[2]}${use[1] ? ` · expect ${use[1]}` : ''}` : 'no meter readings'}
-      </div>
-    </button>
-  )
-}
-
 export default function FleetHome({ setPage }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const [tab, setTab] = useState('overview')
   const [d, setD] = useState(null)
-  const [lane, setLane] = useState('all')
-  const [q, setQ] = useState('')
 
   const load = useCallback(async () => {
     if (!currentSiteId) return
@@ -116,12 +88,10 @@ export default function FleetHome({ setPage }) {
     [c.no_reading_7d, 'no km/hours in 7 d', Y.dim, 'fleet_meter_readings'],
   ].filter(x => n(x[0]) > 0)
   const total = board.filter(r => r.status !== 'decommissioned').length || 1
-  const shown = board.filter(r => r.status !== 'decommissioned' && (lane === 'all' || laneOf(r.status)[0] === lane)
-    && (!q || `${r.machine} ${r.type || ''}`.toLowerCase().includes(q.toLowerCase())))
 
   const Tabs = (
     <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,.06)', padding: 4, borderRadius: 12, border: `1px solid ${Y.line}` }}>
-      {[['overview', 'Yard'], ['costs', 'Cost per machine']].map(([key, l]) => (
+      {[['overview', 'Overview'], ['costs', 'Cost per machine']].map(([key, l]) => (
         <button key={key} onClick={() => setTab(key)} style={{ border: 'none', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 700, padding: '7px 14px', borderRadius: 9,
           background: tab === key ? Y.accent : 'transparent', color: tab === key ? Y.night : Y.text }}>{l}</button>
       ))}
@@ -155,8 +125,8 @@ export default function FleetHome({ setPage }) {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
                 {LANES.map(l => (
-                  <button key={l[0]} onClick={() => setLane(lane === l[0] ? 'all' : l[0])} style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit', color: Y.text,
-                    background: lane === l[0] ? 'rgba(255,255,255,.10)' : 'transparent', border: `1px solid ${lane === l[0] ? l[2] : Y.line}`, borderRadius: 12, padding: '8px 12px' }}>
+                  <button key={l[0]} onClick={() => setPage('fleet_assets')} style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit', color: Y.text,
+                    background: 'transparent', border: `1px solid ${Y.line}`, borderRadius: 12, padding: '8px 12px' }}>
                     <div style={{ fontSize: 26, fontWeight: 800, color: l[2], lineHeight: 1.1 }}>{counts[l[0]]}</div>
                     <div style={{ fontSize: 12, color: Y.dim }}>{l[1]}</div>
                   </button>
@@ -185,36 +155,7 @@ export default function FleetHome({ setPage }) {
         )}
       </div>
 
-      {tab === 'costs' ? <div style={card}><MachineCosts siteId={currentSiteId} /></div> : !d ? <div style={{ ...card, color: THEME.textMed }}>Loading the yard…</div> : <>
-        {/* the yard */}
-        <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-            <div><h3 style={h3}>The yard{lane !== 'all' ? ` · ${LANES.find(l => l[0] === lane)[1]}` : ''}</h3>
-              <div style={sub}>Bar = fuel burn against expected (green under, amber over, red 15% over). Tap a machine to open it.</div></div>
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Find a machine…" aria-label="Find a machine"
-              style={{ padding: '8px 12px', borderRadius: 10, border: `1px solid ${THEME.outline}`, background: THEME.surfaceVar, color: THEME.text, font: 'inherit', minWidth: 200 }} />
-          </div>
-          {lane === 'all' ? LANES.map(l => {
-            const rows = shown.filter(r => laneOf(r.status)[0] === l[0])
-            if (!rows.length) return null
-            return (
-              <div key={l[0]} style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 800, letterSpacing: '.08em', color: THEME.textMed, margin: '4px 0 8px' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 3, background: l[2] }} />{l[1].toUpperCase()} · {rows.length}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 8 }}>
-                  {rows.map(r => <Tile key={r.id} r={r} onOpen={() => setPage('fleet_assets')} />)}
-                </div>
-              </div>
-            )
-          }) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 8 }}>
-              {shown.map(r => <Tile key={r.id} r={r} onOpen={() => setPage('fleet_assets')} />)}
-            </div>
-          )}
-          {!shown.length && <div style={sub}>No machines match.</div>}
-        </div>
-
+      {tab === 'costs' ? <div style={card}><MachineCosts siteId={currentSiteId} /></div> : !d ? <div style={{ ...card, color: THEME.textMed }}>Loading…</div> : <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
           <div style={card}>
             <h3 style={h3}>Service countdown</h3><div style={sub}>Share of the service interval used — km, hours or days, whichever is first</div>

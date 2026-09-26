@@ -618,7 +618,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   **Fuel tidy-up (26 Sep, user):** FU21 renamed "Issue fuel" (machine + driver pickers open their full list on tap); FU07 office page =
   "Batch issue entry"; FuelReports TANK_CLR crash fixed. `pages/fuel/FuelHub.jsx` merges duplicates: hub 'history' (Issues · All movements —
   routes fuel_issues/fuel_transactions/fuel_ledger) and hub 'reports' (Summary · Per machine · Cost allocation · Forecast · Daily · Monthly ·
-  Deliveries — all report routes). Menu now 12 items. FinanceExport.jsx + FuelTransfer.jsx (unused) deleted.
+  Deliveries — all report routes). Menu now 12 items.
+  More hubs (user 26 Sep): 'issue' (At the pump = FuelPump · Office / batch = FuelIssuance; routes fuel_pump/fuel_issuance),
+  'dips' (Dipstick log · Gaps & sign-off · Pump shifts · Month-end — Reconciliation.jsx exports DipsTab/ShiftsTab/MonthTab; routes fuel_dips/
+  fuel_reconciliation), 'requests' (Requests · New request). App routes pass key= so setPage between tabs remounts the hub. Menu 10 items. FinanceExport.jsx + FuelTransfer.jsx (unused) deleted.
   optional sensors. Features keep/add/remove listed on #68 (user: "not only the money"). Open questions (restore history, who issues,
   POs, pump meters, recharge, tolerance, allowances vs requests, sensors) — ask before building.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;

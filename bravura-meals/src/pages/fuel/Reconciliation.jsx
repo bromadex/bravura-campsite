@@ -41,7 +41,7 @@ async function run(p, ok) {
   return data ?? true
 }
 
-function DipsTab({ siteId, can }) {
+export function DipsTab({ siteId, can }) {
   const [from, setFrom] = useState(daysAgo(30))
   const [to, setTo] = useState(today())
   const [only, setOnly] = useState('attention')
@@ -131,7 +131,7 @@ function DipsTab({ siteId, can }) {
   )
 }
 
-function ShiftsTab({ siteId, can }) {
+export function ShiftsTab({ siteId, can }) {
   const [pumps, setPumps] = useState([])
   const [rows, setRows] = useState(null)
   const [pump, setPump] = useState('')
@@ -205,7 +205,7 @@ function ShiftsTab({ siteId, can }) {
   )
 }
 
-function MonthTab({ siteId, can }) {
+export function MonthTab({ siteId, can }) {
   const last = new Date(); last.setDate(1); last.setMonth(last.getMonth() - 1)
   const [month, setMonth] = useState(last.toISOString().slice(0, 7))
   const [rows, setRows] = useState(null)

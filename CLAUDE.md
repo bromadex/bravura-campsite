@@ -655,9 +655,12 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 - **Backups (#75, not built):** AD13 Backups — "Download backup now" (ZIP of CSVs + manifest) visible ONLY to Clement Mpala
   and Wendy Mpala (named-user allowlist checked server-side, NOT a role permission); nightly automatic backup (14 daily / 8 weekly /
   12 monthly), off-site copy, encrypted ZIP, restore drill, recommend Supabase PITR. Open: off-site target, encryption, Supabase plan.
-- **Projects rewrite (#76, Stage 17, not built):** PJ1 projects/stages/tasks · PJ2 My workspace (my tasks, approvals, tickets,
-  shared with me — ERP-wide) · PJ3 kanban/list/calendar/Gantt · PJ4 timesheets + project costing via project_id · PJ5 Helpdesk
-  tickets (teams, SLA, ticket → task/work order) · PJ6 sprints/backlog (optional) · PJ7 Ask Bravura. Confirm phases before building.
+- **Projects rewrite (#76, Stage 17, not built):** analysis of the 18 linked repos + ERPNext + Odoo on #76. Today: 1 project, 45 tasks,
+  PJ01–PJ10 mostly unused. User 28 Sep: staff only, timesheets FEED PAYROLL, kanban + Gantt (no sprints), NO helpdesk tickets.
+  Phases PJ-A clean base (one task model, PRJ-12 numbers, RLS/RPCs) · PJ-B My workspace (my tasks personal kanban, to-dos, watch,
+  notes, inbox; "Make a task" on any record) · PJ-C kanban + Gantt (baseline vs actual, resource view people+machines, templates) ·
+  PJ-D timesheets (timer, supervisor crew sheet on phone, approval → payroll inputs) · PJ-E money (budget per phase, actuals from
+  time/POs/stores/fuel/hired plant, change orders, stage gates) · PJ-F health + weekly updates + risks · PJ-G Ask Bravura.
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

@@ -636,6 +636,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 - **Your day redesign (0253, user 26 Sep):** HomeLauncher DailyBrief calls ai_daily_brief with the CURRENT site only; now a slim full-width bar right under the top bar (count, pills per item scrolling sideways, Ask / Hide) — count panel
   (maroon if anything critical, else blue) + one card per item (area icon, severity stripe), 6 shown + "more". Backup drums/bowsers
   (level_tracking_method 'issuance') never raise 'Order fuel' alerts.
+- **Fuel fixes 28 Sep (0254, 0255):** fuel_delivery_save without a PO failed (_line unassigned) — fixed; dip rows keep the officer in
+  recorded_by_name (read_by → fuel_operators). Dip gaps now use TIME: `_fuel_txn_at` (issued_at local, else date 12:00) + `_fuel_moves_at(tank, from_ts, to_ts)`
+  in trg_fuel_dip_gap / _fuel_tank_book; deliveries get issued_at = delivery time − 1 min; delivery saves BOTH dip before (−2 min) and dip after into the
+  dipstick log. Tank deliveries form starts on the main tank.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;
   make them pickers (search drivers/employees by name). A machine can have 2 people (e.g. day + night operator, or operator + supervisor).
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.

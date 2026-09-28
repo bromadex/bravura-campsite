@@ -1,3 +1,4 @@
+import { primaryTank } from '../../utils/tanks'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -157,6 +158,14 @@ export default function FuelReceipts() {
       .order('supplier_name')
       .then(({ data }) => setProcSuppliers(data || []))
   }, [currentSiteId, rt])
+
+  // New delivery: start on the site's main tank so fuel type and dip conversion work straight away
+  useEffect(() => {
+    if (showForm && !editId && !form.tank_id && activeTanks.length) {
+      const t = primaryTank(activeTanks)
+      if (t) setForm(f => f.tank_id ? f : { ...f, tank_id: t.id })
+    }
+  }, [showForm, editId, form.tank_id, activeTanks])
 
   // Load calibration table when tank changes, then auto-populate dip before for new deliveries
   useEffect(() => {
@@ -616,12 +625,12 @@ export default function FuelReceipts() {
                 <FieldWrap label="Dip Before (mm)">
                   <input type="number" min="0" step="0.1" value={form.dip_before_mm} onChange={e => set('dip_before_mm', e.target.value)} placeholder="e.g. 850" style={inputStyle} />
                   {form.dip_before && <div style={{ fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>{Number(form.dip_before).toLocaleString(undefined, { maximumFractionDigits: 1 })} L {!editId && form.tank_id ? '(current tank level)' : ''}</div>}
-                  {calibration.length === 0 && form.dip_before_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table</div>}
+                  {calibration.length === 0 && form.dip_before_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>{form.tank_id ? 'This tank has no dip chart — enter litres instead' : 'Choose the receiving tank first'}</div>}
                 </FieldWrap>
                 <FieldWrap label="Dip After (mm)">
                   <input type="number" min="0" step="0.1" value={form.dip_after_mm} onChange={e => set('dip_after_mm', e.target.value)} placeholder="e.g. 1200" style={inputStyle} />
                   {form.dip_after && <div style={{ fontSize: '11px', color: THEME.success, marginTop: '4px', fontWeight: 600 }}>{Number(form.dip_after).toLocaleString(undefined, { maximumFractionDigits: 1 })} L → new tank level</div>}
-                  {calibration.length === 0 && form.dip_after_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>No calibration table</div>}
+                  {calibration.length === 0 && form.dip_after_mm && <div style={{ fontSize: '11px', color: THEME.warning, marginTop: '2px' }}>{form.tank_id ? 'This tank has no dip chart — enter litres instead' : 'Choose the receiving tank first'}</div>}
                 </FieldWrap>
               </>
             )}

@@ -826,6 +826,7 @@ function getConnectPage(page, can, setPage) {
 
 function getMePage(page, setPage) {
   switch (page) {
+    case 'me_tasks':      return <MyWorkspace setPage={setPage} />
     case 'me_payslips':   return <MyPayslips setPage={setPage} />
     case 'me_leave':      return <MyLeave setPage={setPage} />
     case 'me_attendance': return <MyAttendance setPage={setPage} />

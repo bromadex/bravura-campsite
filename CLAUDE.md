@@ -667,6 +667,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   committed POs), pj_health (measured: overdue share, late milestones, target date, budget %, stuck 14 d; manual override via pj_update_post),
   project_updates, workspace_notes. RPCs pj_task_save / pj_task_detail / pj_task_comment / pj_watch / pj_tasks_for_record / pj_timer /
   pj_time_save / pj_time_decide / pj_time_list / pj_home / pj_my_workspace / pj_note_save; _pj_can(action, project) / _pj_task_can.
+  My tasks live in the My Workspace POP-UP (user 28 Sep): pages/me/MyTasks.jsx — compact strip on MeHome (next 3, quick add, timer) + Tasks tile → me_tasks (full list, task news); expand opens PJ11. PJ11 removed from the Projects menu.
   Screens: PJ11 `pj_workspace` MyWorkspace.jsx (personal board drag/drop + list buckets, quick add, inbox, watching, sticky notes, timer;
   PJ04 pj_tasks opens it), PJ01 `pj_dashboard` = PJHome.jsx (portfolio health cards, weekly update modal, workload), PJ12 `pj_time` PJTime.jsx
   (My time · Crew sheet · Approve), components/TaskDrawer.jsx (one task panel everywhere) + components/MakeTaskButton.jsx on PO, request,

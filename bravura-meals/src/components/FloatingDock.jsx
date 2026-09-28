@@ -17,6 +17,7 @@ const MyDocuments  = lazy(() => import('../pages/me/MyDocuments'))
 const MyCamp       = lazy(() => import('../pages/me/MyCamp'))
 const MyAdvances   = lazy(() => import('../pages/me/MyAdvances'))
 const MyTeam       = lazy(() => import('../pages/me/MyTeam'))
+const MyTasks      = lazy(() => import('../pages/me/MyTasks'))
 const Approvals    = lazy(() => import('../pages/notifications/ApprovalsInbox'))
 const Notifs       = lazy(() => import('../pages/notifications/NotificationCenter'))
 
@@ -24,7 +25,7 @@ const Notifs       = lazy(() => import('../pages/notifications/NotificationCente
 const ME_PAGES = {
   me_home: MeHome, me_payslips: MyPayslips, me_leave: MyLeave, me_attendance: MyAttendance,
   me_expenses: MyExpenses, me_safety: MySafety, me_details: MyDetails, me_tax: MyTax,
-  me_documents: MyDocuments, me_camp: MyCamp, me_advances: MyAdvances, me_team: MyTeam, me_approvals: Approvals, me_notifications: Notifs,
+  me_documents: MyDocuments, me_camp: MyCamp, me_advances: MyAdvances, me_team: MyTeam, me_tasks: MyTasks, me_approvals: Approvals, me_notifications: Notifs,
 }
 
 // Shared chat-unread count so the home grid badge and the dock use one subscription.
@@ -200,7 +201,7 @@ export default function FloatingDock() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 14px', background: MODULE_COLORS.me, color: '#fff' }}>
             <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>badge</span>
             <span style={{ fontWeight: 600, fontSize: '15px', flex: 1 }}>My Workspace</span>
-            <button onClick={() => navigate(meTab === 'me_approvals' ? '/notifications/approvals_inbox' : meTab === 'me_notifications' ? '/notifications/notification_center' : `/me/${meTab}`)} title="Open as full page" aria-label="Open as full page"
+            <button onClick={() => navigate(meTab === 'me_tasks' ? '/projects/pj_workspace' : meTab === 'me_approvals' ? '/notifications/approvals_inbox' : meTab === 'me_notifications' ? '/notifications/notification_center' : `/me/${meTab}`)} title="Open as full page" aria-label="Open as full page"
               style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', display: 'flex' }}>
               <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>open_in_full</span>
             </button>

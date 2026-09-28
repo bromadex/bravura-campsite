@@ -89,7 +89,7 @@ export default function TaskDrawer({ taskId, onClose, onChanged, setPage }) {
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Task" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(22,33,29,.28)', zIndex: 1200, display: 'flex', justifyContent: 'flex-end' }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(22,33,29,.28)', zIndex: 10050, display: 'flex', justifyContent: 'flex-end' }}>
       <div style={{ width: 'min(640px, 100vw)', height: '100%', background: '#fff', boxShadow: '-12px 0 32px rgba(0,0,0,.12)',
         display: 'flex', flexDirection: 'column', fontFamily: FIN.sans, color: FIN.ink }}>
         {err && <div style={{ padding: 24 }}>{err} <button onClick={onClose} style={finBtn2}>Close</button></div>}

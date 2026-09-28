@@ -312,7 +312,6 @@ export function contractorsNav(role, can) {
 
 export function projectsNav(role, can) {
   return [
-    { id: 'pj_workspace',     label: 'My workspace',   section: 'Overview',         icon: 'space_dashboard' },
     { id: 'pj_dashboard',     label: 'Portfolio',      section: 'Overview',         icon: 'dashboard' },
     { id: 'pj_projects',      label: 'Projects',       section: 'Projects',         icon: 'folder_open' },
     { id: 'pj_time',          label: 'Time',           section: 'Projects',         icon: 'schedule' },

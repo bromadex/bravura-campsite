@@ -4,9 +4,12 @@ import { THEME } from '../../utils/permissions'
 import { Icon } from '../../components/ui'
 import { useMeBadges, refreshMeBadges } from '../../components/FloatingDock'
 import { useMe, Loading, NotLinked, ME_COLOR, MONTHS, usd } from './shared'
+import MyTasks, { useMyTasks } from './MyTasks'
+import { bucketOf } from '../projects/pjShared'
 
 // Each app: [page, label, icon, tint]. Tints keep icons distinguishable at a glance.
 const APPS = [
+  ['me_tasks',      'Tasks',        'task_alt',          '#1F4E8C'],
   ['me_attendance', 'Clock in',     'schedule',          '#2E7D32'],
   ['me_leave',      'Leave',        'beach_access',      '#0277BD'],
   ['me_payslips',   'Payslips',     'payments',          '#6A1B9A'],
@@ -44,6 +47,8 @@ export default function MeHome({ setPage }) {
   const badges = useMeBadges()
   const [leave, setLeave] = useState(null)
   const [team, setTeam] = useState(null)
+  const ws = useMyTasks()
+  const lateTasks = (ws?.tasks || []).filter(t => bucketOf(t) === 'overdue').length
 
   useEffect(() => {
     if (!me?.linked) return
@@ -86,10 +91,12 @@ export default function MeHome({ setPage }) {
         )}
       </div>
 
+      <MyTasks compact setPage={setPage} />
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', rowGap: '18px', columnGap: '6px' }}>
         {isLead && <App icon="groups" label="My team" tint={ME_COLOR} badge={badges.byPage.me_team ?? teamWaiting} onClick={() => setPage('me_team')} />}
         {APPS.map(([page, label, icon, tint]) => (
-          <App key={page} icon={icon} label={label} tint={tint} badge={badges.byPage[page] || 0} onClick={() => setPage(page)} />
+          <App key={page} icon={icon} label={label} tint={tint} badge={page === 'me_tasks' ? lateTasks : (badges.byPage[page] || 0)} onClick={() => setPage(page)} />
         ))}
         <App icon="notifications" label="Notifications" tint="#F57C00" badge={badges.unread} onClick={() => setPage('me_notifications')} />
         <App icon="approval" label="Approvals" tint="#37474F" badge={badges.approvals} onClick={() => setPage('me_approvals')} />

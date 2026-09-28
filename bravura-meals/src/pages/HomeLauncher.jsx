@@ -755,9 +755,9 @@ function DailyBrief({ navigate }) {
   if (!items.length) return null   // only shown when something needs you
   const toggle = () => { const h = !hidden; setHidden(h); try { h ? localStorage.setItem('brief_hidden', today) : localStorage.removeItem('brief_hidden') } catch { /* private mode */ } }
   const urgent = items.filter(x => x.sev === 'critical').length
-  const bar = urgent ? '#6E1A1F' : '#173A68'
+  const bar = 'linear-gradient(90deg, #7A1B20 0%, #6A171C 100%)'   // same maroon family as the top bar; urgency shows on the badge and pills
   return (
-    <section aria-label="Your day" style={{ width: '100%', boxSizing: 'border-box', background: bar, color: '#fff', display: 'flex', alignItems: 'center',
+    <section aria-label="Your day" style={{ width: '100%', boxSizing: 'border-box', background: bar, color: '#fff', boxShadow: 'inset 0 1px 0 rgba(0,0,0,.18)', display: 'flex', alignItems: 'center',
       gap: 14, padding: '10px 24px', minHeight: 64, borderTop: '1px solid rgba(255,255,255,.08)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         <span style={{ minWidth: 34, height: 34, borderRadius: 10, background: urgent ? '#E5484D' : 'rgba(255,255,255,.18)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 16 }}>{items.length}</span>

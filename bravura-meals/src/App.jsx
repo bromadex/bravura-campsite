@@ -216,10 +216,11 @@ const ProcInvoices = lazy(() => import('./pages/procurement/ProcInvoices'))
 const ProcReports = lazy(() => import('./pages/procurement/ProcReports'))
 
 // ── Projects ─────────────────────────────────────────────────────────────────
-const PJDashboard = lazy(() => import('./pages/projects/PJDashboard'))
+const PJHome = lazy(() => import('./pages/projects/PJHome'))
+const MyWorkspace = lazy(() => import('./pages/projects/MyWorkspace'))
+const PJTime = lazy(() => import('./pages/projects/PJTime'))
 const PJList      = lazy(() => import('./pages/projects/PJList'))
 const PJDetail    = lazy(() => import('./pages/projects/PJDetail'))
-const PJTasks     = lazy(() => import('./pages/projects/PJTasks'))
 const PJTimeline  = lazy(() => import('./pages/projects/PJTimeline'))
 const PJAreas     = lazy(() => import('./pages/projects/PJAreas'))
 const PJDocuments = lazy(() => import('./pages/projects/PJDocuments'))
@@ -664,17 +665,19 @@ function getProjectsPage(page, can, setPage) {
     const [projectId, initialTab, initialTaskId] = rest.split(':')
     return <PJDetail setPage={setPage} projectId={projectId} initialTab={initialTab || undefined} initialTaskId={initialTaskId || undefined} />
   }
+  if (page && page.startsWith('pj_workspace')) return <MyWorkspace key={page} setPage={setPage} openId={page.split(':')[1]} />
+  if (page && page.startsWith('pj_time')) return <PJTime key={page} setPage={setPage} initialTab={page.split(':')[1]} />
   switch (page) {
-    case 'pj_dashboard': return <PJDashboard setPage={setPage} />
+    case 'pj_dashboard': return <PJHome setPage={setPage} />
     case 'pj_projects':  return <PJList setPage={setPage} />
     case 'pj_areas':     return <PJAreas setPage={setPage} />
     case 'pj_documents': return <PJDocuments setPage={setPage} />
     case 'pj_transmittals': return <PJTransmittals setPage={setPage} />
-    case 'pj_tasks':     return <PJTasks setPage={setPage} />
+    case 'pj_tasks':     return <MyWorkspace setPage={setPage} />  // PJ04 My Tasks → My workspace (#76)
     case 'pj_timeline':  return <PJTimeline setPage={setPage} />
     case 'pj_costs':     return <PJCosts setPage={setPage} />
     case 'pj_changes':   return <PJChanges setPage={setPage} />
-    default:             return <PJDashboard setPage={setPage} />
+    default:             return <PJHome setPage={setPage} />
   }
 }
 

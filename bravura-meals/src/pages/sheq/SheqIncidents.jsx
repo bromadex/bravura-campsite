@@ -10,6 +10,7 @@ import QuickNav, { SHEQ_PILLS } from '../../components/QuickNav'
 import { exportCsv } from '../../utils/csv'
 import { pushNotificationToPermission } from '../../utils/notificationEngine'
 import LinkedDocuments from '../../components/LinkedDocuments'
+import MakeTaskButton from '../../components/MakeTaskButton'
 import DiscussButton from '../../components/DiscussButton'
 
 const ACCENT = MODULE_COLORS.sheq || '#D32F2F'
@@ -443,6 +444,7 @@ function IncidentModal({ incident, categories, profiles, siteId, userId, canAppr
         </div>
 
         {/* Linked documents */}
+        {isEdit && <MakeTaskButton recordTable="sheq_incidents" recordId={incident.id} label={incident.incident_number || incident.title || 'Incident'} />}
         {isEdit && <LinkedDocuments linkedTable="sheq_incidents" linkedId={incident.id} canAttach={canPerm('ds.create')} />}
 
         {/* Actions */}

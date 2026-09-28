@@ -251,13 +251,14 @@ export default function QuickStartGuide() {
       {can('projects.view') && (
         <Section icon="engineering" color={MODULE_COLORS.projects} title="Projects — plan, track & collaborate">
           <Steps items={[
-            <>The Dashboard (<Code>PJ01</Code>) shows KPIs — active projects, overdue count, total budget — plus status breakdown and top projects by budget.</>,
+            <>My workspace (<Code>PJ11</Code>) is your own page: every task given to you from any project, your private to-dos, tasks you watch, your inbox and sticky notes. Drag cards between To do → In progress → Review → Blocked → Done, or switch to the list (Overdue / Today / This week / Later).</>,
+            <>Type in the bar at the top and press Enter to add a task — pick a project, or leave it as a private to-do only you can see. Tasks can repeat daily, weekly or monthly.</>,
+            <>“Make a task” on a purchase order, request, supplier, machine, incident, contractor or employee creates a task linked to that record — it lands in the person's workspace and opens the record again.</>,
+            <>Every task has a number (e.g. KCWI-12), a checklist, comments (watchers are told), history, and its own folder in DocShare — files you attach go there.</>,
+            <>Portfolio (<Code>PJ01</Code>) shows each project's health, measured from the work: overdue tasks, late milestones, target date, budget used and work stuck 14+ days. Post a weekly update; if you set the health by hand the card shows both.</>,
+            <>Time (<Code>PJ12</Code>): log hours on a task (or press ▶ Start timer in the task), supervisors fill one Crew sheet for the whole crew, and approvers approve or send back. Approved overtime is paid by payroll; approved hours cost the project.</>,
             <>Create and manage projects in the Project List (<Code>PJ02</Code>) — card or table view, with status/type filters and search.</>,
-            <>Click into any project for its workspace (<Code>PJ03</Code>) — phases, team members, labels and progress tracking all in one place.</>,
-            <>Phases break each project into sequenced milestones with budget allocation, dates and weighted progress.</>,
-            <>Team members are assigned with roles (manager, contributor, viewer) and granular permissions for tasks, docs and comments.</>,
-            <>The Board tab inside each project is a Trello-style kanban — drag cards between columns (Backlog → To Do → In Progress → Review → Done).</>,
-            <>My Tasks (<Code>PJ04</Code>) shows all your tasks across every project in one place, with priority and due-date filters.</>,
+            <>Click into any project for its workspace (<Code>PJ03</Code>) — board, phases, team, schedule (critical path, baselines), costs and earned value.</>,
             <>Timeline (<Code>PJ05</Code>) gives a Gantt-style view of phases and tasks across projects.</>,
             <>Area Codes (<Code>PJ06</Code>) organise work by location or discipline — each project can reference one or more area codes.</>,
             <>Documents (<Code>PJ07</Code>) is the document register — upload, version-control, and run formal review cycles with multi-reviewer approval workflows.</>,

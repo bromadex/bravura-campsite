@@ -9,6 +9,7 @@ import { nextCode } from '../../utils/autoCode'
 import QuickNav, { CONTRACTOR_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 import LinkedDocuments from '../../components/LinkedDocuments'
+import MakeTaskButton from '../../components/MakeTaskButton'
 import DiscussButton from '../../components/DiscussButton'
 import { pushNotificationToPermission } from '../../utils/notificationEngine'
 
@@ -411,6 +412,7 @@ export default function CLCompanies({ setPage }) {
                           <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
                             <DiscussButton linkedTable="contractors" linkedId={d.id} label={`Contractor: ${d.name}`} setPage={setPage} />
                           </div>
+                          <MakeTaskButton recordTable="contractors" recordId={d.id} label={d.name} />
                           <LinkedDocuments linkedTable="contractors" linkedId={d.id} canAttach={can('ds.create')} />
                         </td>
                       </tr>

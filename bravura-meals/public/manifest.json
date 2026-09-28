@@ -1,7 +1,7 @@
 {
-  "name": "Bravura Campsite",
+  "name": "Bravura ERP",
   "short_name": "Bravura",
-  "description": "Bravura Zimbabwe — Camp Management System",
+  "description": "Bravura Zimbabwe — operations ERP",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

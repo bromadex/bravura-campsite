@@ -7,6 +7,7 @@ import Denied from '../../components/Denied'
 import { useAskContext } from '../../components/AskBravura'
 import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
 import LinkedDocuments from '../../components/LinkedDocuments'
+import MakeTaskButton from '../../components/MakeTaskButton'
 import { FIN, finCard, finBtn, finBtn2, finInput, money } from '../../utils/financeTheme'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
@@ -497,6 +498,7 @@ function OrderDetail({ id, suppliers, onClose, onOpen, onChanged }) {
           </section>
         )}
 
+        {po.id && <MakeTaskButton recordTable="purchase_orders" recordId={po.id} label={po.po_number || 'Purchase order'} link={'/procurement/proc_orders:' + po.id} />}
         {po.id && <LinkedDocuments linkedTable="purchase_orders" linkedId={po.id} siteId={po.site_id} category="Procurement" title="Quotes, invoices & delivery notes" />}
 
         <label><span style={lab}>Notes to the supplier</span>

@@ -153,6 +153,8 @@ export const TXN_CODES = [
   { code: 'PJ08', path: '/projects/pj_transmittals', label: 'Transmittals',      module: 'projects' },
   { code: 'PJ09', path: '/projects/pj_costs',         label: 'Costs & EVM',        module: 'projects' },
   { code: 'PJ10', path: '/projects/pj_changes',       label: 'Change Orders',      module: 'projects' },
+  { code: 'PJ11', path: '/projects/pj_workspace',     label: 'My workspace (my tasks, to-dos, inbox, notes)', module: 'projects' },
+  { code: 'PJ12', path: '/projects/pj_time',          label: 'Time (my time, crew sheet, approve)', module: 'projects' },
 
   // ── Admin (AD) ────────────────────────────────────────────────────────────
   { code: 'AD01', path: '/admin/admin_dashboard',   label: 'Admin Dashboard',      module: 'admin' },

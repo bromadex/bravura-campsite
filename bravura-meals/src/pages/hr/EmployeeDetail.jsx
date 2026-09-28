@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { Card, Icon, PageHeader, Button, Modal, SectionLabel, showToast, fmtDate } from '../../components/ui'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import LinkedDocuments from '../../components/LinkedDocuments'
+import MakeTaskButton from '../../components/MakeTaskButton'
 import SmallAssetsHeld from '../../components/SmallAssetsHeld'
 import DiscussButton from '../../components/DiscussButton'
 
@@ -355,6 +356,7 @@ export default function EmployeeDetail({ setPage, employeeId }) {
               <DiscussButton linkedTable="employees" linkedId={emp.id} label={`Employee: ${emp.name}`} setPage={setPage} />
             </div>
             <div style={{ marginBottom: 12 }}><SmallAssetsHeld employeeId={emp.id} /></div>
+            <MakeTaskButton recordTable="employees" recordId={emp.id} label={emp.name} />
             <LinkedDocuments linkedTable="employees" linkedId={emp.id} canAttach={can('ds.create')} />
           </Card>
         </div>

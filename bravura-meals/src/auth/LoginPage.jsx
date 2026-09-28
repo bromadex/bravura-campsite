@@ -47,10 +47,10 @@ export default function LoginPage() {
             style={{ height: '64px', width: 'auto', margin: '0 auto 16px', display: 'block' }}
           />
           <h1 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0, letterSpacing: '-.01em' }}>
-            Bravura Zimbabwe
+            Bravura ERP
           </h1>
           <p style={{ fontSize: '13px', color: THEME.textLow, margin: '6px 0 0' }}>
-            Meal Management System
+            Sign in to continue
           </p>
         </div>
 
@@ -146,7 +146,7 @@ export default function LoginPage() {
         </form>
 
         <p style={{ textAlign: 'center', fontSize: '11px', color: THEME.textLow, marginTop: '24px', marginBottom: 0 }}>
-          Kamativi Mine Site · Bravura Zimbabwe Ltd
+          Bravura Zimbabwe Ltd
         </p>
       </div>
 

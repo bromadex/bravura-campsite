@@ -7,6 +7,7 @@ import { Modal, showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
 import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
 import LinkedDocuments from '../../components/LinkedDocuments'
+import MakeTaskButton from '../../components/MakeTaskButton'
 import { FIN, finCard, finBtn, finBtn2, finInput, money } from '../../utils/financeTheme'
 
 const ProcSupplierPerf = lazy(() => import('./ProcSupplierPerformance'))
@@ -206,6 +207,7 @@ function SupplierProfile({ s, siteId, onClose, onSaved, setPage }) {
             <button style={{ ...finBtn, alignSelf: 'flex-start' }} disabled={!(can('procurement.approve') || can('finance.approve'))} onClick={saveHold}>Save hold</button>
           </div>
         )}
+        {!isNew && <MakeTaskButton recordTable="procurement_suppliers" recordId={s.id} label={s.name} />}
         {!isNew && <LinkedDocuments linkedTable="procurement_suppliers" linkedId={s.id} siteId={s.site_id} category="Procurement" title="Supplier documents (tax clearance, contracts, bank letter)" />}
       </div>
     </Modal>

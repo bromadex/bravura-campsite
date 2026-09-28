@@ -7,6 +7,7 @@ import { supabase } from '../../supabaseClient'
 import { useSite } from '../../contexts/SiteContext'
 import { useFleet } from '../../contexts/FleetContext'
 import LinkedDocuments from '../../components/LinkedDocuments'
+import MakeTaskButton from '../../components/MakeTaskButton'
 import DiscussButton from '../../components/DiscussButton'
 import MachineBook from './MachineBook'
 
@@ -315,6 +316,7 @@ function OverviewTab({ asset, assignments, setPage }) {
       <div style={{ marginTop: 20, display: 'flex', gap: 8, alignItems: 'center' }}>
         <DiscussButton linkedTable="fleet_assets" linkedId={asset.id} label={`Fleet: ${asset.fleet_number || asset.registration || 'Asset'}`} setPage={setPage} />
       </div>
+      <MakeTaskButton recordTable="fleet_assets" recordId={asset.id} label={asset.fleet_number || asset.registration || 'Machine'} link={'/fleet/fleet_assets:' + asset.id} />
       <LinkedDocuments linkedTable="fleet_assets" linkedId={asset.id} canAttach={can('ds.create')} />
     </div>
   )

@@ -655,12 +655,25 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 - **Backups (#75, not built):** AD13 Backups — "Download backup now" (ZIP of CSVs + manifest) visible ONLY to Clement Mpala
   and Wendy Mpala (named-user allowlist checked server-side, NOT a role permission); nightly automatic backup (14 daily / 8 weekly /
   12 monthly), off-site copy, encrypted ZIP, restore drill, recommend Supabase PITR. Open: off-site target, encryption, Supabase plan.
-- **Projects rewrite (#76, Stage 17, not built):** analysis of the 18 linked repos + ERPNext + Odoo on #76. Today: 1 project, 45 tasks,
-  PJ01–PJ10 mostly unused. User 28 Sep: staff only, timesheets FEED PAYROLL, kanban + Gantt (no sprints), NO helpdesk tickets.
-  Phases PJ-A clean base (one task model, PRJ-12 numbers, RLS/RPCs) · PJ-B My workspace (my tasks personal kanban, to-dos, watch,
-  notes, inbox; "Make a task" on any record) · PJ-C kanban + Gantt (baseline vs actual, resource view people+machines, templates) ·
-  PJ-D timesheets (timer, supervisor crew sheet on phone, approval → payroll inputs) · PJ-E money (budget per phase, actuals from
-  time/POs/stores/fuel/hired plant, change orders, stage gates) · PJ-F health + weekly updates + risks · PJ-G Ask Bravura.
+- **Projects rewrite (#76, Stage 17) — IN PROGRESS.** Analysis of 18 repos + ERPNext + Odoo on #76. User 28 Sep: staff only, timesheets
+  FEED PAYROLL, kanban + Gantt (no sprints), NO helpdesk tickets, "better than Trello / ClickUp / Wrike", every task has a DocShare folder.
+  **Built (0258, 0258b, 0259):** projects.key (KCWI) + task_seq → project_tasks.task_no (ref KEY-12); project_tasks.status
+  todo/in_progress/review/blocked/done/cancelled synced both ways with board columns (trg_pj_task_before), stage_since (stuck days),
+  private to-dos (project_id NULL + owner_user), recurrence daily/weekly/monthly (trg_pj_recur makes the next copy), blocked_reason.
+  project_task_watchers / _comments / _links (task ↔ any record, link '/module/page:<id>'); notifications to assignee + watchers.
+  DocShare: _pj_project_folder / _pj_task_folder (Projects / KEY · name / KEY-12 title), trg_pj_doc_to_folder files task attachments there.
+  project_time_entries (timer 'running', crew_sheet, submitted → approved/rejected, cost at _pj_hour_rate × OT rate); hr_run_payroll adds
+  approved project overtime (skips days where attendance already has approved OT). pj_money (GL expense lines by project_id + approved labour +
+  committed POs), pj_health (measured: overdue share, late milestones, target date, budget %, stuck 14 d; manual override via pj_update_post),
+  project_updates, workspace_notes. RPCs pj_task_save / pj_task_detail / pj_task_comment / pj_watch / pj_tasks_for_record / pj_timer /
+  pj_time_save / pj_time_decide / pj_time_list / pj_home / pj_my_workspace / pj_note_save; _pj_can(action, project) / _pj_task_can.
+  Screens: PJ11 `pj_workspace` MyWorkspace.jsx (personal board drag/drop + list buckets, quick add, inbox, watching, sticky notes, timer;
+  PJ04 pj_tasks opens it), PJ01 `pj_dashboard` = PJHome.jsx (portfolio health cards, weekly update modal, workload), PJ12 `pj_time` PJTime.jsx
+  (My time · Crew sheet · Approve), components/TaskDrawer.jsx (one task panel everywhere) + components/MakeTaskButton.jsx on PO, request,
+  supplier, machine, incident, contractor, employee. PJDashboard.jsx + PJTasks.jsx deleted.
+  **Next:** project board inside PJDetail → TaskDrawer; Gantt with baseline vs actual + people/machine resource view; templates;
+  Ask Bravura ai_projects + proposal cards; alerts (overdue, stuck, budget ≥90%).
+- Login screen says "Bravura ERP" (no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

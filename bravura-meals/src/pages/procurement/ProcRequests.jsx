@@ -8,6 +8,7 @@ import Denied from '../../components/Denied'
 import { useAskContext } from '../../components/AskBravura'
 import ProcShell, { useSiteScope, SiteScopeToggle } from '../../components/ProcShell'
 import LinkedDocuments from '../../components/LinkedDocuments'
+import MakeTaskButton from '../../components/MakeTaskButton'
 import { FIN, finCard, finBtn, finBtn2, finInput, money } from '../../utils/financeTheme'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 
@@ -297,6 +298,7 @@ function RequestDetail({ r, approval, profileId, onClose, onEdit, onChanged }) {
             ))}
           </section>
         )}
+        <MakeTaskButton recordTable="purchase_requisitions" recordId={r.id} label={r.request_number || r.title || 'Request'} link={'/procurement/proc_requisitions:' + r.id} />
         <LinkedDocuments linkedTable="purchase_requisitions" linkedId={r.id} siteId={r.site_id} category="Procurement" title="Attachments (specs, photos, quotes)" />
       </div>
     </Modal>

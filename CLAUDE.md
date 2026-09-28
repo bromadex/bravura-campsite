@@ -643,6 +643,11 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
 - **Alerts open the record (0256, user 28 Sep):** "Unusual fuel draw" links to `/fuel/fuel_issues:<txn id>` (App getFuelPage → FuelHub openId →
   FuelIssues openId: row highlighted, dates set, review banner Looks right (acknowledge_fuel_issuance) · Query it · Correct it · Cancel fill);
   acknowledged fills no longer raise the alert. Pattern for new alerts: link '/module/page:<id>' and have the page take openId.
+  0257 (all modules): machine down/service/papers → fleet_assets:<asset id> (FleetAssets openId opens the machine card); small asset →
+  fleet_small_assets:<tag> (search preset); out of stock → inv_position:<item code> (search preset); duplicate bill / mismatch →
+  fi_pay_suppliers:<bill id> (PaySuppliers bills tab → ProcInvoices focusId sets search); dip gap → fuel_reconciliation:<dip id> (DipsTab
+  focusId highlights row); second fills → fuel_issues:<latest fill>. 0257b: fuel_tank_position allows auth.uid() NULL — the 04:30 alerts
+  cron had been failing since 0252.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;
   make them pickers (search drivers/employees by name). A machine can have 2 people (e.g. day + night operator, or operator + supervisor).
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.

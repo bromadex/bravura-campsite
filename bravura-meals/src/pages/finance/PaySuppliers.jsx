@@ -34,7 +34,7 @@ function dueLabel(b) {
   return { text: new Date(b.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), color: FIN.ink }
 }
 
-export default function PaySuppliers({ setPage, initialTab = 'to_pay' }) {
+export default function PaySuppliers({ setPage, initialTab = 'to_pay', focusBill }) {
   useFinanceFonts()
   const { can } = usePermissions()
   const { currentSiteId, currentSite } = useSite()
@@ -188,7 +188,7 @@ export default function PaySuppliers({ setPage, initialTab = 'to_pay' }) {
       </div>
 
       {tab === 'statements' && <SupplierStatements siteId={currentSiteId} />}
-      {tab === 'bills' && <Suspense fallback={<div style={{ ...finCard, color: FIN.faint }}>Loading…</div>}><ProcInvoices setPage={setPage} /></Suspense>}
+      {tab === 'bills' && <Suspense fallback={<div style={{ ...finCard, color: FIN.faint }}>Loading…</div>}><ProcInvoices setPage={setPage} focusId={focusBill} /></Suspense>}
       {tab === 'hq' && <HeadOffice />}
 
       {!['runs', 'statements', 'bills', 'hq'].includes(tab) && (

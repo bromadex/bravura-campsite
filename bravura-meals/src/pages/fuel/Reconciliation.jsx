@@ -41,10 +41,10 @@ async function run(p, ok) {
   return data ?? true
 }
 
-export function DipsTab({ siteId, can }) {
+export function DipsTab({ siteId, can, focusId }) {
   const [from, setFrom] = useState(daysAgo(30))
   const [to, setTo] = useState(today())
-  const [only, setOnly] = useState('attention')
+  const [only, setOnly] = useState(focusId ? 'all' : 'attention')
   const [rows, setRows] = useState(null)
   const load = useCallback(() => {
     supabase.rpc('fuel_recon_days', { p_site: siteId, p_from: from, p_to: to }).then(({ data, error }) => setRows(error ? [] : data || []))
@@ -65,6 +65,18 @@ export function DipsTab({ siteId, can }) {
     if (!reason) return
     await run(supabase.rpc('fuel_dip_correct', { p_id: r.dip_id, p_litres: Number(litres), p_mm: null, p_reason: reason }), load)
   }
+
+  // link from an alert: bring that dip's date into range and scroll to it
+  useEffect(() => {
+    if (!focusId || !rows) return
+    const r = rows.find(x => x.dip_id === focusId)
+    if (!r) {
+      supabase.from('fuel_dip_readings').select('reading_date').eq('id', focusId).eq('site_id', siteId).maybeSingle()
+        .then(({ data }) => { if (data && data.reading_date < from) setFrom(data.reading_date) })
+      return
+    }
+    setTimeout(() => document.getElementById(`dip-${focusId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
+  }, [focusId, rows])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const list = (rows || []).filter(r => only === 'all' || ['needs_reason', 'explained'].includes(r.gap_status))
   const waiting = (rows || []).filter(r => r.gap_status === 'needs_reason').length
@@ -99,7 +111,7 @@ export function DipsTab({ siteId, can }) {
             <tbody>{list.map(r => {
               const big = r.gap_litres != null && Math.abs(Number(r.gap_litres)) > Number(r.tolerance)
               return (
-                <tr key={r.dip_id}>
+                <tr key={r.dip_id} id={`dip-${r.dip_id}`} style={r.dip_id === focusId ? { background: '#FFF4E5', boxShadow: `inset 4px 0 0 ${THEME.warning}` } : undefined}>
                   <td style={td}>{r.reading_date}{r.reading_time ? ` ${String(r.reading_time).slice(0, 5)}` : ''}</td>
                   <td style={td}>{r.tank}</td>
                   <td style={num}>{n1(r.dip_litres)}{r.corrections > 0 && <div style={{ fontSize: 11, color: THEME.textLow }}>corrected ×{r.corrections}</div>}</td>

@@ -504,6 +504,7 @@ function getAdminPage(page, can, setPage) {
 
 function getFuelPage(page, setPage, can) {
   const [fbase, fparam] = (page || '').split(':')
+  if (fbase === 'fuel_reconciliation' && fparam) return can('fuel.create') ? <FuelHub key={`dip-${fparam}`} hub="dips" initialTab="gaps" openId={fparam} setPage={setPage} /> : null
   if (fbase === 'fuel_issues' && fparam) return can('fuel.view') ? <FuelHub key={`issue-${fparam}`} hub="history" initialTab="issues" openId={fparam} setPage={setPage} /> : null
   const fuelFramed = (title, el) => <FinShell module="Fuel" homePage="fuel_dashboard" title={title} setPage={setPage}>{el}</FinShell>
   switch (page) {
@@ -540,6 +541,10 @@ function getFuelPage(page, setPage, can) {
 function getFleetPage(page, setPage, can) {
   // Fleet A5 (#66): every fleet screen sits in the finance-look frame; the dashboard, small assets and settings bring their own.
   const fleetFramed = (title, el) => <FinShell module="Fleet" homePage="fleet_dashboard" title={title} setPage={setPage}>{el}</FinShell>
+  // links from alerts open one record: fleet_assets:<asset id>, fleet_small_assets:<tag>
+  const [fb, fp] = (page || '').split(':')
+  if (fb === 'fleet_assets' && fp) return fleetFramed('Machines', <FleetAssets key={fp} setPage={setPage} openId={fp} />)
+  if (fb === 'fleet_small_assets' && fp) return <FleetSmallAssets key={fp} setPage={setPage} focus={decodeURIComponent(fp)} />
   switch (page) {
     case 'fleet_dashboard':   return <FleetHome setPage={setPage} />
     case 'fleet_small_assets': return <FleetSmallAssets setPage={setPage} />
@@ -621,6 +626,8 @@ function getInventoryPage(page, can, setPage) {
   if (!can('inventory.view')) return null
   // Stores rewrite (#59, I4): older stores screens sit inside the finance-look frame.
   const invFramed = (title, el) => <FinShell module="Stores" homePage="inv_dashboard" title={title} setPage={setPage}>{el}</FinShell>
+  const [ib, ip] = (page || '').split(':')
+  if (ib === 'inv_position' && ip) return <InvPosition key={ip} setPage={setPage} focus={decodeURIComponent(ip)} />
   switch (page) {
     case 'inv_dashboard':   return <InvHome setPage={setPage} />
     case 'inv_scan':        return <InvScan setPage={setPage} />
@@ -728,7 +735,7 @@ function getFinancePage(page, can, setPage) {
     case 'fi_asset_verification': return <FIAssets setPage={setPage} initialTab="counts" />
     case 'fi_dimension_report':  return <FIReports setPage={setPage} initialTab="explore" />
     case 'fi_setup':             return <FIFinanceSetup setPage={setPage} />
-    case 'fi_pay_suppliers':     return <FIPaySuppliers setPage={setPage} />
+    case 'fi_pay_suppliers':     return param ? <FIPaySuppliers key={param} setPage={setPage} initialTab="bills" focusBill={param} /> : <FIPaySuppliers setPage={setPage} />
     case 'fi_budgets':           return <FIBudgets setPage={setPage} />
     case 'fi_bank':              return <FIBank setPage={setPage} />
     case 'fi_reports':           return <FIReports setPage={setPage} />

@@ -33,10 +33,10 @@ const PAGES = {
 }
 // the reconciliation tabs take siteId + can instead of reading them
 function withSite(Comp) {
-  return function SiteTab() {
+  return function SiteTab({ openId }) {
     const { can } = usePermissions()
     const { currentSite } = useSite()
-    return currentSite?.id ? <Comp siteId={currentSite.id} can={can} /> : null
+    return currentSite?.id ? <Comp siteId={currentSite.id} can={can} focusId={openId} /> : null
   }
 }
 export const HUBS = {

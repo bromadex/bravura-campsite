@@ -17,7 +17,7 @@ const n = v => Number(v || 0)
 const q = v => n(v).toLocaleString('en-US', { maximumFractionDigits: 3 })
 const link = { background: 'none', border: 'none', padding: 0, color: FIN.blue, cursor: 'pointer', font: 'inherit' }
 
-export default function InvPosition({ setPage }) {
+export default function InvPosition({ setPage, focus }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const { scope, setScope, siteIds, multi, label } = useSiteScope()
@@ -25,7 +25,7 @@ export default function InvPosition({ setPage }) {
   const [rows, setRows] = useState([])
   const [res, setRes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(focus || '')
   const [only, setOnly] = useState('all')
   const [reserveFor, setReserveFor] = useState(null)   // position row being reserved
 

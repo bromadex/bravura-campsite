@@ -23,12 +23,12 @@ const lbl = { fontSize: 12, fontWeight: 600, color: FIN.muted, display: 'block',
 const inp = { ...finInput, width: '100%' }
 const panel = { background: FIN.card, color: FIN.ink, fontFamily: FIN.sans, borderRadius: 14, padding: 20, width: 'min(560px, calc(100vw - 32px))', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box', display: 'grid', gap: 12 }
 
-export default function FleetSmallAssets({ setPage }) {
+export default function FleetSmallAssets({ setPage, focus }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const [rows, setRows] = useState(null)
   const [tab, setTab] = useState('all')
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(focus || '')
   const [modal, setModal] = useState(null)   // { kind: 'edit'|'issue'|'return'|'count'|'history', row }
   const canWrite = can('fleet.create') || can('fleet.edit') || can('assets.create') || can('assets.edit')
   const canEdit = can('fleet.edit') || can('assets.edit')

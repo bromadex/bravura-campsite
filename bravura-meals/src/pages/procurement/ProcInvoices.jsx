@@ -16,7 +16,7 @@ const inp = {
   color: THEME.text, fontFamily: 'inherit', boxSizing: 'border-box',
 }
 
-export default function ProcInvoices({ setPage }) {
+export default function ProcInvoices({ setPage, focusId }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const { user } = useAuth()
@@ -28,6 +28,12 @@ export default function ProcInvoices({ setPage }) {
   const [suppliers, setSuppliers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [focusDone, setFocusDone] = useState(false)
+  useEffect(() => {   // link from an alert: narrow the list to that bill
+    if (!focusId || focusDone || !invoices.length) return
+    const b = invoices.find(x => x.id === focusId)
+    if (b) { setSearch(b.invoice_number || ''); setFocusDone(true) }
+  }, [focusId, focusDone, invoices])
   const [statusFilter, setStatusFilter] = useState('all')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)

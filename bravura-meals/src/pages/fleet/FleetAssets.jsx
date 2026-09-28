@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { StatusBadge, ModalOverlay } from '../../components/ui'
 import { useFleet } from '../../contexts/FleetContext'
@@ -37,13 +37,19 @@ const EMPTY_FORM = {
 const num = v => (v === '' || v == null ? null : Number(v))
 
 // Fleet A2 (#63): one Machines list for every type (FL02–FL05 open it with a type filter).
-export default function FleetAssets({ setPage, initialCategory = 'all' }) {
+export default function FleetAssets({ setPage, initialCategory = 'all', openId }) {
   const { can } = usePermissions()
   const { assets, assetTypes, departments, loading, addAsset, updateAsset, archiveAsset } = useFleet()
 
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState(initialCategory)
   const [detail, setDetail] = useState(null)
+  const [opened, setOpened] = useState(false)
+  useEffect(() => {   // link from an alert: open that machine's card once the list is loaded
+    if (!openId || opened || !assets?.length) return
+    const a = assets.find(x => x.id === openId)
+    if (a) { setDetail(a); setOpened(true) }
+  }, [openId, opened, assets])
   const typeSpecs = useTypeSpecs()
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterDept, setFilterDept] = useState('all')

@@ -9,7 +9,7 @@ import { STATUS, STATUS_ORDER, PRIORITY, usePeople, ago, dueInfo, daysSince, ini
 
 // One task panel for the whole ERP (#76): workspace, project board, Make-a-task, links from notifications.
 // Everything writes through pj_* RPCs; files go to the task's own DocShare folder.
-export default function TaskDrawer({ taskId, onClose, onChanged, setPage }) {
+export default function TaskDrawer({ taskId, onClose, onChanged, setPage, onAdvanced }) {
   const { can } = usePermissions()
   const people = usePeople()
   const [t, setT] = useState(null)
@@ -104,6 +104,7 @@ export default function TaskDrawer({ taskId, onClose, onChanged, setPage }) {
                 : <span>Private to-do</span>}
               {t.recurrence && <span title="Repeats">↻ {t.recurrence}</span>}
               <span style={{ flex: 1 }} />
+              {onAdvanced && edit && <button onClick={onAdvanced} title="Labels, dependencies, schedule fields" style={{ ...finBtn2, minHeight: 30, padding: '0 10px', fontSize: 12 }}>Labels &amp; links…</button>}
               <button onClick={watch} style={{ ...finBtn2, minHeight: 30, padding: '0 10px', fontSize: 12 }}>{t.watching ? '★ Watching' : '☆ Watch'}</button>
               <button onClick={onClose} aria-label="Close" style={{ ...finBtn2, minHeight: 30, width: 30, padding: 0 }}>✕</button>
             </div>
@@ -135,6 +136,10 @@ export default function TaskDrawer({ taskId, onClose, onChanged, setPage }) {
               </Field>
               <Field label={<>Due {due && <span style={{ color: due.color, fontWeight: 600 }}>· {due.text}</span>}</>}>
                 <input type="date" disabled={!edit} value={t.due_date || ''} onChange={e => save({ due_date: e.target.value })} style={{ ...finInput, width: '100%' }} />
+              </Field>
+              <Field label="Area code">
+                <input disabled={!edit} defaultValue={t.area_code || ''} key={'ac' + t.area_code} placeholder="e.g. 49"
+                  onBlur={e => e.target.value.trim() !== (t.area_code || '') && save({ area_code: e.target.value.trim() })} style={{ ...finInput, width: '100%' }} />
               </Field>
               <Field label="Start">
                 <input type="date" disabled={!edit} value={t.start_date || ''} onChange={e => save({ start_date: e.target.value })} style={{ ...finInput, width: '100%' }} />

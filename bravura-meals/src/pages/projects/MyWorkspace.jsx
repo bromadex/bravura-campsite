@@ -120,7 +120,7 @@ export default function MyWorkspace({ setPage, openId }) {
             style={{ ...finInput, flex: '1 1 260px', border: 'none', fontSize: 15 }} />
           <select value={quickProject} onChange={e => setQuickProject(e.target.value)} aria-label="Project" style={{ ...finInput, flex: '0 1 220px' }}>
             <option value="">Private to-do</option>
-            {projects.map(p => <option key={p.id} value={p.id}>{p.key ? p.key + ' · ' : ''}{p.name}</option>)}
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <input type="date" value={quickDue} onChange={e => setQuickDue(e.target.value)} aria-label="Due" style={{ ...finInput, flex: '0 0 150px' }} />
         </div>
@@ -246,7 +246,7 @@ function TaskCard({ t, onOpen, onDrag }) {
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 11, color: FIN.muted, marginBottom: 4 }}>
         <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 600 }}>{t.ref}</span>
         {t.project && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {t.project}</span>}
-        {t.priority && ['urgent', 'high'].includes(t.priority) && <span style={{ marginLeft: 'auto', color: PRIORITY[t.priority].color, fontWeight: 700 }}>▲ {PRIORITY[t.priority].label}</span>}
+        {t.priority && ['critical', 'high'].includes(t.priority) && <span style={{ marginLeft: 'auto', color: PRIORITY[t.priority].color, fontWeight: 700 }}>▲ {PRIORITY[t.priority].label}</span>}
       </div>
       <div style={{ fontSize: 14, fontWeight: 500, color: FIN.ink, textDecoration: t.status === 'done' ? 'line-through' : 'none', lineHeight: 1.35 }}>
         {t.is_milestone && '◆ '}{t.title}

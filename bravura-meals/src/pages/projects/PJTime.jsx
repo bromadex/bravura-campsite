@@ -6,7 +6,7 @@ import { useSite } from '../../contexts/SiteContext'
 import { friendlyError } from '../../utils/friendlyError'
 import FinShell from '../../components/FinShell'
 import { FIN, finBtn, finBtn2, finInput, finCard } from '../../utils/financeTheme'
-import { fmtDate } from './pjShared'
+import { fmtDate, taskRef } from './pjShared'
 
 // PJ12 Time (#76): hours on project tasks. My time (own entries + timer results), Crew sheet (a supervisor logs a whole
 // crew for one day in one go — MyCompany idea), Approve (projects.approve). Approved overtime is paid by payroll
@@ -39,7 +39,7 @@ export default function PJTime({ setPage, initialTab }) {
   useEffect(() => {
     if (!currentSiteId) return
     supabase.from('projects').select('id, name, key').eq('site_id', currentSiteId).eq('is_archived', false).eq('is_template', false).order('name').then(({ data }) => setProjects(data || []))
-    supabase.from('project_tasks').select('id, project_id, task_no, title, status').eq('is_archived', false).not('project_id', 'is', null)
+    supabase.from('project_tasks').select('id, project_id, task_no, area_code, title, status').eq('is_archived', false).not('project_id', 'is', null)
       .not('status', 'in', '(done,cancelled)').order('task_no').then(({ data }) => setTasks(data || []))
   }, [currentSiteId])
 
@@ -115,11 +115,11 @@ const td = { padding: '8px 12px', verticalAlign: 'top' }
 function ProjectTaskPick({ projects, tasks, project, task, onProject, onTask }) {
   return <>
     <select value={project} onChange={e => { onProject(e.target.value); onTask('') }} aria-label="Project" style={{ ...finInput, flex: '1 1 200px' }}>
-      <option value="">Project…</option>{projects.map(p => <option key={p.id} value={p.id}>{p.key} · {p.name}</option>)}
+      <option value="">Project…</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
     </select>
     <select value={task} onChange={e => onTask(e.target.value)} aria-label="Task" style={{ ...finInput, flex: '1 1 220px' }} disabled={!project}>
       <option value="">General (no task)</option>
-      {tasks.filter(t => t.project_id === project).map(t => <option key={t.id} value={t.id}>#{t.task_no} {t.title}</option>)}
+      {tasks.filter(t => t.project_id === project).map(t => <option key={t.id} value={t.id}>{taskRef(t)} {t.title}</option>)}
     </select>
   </>
 }

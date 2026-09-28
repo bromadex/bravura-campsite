@@ -97,7 +97,7 @@ function ProjectCard({ p, onOpen, onUpdate, canEdit }) {
       <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <button onClick={onOpen} style={{ flex: 1, textAlign: 'left', border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: FIN.sans }}>
-            <div style={{ fontSize: 11, fontFamily: 'IBM Plex Mono, monospace', color: FIN.muted }}>{p.key} · {p.code}</div>
+            <div style={{ fontSize: 11, fontFamily: 'IBM Plex Mono, monospace', color: FIN.muted }}>{p.code}</div>
             <div style={{ fontSize: 16, fontWeight: 600, color: FIN.ink, lineHeight: 1.3 }}>{p.name}</div>
           </button>
           <span style={{ fontSize: 12, fontWeight: 700, color: H.color, background: H.tint, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>{H.label}</span>

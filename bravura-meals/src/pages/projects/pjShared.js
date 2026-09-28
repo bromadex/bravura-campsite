@@ -13,7 +13,7 @@ export const STATUS = {
 export const STATUS_ORDER = ['todo', 'in_progress', 'review', 'blocked', 'done']
 
 export const PRIORITY = {
-  urgent: { label: 'Urgent', color: '#B3261E' },
+  critical: { label: 'Critical', color: '#B3261E' },
   high:   { label: 'High',   color: '#C8811E' },
   medium: { label: 'Medium', color: '#1F4E8C' },
   low:    { label: 'Low',    color: '#8A948F' },
@@ -69,3 +69,6 @@ export function usePeople() {
 export const initials = n => (n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
 const AV = ['#1F4E8C', '#982329', '#2F7D4F', '#7A4FB5', '#C8811E', '#0E7C86', '#5B6661']
 export const avatarColor = s => AV[[...(s || '')].reduce((a, c) => a + c.charCodeAt(0), 0) % AV.length]
+
+// Task number shown to people (0262): plant area code if it has one — AC-49 — else #12.
+export const taskRef = t => !t ? '' : !t.project_id ? 'To-do' : t.area_code ? `AC-${t.area_code}` : `#${t.task_no}`

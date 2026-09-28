@@ -71,7 +71,7 @@ export default function MakeTaskButton({ recordTable, recordId, label, link, def
             <div style={{ display: 'flex', gap: 8 }}>
               <select value={form.project_id} onChange={e => setForm({ ...form, project_id: e.target.value })} aria-label="Project" style={{ ...finInput, flex: 1 }}>
                 <option value="">No project (to-do)</option>
-                {projects.filter(() => can('projects.view')).map(p => <option key={p.id} value={p.id}>{p.key} · {p.name}</option>)}
+                {projects.filter(() => can('projects.view')).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
               <input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} aria-label="Due" style={{ ...finInput, width: 150 }} />
             </div>

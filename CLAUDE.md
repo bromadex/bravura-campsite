@@ -672,8 +672,14 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   PJ04 pj_tasks opens it), PJ01 `pj_dashboard` = PJHome.jsx (portfolio health cards, weekly update modal, workload), PJ12 `pj_time` PJTime.jsx
   (My time · Crew sheet · Approve), components/TaskDrawer.jsx (one task panel everywhere) + components/MakeTaskButton.jsx on PO, request,
   supplier, machine, incident, contractor, employee. PJDashboard.jsx + PJTasks.jsx deleted.
-  **Next:** project board inside PJDetail → TaskDrawer; Gantt with baseline vs actual + people/machine resource view; templates;
-  Ask Bravura ai_projects + proposal cards; alerts (overdue, stuck, budget ≥90%).
+  **Round 2 (0260, 0260b, 0261, 0262):** PJDetail board cards open TaskDrawer ("Labels & links…" opens the old editor). PJ05 Timeline rewritten
+  as a Gantt (drag move/resize → pj_task_save, baseline grey bar via pj_set_baseline, actual line, ◆ milestones, dependency arrows, today;
+  views Tasks / People / Machines with lanes + overload heat; machines = task links to fleet_assets). Templates: pj_template_save /
+  pj_project_from_template (date shift) / pj_templates (templates get no DocShare folders). Ask Bravura v14: tool `projects` (ai_projects) +
+  propose_task (ai_prepare_task → ai_action_confirm kind project_task). _ai_alerts_projects (off track/at risk, stuck 14 d, time waiting 3 d) in core.
+  TASK NUMBERS (user): plant area code — project_tasks.area_code split from titles "Area Code 49 …" (trg_pj_0_area_code) → shown "AC-49";
+  no area → "#12"; `_pj_ref(task)` in SQL, `taskRef(t)` in pjShared. Project letters (KCWI) are not shown anywhere.
+  **Next:** templates UI (Save as template / New from template) in PJList; project detail Timeline tab.
 - Login screen says "Bravura ERP" (no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

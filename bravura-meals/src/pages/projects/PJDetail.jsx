@@ -7,6 +7,8 @@ import { supabase } from '../../supabaseClient'
 import { showToast, Icon, ModalOverlay } from '../../components/ui'
 import { KpiCard, DashCard, DonutGauge, ProgressRow, SectionTitle } from '../../components/dash'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
+import TaskDrawer from '../../components/TaskDrawer'
+import { STATUS, daysSince, taskRef } from './pjShared'
 
 const color = MODULE_COLORS.projects
 
@@ -82,6 +84,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   const [boardLoading, setBoardLoading] = useState(false)
   const [quickAddText, setQuickAddText] = useState({})
   const [taskModal, setTaskModal] = useState(null)
+  const [drawerTask, setDrawerTask] = useState(null)   // #76: one task panel everywhere
   const [taskForm, setTaskForm] = useState({})
   const [taskSaving, setTaskSaving] = useState(false)
   const [editColName, setEditColName] = useState(null)
@@ -517,7 +520,10 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
     await fetchBoard()
   }
 
-  async function openTaskModal(task) {
+  // #76: cards open the shared TaskDrawer (checklist, comments, watchers, timer, DocShare folder)
+  function openTaskModal(task) { if (task) setDrawerTask(task.id) }
+
+  async function openTaskEditor(task) {
     const tl = taskLabels.filter(x => x.task_id === task.id).map(x => x.label_id)
     const cl = taskChecklists.filter(x => x.task_id === task.id)
     setTaskForm({
@@ -1373,6 +1379,11 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                                   ))}
                                 </div>
                               )}
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '10px', color: THEME.textLow, marginBottom: '3px' }}>
+                                <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 600 }}>{taskRef(t)}</span>
+                                {t.status && !['todo', 'in_progress', 'done'].includes(t.status) && <span style={{ fontWeight: 700, color: STATUS[t.status]?.color }}>{STATUS[t.status]?.label}</span>}
+                                {['in_progress', 'review', 'blocked'].includes(t.status) && daysSince(t.stage_since) >= 7 && <span style={{ color: '#9A5B00' }}>{daysSince(t.stage_since)} d here</span>}
+                              </div>
                               <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '6px', lineHeight: 1.3 }}>{t.title}</div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 {t.due_date && (
@@ -2600,6 +2611,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
       )}
 
       {/* ── TASK DETAIL MODAL ───────────────────────────────────────── */}
+      {drawerTask && <TaskDrawer taskId={drawerTask} onClose={() => setDrawerTask(null)} onChanged={fetchBoard} setPage={setPage}
+        onAdvanced={() => { const tk = boardTasks.find(x => x.id === drawerTask); setDrawerTask(null); if (tk) openTaskEditor(tk) }} />}
       {taskModal && (
         <ModalOverlay onClose={() => setTaskModal(null)} dirty={true} style={{ alignItems: 'flex-start', paddingTop: '5vh', overflowY: 'auto' }}>
           <div style={{ background: THEME.surface, borderRadius: '18px', width: '600px', maxWidth: '95vw', boxShadow: THEME.shadow3, padding: '24px', marginBottom: '5vh' }}>

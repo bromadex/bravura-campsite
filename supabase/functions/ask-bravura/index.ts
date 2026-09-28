@@ -218,6 +218,14 @@ const TOOLS = [
       priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] }, site: { type: 'string' },
     }, required: ['machine', 'fault'] } } },
   { type: 'function', function: {
+    name: 'propose_task',
+    description: "Propose a task or to-do, e.g. 'remind me to call Zuva on Friday', 'give Tendai a task on the civil works project to order rebar by the 5th'. Without a project it is the person's private to-do.",
+    parameters: { type: 'object', properties: {
+      title: { type: 'string' }, project: { type: 'string', description: 'Project key (e.g. KCWI) or name' },
+      assignee: { type: 'string', description: 'Person\'s name, or "me"' }, due: { type: 'string', description: 'YYYY-MM-DD' },
+      priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] }, notes: { type: 'string' }, site: { type: 'string' },
+    }, required: ['title'] } } },
+  { type: 'function', function: {
     name: 'propose_meter_reading',
     description: "Propose recording a machine's odometer (km) and/or hour meter reading.",
     parameters: { type: 'object', properties: {
@@ -244,6 +252,7 @@ const TOOLS = [
     ['alerts', 'Alerts worth a look: unusual fuel draws, supplier price jumps (>20%), possible duplicate bills, bills that do not match their order.', false, false],
     ['small_assets', "Small assets issued to people (radios, tools, laptops, phones, gas detectors): search = a tag number / item name to see who has it, or a person's name to see what they hold; always returns overdue returns and totals. Use for 'who has radio 14', 'what is John holding'.", false, true],
     ['fleet_costs', 'Cost per machine for a period: fuel (litres, $), Stores parts and workshop bills on its jobs, hours and km run, cost per hour and per km, litres per hour vs expected, book value and total cost of ownership. Optional search = machine fleet number / name. Use for "cost per hour for ADT 02", "most expensive machines".', true, true],
+    ['projects', "Projects: each project's health (on track / at risk / off track and why), progress, open and overdue tasks, budget vs spent vs committed, hours; late tasks with who has them; workload per person; the asking person's own tasks. Optional search = project key/name or a person's name. Use for 'what's late on the civil works', 'who is overloaded', 'my tasks'.", false, true],
     ['find', 'Find a record by number or name across modules (POs, requests, suppliers, vehicles, employees, stock items, incidents). Use when the person names something specific.', false, true],
   ] as [string, string, boolean, boolean][]).map(([name, description, dated, search]) => ({ type: 'function', function: { name, description,
     parameters: { type: 'object', properties: {
@@ -326,6 +335,9 @@ const PROPOSE: Record<string, [string, string, (a: Record<string, any>, s: strin
     p => `Open a ${p.priority} job for ${p.machine}: ${p.fault}`],
   propose_meter_reading: ['fleet_meter', 'ai_prepare_fleet_meter', (a, s) => ({ p_site_ids: s, p_machine: a.machine, p_km: a.km ?? null, p_hours: a.hours ?? null }),
     p => `Reading for ${p.machine}: ` + [p.km != null ? `${p.km} km` : '', p.hours != null ? `${p.hours} h` : ''].filter(Boolean).join(', ') + (p.warning ? ` — ${p.warning}` : '')],
+  propose_task: ['project_task', 'ai_prepare_task', (a, s) => ({ p_site_ids: s, p_title: a.title, p_project: a.project || null, p_assignee: a.assignee || null,
+    p_due: a.due || null, p_priority: a.priority || 'medium', p_notes: a.notes || null }),
+    p => `Task${p.project ? ` on ${p.project_key}` : ' (private to-do)'} for ${p.assignee}: ${p.title}${p.due ? ` — due ${p.due}` : ''}`],
   propose_purchase_request: ['purchase_request', 'ai_prepare_request', (a, s) => ({ p_site_ids: s, p_title: a.title, p_lines: a.lines || [], p_needed_by: a.needed_by || null, p_priority: a.priority || 'normal' }),
     p => `Draft request "${p.title}": ` + (p.lines || []).map((l: any) => `${l.quantity} ${l.unit || ''} ${l.what}`.replace(/\s+/g, ' ')).join(', ')],
 }
@@ -335,6 +347,7 @@ const MODULE_RPC: Record<string, [string, boolean, boolean]> = {
   fuel: ['ai_fuel', true, true], fleet: ['ai_fleet', true, false], stock: ['ai_stock', false, true], people: ['ai_people', true, false],
   sheq: ['ai_sheq', true, false], meals: ['ai_meals', true, false], camp: ['ai_camp', false, false], procurement: ['ai_procurement', false, false],
   find: ['ai_find', false, true], small_assets: ['ai_small_assets', false, true], fleet_costs: ['ai_fleet_costs', true, true], leave: ['ai_leave', true, true], brief: ['ai_daily_brief', false, false], alerts: ['ai_alerts', false, false],
+  projects: ['ai_projects', false, true],
 }
 const EXTRA_ARG: Record<string, string> = { leave: 'p_status', small_assets: 'p_query', fleet_costs: 'p_machine' }
 
@@ -401,7 +414,7 @@ Deno.serve(async (req) => {
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const system = `You are "Ask Bravura", the assistant inside Bravura's ERP. Bravura Zimbabwe runs mining camps; it only buys (no sales, no VAT), all amounts are USD. You can also read the person's own notifications. Modules: finance, procurement, fuel, fleet, stores, HR, SHEQ (safety), meals, camp. You have a read tool for each — pick the one that fits (fuel usage → fuel, not spend_on).
+  const system = `You are "Ask Bravura", the assistant inside Bravura's ERP. Bravura Zimbabwe runs mining camps; it only buys (no sales, no VAT), all amounts are USD. You can also read the person's own notifications. Modules: finance, procurement, fuel, fleet, stores, HR, SHEQ (safety), meals, camp, projects (tasks, health, workload, time). You have a read tool for each — pick the one that fits (fuel usage → fuel, not spend_on).
 Today is ${today} (${new Date().toLocaleDateString('en-GB', { weekday: 'long' })}). Weeks start on Monday. The person is looking at site "${current?.name || 'unknown'}". Sites: ${siteList.map(s => s.name).join(', ')}.
 Rules:
 - Only state figures that come from the tools or the SCREEN section. Never guess or invent numbers. If the tools return nothing, say so plainly and suggest why (e.g. nothing posted yet in that period).
@@ -412,7 +425,7 @@ Rules:
 - Booked cost = already in the books; ordered on POs = committed but maybe not billed yet — say which you mean.
 - For ANY arithmetic (totals, differences, averages, percentages), call the calculate tool and use its result. Show the working briefly.
 - When the person asks about "this screen", "here", "these", use the SCREEN section below. Only use figures that appear there or come from tools.
-- If you can't answer from the screen or the tools, say what you can answer instead.\n- You never change anything yourself. For receiving a delivery, drafting a bill, recording a petty cash spend, drafting a purchase request, approving or rejecting something in their approvals inbox, turning a quote into a draft PO, issuing stock from a store (to a department, person or work order), sending stock to another store or site, issuing or taking back a small asset (radio, tool, laptop), opening a workshop job for a machine or recording a km / hour meter reading, call the matching propose_ tool: the person gets a card and must press Confirm. Only propose when the person asks for it or clearly wants it (e.g. 'record this', 'receive it', 'draft the bill'). Other changes (payments, sending POs to suppliers) are done on their screens — say which one.`
+- If you can't answer from the screen or the tools, say what you can answer instead.\n- You never change anything yourself. For receiving a delivery, drafting a bill, recording a petty cash spend, drafting a purchase request, approving or rejecting something in their approvals inbox, turning a quote into a draft PO, issuing stock from a store (to a department, person or work order), sending stock to another store or site, issuing or taking back a small asset (radio, tool, laptop), opening a workshop job for a machine, recording a km / hour meter reading or making a task / to-do, call the matching propose_ tool: the person gets a card and must press Confirm. Only propose when the person asks for it or clearly wants it (e.g. 'record this', 'receive it', 'draft the bill'). Other changes (payments, sending POs to suppliers) are done on their screens — say which one.`
   const pg = body.page
   const screen = pg ? `\n\nSCREEN the person is looking at — module: ${pg.module || '?'}, page: ${pg.title || pg.page || '?'}\n` +
     (pg.context ? 'Structured data shown on screen:\n' + JSON.stringify(pg.context).slice(0, 7000)

@@ -652,6 +652,12 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   make them pickers (search drivers/employees by name). A machine can have 2 people (e.g. day + night operator, or operator + supervisor).
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.
 - **Later:** exports (Excel/PDF) for every list and report (#60).
+- **Backups (#75, not built):** AD13 Backups — "Download backup now" (ZIP of CSVs + manifest) visible ONLY to Clement Mpala
+  and Wendy Mpala (named-user allowlist checked server-side, NOT a role permission); nightly automatic backup (14 daily / 8 weekly /
+  12 monthly), off-site copy, encrypted ZIP, restore drill, recommend Supabase PITR. Open: off-site target, encryption, Supabase plan.
+- **Projects rewrite (#76, Stage 17, not built):** PJ1 projects/stages/tasks · PJ2 My workspace (my tasks, approvals, tickets,
+  shared with me — ERP-wide) · PJ3 kanban/list/calendar/Gantt · PJ4 timesheets + project costing via project_id · PJ5 Helpdesk
+  tickets (teams, SLA, ticket → task/work order) · PJ6 sprints/backlog (optional) · PJ7 Ask Bravura. Confirm phases before building.
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

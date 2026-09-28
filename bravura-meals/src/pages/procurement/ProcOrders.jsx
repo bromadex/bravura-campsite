@@ -111,7 +111,7 @@ export default function ProcOrders({ setPage, initialTab = 'orders', openPo }) {
       siteText={sc.label} tabs={TABS} tab={tab} onTab={setTab}
       actions={<>
         <SiteScopeToggle {...sc} siteName={sc.sites.find(s => s.id === currentSiteId)?.name} />
-        {canCreate && <button style={finBtn2} onClick={newBlank}>Blank order</button>}
+        {canCreate && <button style={finBtn} onClick={newBlank}>+ New purchase order</button>}
       </>}>
       {tab === 'toorder' && canCreate && <ShortagesBar siteId={currentSiteId} onDone={ids => { load(); if (ids?.length === 1) setOpenId(ids[0]); else setFilter('open'); setTab('orders') }} />}
       {tab === 'toorder' && <ToOrder lines={toOrder} suppliers={suppliers} canCreate={canCreate}

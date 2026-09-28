@@ -48,7 +48,7 @@ export const HUBS = {
                                      ['daily', 'Daily'], ['monthly', 'Monthly'], ['deliveries', 'Deliveries']] },
 }
 
-export default function FuelHub({ hub, initialTab, setPage }) {
+export default function FuelHub({ hub, initialTab, setPage, openId }) {
   const { can } = usePermissions()
   const h = HUBS[hub]
   const [tab, setTab] = useState(h.tabs.some(t => t[0] === initialTab) ? initialTab : h.tabs[0][0])
@@ -57,7 +57,7 @@ export default function FuelHub({ hub, initialTab, setPage }) {
   return (
     <FinShell module="Fuel" homePage="fuel_dashboard" setPage={setPage} title={h.title}
       tabs={h.tabs.map(([key, label]) => ({ key, label }))} tab={tab} onTab={setTab}>
-      <Suspense fallback={<div style={{ color: FIN.faint }}>Loading…</div>}><Comp key={tab} setPage={setPage} /></Suspense>
+      <Suspense fallback={<div style={{ color: FIN.faint }}>Loading…</div>}><Comp key={tab} setPage={setPage} openId={openId} /></Suspense>
     </FinShell>
   )
 }

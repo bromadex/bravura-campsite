@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useFuel } from '../../contexts/FuelContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useSite } from '../../contexts/SiteContext'
@@ -21,7 +21,7 @@ const ASSET_ICON = {
 
 const ASSET_TYPES = ['vehicle', 'equipment', 'other']
 
-export default function FuelIssues({ setPage }) {
+export default function FuelIssues({ setPage, openId }) {
   const { can } = usePermissions()
   const { currentSite, currentSiteId } = useSite()
   const { tanks, issues, updateTransaction, softDeleteTransaction, loading, refresh } = useFuel()
@@ -67,6 +67,28 @@ export default function FuelIssues({ setPage }) {
     if (error) { showToast(error.message, 'red'); return }
     showToast(query ? 'Query raised' : 'Issuance acknowledged', 'green')
     setAckTarget(null); setAckNote('')
+    refresh()
+  }
+
+  // Opened from an alert ("Unusual fuel draw"): show that fill, highlighted, with a review banner
+  const [focusId, setFocusId] = useState(openId || null)
+  const focusRow = useRef(null)
+  const focus = focusId ? issues.find(i => i.id === focusId) : null
+  useEffect(() => {
+    if (!focus) return
+    setDateFrom(focus.transaction_date); setDateTo(focus.transaction_date)
+    setTimeout(() => focusRow.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
+  }, [focus?.id])  // eslint-disable-line react-hooks/exhaustive-deps
+  const [reviewBusy, setReviewBusy] = useState(false)
+  async function review(query) {
+    const note = window.prompt(query ? 'What needs explaining? (the person who issued it is asked)' : 'Why is this fill right? (optional, e.g. "tank was empty after service")', '')
+    if (note === null) return
+    if (query && !note.trim()) return
+    setReviewBusy(true)
+    const { error } = await supabase.rpc('acknowledge_fuel_issuance', { p_transaction_id: focus.id, p_note: note.trim() || null, p_query: !!query })
+    setReviewBusy(false)
+    if (error) { showToast(error.message, 'red'); return }
+    showToast(query ? 'Query raised on this fill' : 'Marked as checked — the alert will clear', 'green')
     refresh()
   }
 
@@ -181,6 +203,28 @@ export default function FuelIssues({ setPage }) {
         )}
       />
 
+      {focusId && (
+        <div style={{ margin: '0 0 16px', padding: '14px 16px', borderRadius: 12, border: `1px solid ${THEME.warning}`, background: '#FFF8EC', display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Icon name="flag" size={22} style={{ color: THEME.warning }} />
+          <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+            {!focus ? <div style={{ fontSize: 13, color: THEME.textMed }}>Loading the fill from the alert… (if it doesn't appear, it may be older than the dates loaded or already cancelled)</div> : <>
+              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.text }}>Check this fill: {focus.transaction_number} · {Number(focus.litres).toLocaleString()} L on {fmtDate(focus.transaction_date)}</div>
+              <div style={{ fontSize: 12.5, color: THEME.textMed, marginTop: 2 }}>
+                Flagged as unusual — much more than this machine normally takes.
+                {focus.acknowledgement_status === 'acknowledged' ? ' ✔ Already checked.' : focus.acknowledgement_status === 'queried' ? ' ? Queried — waiting for an answer.' : ''}
+              </div>
+            </>}
+          </div>
+          {focus && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {canAcknowledge && <Button disabled={reviewBusy} onClick={() => review(false)}>Looks right</Button>}
+            {canAcknowledge && <Button disabled={reviewBusy} variant="outlined" onClick={() => review(true)}>Query it</Button>}
+            {canEdit && <Button variant="outlined" onClick={() => openEdit(focus)}>Correct it</Button>}
+            {canDelete && <Button variant="outlined" onClick={() => openDelete(focus)}>Cancel fill</Button>}
+            <Button variant="text" onClick={() => { setFocusId(null); setDateFrom(''); setDateTo('') }}>Show all</Button>
+          </div>}
+        </div>
+      )}
+
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '18px' }}>
         <Kpi icon="today"       label="Issued today"      value={`${kpis.todayL.toLocaleString()} L`} color={FUEL_CLR} />
@@ -250,8 +294,9 @@ export default function FuelIssues({ setPage }) {
                 const authorised = issue.approved_by_name || issue.authorised_by_name || parsed.authorised
                 const hasEdits   = !!issue.updated_at
                 return (
-                  <TRow key={issue.id} last={idx === filtered.length - 1}>
-                    <Td style={{ whiteSpace: 'nowrap' }}>{fmtDate(issue.transaction_date)}</Td>
+                  <TRow key={issue.id} last={idx === filtered.length - 1}
+                    style={issue.id === focusId ? { background: '#FFF4E5', boxShadow: `inset 4px 0 0 ${THEME.warning}` } : undefined}>
+                    <Td style={{ whiteSpace: 'nowrap' }}>{issue.id === focusId && <span ref={focusRow} />}{fmtDate(issue.transaction_date)}</Td>
                     <Td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{

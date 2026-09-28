@@ -640,6 +640,9 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   recorded_by_name (read_by → fuel_operators). Dip gaps now use TIME: `_fuel_txn_at` (issued_at local, else date 12:00) + `_fuel_moves_at(tank, from_ts, to_ts)`
   in trg_fuel_dip_gap / _fuel_tank_book; deliveries get issued_at = delivery time − 1 min; delivery saves BOTH dip before (−2 min) and dip after into the
   dipstick log. Tank deliveries form starts on the main tank.
+- **Alerts open the record (0256, user 28 Sep):** "Unusual fuel draw" links to `/fuel/fuel_issues:<txn id>` (App getFuelPage → FuelHub openId →
+  FuelIssues openId: row highlighted, dates set, review banner Looks right (acknowledge_fuel_issuance) · Query it · Correct it · Cancel fill);
+  acknowledged fills no longer raise the alert. Pattern for new alerts: link '/module/page:<id>' and have the page take openId.
 - **Fleet backlog (user, 26 Sep, later):** Who drives what (Fleet Assignments) — Operator ID and Supervisor ID are typed UUID boxes;
   make them pickers (search drivers/employees by name). A machine can have 2 people (e.g. day + night operator, or operator + supervisor).
 - **Bravura email (#60):** RESEND_API_KEY + verified sending domain (REPORTS_FROM) + Supabase Auth custom SMTP; then daily brief by email.

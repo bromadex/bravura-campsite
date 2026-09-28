@@ -503,6 +503,8 @@ function getAdminPage(page, can, setPage) {
 }
 
 function getFuelPage(page, setPage, can) {
+  const [fbase, fparam] = (page || '').split(':')
+  if (fbase === 'fuel_issues' && fparam) return can('fuel.view') ? <FuelHub key={`issue-${fparam}`} hub="history" initialTab="issues" openId={fparam} setPage={setPage} /> : null
   const fuelFramed = (title, el) => <FinShell module="Fuel" homePage="fuel_dashboard" title={title} setPage={setPage}>{el}</FinShell>
   switch (page) {
     case 'fuel_dashboard': return (can('fuel.view') || can('fuel.create')) ? <FuelHome setPage={setPage} /> : null

@@ -414,6 +414,7 @@ export default function ModuleLayout({ moduleId, moduleLabel, moduleIcon, navIte
         {/* Top App Bar — two-line title with module eyebrow, jump-to search, grouped status capsule */}
         <TopBar
           isMobile={isMobile} color={color} moduleIcon={moduleIcon} moduleLabel={moduleLabel} onHome={onHome}
+          onModule={navItems?.[0]?.id && navItems[0].id !== page ? () => setPage(navItems[0].id) : null}
           title={PAGE_TITLES[page] || TXN_PAGE_LABELS[page] || page}
           onMenu={() => isMobile ? setMobileNavOpen(true) : setCollapsed(c => !c)}
           unreadCount={unreadCount} onBell={() => setNotifOpen(o => !o)}
@@ -554,7 +555,7 @@ function BarIconButton({ icon, label, onClick, badge, color }) {
     </button>
   )
 }
-function TopBar({ isMobile, color, moduleIcon, moduleLabel, onHome, title, onMenu, unreadCount, onBell, flagCount, onFlags }) {
+function TopBar({ isMobile, color, moduleIcon, moduleLabel, onHome, onModule, title, onMenu, unreadCount, onBell, flagCount, onFlags }) {
   const now = useClock()
   const [name, sub] = splitTitle(title)
   const [searchHover, setSearchHover] = useState(false)
@@ -572,26 +573,19 @@ function TopBar({ isMobile, color, moduleIcon, moduleLabel, onHome, title, onMen
 
       <BarIconButton icon="menu" label="Menu" onClick={onMenu} color={color} />
 
-      <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px' }}>
-        {!isMobile && (
-          <button onClick={onHome} style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none',
-            border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', color, fontSize: '10.5px', fontWeight: 700,
-            letterSpacing: '.12em', textTransform: 'uppercase' }}>
-            <span style={{ width: '18px', height: '18px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: `linear-gradient(135deg, ${color}, ${color}B3)`, boxShadow: `0 2px 6px ${color}40` }}>
-              <Icon name={moduleIcon} size={12} style={{ color: '#fff' }} />
-            </span>
-            {moduleLabel}
-          </button>
-        )}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: isMobile ? '16px' : '20px', fontWeight: 650, letterSpacing: '-.01em', color: THEME.text,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>{name}</h1>
-          {sub && !isMobile && (
-            <span style={{ fontSize: '12.5px', color: THEME.textLow, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>
-          )}
-        </div>
-      </div>
+      {/* Clickable path: Home / Module / Page (user 28 Sep — simple, like ERPNext) */}
+      <nav aria-label="You are here" style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 8, fontSize: isMobile ? 15 : 18, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+        <button onClick={onHome} title="Home" aria-label="Home" style={{ display: 'inline-flex', alignItems: 'center', background: 'none', border: 'none', padding: 4, borderRadius: 6, cursor: 'pointer', color: THEME.textMed }}>
+          <Icon name="home" size={isMobile ? 18 : 20} />
+        </button>
+        <span style={{ color: THEME.textLow }}>/</span>
+        {!isMobile && <>
+          <button onClick={onModule || undefined} disabled={!onModule} style={{ background: 'none', border: 'none', padding: '2px 4px', borderRadius: 6, fontFamily: 'inherit', fontSize: 'inherit',
+            color: onModule ? color : THEME.textMed, cursor: onModule ? 'pointer' : 'default', fontWeight: 500 }}>{String(moduleLabel || '').replace(/ Management$/, '')}</button>
+          <span style={{ color: THEME.textLow }}>/</span>
+        </>}
+        <span style={{ fontWeight: 650, color: THEME.text, overflow: 'hidden', textOverflow: 'ellipsis' }} title={sub ? `${name} — ${sub}` : name}>{name}</span>
+      </nav>
 
       {!isMobile && (
         <button onClick={() => window.dispatchEvent(new Event('open-command-palette'))}

@@ -1,4 +1,4 @@
-// Bravura Campsite — Service Worker
+// Bravura Desk — Service Worker
 // Minimal SW: enables PWA installability and a basic offline landing.
 // Deliberately does NOT cache hashed JS/CSS chunks — Vite renames chunk
 // files on every deploy, so caching old ones only extends the window in
@@ -10,7 +10,7 @@
 //   • Hashed /assets/*              → always network, never cached by us
 //   • Icons / manifest              → cache-first (rarely change)
 
-const CACHE = 'bravura-shell-v2'
+const CACHE = 'bravura-shell-v3'
 const SHELL_URLS = [
   '/',
   '/manifest.json',

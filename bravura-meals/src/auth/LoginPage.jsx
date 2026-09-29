@@ -47,7 +47,7 @@ export default function LoginPage() {
             style={{ height: '64px', width: 'auto', margin: '0 auto 16px', display: 'block' }}
           />
           <h1 style={{ fontSize: '22px', fontWeight: 400, color: THEME.text, margin: 0, letterSpacing: '-.01em' }}>
-            Bravura ERP
+            Bravura Desk
           </h1>
           <p style={{ fontSize: '13px', color: THEME.textLow, margin: '6px 0 0' }}>
             Sign in to continue

@@ -82,7 +82,7 @@ export default function QuickStartGuide() {
         border: `1px solid ${THEME.primary}22`,
       }}>
         <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.text }}>
-          Welcome to Bravura ERP, {firstName} 👋
+          Welcome to Bravura Desk, {firstName} 👋
         </div>
         <div style={{ fontSize: '13px', color: THEME.textMed, marginTop: '6px', lineHeight: 1.7 }}>
           This guide shows the parts of the system that matter for <b>your</b> role.

@@ -680,7 +680,7 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   TASK NUMBERS (user): plant area code — project_tasks.area_code split from titles "Area Code 49 …" (trg_pj_0_area_code) → shown "AC-49";
   no area → "#12"; `_pj_ref(task)` in SQL, `taskRef(t)` in pjShared. Project letters (KCWI) are not shown anywhere.
   **Next:** templates UI (Save as template / New from template) in PJList; project detail Timeline tab.
-- Login screen says "Bravura ERP" (no meals text); tab title + manifest renamed (user 28 Sep).
+- App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.
 

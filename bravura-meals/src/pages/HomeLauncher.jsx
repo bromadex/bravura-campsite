@@ -345,8 +345,6 @@ export default function HomeLauncher({ onEnterModule }) {
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ color: '#fff', fontSize: '15px', fontWeight: 700, letterSpacing: '.06em', lineHeight: 1.1 }}>BRAVURA</div>
-            {!isMobile && (
-            )}
           </div>
         </div>
 

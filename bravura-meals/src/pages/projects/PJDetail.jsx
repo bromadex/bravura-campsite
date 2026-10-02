@@ -8,6 +8,7 @@ import { showToast, Icon, ModalOverlay } from '../../components/ui'
 import { KpiCard, DashCard, DonutGauge, ProgressRow, SectionTitle } from '../../components/dash'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 import TaskDrawer from '../../components/TaskDrawer'
+import PJTimeline from './PJTimeline'
 import { STATUS, daysSince, taskRef } from './pjShared'
 
 const color = MODULE_COLORS.projects
@@ -520,6 +521,15 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
     await fetchBoard()
   }
 
+  // #76: copy this project into a reusable template (pj_template_save)
+  async function saveAsTemplate() {
+    const name = window.prompt('Template name', project.name + ' (template)')
+    if (!name) return
+    const { error } = await supabase.rpc('pj_template_save', { p_project: projectId, p_name: name })
+    if (error) { showToast(error.message, 'red'); return }
+    showToast('Template saved — use "From template" on the Projects list')
+  }
+
   // #76: cards open the shared TaskDrawer (checklist, comments, watchers, timer, DocShare folder)
   function openTaskModal(task) { if (task) setDrawerTask(task.id) }
 
@@ -892,6 +902,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
     { id: 'team', label: 'Team', icon: 'group' },
     { id: 'labels', label: 'Labels', icon: 'label' },
     { id: 'board', label: 'Board', icon: 'view_kanban' },
+    { id: 'timeline', label: 'Timeline', icon: 'view_timeline' },
     { id: 'schedule', label: 'Schedule', icon: 'event_note' },
     { id: 'costs', label: 'Costs & EVM', icon: 'payments' },
     { id: 'activity', label: 'Activity', icon: 'forum' },
@@ -920,6 +931,16 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {can('projects.create') && (
+              <button onClick={saveAsTemplate} title="Copy this project's phases, tasks, checklists and links into a template" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
+                background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>content_copy</span>
+                Save as template
+              </button>
+            )}
             {can('projects.delete') && (
               <button onClick={archiveProject} title="Archive project" style={{
                 display: 'inline-flex', alignItems: 'center', gap: '4px',
@@ -1559,6 +1580,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
       )}
 
       {/* ── ACTIVITY TAB ─────────────────────────────────────────── */}
+      {tab === 'timeline' && <PJTimeline projectId={projectId} setPage={setPage} embedded />}
+
       {tab === 'activity' && (
         <div>
           {activityLoading ? (

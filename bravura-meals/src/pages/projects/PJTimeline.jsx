@@ -21,7 +21,7 @@ const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOStri
 const addD = (d, n) => new Date(d.getTime() + n * DAY)
 const today = () => toD(iso(new Date()))
 
-export default function PJTimeline({ setPage, projectId: fixedProject }) {
+export default function PJTimeline({ setPage, projectId: fixedProject, embedded = false }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const people = usePeople()
@@ -216,8 +216,9 @@ export default function PJTimeline({ setPage, projectId: fixedProject }) {
     </>
   }
 
+  const Shell = embedded ? EmbedShell : FinShell
   return (
-    <FinShell module="Projects" homePage="pj_dashboard" setPage={setPage} title="Timeline"
+    <Shell module="Projects" homePage="pj_dashboard" setPage={setPage} title="Timeline"
       subtitle="Drag bars to reschedule. Grey = baseline, dark line = actual, ◆ = milestone."
       tabs={[{ key: 'tasks', label: 'Tasks' }, { key: 'people', label: 'People' }, { key: 'machines', label: 'Machines' }]} tab={view} onTab={setView}
       actions={<>
@@ -297,6 +298,23 @@ export default function PJTimeline({ setPage, projectId: fixedProject }) {
         </div>
       </div>)}
       {open && <TaskDrawer taskId={open} onClose={() => setOpen(null)} onChanged={load} setPage={setPage} />}
-    </FinShell>
+    </Shell>
+  )
+}
+
+// Inside a project page (PJDetail Timeline tab): same controls, no second page header.
+function EmbedShell({ tabs, tab, onTab, actions, children }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontFamily: FIN.sans }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div role="tablist" style={{ display: 'inline-flex', background: FIN.ground, borderRadius: 10, padding: 3 }}>
+          {tabs.map(t => <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => onTab(t.key)} style={{ minHeight: 34, padding: '0 12px', borderRadius: 8,
+            border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: tab === t.key ? '#fff' : 'transparent', color: tab === t.key ? FIN.ink : FIN.muted }}>{t.label}</button>)}
+        </div>
+        <span style={{ flex: 1 }} />
+        {actions}
+      </div>
+      {children}
+    </div>
   )
 }

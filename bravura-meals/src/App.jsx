@@ -660,23 +660,25 @@ function getInventoryPage(page, can, setPage) {
 
 function getProjectsPage(page, can, setPage) {
   if (!can('projects.view')) return null
+  // Older project screens keep their own headers; the frame gives them the new look (#76)
+  const pjFramed = el => <FinShell module="Projects" homePage="pj_dashboard" setPage={setPage} bare>{el}</FinShell>
   if (page && page.startsWith('pj_detail_')) {
     const rest = page.replace('pj_detail_', '')
     const [projectId, initialTab, initialTaskId] = rest.split(':')
-    return <PJDetail setPage={setPage} projectId={projectId} initialTab={initialTab || undefined} initialTaskId={initialTaskId || undefined} />
+    return pjFramed(<PJDetail setPage={setPage} projectId={projectId} initialTab={initialTab || undefined} initialTaskId={initialTaskId || undefined} />)
   }
   if (page && page.startsWith('pj_workspace')) return <MyWorkspace key={page} setPage={setPage} openId={page.split(':')[1]} />
   if (page && page.startsWith('pj_time')) return <PJTime key={page} setPage={setPage} initialTab={page.split(':')[1]} />
   switch (page) {
     case 'pj_dashboard': return <PJHome setPage={setPage} />
-    case 'pj_projects':  return <PJList setPage={setPage} />
-    case 'pj_areas':     return <PJAreas setPage={setPage} />
-    case 'pj_documents': return <PJDocuments setPage={setPage} />
-    case 'pj_transmittals': return <PJTransmittals setPage={setPage} />
+    case 'pj_projects':  return pjFramed(<PJList setPage={setPage} />)
+    case 'pj_areas':     return pjFramed(<PJAreas setPage={setPage} />)
+    case 'pj_documents': return pjFramed(<PJDocuments setPage={setPage} />)
+    case 'pj_transmittals': return pjFramed(<PJTransmittals setPage={setPage} />)
     case 'pj_tasks':     return <MyWorkspace setPage={setPage} />  // PJ04 My Tasks → My workspace (#76)
     case 'pj_timeline':  return <PJTimeline setPage={setPage} />
-    case 'pj_costs':     return <PJCosts setPage={setPage} />
-    case 'pj_changes':   return <PJChanges setPage={setPage} />
+    case 'pj_costs':     return pjFramed(<PJCosts setPage={setPage} />)
+    case 'pj_changes':   return pjFramed(<PJChanges setPage={setPage} />)
     default:             return <PJHome setPage={setPage} />
   }
 }

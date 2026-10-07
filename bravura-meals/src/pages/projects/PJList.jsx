@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { showToast, ModalOverlay } from '../../components/ui'
 import QuickNav, { PROJECT_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
+import TemplatePicker from './TemplatePicker'
 
 const color = MODULE_COLORS.projects
 
@@ -52,11 +53,13 @@ export default function PJList({ setPage }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const [showTemplates, setShowTemplates] = useState(false)
+
   async function fetchProjects() {
     if (!currentSiteId) return
     setLoading(true)
     const [pRes, phRes, mRes] = await Promise.all([
-      supabase.from('projects').select('*').eq('site_id', currentSiteId).eq('is_archived', false).order('created_at', { ascending: false }),
+      supabase.from('projects').select('*').eq('site_id', currentSiteId).eq('is_archived', false).eq('is_template', false).order('created_at', { ascending: false }),
       supabase.from('project_phases').select('id, project_id, status, weight'),
       supabase.from('project_members').select('id, project_id, is_active'),
     ])
@@ -242,6 +245,16 @@ export default function PJList({ setPage }) {
           }}>
             <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>{viewMode === 'cards' ? 'view_list' : 'grid_view'}</span>
           </button>
+          {can('projects.create') && (
+            <button onClick={() => setShowTemplates(true)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '8px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+              background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>content_copy</span>
+              From template
+            </button>
+          )}
           {can('projects.create') && (
             <button onClick={openAdd} style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -548,6 +561,7 @@ export default function PJList({ setPage }) {
           </div>
         </ModalOverlay>
       )}
+      {showTemplates && <TemplatePicker onClose={() => setShowTemplates(false)} setPage={setPage} />}
     </div>
   )
 }

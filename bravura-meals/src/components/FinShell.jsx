@@ -19,7 +19,7 @@ const SCOPED_THEME = {
 // Also used by Procurement (issue #50): pass module / homePage, and siteText to replace the site name
 // (e.g. "All sites" when an HQ user is looking across sites).
 export default function FinShell({ title, subtitle, actions, tabs, tab, onTab, setPage, children, embedChildren = true,
-  module = 'Finance', homePage = 'fi_dashboard', siteText }) {
+  module = 'Finance', homePage = 'fi_dashboard', siteText, bare = false }) {
   useFinanceFonts()
   const { currentSite } = useSite()
   const nested = useFinEmbedded()
@@ -40,7 +40,7 @@ export default function FinShell({ title, subtitle, actions, tabs, tab, onTab, s
   return (
     <div style={{ ...SCOPED_THEME, fontFamily: FIN.sans, color: FIN.ink, background: FIN.ground, margin: narrow ? -14 : -24, padding: narrow ? '18px 14px' : '28px 32px',
       minHeight: '100%', fontVariantNumeric: 'tabular-nums', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
-      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      {!bare && <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 13, color: FIN.muted }}>
             <button onClick={() => setPage?.(homePage)} style={{ background: 'none', border: 'none', padding: 0, color: FIN.blue, cursor: 'pointer', font: 'inherit' }}>{module}</button>
@@ -50,7 +50,7 @@ export default function FinShell({ title, subtitle, actions, tabs, tab, onTab, s
           {subtitle && <div style={{ fontSize: 13, color: FIN.muted, marginTop: 2 }}>{subtitle}</div>}
         </div>
         {actions && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>{actions}</div>}
-      </header>
+      </header>}
       {tabs && (
         <div role="tablist" aria-label={title} style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {tabs.filter(Boolean).map(t => (

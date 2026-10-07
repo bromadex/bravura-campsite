@@ -258,6 +258,8 @@ export default function QuickStartGuide() {
             <>Portfolio (<Code>PJ01</Code>) shows each project's health, measured from the work: overdue tasks, late milestones, target date, budget used and work stuck 14+ days. Post a weekly update; if you set the health by hand the card shows both.</>,
             <>Time (<Code>PJ12</Code>): log hours on a task (or press ▶ Start timer in the task), supervisors fill one Crew sheet for the whole crew, and approvers approve or send back. Approved overtime is paid by payroll; approved hours cost the project.</>,
             <>Create and manage projects in the Project List (<Code>PJ02</Code>) — card or table view, with status/type filters and search.</>,
+            <>Repeat jobs fast: on a finished project press <b>Save as template</b>; next time use <b>From template</b> on the Project List — tasks, phases and checklists are copied and dates move to your new start.</>,
+            <>Each project has a <b>Timeline</b> tab: drag bars to reschedule, save a baseline, and see who and which machines are overloaded.</>,
             <>Click into any project for its workspace (<Code>PJ03</Code>) — board, phases, team, schedule (critical path, baselines), costs and earned value.</>,
             <>Timeline (<Code>PJ05</Code>) gives a Gantt-style view of phases and tasks across projects.</>,
             <>Area Codes (<Code>PJ06</Code>) organise work by location or discipline — each project can reference one or more area codes.</>,

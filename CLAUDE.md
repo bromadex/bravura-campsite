@@ -679,7 +679,9 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   propose_task (ai_prepare_task → ai_action_confirm kind project_task). _ai_alerts_projects (off track/at risk, stuck 14 d, time waiting 3 d) in core.
   TASK NUMBERS (user): plant area code — project_tasks.area_code split from titles "Area Code 49 …" (trg_pj_0_area_code) → shown "AC-49";
   no area → "#12"; `_pj_ref(task)` in SQL, `taskRef(t)` in pjShared. Project letters (KCWI) are not shown anywhere.
-  **Next:** templates UI (Save as template / New from template) in PJList; project detail Timeline tab.
+  **Round 3 (3–7 Oct):** PJDetail tab Timeline (PJTimeline embedded) + "Save as template" button; PJList "From template" (TemplatePicker.jsx →
+  pj_project_from_template), templates hidden from the list. Old project screens (list, detail, areas, documents, transmittals, costs, changes)
+  wrapped in `pjFramed` = FinShell module Projects with new `bare` prop (new look, their own headers kept).
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

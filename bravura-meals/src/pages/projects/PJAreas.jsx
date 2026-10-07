@@ -6,16 +6,15 @@ import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from './pjTheme'
 import { showToast, ModalOverlay, Icon } from '../../components/ui'
 import { KpiCard, DashCard, SectionTitle, ProgressRow } from '../../components/dash'
-import QuickNav, { PROJECT_PILLS } from '../../components/QuickNav'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { exportCsv } from '../../utils/csv'
 
 const color = MODULE_COLORS.projects
 const DISCIPLINES = ['Civil', 'Structural', 'Mechanical', 'Electrical', 'Piping', 'Instrumentation', 'Process', 'Architectural', 'HVAC', 'Fire Protection']
-const COLORS = ['#1B5E20', '#0D47A1', '#BF360C', '#4A148C', '#006064', '#E65100', '#1A237E', '#880E4F', '#33691E', '#263238']
+const COLORS = ['#2F7D4F', '#1F4E8C', '#C8811E', '#7A4FB5', '#0E7C86', '#C8811E', '#1F4E8C', '#880E4F', '#33691E', '#263238']
 const inp = { width: '100%', padding: '8px 12px', border: `1px solid ${THEME.outline}`, borderRadius: '10px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', background: THEME.surface, color: THEME.text }
 const lbl = { fontSize: '11px', fontWeight: 700, color: THEME.textMed, marginBottom: '4px', display: 'block' }
-const STATUS_COLORS = { done: '#2E7D32', in_progress: '#1565C0', backlog: '#FF9800', overdue: '#C62828' }
+const STATUS_COLORS = { done: '#2F7D4F', in_progress: '#1F4E8C', backlog: '#C8811E', overdue: '#B3261E' }
 
 export default function PJAreas({ setPage }) {
   const { can } = usePermissions()
@@ -29,7 +28,7 @@ export default function PJAreas({ setPage }) {
   const [filterDisc, setFilterDisc] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editId, setEditId] = useState(null)
-  const [form, setForm] = useState({ code: '', name: '', description: '', discipline: '', color: '#1B5E20', sort_order: 0 })
+  const [form, setForm] = useState({ code: '', name: '', description: '', discipline: '', color: '#2F7D4F', sort_order: 0 })
   const [saving, setSaving] = useState(false)
 
   const [selectedArea, setSelectedArea] = useState(null)
@@ -116,7 +115,7 @@ export default function PJAreas({ setPage }) {
   function openEdit(a, e) {
     e?.stopPropagation()
     setEditId(a.id)
-    setForm({ code: a.code, name: a.name, description: a.description || '', discipline: a.discipline || '', color: a.color || '#1B5E20', sort_order: a.sort_order || 0 })
+    setForm({ code: a.code, name: a.name, description: a.description || '', discipline: a.discipline || '', color: a.color || '#2F7D4F', sort_order: a.sort_order || 0 })
     setModalOpen(true)
   }
 
@@ -209,7 +208,6 @@ export default function PJAreas({ setPage }) {
 
     return (
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        <QuickNav pills={PROJECT_PILLS} setPage={setPage} current="pj_areas" />
 
         <button onClick={closeDetail} style={{ background: 'none', border: 'none', color, cursor: 'pointer', fontSize: '13px', fontWeight: 600, marginBottom: '12px', padding: 0, fontFamily: 'inherit' }}>
           <span className="material-symbols-rounded" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>arrow_back</span>
@@ -237,7 +235,7 @@ export default function PJAreas({ setPage }) {
               {/* Progress ring */}
               <svg width="56" height="56" viewBox="0 0 56 56">
                 <circle cx="28" cy="28" r="24" fill="none" stroke={THEME.outlineVar} strokeWidth="4" />
-                <circle cx="28" cy="28" r="24" fill="none" stroke={avgPct >= 100 ? '#2E7D32' : selectedArea.color || color} strokeWidth="4"
+                <circle cx="28" cy="28" r="24" fill="none" stroke={avgPct >= 100 ? '#2F7D4F' : selectedArea.color || color} strokeWidth="4"
                   strokeDasharray={`${(avgPct / 100) * 150.8} 150.8`} strokeLinecap="round" transform="rotate(-90 28 28)" />
                 <text x="28" y="32" textAnchor="middle" fill={THEME.text} fontSize="13" fontWeight="700">{avgPct}%</text>
               </svg>
@@ -278,11 +276,11 @@ export default function PJAreas({ setPage }) {
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
                   <KpiCard label="Total Tasks" value={areaTasks.length} icon="task" accent={selectedArea.color || color} />
-                  <KpiCard label="Completed" value={doneTasks.length} icon="task_alt" accent="#2E7D32" />
-                  <KpiCard label="In Progress" value={inProgressTasks.length} icon="pending" accent="#1565C0" />
-                  <KpiCard label="Overdue" value={overdueTasks.length} icon="warning" accent={overdueTasks.length > 0 ? '#C62828' : '#999'} />
-                  <KpiCard label="Documents" value={areaDocs.length} icon="description" accent="#6A1B9A" />
-                  <KpiCard label="Photos" value={areaPhotos.length} icon="photo_library" accent="#00838F" />
+                  <KpiCard label="Completed" value={doneTasks.length} icon="task_alt" accent="#2F7D4F" />
+                  <KpiCard label="In Progress" value={inProgressTasks.length} icon="pending" accent="#1F4E8C" />
+                  <KpiCard label="Overdue" value={overdueTasks.length} icon="warning" accent={overdueTasks.length > 0 ? '#B3261E' : '#8A948F'} />
+                  <KpiCard label="Documents" value={areaDocs.length} icon="description" accent="#7A4FB5" />
+                  <KpiCard label="Photos" value={areaPhotos.length} icon="photo_library" accent="#0E7C86" />
                 </div>
 
                 {selectedArea.description && (
@@ -296,13 +294,13 @@ export default function PJAreas({ setPage }) {
                 <DashCard style={{ marginBottom: '16px' }}>
                   <SectionTitle title="Completion Progress" subtitle={`${doneTasks.length} of ${areaTasks.length} tasks done`} />
                   <div style={{ height: '12px', borderRadius: '6px', background: THEME.outlineVar, overflow: 'hidden', marginBottom: '12px' }}>
-                    <div style={{ height: '100%', width: `${avgPct}%`, background: avgPct >= 100 ? '#2E7D32' : selectedArea.color || color, borderRadius: '6px', transition: 'width 0.3s' }} />
+                    <div style={{ height: '100%', width: `${avgPct}%`, background: avgPct >= 100 ? '#2F7D4F' : selectedArea.color || color, borderRadius: '6px', transition: 'width 0.3s' }} />
                   </div>
                   <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
-                    <span style={{ color: '#2E7D32', fontWeight: 600 }}>{doneTasks.length} Done</span>
-                    <span style={{ color: '#1565C0', fontWeight: 600 }}>{inProgressTasks.length} In Progress</span>
-                    <span style={{ color: '#FF9800', fontWeight: 600 }}>{areaTasks.length - doneTasks.length - inProgressTasks.length} Not Started</span>
-                    {overdueTasks.length > 0 && <span style={{ color: '#C62828', fontWeight: 600 }}>{overdueTasks.length} Overdue</span>}
+                    <span style={{ color: '#2F7D4F', fontWeight: 600 }}>{doneTasks.length} Done</span>
+                    <span style={{ color: '#1F4E8C', fontWeight: 600 }}>{inProgressTasks.length} In Progress</span>
+                    <span style={{ color: '#C8811E', fontWeight: 600 }}>{areaTasks.length - doneTasks.length - inProgressTasks.length} Not Started</span>
+                    {overdueTasks.length > 0 && <span style={{ color: '#B3261E', fontWeight: 600 }}>{overdueTasks.length} Overdue</span>}
                   </div>
                 </DashCard>
 
@@ -316,7 +314,7 @@ export default function PJAreas({ setPage }) {
                       const isOd = t.due_date && new Date(t.due_date) < new Date() && !t.completed_date
                       return (
                         <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0', borderBottom: `1px solid ${THEME.outlineVar}` }}>
-                          <span className="material-symbols-rounded" style={{ fontSize: '16px', color: isDone ? '#2E7D32' : isOd ? '#C62828' : '#1565C0' }}>
+                          <span className="material-symbols-rounded" style={{ fontSize: '16px', color: isDone ? '#2F7D4F' : isOd ? '#B3261E' : '#1F4E8C' }}>
                             {isDone ? 'check_circle' : isOd ? 'error' : 'pending'}
                           </span>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -325,9 +323,9 @@ export default function PJAreas({ setPage }) {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '70px' }}>
                             <div style={{ flex: 1, height: '5px', borderRadius: '3px', background: THEME.outlineVar, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${pct}%`, background: isDone ? '#2E7D32' : pct >= 50 ? '#1565C0' : '#FF9800', borderRadius: '3px' }} />
+                              <div style={{ height: '100%', width: `${pct}%`, background: isDone ? '#2F7D4F' : pct >= 50 ? '#1F4E8C' : '#C8811E', borderRadius: '3px' }} />
                             </div>
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: isDone ? '#2E7D32' : THEME.text, minWidth: '28px' }}>{pct}%</span>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: isDone ? '#2F7D4F' : THEME.text, minWidth: '28px' }}>{pct}%</span>
                           </div>
                         </div>
                       )
@@ -358,7 +356,7 @@ export default function PJAreas({ setPage }) {
                         const pct = t.percent_complete || 0
                         const isDone = col?.is_done_column || pct === 100
                         const isOverdue = t.due_date && new Date(t.due_date) < new Date() && !t.completed_date
-                        const statusColor = isDone ? '#2E7D32' : pct > 0 ? '#1565C0' : isOverdue ? '#C62828' : THEME.textLow
+                        const statusColor = isDone ? '#2F7D4F' : pct > 0 ? '#1F4E8C' : isOverdue ? '#B3261E' : THEME.textLow
                         return (
                           <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, background: isDone ? '#F1F8E9' : isOverdue ? '#FFF8E1' : 'transparent' }}>
                             <td style={{ padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px' }}>{i + 1}</td>
@@ -374,9 +372,9 @@ export default function PJAreas({ setPage }) {
                             <td style={{ padding: '8px 10px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '70px' }}>
                                 <div style={{ flex: 1, height: '5px', borderRadius: '3px', background: THEME.outlineVar, overflow: 'hidden' }}>
-                                  <div style={{ height: '100%', width: `${pct}%`, background: isDone ? '#2E7D32' : pct >= 50 ? '#1565C0' : '#FF9800', borderRadius: '3px' }} />
+                                  <div style={{ height: '100%', width: `${pct}%`, background: isDone ? '#2F7D4F' : pct >= 50 ? '#1F4E8C' : '#C8811E', borderRadius: '3px' }} />
                                 </div>
-                                <span style={{ fontSize: '10px', fontWeight: 700, color: isDone ? '#2E7D32' : THEME.text, minWidth: '28px' }}>{pct}%</span>
+                                <span style={{ fontSize: '10px', fontWeight: 700, color: isDone ? '#2F7D4F' : THEME.text, minWidth: '28px' }}>{pct}%</span>
                               </div>
                             </td>
                             <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
@@ -416,7 +414,7 @@ export default function PJAreas({ setPage }) {
                       </thead>
                       <tbody>
                         {areaDocs.map(d => {
-                          const sc = d.status === 'approved' ? '#2E7D32' : d.status === 'issued_for_review' ? '#1565C0' : '#FF9800'
+                          const sc = d.status === 'approved' ? '#2F7D4F' : d.status === 'issued_for_review' ? '#1F4E8C' : '#C8811E'
                           return (
                             <tr key={d.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                               <td style={{ padding: '8px 10px', color, fontWeight: 600, fontFamily: 'monospace', fontSize: '11px' }}>{d.doc_number}</td>
@@ -500,7 +498,6 @@ export default function PJAreas({ setPage }) {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <QuickNav pills={PROJECT_PILLS} setPage={setPage} current="pj_areas" />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ fontSize: '20px', fontWeight: 500, color: THEME.text }}>Area Codes</div>
         <div style={{ display: 'flex', gap: '8px' }}>

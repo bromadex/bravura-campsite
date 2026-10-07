@@ -13,25 +13,27 @@ import PJMoney, { closePhase } from './PJMoney'
 import PJRisks from './PJRisks'
 import PJAreaRollup from './PJAreaRollup'
 import { STATUS, daysSince, taskRef } from './pjShared'
+import { FIN, finBtn2 } from '../../utils/financeTheme'
+const crumb = { background: 'none', border: 'none', padding: 0, color: FIN.blue, cursor: 'pointer', font: 'inherit' }
 
 const color = MODULE_COLORS.projects
 
 const STATUS_COLORS = {
-  planning:  { bg: '#E3F2FD', text: '#1565C0', label: 'Planning' },
-  active:    { bg: '#E8F5E9', text: '#2E7D32', label: 'Active' },
-  on_hold:   { bg: '#FFF3E0', text: '#E65100', label: 'On Hold' },
-  completed: { bg: '#F3E5F5', text: '#6A1B9A', label: 'Completed' },
-  cancelled: { bg: '#FFEBEE', text: '#B71C1C', label: 'Cancelled' },
+  planning:  { bg: '#EEF3FA', text: '#1F4E8C', label: 'Planning' },
+  active:    { bg: '#F1F8F3', text: '#2F7D4F', label: 'Active' },
+  on_hold:   { bg: '#FFF6E8', text: '#9A5B00', label: 'On hold' },
+  completed: { bg: '#EEF1EF', text: '#5B6661', label: 'Completed' },
+  cancelled: { bg: '#FBEDEC', text: '#B3261E', label: 'Cancelled' },
 }
 const PHASE_STATUSES = ['pending', 'in_progress', 'completed', 'skipped']
 const PHASE_STATUS_COLORS = {
   pending:     { bg: THEME.statusNeutralBg, text: THEME.statusNeutralText, label: 'Pending' },
-  in_progress: { bg: '#E3F2FD', text: '#1565C0', label: 'In Progress' },
-  completed:   { bg: '#E8F5E9', text: '#2E7D32', label: 'Completed' },
-  skipped:     { bg: '#FFF3E0', text: '#E65100', label: 'Skipped' },
+  in_progress: { bg: '#EEF3FA', text: '#1F4E8C', label: 'In Progress' },
+  completed:   { bg: '#F1F8F3', text: '#2F7D4F', label: 'Completed' },
+  skipped:     { bg: '#FFF6E8', text: '#C8811E', label: 'Skipped' },
 }
 const MEMBER_ROLES = ['owner', 'manager', 'engineer', 'supervisor', 'foreman', 'operator', 'labourer', 'viewer']
-const PRIORITY_COLORS = { low: '#4CAF50', medium: '#FF9800', high: '#F44336', critical: '#9C27B0' }
+const PRIORITY_COLORS = { low: '#2F7D4F', medium: '#C8811E', high: '#B3261E', critical: '#7A4FB5' }
 const PRIORITIES = ['low', 'medium', 'high', 'critical']
 const DEFAULT_COLUMNS = [
   { name: 'Backlog', position: 0 },
@@ -77,7 +79,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
 
   // Label form
   const [labelModal, setLabelModal] = useState(false)
-  const [labelForm, setLabelForm] = useState({ name: '', color: '#1565C0' })
+  const [labelForm, setLabelForm] = useState({ name: '', color: '#1F4E8C' })
   const [labelSaving, setLabelSaving] = useState(false)
 
   // Board state
@@ -919,88 +921,49 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
   const activeGroup = TAB_GROUPS.find(g => g.tabs.some(t => t.id === tab)) || TAB_GROUPS[0]
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-      {/* Back button */}
-      <button onClick={() => setPage('pj_projects')} style={{ background: 'none', border: 'none', color: color, cursor: 'pointer', fontSize: '13px', fontWeight: 600, marginBottom: '12px', padding: 0, fontFamily: 'inherit' }}>
-        <span className="material-symbols-rounded" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>arrow_back</span>
-        All Projects
-      </button>
-
-      {/* Header */}
-      <div style={{ borderRadius: '14px', overflow: 'hidden', border: `1px solid ${THEME.outlineVar}`, marginBottom: '20px' }}>
-        <div style={{ height: '8px', background: project.cover_color || color }} />
-        <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <div style={{ fontSize: '11px', color: THEME.textLow, fontWeight: 600, marginBottom: '4px' }}>{project.project_code}</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: THEME.text, marginBottom: '6px' }}>{project.name}</div>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: sc.bg, color: sc.text }}>{sc.label}</span>
-              <span style={{ fontSize: '11px', color: THEME.textMed }}>{project.project_type}</span>
-              {project.client && <span style={{ fontSize: '11px', color: THEME.textLow }}>· {project.client}</span>}
-              {project.location && <span style={{ fontSize: '11px', color: THEME.textLow }}>· {project.location}</span>}
-            </div>
+    <div>
+      {/* Header — finance look (#76): breadcrumb, serif title, facts, actions */}
+      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, color: FIN.muted }}>
+            <button onClick={() => setPage('pj_dashboard')} style={crumb}>Projects</button>{' · '}
+            <button onClick={() => setPage('pj_projects')} style={crumb}>All projects</button>{project.project_code ? ` · ${project.project_code}` : ''}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            {can('projects.create') && (
-              <button onClick={saveAsTemplate} title="Copy this project's phases, tasks, checklists and links into a template" style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
-                background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>content_copy</span>
-                Save as template
-              </button>
-            )}
-            {can('projects.delete') && (
-              <button onClick={archiveProject} title="Archive project" style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
-                background: '#FFEBEE', color: '#C62828', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>archive</span>
-                Archive
-              </button>
-            )}
-            {/* Progress ring */}
-            <div style={{ textAlign: 'center' }}>
-              <svg width="56" height="56" viewBox="0 0 56 56">
-                <circle cx="28" cy="28" r="24" fill="none" stroke={THEME.outlineVar} strokeWidth="4" />
-                <circle cx="28" cy="28" r="24" fill="none" stroke={project.cover_color || color} strokeWidth="4"
-                  strokeDasharray={`${(phasePct / 100) * 150.8} 150.8`}
-                  strokeLinecap="round" transform="rotate(-90 28 28)" />
-                <text x="28" y="32" textAnchor="middle" fill={THEME.text} fontSize="13" fontWeight="700">{phasePct}%</text>
-              </svg>
-            </div>
-            {project.budget > 0 && (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.text }}>{fmtMoney(project.budget)}</div>
-                <div style={{ fontSize: '10px', color: THEME.textLow, fontWeight: 600 }}>BUDGET</div>
-              </div>
-            )}
+          <h1 style={{ margin: '4px 0 6px', fontFamily: FIN.serif, fontWeight: 600, fontSize: 30, letterSpacing: '-0.01em', color: FIN.ink }}>{project.name}</h1>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 13, color: FIN.muted }}>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 10px', borderRadius: 12, background: sc.bg, color: sc.text }}>{sc.label}</span>
+            {project.project_type && <span style={{ textTransform: 'capitalize' }}>{project.project_type}</span>}
+            {project.client && <span>· {project.client}</span>}
+            {project.location && <span>· {project.location}</span>}
+            {project.target_end_date && <span>· due {project.target_end_date}</span>}
+            <span>· {phasePct}% of phases done</span>
+            {project.budget > 0 && <span>· budget <b style={{ color: FIN.ink, fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(project.budget)}</b></span>}
           </div>
         </div>
-      </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {can('projects.create') && <button onClick={saveAsTemplate} title="Copy phases, tasks, checklists and links into a template" style={finBtn2}>Save as template</button>}
+          {can('projects.delete') && <button onClick={archiveProject} style={{ ...finBtn2, color: FIN.bad }}>Archive</button>}
+        </div>
+      </header>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '2px', borderBottom: `1px solid ${THEME.outlineVar}`, marginBottom: activeGroup.tabs.length > 1 ? '10px' : '20px', overflowX: 'auto' }}>
+      {/* Tabs — same pills as every finance-look screen; sub-tabs underneath when a group has more than one */}
+      <div role="tablist" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: activeGroup.tabs.length > 1 ? 10 : 18 }}>
         {TAB_GROUPS.map(g => {
           const on = g.id === activeGroup.id
           return (
-            <button key={g.id} onClick={() => setTab(g.tabs[0].id)} style={{
-              padding: '10px 16px', fontSize: '14px', fontWeight: on ? 600 : 500, background: 'none', border: 'none',
-              borderBottom: `2px solid ${on ? color : 'transparent'}`, marginBottom: '-1px',
-              color: on ? THEME.text : THEME.textMed, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+            <button key={g.id} role="tab" aria-selected={on} onClick={() => setTab(g.tabs[0].id)} style={{
+              minHeight: 40, padding: '0 16px', borderRadius: 20, fontFamily: 'inherit', fontSize: 13, cursor: 'pointer', fontWeight: on ? 600 : 400,
+              ...(on ? { border: 'none', background: FIN.ink, color: '#fff' } : { border: `1px solid ${FIN.field}`, background: '#fff', color: FIN.ink }),
             }}>{g.label}</button>
           )
         })}
       </div>
       {activeGroup.tabs.length > 1 && (
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 18, borderBottom: `1px solid ${FIN.line}`, marginBottom: 18 }}>
           {activeGroup.tabs.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
-              padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600,
-              background: tab === t.id ? THEME.text : '#fff', color: tab === t.id ? '#fff' : THEME.textMed,
-              border: `1px solid ${tab === t.id ? THEME.text : THEME.outline}`, cursor: 'pointer', fontFamily: 'inherit',
+              padding: '8px 0', background: 'none', border: 'none', borderBottom: `2px solid ${tab === t.id ? FIN.maroon : 'transparent'}`, marginBottom: -1,
+              fontFamily: 'inherit', fontSize: 13, fontWeight: tab === t.id ? 600 : 400, color: tab === t.id ? FIN.ink : FIN.muted, cursor: 'pointer',
             }}>{t.label}</button>
           ))}
         </div>
@@ -1020,13 +983,13 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
             <KpiCard label="Total Tasks" value={totalTasks} icon="task" accent={color} />
-            <KpiCard label="Completed" value={doneTasks} icon="task_alt" accent="#2E7D32" />
-            <KpiCard label="In Progress" value={inProgressTasks} icon="pending" accent="#1565C0" />
-            <KpiCard label="Overdue" value={overdueTasks} icon="warning" accent={overdueTasks > 0 ? '#C62828' : '#999'} />
-            <KpiCard label="Avg Progress" value={`${avgPct}%`} icon="speed" accent="#E65100" />
-            <KpiCard label="Days Elapsed" value={daysElapsed} icon="schedule" accent="#00838F" />
+            <KpiCard label="Completed" value={doneTasks} icon="task_alt" accent="#2F7D4F" />
+            <KpiCard label="In Progress" value={inProgressTasks} icon="pending" accent="#1F4E8C" />
+            <KpiCard label="Overdue" value={overdueTasks} icon="warning" accent={overdueTasks > 0 ? '#B3261E' : '#8A948F'} />
+            <KpiCard label="Avg Progress" value={`${avgPct}%`} icon="speed" accent="#C8811E" />
+            <KpiCard label="Days Elapsed" value={daysElapsed} icon="schedule" accent="#0E7C86" />
             {daysRemaining !== null && (
-              <KpiCard label="Days Left" value={Math.max(0, daysRemaining)} icon="timer" accent={daysRemaining < 0 ? '#C62828' : '#6A1B9A'} />
+              <KpiCard label="Days Left" value={Math.max(0, daysRemaining)} icon="timer" accent={daysRemaining < 0 ? '#B3261E' : '#7A4FB5'} />
             )}
           </div>
 
@@ -1041,7 +1004,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
           <DashCard style={{ marginBottom: '16px' }}>
             <SectionTitle title="Overall Progress" subtitle={`${doneTasks}/${totalTasks} tasks complete`} />
             <div style={{ height: '10px', borderRadius: '5px', background: THEME.outlineVar, overflow: 'hidden', marginBottom: '8px' }}>
-              <div style={{ height: '100%', width: `${avgPct}%`, background: avgPct >= 100 ? '#2E7D32' : color, borderRadius: '5px', transition: 'width 0.3s' }} />
+              <div style={{ height: '100%', width: `${avgPct}%`, background: avgPct >= 100 ? '#2F7D4F' : color, borderRadius: '5px', transition: 'width 0.3s' }} />
             </div>
           </DashCard>
 
@@ -1202,7 +1165,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <SectionTitle title="Project Labels" subtitle="Tags for categorizing tasks" />
             {can('projects.edit') && (
-              <button onClick={() => { setLabelForm({ name: '', color: '#1565C0' }); setLabelModal(true) }} style={{
+              <button onClick={() => { setLabelForm({ name: '', color: '#1F4E8C' }); setLabelModal(true) }} style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                 padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
                 background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -1282,7 +1245,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
               </button>
               <button onClick={exportMSProjectXML} style={{
                 display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', borderRadius: '8px',
-                fontSize: '11px', fontWeight: 600, background: '#1B5E20', color: '#fff',
+                fontSize: '11px', fontWeight: 600, background: '#2F7D4F', color: '#fff',
                 border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>file_download</span>MS Project
@@ -1311,7 +1274,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                       const colName = col?.name || '—'
                       const isOverdue = t.due_date && new Date(t.due_date) < new Date() && !t.completed_date
                       const pct = t.percent_complete || 0
-                      const statusColor = col?.is_done_column ? '#2E7D32' : pct > 0 ? '#1565C0' : isOverdue ? '#C62828' : THEME.textLow
+                      const statusColor = col?.is_done_column ? '#2F7D4F' : pct > 0 ? '#1F4E8C' : isOverdue ? '#B3261E' : THEME.textLow
                       return (
                         <tr key={t.id} onClick={() => openTaskModal(t)} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', background: col?.is_done_column ? '#F1F8E9' : isOverdue ? '#FFF8E1' : 'transparent' }}>
                           <td style={{ padding: '8px 10px', color: THEME.textLow, fontWeight: 600, fontSize: '11px' }}>{i + 1}</td>
@@ -1327,9 +1290,9 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                           <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '80px' }}>
                               <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: THEME.outlineVar, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? '#2E7D32' : pct >= 50 ? '#1565C0' : '#FF9800', borderRadius: '3px' }} />
+                                <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? '#2F7D4F' : pct >= 50 ? '#1F4E8C' : '#C8811E', borderRadius: '3px' }} />
                               </div>
-                              <span style={{ fontSize: '11px', fontWeight: 700, color: pct >= 100 ? '#2E7D32' : THEME.text, minWidth: '30px' }}>{pct}%</span>
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: pct >= 100 ? '#2F7D4F' : THEME.text, minWidth: '30px' }}>{pct}%</span>
                             </div>
                           </td>
                           <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
@@ -1377,7 +1340,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                     <div style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       marginBottom: '10px', padding: '4px 6px', borderRadius: '8px',
-                      background: overLimit ? '#FFEBEE' : atLimit ? '#FFF3E0' : 'transparent',
+                      background: overLimit ? '#FBEDEC' : atLimit ? '#FFF6E8' : 'transparent',
                     }}>
                       {editColName === col.id ? (
                         <input autoFocus style={{ ...inp, padding: '4px 8px', fontSize: '13px', fontWeight: 700 }}
@@ -1391,7 +1354,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                           onClick={() => { if (can('projects.edit')) { setEditColName(col.id); setEditColText(col.name) } }}
                         >{col.name}</span>
                       )}
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: overLimit ? '#C62828' : atLimit ? '#E65100' : THEME.textLow, marginLeft: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: overLimit ? '#B3261E' : atLimit ? '#C8811E' : THEME.textLow, marginLeft: '6px' }}>
                         {colTasks.length}{col.wip_limit ? `/${col.wip_limit}` : ''}
                       </span>
                     </div>
@@ -1411,7 +1374,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                               onClick={() => openTaskModal(t)}
                               style={{
                                 background: THEME.surface, borderRadius: '10px', padding: '10px 12px',
-                                cursor: 'pointer', borderLeft: `4px solid ${PRIORITY_COLORS[t.priority] || '#999'}`,
+                                cursor: 'pointer', borderLeft: `4px solid ${PRIORITY_COLORS[t.priority] || '#8A948F'}`,
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.08)', transition: 'box-shadow 0.15s',
                                 marginLeft: indent ? '16px' : '0',
                               }}
@@ -1421,7 +1384,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                                   {tLabels.map(tl => (
                                     <span key={tl.label_id} style={{
                                       fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
-                                      background: (tl.label?.color || '#999') + '25', color: tl.label?.color || '#999',
+                                      background: (tl.label?.color || '#8A948F') + '25', color: tl.label?.color || '#8A948F',
                                     }}>{tl.label?.name}</span>
                                   ))}
                                 </div>
@@ -1434,13 +1397,13 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                               <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '6px', lineHeight: 1.3 }}>{t.title}</div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 {t.due_date && (
-                                  <span style={{ fontSize: '10px', fontWeight: 600, color: isOverdue ? '#C62828' : THEME.textLow, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                  <span style={{ fontSize: '10px', fontWeight: 600, color: isOverdue ? '#B3261E' : THEME.textLow, display: 'flex', alignItems: 'center', gap: '2px' }}>
                                     <span className="material-symbols-rounded" style={{ fontSize: '12px' }}>calendar_today</span>
                                     {t.due_date}
                                   </span>
                                 )}
                                 {tChecklist.length > 0 && (
-                                  <span style={{ fontSize: '10px', fontWeight: 600, color: checkedCount === tChecklist.length ? '#2E7D32' : THEME.textLow, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                  <span style={{ fontSize: '10px', fontWeight: 600, color: checkedCount === tChecklist.length ? '#2F7D4F' : THEME.textLow, display: 'flex', alignItems: 'center', gap: '2px' }}>
                                     <span className="material-symbols-rounded" style={{ fontSize: '12px' }}>checklist</span>
                                     {checkedCount}/{tChecklist.length}
                                   </span>
@@ -1452,7 +1415,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                                   </span>
                                 )}
                                 {t.is_critical && (
-                                  <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FFEBEE', color: '#C62828' }}>CP</span>
+                                  <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#FBEDEC', color: '#B3261E' }}>CP</span>
                                 )}
                                 <div style={{ flex: 1 }} />
                                 {t.assigned_to && (
@@ -1659,7 +1622,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                 <button onClick={runCpm} disabled={cpmLoading} style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
-                  background: '#1565C0', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  background: '#1F4E8C', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   opacity: cpmLoading ? 0.6 : 1,
                 }}>
                   <span className="material-symbols-rounded" style={{ fontSize: '16px', animation: cpmLoading ? 'spin 1s linear infinite' : 'none' }}>{cpmLoading ? 'progress_activity' : 'calculate'}</span>
@@ -1727,12 +1690,12 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
             const chartH = tasks.length * ROW_H + HEADER_H
             const ganttBarColor = (t) => {
               const isCritical = cpmResult?.tasks?.find(ct => ct.task_id === t.id)?.is_critical
-              if (isCritical) return '#C62828'
-              if (t.status === 'done') return '#2E7D32'
-              if (t.status === 'in_progress') return '#1565C0'
-              if (t.percent_complete >= 100) return '#2E7D32'
+              if (isCritical) return '#B3261E'
+              if (t.status === 'done') return '#2F7D4F'
+              if (t.status === 'in_progress') return '#1F4E8C'
+              if (t.percent_complete >= 100) return '#2F7D4F'
               const overdue = t.end_date && t.end_date < today && (t.percent_complete || 0) < 100
-              if (overdue) return '#E65100'
+              if (overdue) return '#C8811E'
               return color
             }
 
@@ -1783,9 +1746,9 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                       {todayPos >= 0 && todayPos <= totalDays && (
                         <div style={{
                           position: 'absolute', left: `${(todayPos / totalDays) * 100}%`, top: 0, bottom: 0,
-                          width: '2px', background: '#F44336', zIndex: 5, pointerEvents: 'none',
+                          width: '2px', background: '#B3261E', zIndex: 5, pointerEvents: 'none',
                         }}>
-                          <div style={{ position: 'absolute', top: 0, left: '-10px', background: '#F44336', color: '#fff', fontSize: '8px', fontWeight: 700, padding: '1px 4px', borderRadius: '0 0 3px 3px', whiteSpace: 'nowrap' }}>Today</div>
+                          <div style={{ position: 'absolute', top: 0, left: '-10px', background: '#B3261E', color: '#fff', fontSize: '8px', fontWeight: 700, padding: '1px 4px', borderRadius: '0 0 3px 3px', whiteSpace: 'nowrap' }}>Today</div>
                         </div>
                       )}
                       {/* Task bars */}
@@ -1858,7 +1821,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                                 {/* Critical path marker */}
                                 {isCrit && (
                                   <span style={{
-                                    position: 'absolute', right: -8, top: -4, fontSize: '10px', color: '#C62828',
+                                    position: 'absolute', right: -8, top: -4, fontSize: '10px', color: '#B3261E',
                                   }}>⚑</span>
                                 )}
                                 {/* Tooltip */}
@@ -1896,8 +1859,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                 {/* Legend */}
                 <div style={{ display: 'flex', gap: '14px', padding: '10px 16px', borderTop: `1px solid ${THEME.outlineVar}`, flexWrap: 'wrap' }}>
                   {[
-                    { c: color, l: 'On Track' }, { c: '#1565C0', l: 'In Progress' }, { c: '#2E7D32', l: 'Complete' },
-                    { c: '#E65100', l: 'Overdue' }, { c: '#C62828', l: 'Critical Path' },
+                    { c: color, l: 'On Track' }, { c: '#1F4E8C', l: 'In Progress' }, { c: '#2F7D4F', l: 'Complete' },
+                    { c: '#C8811E', l: 'Overdue' }, { c: '#B3261E', l: 'Critical Path' },
                   ].map(x => (
                     <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', color: THEME.textMed }}>
                       <div style={{ width: '14px', height: '8px', borderRadius: '2px', background: x.c + '30', border: `1px solid ${x.c}60` }}>
@@ -1907,7 +1870,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                     </div>
                   ))}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', color: THEME.textMed }}>
-                    <div style={{ width: '2px', height: '10px', background: '#F44336' }} /> Today
+                    <div style={{ width: '2px', height: '10px', background: '#B3261E' }} /> Today
                   </div>
                 </div>
               </DashCard>
@@ -1937,7 +1900,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: THEME.textMed }}>% Complete</label>
-                    <span style={{ fontSize: '24px', fontWeight: 800, color: quickProgress.percent >= 100 ? '#2E7D32' : quickProgress.percent > 0 ? color : THEME.textLow }}>{quickProgress.percent}%</span>
+                    <span style={{ fontSize: '24px', fontWeight: 800, color: quickProgress.percent >= 100 ? '#2F7D4F' : quickProgress.percent > 0 ? color : THEME.textLow }}>{quickProgress.percent}%</span>
                   </div>
                   <input type="range" min="0" max="100" step="5" value={quickProgress.percent}
                     onChange={e => setQuickProgress(p => ({ ...p, percent: parseInt(e.target.value) }))}
@@ -1969,7 +1932,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                 </div>
                 {/* Progress bar preview */}
                 <div style={{ height: '6px', borderRadius: '3px', background: THEME.outlineVar, marginBottom: '16px' }}>
-                  <div style={{ height: '100%', borderRadius: '3px', background: quickProgress.percent >= 100 ? '#2E7D32' : color, width: `${quickProgress.percent}%`, transition: 'width 0.2s' }} />
+                  <div style={{ height: '100%', borderRadius: '3px', background: quickProgress.percent >= 100 ? '#2F7D4F' : color, width: `${quickProgress.percent}%`, transition: 'width 0.2s' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <button onClick={() => openTaskModal(boardTasks.find(t => t.id === quickProgress.id))} style={{
@@ -2017,16 +1980,16 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                         return (
                           <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}` }}>
                             <td style={{ padding: '8px 10px', color: THEME.text, fontWeight: 500, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</td>
-                            <td style={{ padding: '8px 10px', color: '#C62828', fontWeight: 600, whiteSpace: 'nowrap' }}>{t.end_date}</td>
+                            <td style={{ padding: '8px 10px', color: '#B3261E', fontWeight: 600, whiteSpace: 'nowrap' }}>{t.end_date}</td>
                             <td style={{ padding: '8px 10px' }}>
-                              <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 700, background: daysLate > 14 ? '#FFEBEE' : '#FFF3E0', color: daysLate > 14 ? '#C62828' : '#E65100' }}>
+                              <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 700, background: daysLate > 14 ? '#FBEDEC' : '#FFF6E8', color: daysLate > 14 ? '#B3261E' : '#C8811E' }}>
                                 {daysLate}d late
                               </span>
                             </td>
                             <td style={{ padding: '8px 10px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <div style={{ width: '50px', height: '5px', borderRadius: '3px', background: THEME.outlineVar }}>
-                                  <div style={{ height: '100%', borderRadius: '3px', background: '#E65100', width: `${pct}%` }} />
+                                  <div style={{ height: '100%', borderRadius: '3px', background: '#C8811E', width: `${pct}%` }} />
                                 </div>
                                 <span style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed }}>{pct}%</span>
                               </div>
@@ -2078,12 +2041,12 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                           <div style={{ fontSize: '10px', color: THEME.textLow, marginTop: '2px' }}>
                             {t.end_date ? `Due: ${t.end_date}` : 'No due date'}
                             {t.assigned_to ? ` · ${userName(t.assigned_to)}` : ''}
-                            {overdue && <span style={{ color: '#C62828', fontWeight: 600, marginLeft: '6px' }}>OVERDUE</span>}
+                            {overdue && <span style={{ color: '#B3261E', fontWeight: 600, marginLeft: '6px' }}>OVERDUE</span>}
                           </div>
                         </div>
                         <div style={{ width: '80px', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                           <div style={{ flex: 1, height: '5px', borderRadius: '3px', background: THEME.outlineVar }}>
-                            <div style={{ height: '100%', borderRadius: '3px', background: overdue ? '#E65100' : color, width: `${pct}%` }} />
+                            <div style={{ height: '100%', borderRadius: '3px', background: overdue ? '#C8811E' : color, width: `${pct}%` }} />
                           </div>
                           <span style={{ fontSize: '11px', fontWeight: 600, color: THEME.textMed, width: '30px', textAlign: 'right' }}>{pct}%</span>
                         </div>
@@ -2100,8 +2063,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
             <DashCard style={{ marginBottom: '16px' }}>
               <SectionTitle title="CPM Results" subtitle={`Project duration: ${cpmResult.project_duration || 0} days · ${cpmResult.critical_path?.length || 0} critical tasks`} />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '12px' }}>
-                <KpiCard label="Duration" value={`${cpmResult.project_duration || 0}d`} icon="schedule" accent="#1565C0" />
-                <KpiCard label="Critical Tasks" value={cpmResult.critical_path?.length || 0} icon="warning" accent="#C62828" />
+                <KpiCard label="Duration" value={`${cpmResult.project_duration || 0}d`} icon="schedule" accent="#1F4E8C" />
+                <KpiCard label="Critical Tasks" value={cpmResult.critical_path?.length || 0} icon="warning" accent="#B3261E" />
                 <KpiCard label="Total Tasks" value={cpmResult.tasks?.length || 0} icon="task" accent={color} />
               </div>
               {cpmResult.tasks?.length > 0 && (
@@ -2125,8 +2088,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                             <td style={{ padding: '6px 8px', color: THEME.textMed }}>{t.ef ?? '—'}</td>
                             <td style={{ padding: '6px 8px', color: THEME.textMed }}>{t.ls ?? '—'}</td>
                             <td style={{ padding: '6px 8px', color: THEME.textMed }}>{t.lf ?? '—'}</td>
-                            <td style={{ padding: '6px 8px', fontWeight: 600, color: t.total_float === 0 ? '#C62828' : THEME.text }}>{t.total_float ?? '—'}</td>
-                            <td style={{ padding: '6px 8px' }}>{t.is_critical ? <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#FFEBEE', color: '#C62828' }}>YES</span> : '—'}</td>
+                            <td style={{ padding: '6px 8px', fontWeight: 600, color: t.total_float === 0 ? '#B3261E' : THEME.text }}>{t.total_float ?? '—'}</td>
+                            <td style={{ padding: '6px 8px' }}>{t.is_critical ? <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#FBEDEC', color: '#B3261E' }}>YES</span> : '—'}</td>
                           </tr>
                         )
                       })}
@@ -2188,7 +2151,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                             <td style={{ padding: '6px 8px', color: THEME.textMed }}>{snap.planned_duration || '—'}d</td>
                             <td style={{ padding: '6px 8px', color: THEME.textMed }}>{snap.percent_complete || 0}%
                               {startDrift != null && startDrift !== 0 && (
-                                <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 600, color: startDrift > 0 ? '#C62828' : '#2E7D32' }}>
+                                <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 600, color: startDrift > 0 ? '#B3261E' : '#2F7D4F' }}>
                                   {startDrift > 0 ? `+${startDrift}d late` : `${Math.abs(startDrift)}d early`}
                                 </span>
                               )}
@@ -2261,9 +2224,9 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '16px' }}>
                     <KpiCard label="BAC (Budget)" value={fmtMoney(evmResult.bac)} icon="account_balance" accent={color} />
-                    <KpiCard label="BCWS (PV)" value={fmtMoney(evmResult.bcws)} icon="schedule" accent="#1565C0" />
-                    <KpiCard label="BCWP (EV)" value={fmtMoney(evmResult.bcwp)} icon="trending_up" accent="#2E7D32" />
-                    <KpiCard label="ACWP (AC)" value={fmtMoney(evmResult.acwp)} icon="payments" accent="#E65100" />
+                    <KpiCard label="BCWS (PV)" value={fmtMoney(evmResult.bcws)} icon="schedule" accent="#1F4E8C" />
+                    <KpiCard label="BCWP (EV)" value={fmtMoney(evmResult.bcwp)} icon="trending_up" accent="#2F7D4F" />
+                    <KpiCard label="ACWP (AC)" value={fmtMoney(evmResult.acwp)} icon="payments" accent="#C8811E" />
                   </div>
 
                   {/* Performance indices */}
@@ -2277,7 +2240,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                       ].map(idx => (
                         <div key={idx.label} style={{ padding: '14px', borderRadius: '10px', background: THEME.surfaceVar }}>
                           <div style={{ fontSize: '11px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', marginBottom: '6px' }}>{idx.label}</div>
-                          <div style={{ fontSize: '28px', fontWeight: 800, color: idx.value == null ? THEME.textLow : idx.good ? '#2E7D32' : '#C62828', marginBottom: '2px' }}>
+                          <div style={{ fontSize: '28px', fontWeight: 800, color: idx.value == null ? THEME.textLow : idx.good ? '#2F7D4F' : '#B3261E', marginBottom: '2px' }}>
                             {idx.value != null ? idx.value.toFixed(2) : '—'}
                           </div>
                           <div style={{ fontSize: '11px', color: THEME.textMed }}>{idx.value != null ? idx.desc : 'No data'}</div>
@@ -2301,7 +2264,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                       ].map(item => (
                         <div key={item.label} style={{ padding: '10px 14px', borderRadius: '8px', background: THEME.surfaceVar }}>
                           <div style={{ fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', marginBottom: '4px' }}>{item.label}</div>
-                          <div style={{ fontSize: '16px', fontWeight: 700, color: item.value < 0 ? '#C62828' : item.value > 0 ? '#2E7D32' : THEME.text }}>
+                          <div style={{ fontSize: '16px', fontWeight: 700, color: item.value < 0 ? '#B3261E' : item.value > 0 ? '#2F7D4F' : THEME.text }}>
                             {item.value != null ? item.fmt(item.value) : '—'}
                           </div>
                         </div>
@@ -2317,9 +2280,9 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                     const aW = W - padL - padR, aH = H - padT - padB
                     const series = pts.length >= 2
                       ? [
-                          { key: 'bcws', label: 'PV (Planned)', color: '#1565C0', vals: pts.map(p => Number(p.bcws || 0)) },
-                          { key: 'bcwp', label: 'EV (Earned)', color: '#2E7D32', vals: pts.map(p => Number(p.bcwp || 0)) },
-                          { key: 'acwp', label: 'AC (Actual)', color: '#E65100', vals: pts.map(p => Number(p.acwp || 0)) },
+                          { key: 'bcws', label: 'PV (Planned)', color: '#1F4E8C', vals: pts.map(p => Number(p.bcws || 0)) },
+                          { key: 'bcwp', label: 'EV (Earned)', color: '#2F7D4F', vals: pts.map(p => Number(p.bcwp || 0)) },
+                          { key: 'acwp', label: 'AC (Actual)', color: '#C8811E', vals: pts.map(p => Number(p.acwp || 0)) },
                         ]
                       : []
                     const allVals = series.flatMap(s => s.vals)
@@ -2397,7 +2360,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                           <span>Planned Progress</span><span>{evmResult.percent_planned}%</span>
                         </div>
                         <div style={{ height: '8px', borderRadius: '4px', background: THEME.outlineVar }}>
-                          <div style={{ height: '100%', borderRadius: '4px', background: '#1565C0', width: `${Math.min(100, evmResult.percent_planned)}%`, transition: 'width 0.3s' }} />
+                          <div style={{ height: '100%', borderRadius: '4px', background: '#1F4E8C', width: `${Math.min(100, evmResult.percent_planned)}%`, transition: 'width 0.3s' }} />
                         </div>
                       </div>
                       <div style={{ marginBottom: '12px' }}>
@@ -2405,7 +2368,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                           <span>Actual Progress</span><span>{evmResult.percent_actual}%</span>
                         </div>
                         <div style={{ height: '8px', borderRadius: '4px', background: THEME.outlineVar }}>
-                          <div style={{ height: '100%', borderRadius: '4px', background: '#2E7D32', width: `${Math.min(100, evmResult.percent_actual)}%`, transition: 'width 0.3s' }} />
+                          <div style={{ height: '100%', borderRadius: '4px', background: '#2F7D4F', width: `${Math.min(100, evmResult.percent_actual)}%`, transition: 'width 0.3s' }} />
                         </div>
                       </div>
                       {evmResult.bac > 0 && (
@@ -2414,7 +2377,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                             <span>Cost Spent</span><span>{Math.round((evmResult.acwp || 0) / evmResult.bac * 100)}% of budget</span>
                           </div>
                           <div style={{ height: '8px', borderRadius: '4px', background: THEME.outlineVar }}>
-                            <div style={{ height: '100%', borderRadius: '4px', background: evmResult.acwp > evmResult.bac ? '#C62828' : '#E65100', width: `${Math.min(100, (evmResult.acwp || 0) / evmResult.bac * 100)}%`, transition: 'width 0.3s' }} />
+                            <div style={{ height: '100%', borderRadius: '4px', background: evmResult.acwp > evmResult.bac ? '#B3261E' : '#C8811E', width: `${Math.min(100, (evmResult.acwp || 0) / evmResult.bac * 100)}%`, transition: 'width 0.3s' }} />
                           </div>
                         </div>
                       )}
@@ -2464,7 +2427,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                           <div key={cat} style={{ padding: '10px', borderRadius: '8px', background: THEME.surfaceVar }}>
                             <div style={{ fontSize: '10px', fontWeight: 700, color: THEME.textLow, textTransform: 'uppercase', marginBottom: '4px' }}>{cat}</div>
                             <div style={{ fontSize: '14px', fontWeight: 700, color: THEME.text }}>{fmtMoney(total)}</div>
-                            <div style={{ fontSize: '11px', color: actual > total ? '#C62828' : THEME.textMed }}>Actual: {fmtMoney(actual)}</div>
+                            <div style={{ fontSize: '11px', color: actual > total ? '#B3261E' : THEME.textMed }}>Actual: {fmtMoney(actual)}</div>
                           </div>
                         )
                       })}
@@ -2498,7 +2461,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                               <td style={{ padding: '6px 8px', color: THEME.textMed, textTransform: 'capitalize' }}>{ci.category || '—'}</td>
                               <td style={{ padding: '6px 8px', color: THEME.text, fontWeight: 600 }}>{fmtMoney(ci.budgeted_cost)}</td>
                               <td style={{ padding: '6px 8px', color: THEME.textMed }}>{fmtMoney(ci.committed_cost)}</td>
-                              <td style={{ padding: '6px 8px', color: overBudget ? '#C62828' : THEME.text, fontWeight: overBudget ? 700 : 400 }}>{fmtMoney(ci.actual_cost)}</td>
+                              <td style={{ padding: '6px 8px', color: overBudget ? '#B3261E' : THEME.text, fontWeight: overBudget ? 700 : 400 }}>{fmtMoney(ci.actual_cost)}</td>
                               <td style={{ padding: '6px 8px', color: THEME.textMed }}>{fmtMoney(ci.estimate_to_complete)}</td>
                               <td style={{ padding: '6px 8px', color: THEME.text, fontWeight: 600 }}>{fmtMoney(ci.estimate_at_completion)}</td>
                               <td style={{ padding: '6px 8px' }}>
@@ -2587,11 +2550,11 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                   {changeOrders.map(co => {
                     const statusColors = {
                       draft: { bg: THEME.statusNeutralBg, text: THEME.statusNeutralText },
-                      submitted: { bg: '#FFF3E0', text: '#E65100' },
-                      under_review: { bg: '#E3F2FD', text: '#1565C0' },
+                      submitted: { bg: '#FFF6E8', text: '#C8811E' },
+                      under_review: { bg: '#EEF3FA', text: '#1F4E8C' },
                       approved: { bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
                       rejected: { bg: THEME.statusErrorBg, text: THEME.statusErrorText },
-                      implemented: { bg: '#E8F5E9', text: '#1B5E20' },
+                      implemented: { bg: '#F1F8F3', text: '#2F7D4F' },
                     }
                     const sc = statusColors[co.status] || statusColors.draft
                     return (
@@ -2609,8 +2572,8 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                               <span style={{ fontSize: '14px', fontWeight: 600, color: THEME.text }}>{co.title}</span>
                             </div>
                             <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: THEME.textMed }}>
-                              {co.cost_impact !== 0 && <span style={{ color: co.cost_impact > 0 ? '#C62828' : '#2E7D32', fontWeight: 600 }}>{co.cost_impact > 0 ? '+' : ''}{fmtMoney(co.cost_impact)}</span>}
-                              {co.schedule_impact_days !== 0 && <span style={{ color: co.schedule_impact_days > 0 ? '#C62828' : '#2E7D32', fontWeight: 600 }}>{co.schedule_impact_days > 0 ? '+' : ''}{co.schedule_impact_days}d</span>}
+                              {co.cost_impact !== 0 && <span style={{ color: co.cost_impact > 0 ? '#B3261E' : '#2F7D4F', fontWeight: 600 }}>{co.cost_impact > 0 ? '+' : ''}{fmtMoney(co.cost_impact)}</span>}
+                              {co.schedule_impact_days !== 0 && <span style={{ color: co.schedule_impact_days > 0 ? '#B3261E' : '#2F7D4F', fontWeight: 600 }}>{co.schedule_impact_days > 0 ? '+' : ''}{co.schedule_impact_days}d</span>}
                               {co.requester?.full_name && <span>by {co.requester.full_name}</span>}
                               {co.requested_date && <span>{co.requested_date}</span>}
                             </div>
@@ -2770,9 +2733,9 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
               </div>
               {taskForm.total_float != null && (
                 <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: THEME.textMed, marginTop: '4px' }}>
-                  <span>Total Float: <strong style={{ color: taskForm.is_critical ? '#C62828' : THEME.text }}>{taskForm.total_float}d</strong></span>
+                  <span>Total Float: <strong style={{ color: taskForm.is_critical ? '#B3261E' : THEME.text }}>{taskForm.total_float}d</strong></span>
                   <span>Free Float: <strong>{taskForm.free_float || 0}d</strong></span>
-                  {taskForm.is_critical && <span style={{ fontWeight: 700, color: '#C62828' }}>CRITICAL PATH</span>}
+                  {taskForm.is_critical && <span style={{ fontWeight: 700, color: '#B3261E' }}>CRITICAL PATH</span>}
                 </div>
               )}
             </div>
@@ -2789,7 +2752,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                     const typeLabel = dep.dependency_type === 'blocks' ? (isBlocking ? 'Blocks' : 'Blocked by') : dep.dependency_type === 'is_blocked_by' ? (isBlocking ? 'Blocked by' : 'Blocks') : 'Related to'
                     return (
                       <div key={dep.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 8px', background: THEME.surfaceVar, borderRadius: '6px', fontSize: '12px' }}>
-                        <span className="material-symbols-rounded" style={{ fontSize: '14px', color: dep.dependency_type === 'related_to' ? THEME.textLow : '#E65100' }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '14px', color: dep.dependency_type === 'related_to' ? THEME.textLow : '#C8811E' }}>
                           {dep.dependency_type === 'related_to' ? 'link' : 'block'}
                         </span>
                         <span style={{ color: THEME.textMed, fontWeight: 600, minWidth: '70px' }}>{typeLabel}</span>

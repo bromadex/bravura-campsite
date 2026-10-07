@@ -5,7 +5,6 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from './pjTheme'
 import { Card, Icon, Button, PageHeader, showToast, ModalOverlay } from '../../components/ui'
-import QuickNav, { PROJECT_PILLS } from '../../components/QuickNav'
 import { exportCsv } from '../../utils/csv'
 
 const color = MODULE_COLORS.projects
@@ -19,8 +18,8 @@ const METHODS = [
 
 const STATUS_MAP = {
   draft: { label: 'Draft', bg: THEME.statusNeutralBg, text: THEME.statusNeutralText },
-  sent: { label: 'Sent', bg: '#E3F2FD', text: '#1565C0' },
-  received: { label: 'Received', bg: '#FFF3E0', text: '#E65100' },
+  sent: { label: 'Sent', bg: '#EEF3FA', text: '#1F4E8C' },
+  received: { label: 'Received', bg: '#FFF6E8', text: '#C8811E' },
   acknowledged: { label: 'Acknowledged', bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
 }
 
@@ -208,15 +207,14 @@ export default function PJTransmittals({ setPage }) {
 
   const DOC_STATUS = {
     draft: { bg: THEME.statusNeutralBg, text: THEME.statusNeutralText },
-    issued_for_review: { bg: '#FFF3E0', text: '#E65100' },
-    issued_for_construction: { bg: '#E3F2FD', text: '#1565C0' },
+    issued_for_review: { bg: '#FFF6E8', text: '#C8811E' },
+    issued_for_construction: { bg: '#EEF3FA', text: '#1F4E8C' },
     approved: { bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
     superseded: { bg: THEME.statusErrorBg, text: THEME.statusErrorText },
   }
 
   return (
     <div>
-      <QuickNav pills={PROJECT_PILLS} setPage={setPage} current="pj_transmittals" />
       <PageHeader title="Transmittals" site={currentSite} actions={
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button icon="download" onClick={handleExport}>Export</Button>
@@ -324,7 +322,7 @@ export default function PJTransmittals({ setPage }) {
                 {detailTx.status === 'draft' && (
                   <button onClick={() => changeStatus(detailTx.id, 'sent')} style={{
                     display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px',
-                    fontSize: '12px', fontWeight: 600, background: '#1565C0', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: '12px', fontWeight: 600, background: '#1F4E8C', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>send</span>Mark as Sent
                   </button>
@@ -332,7 +330,7 @@ export default function PJTransmittals({ setPage }) {
                 {detailTx.status === 'sent' && (
                   <button onClick={() => changeStatus(detailTx.id, 'received')} style={{
                     display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px',
-                    fontSize: '12px', fontWeight: 600, background: '#E65100', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: '12px', fontWeight: 600, background: '#C8811E', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>mark_email_read</span>Mark as Received
                   </button>
@@ -340,7 +338,7 @@ export default function PJTransmittals({ setPage }) {
                 {(detailTx.status === 'sent' || detailTx.status === 'received') && (
                   <button onClick={() => changeStatus(detailTx.id, 'acknowledged')} style={{
                     display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px',
-                    fontSize: '12px', fontWeight: 600, background: '#2E7D32', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: '12px', fontWeight: 600, background: '#2F7D4F', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>verified</span>Acknowledge
                   </button>

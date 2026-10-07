@@ -4,7 +4,6 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
 import { showToast, ModalOverlay } from '../../components/ui'
-import QuickNav, { PROJECT_PILLS } from '../../components/QuickNav'
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 import TemplatePicker from './TemplatePicker'
 
@@ -13,13 +12,13 @@ const color = MODULE_COLORS.projects
 const STATUSES = ['planning', 'active', 'on_hold', 'completed', 'cancelled']
 const TYPES = ['construction', 'mining', 'maintenance', 'infrastructure', 'exploration', 'other']
 const PRIORITIES = ['low', 'medium', 'high', 'critical']
-const PRIORITY_COLORS = { low: '#43A047', medium: '#1565C0', high: '#E65100', critical: '#C62828' }
+const PRIORITY_COLORS = { low: '#8A948F', medium: '#1F4E8C', high: '#C8811E', critical: '#B3261E' }
 const STATUS_COLORS = {
-  planning:  { bg: '#E3F2FD', text: '#1565C0', label: 'Planning' },
-  active:    { bg: '#E8F5E9', text: '#2E7D32', label: 'Active' },
-  on_hold:   { bg: '#FFF3E0', text: '#E65100', label: 'On Hold' },
-  completed: { bg: '#F3E5F5', text: '#6A1B9A', label: 'Completed' },
-  cancelled: { bg: '#FFEBEE', text: '#B71C1C', label: 'Cancelled' },
+  planning:  { bg: '#EEF3FA', text: '#1F4E8C', label: 'Planning' },
+  active:    { bg: '#F1F8F3', text: '#2F7D4F', label: 'Active' },
+  on_hold:   { bg: '#FFF6E8', text: '#9A5B00', label: 'On hold' },
+  completed: { bg: '#EEF1EF', text: '#5B6661', label: 'Completed' },
+  cancelled: { bg: '#FBEDEC', text: '#B3261E', label: 'Cancelled' },
 }
 
 const COVER_COLORS = ['#1B5E20', '#0D47A1', '#4A148C', '#BF360C', '#006064', '#3E2723', '#263238', '#880E4F', '#E65100', '#1A237E']
@@ -34,7 +33,7 @@ function fmtMoney(n) {
   return `$${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
-export default function PJList({ setPage }) {
+export default function PJList({ setPage, openNew = 0 }) {
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   useRealtimeSubscription('projects', { column: 'site_id', value: currentSiteId }, fetchProjects)
@@ -46,7 +45,7 @@ export default function PJList({ setPage }) {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterType, setFilterType] = useState('')
-  const [viewMode, setViewMode] = useState('cards')
+  const [viewMode, setViewMode] = useState('list')
   const [modalOpen, setModalOpen] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -71,6 +70,7 @@ export default function PJList({ setPage }) {
   }
 
   useEffect(() => { fetchProjects() }, [currentSiteId])
+  useEffect(() => { if (openNew) openAdd() }, [openNew])
 
   const phaseProgress = useMemo(() => {
     const byProject = {}
@@ -230,14 +230,10 @@ export default function PJList({ setPage }) {
   }
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <QuickNav pills={PROJECT_PILLS} setPage={setPage} current="pj_projects" />
+    <div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <div style={{ fontSize: '20px', fontWeight: 500, color: THEME.text }}>Projects</div>
-          <div style={{ fontSize: '12px', color: THEME.textMed }}>{filtered.length} project{filtered.length !== 1 ? 's' : ''}</div>
-        </div>
+        <div style={{ fontSize: '13px', color: THEME.textMed }}>{filtered.length} project{filtered.length !== 1 ? 's' : ''}</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button onClick={() => setViewMode(viewMode === 'cards' ? 'list' : 'cards')} style={{
             padding: '6px 10px', borderRadius: '8px', background: THEME.surfaceVar,
@@ -253,16 +249,6 @@ export default function PJList({ setPage }) {
             }}>
               <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>content_copy</span>
               From template
-            </button>
-          )}
-          {can('projects.create') && (
-            <button onClick={openAdd} style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
-              background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>add</span>
-              New Project
             </button>
           )}
         </div>
@@ -304,9 +290,9 @@ export default function PJList({ setPage }) {
             const overdue = p.status === 'active' && p.target_end_date && new Date(p.target_end_date) < new Date()
             return (
               <div key={p.id}
-                onClick={() => can('projects.edit') ? openEdit(p) : null}
+                onClick={() => setPage('pj_detail_' + p.id)}
                 style={{
-                  borderRadius: '14px', overflow: 'hidden', cursor: can('projects.edit') ? 'pointer' : 'default',
+                  borderRadius: '14px', overflow: 'hidden', cursor: 'pointer',
                   border: `1px solid ${THEME.outlineVar}`, background: THEME.surface,
                   boxShadow: THEME.shadow1, transition: 'box-shadow .15s',
                 }}
@@ -360,7 +346,7 @@ export default function PJList({ setPage }) {
                       </span>
                     </div>
                     {overdue && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#C62828', fontWeight: 600 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#B3261E', fontWeight: 600 }}>
                         <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>warning</span>
                         Overdue
                       </span>
@@ -373,7 +359,7 @@ export default function PJList({ setPage }) {
         </div>
       ) : (
         /* List view */
-        <div style={{ overflowX: 'auto', borderRadius: '14px', border: `1px solid ${THEME.outlineVar}` }}>
+        <div style={{ overflowX: 'auto', borderRadius: '14px', border: `1px solid ${THEME.outlineVar}`, background: '#fff' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: THEME.surfaceVar }}>
@@ -389,8 +375,8 @@ export default function PJList({ setPage }) {
                 const pct = prog && prog.total > 0 ? Math.round((prog.completed / prog.total) * 100) : 0
                 return (
                   <tr key={p.id}
-                    onClick={() => can('projects.edit') ? openEdit(p) : null}
-                    style={{ cursor: can('projects.edit') ? 'pointer' : 'default', borderBottom: `1px solid ${THEME.outlineVar}` }}
+                    onClick={() => setPage('pj_detail_' + p.id)}
+                    style={{ cursor: 'pointer', borderBottom: `1px solid ${THEME.outlineVar}` }}
                     onMouseEnter={e => e.currentTarget.style.background = THEME.surfaceVar}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >

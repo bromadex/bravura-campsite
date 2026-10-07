@@ -219,14 +219,10 @@ const ProcReports = lazy(() => import('./pages/procurement/ProcReports'))
 const PJHome = lazy(() => import('./pages/projects/PJHome'))
 const MyWorkspace = lazy(() => import('./pages/projects/MyWorkspace'))
 const PJTime = lazy(() => import('./pages/projects/PJTime'))
-const PJList      = lazy(() => import('./pages/projects/PJList'))
 const PJDetail    = lazy(() => import('./pages/projects/PJDetail'))
 const PJTimeline  = lazy(() => import('./pages/projects/PJTimeline'))
 const PJAreas     = lazy(() => import('./pages/projects/PJAreas'))
-const PJDocuments = lazy(() => import('./pages/projects/PJDocuments'))
-const PJTransmittals = lazy(() => import('./pages/projects/PJTransmittals'))
-const PJCosts    = lazy(() => import('./pages/projects/PJCosts'))
-const PJChanges  = lazy(() => import('./pages/projects/PJChanges'))
+const PJDocsHub   = lazy(() => import('./pages/projects/PJDocsHub'))
 
 // ── Department Workspaces ────────────────────────────────────────────────────
 const DeptDashboard       = lazy(() => import('./pages/dept/DeptDashboard'))
@@ -670,15 +666,16 @@ function getProjectsPage(page, can, setPage) {
   if (page && page.startsWith('pj_workspace')) return <MyWorkspace key={page} setPage={setPage} openId={page.split(':')[1]} />
   if (page && page.startsWith('pj_time')) return <PJTime key={page} setPage={setPage} initialTab={page.split(':')[1]} />
   switch (page) {
-    case 'pj_dashboard': return <PJHome setPage={setPage} />
-    case 'pj_projects':  return pjFramed(<PJList setPage={setPage} />)
-    case 'pj_areas':     return pjFramed(<PJAreas setPage={setPage} />)
-    case 'pj_documents': return pjFramed(<PJDocuments setPage={setPage} />)
-    case 'pj_transmittals': return pjFramed(<PJTransmittals setPage={setPage} />)
+    // One Projects home (#76): Portfolio · All projects · Money (old list, Costs & EVM and Change Orders pages merged in).
+    case 'pj_dashboard': return <PJHome key="portfolio" setPage={setPage} />
+    case 'pj_projects':  return <PJHome key="all" setPage={setPage} initialTab="all" />
+    case 'pj_areas':     return <FinShell module="Projects" homePage="pj_dashboard" setPage={setPage} title="Area codes" subtitle="Plant areas across projects (tasks carry the code as AC-49)."><PJAreas setPage={setPage} /></FinShell>
+    case 'pj_documents': return <PJDocsHub key="register" setPage={setPage} />
+    case 'pj_transmittals': return <PJDocsHub key="transmittals" setPage={setPage} initialTab="transmittals" />
     case 'pj_tasks':     return <MyWorkspace setPage={setPage} />  // PJ04 My Tasks → My workspace (#76)
     case 'pj_timeline':  return <PJTimeline setPage={setPage} />
-    case 'pj_costs':     return pjFramed(<PJCosts setPage={setPage} />)
-    case 'pj_changes':   return pjFramed(<PJChanges setPage={setPage} />)
+    case 'pj_costs':
+    case 'pj_changes':   return <PJHome key="money" setPage={setPage} initialTab="money" />
     default:             return <PJHome setPage={setPage} />
   }
 }

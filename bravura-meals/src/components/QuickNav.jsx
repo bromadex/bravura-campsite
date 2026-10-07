@@ -159,13 +159,10 @@ export const SHEQ_PILLS = [
 ]
 
 export const PROJECT_PILLS = [
-  { id: 'pj_dashboard', label: 'Dashboard',      icon: 'dashboard',   color: '#1B5E20' },
-  { id: 'pj_projects',  label: 'Projects',       icon: 'folder_open', color: '#2E7D32' },
-  { id: 'pj_tasks',     label: 'Tasks',          icon: 'task_alt',    color: '#1565C0' },
-  { id: 'pj_timeline',  label: 'Timeline',       icon: 'timeline',    color: '#6A1B9A' },
-  { id: 'pj_documents', label: 'Documents',      icon: 'description', color: '#E65100' },
-  { id: 'pj_costs',     label: 'Costs & EVM',    icon: 'payments',    color: '#AD1457' },
-  { id: 'pj_changes',   label: 'Change Orders',  icon: 'swap_horiz',  color: '#00838F' },
+  { id: 'pj_dashboard', label: 'Projects',  icon: 'dashboard',   color: '#982329' },
+  { id: 'pj_timeline',  label: 'Timeline',  icon: 'timeline',    color: '#1F4E8C' },
+  { id: 'pj_time',      label: 'Time',      icon: 'schedule',    color: '#2F7D4F' },
+  { id: 'pj_documents', label: 'Documents', icon: 'description', color: '#5B6661' },
 ]
 
 export const ADMIN_PILLS = [

@@ -5,7 +5,6 @@ import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
 import { THEME, MODULE_COLORS } from './pjTheme'
 import { Card, Icon, Button, Modal, SectionLabel, PageHeader, showToast, ModalOverlay } from '../../components/ui'
-import QuickNav, { PROJECT_PILLS } from '../../components/QuickNav'
 import { useRealtimeRefresh } from '../../hooks/useRealtimeSubscription'
 import { exportCsv } from '../../utils/csv'
 
@@ -23,23 +22,23 @@ const DOC_TYPES = [
 
 const STATUS_MAP = {
   draft: { label: 'Draft', bg: THEME.statusNeutralBg, text: THEME.statusNeutralText },
-  issued_for_review: { label: 'Issued for Review', bg: '#FFF3E0', text: '#E65100' },
-  issued_for_construction: { label: 'Issued for Construction', bg: '#E3F2FD', text: '#1565C0' },
+  issued_for_review: { label: 'Issued for Review', bg: '#FFF6E8', text: '#C8811E' },
+  issued_for_construction: { label: 'Issued for Construction', bg: '#EEF3FA', text: '#1F4E8C' },
   approved: { label: 'Approved', bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
   superseded: { label: 'Superseded', bg: THEME.statusErrorBg, text: THEME.statusErrorText },
 }
 
 const REVIEW_STATUS = {
   pending: { label: 'Pending', bg: THEME.statusNeutralBg, text: THEME.statusNeutralText },
-  reviewed: { label: 'Reviewed', bg: '#E3F2FD', text: '#1565C0' },
+  reviewed: { label: 'Reviewed', bg: '#EEF3FA', text: '#1F4E8C' },
   approved: { label: 'Approved', bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
   rejected: { label: 'Rejected', bg: THEME.statusErrorBg, text: THEME.statusErrorText },
   skipped: { label: 'Skipped', bg: THEME.statusNeutralBg, text: THEME.statusNeutralText },
 }
 
 const CYCLE_STATUS = {
-  open: { label: 'Open', bg: '#FFF3E0', text: '#E65100' },
-  in_review: { label: 'In Review', bg: '#E3F2FD', text: '#1565C0' },
+  open: { label: 'Open', bg: '#FFF6E8', text: '#C8811E' },
+  in_review: { label: 'In Review', bg: '#EEF3FA', text: '#1F4E8C' },
   approved: { label: 'Approved', bg: THEME.statusSuccessBg, text: THEME.statusSuccessText },
   rejected: { label: 'Rejected', bg: THEME.statusErrorBg, text: THEME.statusErrorText },
   cancelled: { label: 'Cancelled', bg: THEME.statusNeutralBg, text: THEME.statusNeutralText },
@@ -376,7 +375,6 @@ export default function PJDocuments({ setPage }) {
 
   return (
     <div>
-      <QuickNav pills={PROJECT_PILLS} setPage={setPage} current="pj_documents" />
       <PageHeader title="Document Register" site={currentSite} actions={
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button icon="download" onClick={handleExport}>Export</Button>
@@ -495,7 +493,7 @@ export default function PJDocuments({ setPage }) {
                 {detailDoc.status === 'draft' && (
                   <button onClick={() => { setReviewForm({ reviewer_ids: [], due_date: '', notes: '' }); setReviewModal(true) }} style={{
                     display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px',
-                    fontSize: '12px', fontWeight: 600, background: '#E65100', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: '12px', fontWeight: 600, background: '#C8811E', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>rate_review</span>
                     Send for Review
@@ -504,7 +502,7 @@ export default function PJDocuments({ setPage }) {
                 {detailDoc.status === 'approved' && (
                   <button onClick={() => changeDocStatus(detailDoc.id, 'issued_for_construction')} style={{
                     display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px',
-                    fontSize: '12px', fontWeight: 600, background: '#1565C0', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: '12px', fontWeight: 600, background: '#1F4E8C', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>construction</span>
                     Issue for Construction
@@ -525,8 +523,8 @@ export default function PJDocuments({ setPage }) {
 
             {/* My pending review banner */}
             {myReview && myReview.status === 'pending' && (
-              <div style={{ padding: '12px 16px', borderRadius: '10px', background: '#FFF3E0', border: '1px solid #FFB74D', marginBottom: '16px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#E65100', marginBottom: '8px' }}>
+              <div style={{ padding: '12px 16px', borderRadius: '10px', background: '#FFF6E8', border: '1px solid #FFB74D', marginBottom: '16px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#C8811E', marginBottom: '8px' }}>
                   <span className="material-symbols-rounded" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>rate_review</span>
                   Your review is requested
                 </div>
@@ -535,19 +533,19 @@ export default function PJDocuments({ setPage }) {
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button onClick={() => { submitReview(activeCycle.id, 'approved', commentText); setCommentText('') }} style={{
                     padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                    background: '#2E7D32', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: '#2F7D4F', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <span className="material-symbols-rounded" style={{ fontSize: '14px', verticalAlign: 'middle', marginRight: '2px' }}>check</span>Approve
                   </button>
                   <button onClick={() => { submitReview(activeCycle.id, 'reviewed', commentText); setCommentText('') }} style={{
                     padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                    background: '#1565C0', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: '#1F4E8C', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <span className="material-symbols-rounded" style={{ fontSize: '14px', verticalAlign: 'middle', marginRight: '2px' }}>comment</span>Reviewed
                   </button>
                   <button onClick={() => { submitReview(activeCycle.id, 'rejected', commentText); setCommentText('') }} style={{
                     padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                    background: '#C62828', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    background: '#B3261E', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     <span className="material-symbols-rounded" style={{ fontSize: '14px', verticalAlign: 'middle', marginRight: '2px' }}>close</span>Reject
                   </button>
@@ -639,8 +637,8 @@ export default function PJDocuments({ setPage }) {
                                 </div>
                                 {can('projects.edit') && (c.status === 'in_review' || c.status === 'open') && (
                                   <div style={{ display: 'flex', gap: '4px' }}>
-                                    <button onClick={() => closeCycle(c.id, 'approved')} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: '#2E7D32', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Approve</button>
-                                    <button onClick={() => closeCycle(c.id, 'rejected')} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: '#C62828', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Reject</button>
+                                    <button onClick={() => closeCycle(c.id, 'approved')} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: '#2F7D4F', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Approve</button>
+                                    <button onClick={() => closeCycle(c.id, 'rejected')} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: '#B3261E', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Reject</button>
                                     <button onClick={() => closeCycle(c.id, 'cancelled')} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: THEME.surfaceVar, color: THEME.textMed, border: `1px solid ${THEME.outlineVar}`, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                                   </div>
                                 )}
@@ -700,7 +698,7 @@ export default function PJDocuments({ setPage }) {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                         {comments.map(c => {
                           const typeIcon = { comment: 'chat', approval: 'check_circle', rejection: 'cancel', revision_request: 'edit', status_change: 'swap_horiz' }
-                          const typeColor = { comment: THEME.textMed, approval: '#2E7D32', rejection: '#C62828', revision_request: '#E65100', status_change: '#1565C0' }
+                          const typeColor = { comment: THEME.textMed, approval: '#2F7D4F', rejection: '#B3261E', revision_request: '#C8811E', status_change: '#1F4E8C' }
                           return (
                             <div key={c.id} style={{ display: 'flex', gap: '10px', padding: '10px 0', borderBottom: `1px solid ${THEME.outlineVar}`, opacity: c.is_resolved ? 0.5 : 1 }}>
                               <div style={{
@@ -787,7 +785,7 @@ export default function PJDocuments({ setPage }) {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button onClick={() => setReviewModal(false)} style={{ padding: '8px 16px', borderRadius: '10px', border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>Cancel</button>
-              <button onClick={startReviewCycle} disabled={reviewSaving} style={{ padding: '8px 16px', borderRadius: '10px', border: 'none', background: '#E65100', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 600, opacity: reviewSaving ? 0.6 : 1 }}>
+              <button onClick={startReviewCycle} disabled={reviewSaving} style={{ padding: '8px 16px', borderRadius: '10px', border: 'none', background: '#C8811E', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 600, opacity: reviewSaving ? 0.6 : 1 }}>
                 {reviewSaving ? 'Starting...' : `Start Review (${reviewForm.reviewer_ids.length})`}
               </button>
             </div>

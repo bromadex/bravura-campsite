@@ -143,16 +143,16 @@ export const TXN_CODES = [
   { code: 'CL13', path: '/contractors/cl_equipment_usage',    label: 'Equipment Usage',       module: 'contractors' },
 
   // ── Projects (PJ) ─────────────────────────────────────────────────────────
-  { code: 'PJ01', path: '/projects/pj_dashboard', label: 'Project Dashboard',  module: 'projects' },
-  { code: 'PJ02', path: '/projects/pj_projects',  label: 'Project List',       module: 'projects' },
+  { code: 'PJ01', path: '/projects/pj_dashboard', label: 'Projects (portfolio)',  module: 'projects' },
+  { code: 'PJ02', path: '/projects/pj_projects',  label: 'All projects',       module: 'projects' },
   { code: 'PJ03', path: '/projects/pj_detail',    label: 'Project Detail',     module: 'projects' },
   { code: 'PJ04', path: '/projects/pj_tasks',     label: 'My Tasks',           module: 'projects' },
   { code: 'PJ05', path: '/projects/pj_timeline',  label: 'Project Timeline',   module: 'projects' },
   { code: 'PJ06', path: '/projects/pj_areas',      label: 'Area Codes',         module: 'projects' },
-  { code: 'PJ07', path: '/projects/pj_documents',  label: 'Document Register',  module: 'projects' },
-  { code: 'PJ08', path: '/projects/pj_transmittals', label: 'Transmittals',      module: 'projects' },
-  { code: 'PJ09', path: '/projects/pj_costs',         label: 'Costs & EVM',        module: 'projects' },
-  { code: 'PJ10', path: '/projects/pj_changes',       label: 'Change Orders',      module: 'projects' },
+  { code: 'PJ07', path: '/projects/pj_documents',  label: 'Project documents',  module: 'projects' },
+  { code: 'PJ08', path: '/projects/pj_transmittals', label: 'Project transmittals', module: 'projects' },
+  { code: 'PJ09', path: '/projects/pj_costs',         label: 'Project money',      module: 'projects' },
+  { code: 'PJ10', path: '/projects/pj_changes',       label: 'Project money (change orders)', module: 'projects' },
   { code: 'PJ11', path: '/projects/pj_workspace',     label: 'My workspace (my tasks, to-dos, inbox, notes)', module: 'projects' },
   { code: 'PJ12', path: '/projects/pj_time',          label: 'Time (my time, crew sheet, approve)', module: 'projects' },
 

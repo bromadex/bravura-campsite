@@ -9,13 +9,17 @@ import { useAskContext } from '../../components/AskBravura'
 import { FIN, finBtn, finBtn2, finInput, finCard } from '../../utils/financeTheme'
 import { HEALTH, ago, fmtDate } from './pjShared'
 import { Avatar } from '../../components/TaskDrawer'
+import PJList from './PJList'
+import PJPortfolioMoney from './PJPortfolioMoney'
 
 // PJ01 Projects home (#76): the portfolio at a glance. Health is measured from the work (overdue tasks,
 // late milestones, target date, budget used, stuck work — pj_health); a manager can override it in a weekly update,
 // and the card says so when the two disagree.
 const money = n => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })
 
-export default function PJHome({ setPage }) {
+export default function PJHome({ setPage, initialTab = 'portfolio' }) {
+  const [tab, setTab] = useState(initialTab)
+  const [newKey, setNewKey] = useState(0)
   const { can } = usePermissions()
   const { currentSiteId } = useSite()
   const [d, setD] = useState(null)
@@ -35,12 +39,15 @@ export default function PJHome({ setPage }) {
 
   return (
     <FinShell module="Projects" homePage="pj_dashboard" setPage={setPage} title="Projects"
-      subtitle="Every project's health, measured from the work — worst first."
+      subtitle={tab === 'portfolio' ? 'Every project\'s health, measured from the work — worst first.' : tab === 'money' ? 'Budget, spent and committed across projects.' : 'Every project at this site, including finished and on hold.'}
+      tabs={[{ key: 'portfolio', label: 'Portfolio' }, { key: 'all', label: 'All projects' }, { key: 'money', label: 'Money' }]} tab={tab} onTab={setTab}
       actions={<>
         <button onClick={() => setPage('pj_workspace')} style={finBtn2}>My workspace</button>
-        {can('projects.create') && <button onClick={() => setPage('pj_projects')} style={finBtn}>+ New project</button>}
+        {can('projects.create') && <button onClick={() => { setTab('all'); setNewKey(k => k + 1) }} style={finBtn}>+ New project</button>}
       </>}>
-      {!d ? <div style={{ color: FIN.faint }}>Loading…</div> : <>
+      {tab === 'all' && <PJList setPage={setPage} embedded openNew={newKey} />}
+      {tab === 'money' && <PJPortfolioMoney setPage={setPage} />}
+      {tab === 'portfolio' && (!d ? <div style={{ color: FIN.faint }}>Loading…</div> : <>
         {/* band */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
           <Fig label="Off track" value={n('off_track')} color={HEALTH.off_track.color} />
@@ -80,7 +87,7 @@ export default function PJHome({ setPage }) {
             })()}
           </div>
         </div>
-      </>}
+      </>)}
       {upd && <UpdateModal p={upd} onClose={() => setUpd(null)} onSaved={() => { setUpd(null); load() }} />}
     </FinShell>
   )

@@ -689,6 +689,11 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   `pj_update_reminders` (Friday check-in to assignees, PM after 7 d without project_updates). PJDetail tabs grouped Overview · Work · Plan · Money ·
   Risks · Team (sub-pills); new PJMoney.jsx / PJRisks.jsx / PJAreaRollup.jsx. Old project pages import THEME from `pages/projects/pjTheme.js`
   (FIN palette, projects colour = maroon). CO status can no longer be set to approved by editing — only via Approve.
+  **Round 5 (0265, 7 Oct, user: "duplicate pages… not copying the fonts and themes"):** Projects menu = Projects · Timeline · Time · Documents.
+  PJ01 PJHome has tabs Portfolio · All projects (PJList embedded, `openNew` prop; route pj_projects) · Money (`PJPortfolioMoney`, RPC
+  `pj_portfolio_money(site)`; routes pj_costs / pj_changes). PJCosts.jsx + PJChanges.jsx deleted. PJ07 = `PJDocsHub` (Register · Transmittals;
+  route pj_transmittals opens its tab). PJDetail header = finance look (breadcrumb, IBM Plex Serif title, ink pill tabs + underline sub-tabs).
+  Material hex colours in old project pages remapped to FIN; QuickNav removed from project pages.
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

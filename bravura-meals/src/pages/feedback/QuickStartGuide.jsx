@@ -255,10 +255,10 @@ export default function QuickStartGuide() {
             <>Type in the bar at the top and press Enter to add a task — pick a project, or leave it as a private to-do only you can see. Tasks can repeat daily, weekly or monthly.</>,
             <>“Make a task” on a purchase order, request, supplier, machine, incident, contractor or employee creates a task linked to that record — it lands in the person's workspace and opens the record again.</>,
             <>Every task has a number (e.g. KCWI-12), a checklist, comments (watchers are told), history, and its own folder in DocShare — files you attach go there.</>,
-            <>Portfolio (<Code>PJ01</Code>) shows each project's health, measured from the work: overdue tasks, late milestones, target date, budget used and work stuck 14+ days. Post a weekly update; if you set the health by hand the card shows both.</>,
+            <>Projects (<Code>PJ01</Code>) has three tabs — <b>Portfolio</b>, <b>All projects</b>, <b>Money</b>. Portfolio shows each project's health, measured from the work: overdue tasks, late milestones, target date, budget used and work stuck 14+ days. Post a weekly update; if you set the health by hand the card shows both.</>,
             <>Time (<Code>PJ12</Code>): log hours on a task (or press ▶ Start timer in the task), supervisors fill one Crew sheet for the whole crew, and approvers approve or send back. Approved overtime is paid by payroll; approved hours cost the project.</>,
-            <>Create and manage projects in the Project List (<Code>PJ02</Code>) — card or table view, with status/type filters and search.</>,
-            <>Repeat jobs fast: on a finished project press <b>Save as template</b>; next time use <b>From template</b> on the Project List — tasks, phases and checklists are copied and dates move to your new start.</>,
+            <>Press <b>+ New project</b> on Projects; <b>All projects</b> lists every project (also finished / on hold) with search and filters. <b>Money</b> shows budget, spent, committed and change orders waiting, for all projects at once.</>,
+            <>Repeat jobs fast: on a finished project press <b>Save as template</b>; next time use <b>From template</b> on All projects — tasks, phases and checklists are copied and dates move to your new start.</>,
             <>Each project has a <b>Timeline</b> tab: drag bars to reschedule, save a baseline, and see who and which machines are overloaded.</>,
             <>Click into any project for its workspace (<Code>PJ03</Code>) — board, phases, team, schedule (critical path, baselines), costs and earned value.</>,
             <>Inside a project the tabs are grouped: <b>Work</b> (board, timeline, areas), <b>Plan</b> (phases, baselines), <b>Money</b>, <b>Risks</b>, <b>Team</b>. <b>Money → Costs</b> shows what was really spent — bills, Stores issues, fuel and hired plant booked to the project, plus approved project time — and open POs, per phase.</>,
@@ -270,7 +270,7 @@ export default function QuickStartGuide() {
             <>Transmittals (<Code>PJ08</Code>) package documents for formal distribution — auto-numbered TX-NNNN, with status tracking (Draft → Sent → Received → Acknowledged).</>,
             <>The Schedule tab inside each project workspace runs Critical Path Method (CPM) analysis, manages baselines, and auto-generates WBS codes.</>,
             <>Costs &amp; EVM tracks cost breakdown (CBS items by category), Earned Value Management (SPI, CPI, SV, CV, EAC, ETC, VAC, TCPI), and S-curve charts.</>,
-            <>Change Orders log scope/cost/schedule changes with a full status workflow (Draft → Submitted → Under Review → Approved → Rejected → Implemented).</>,
+            <>Change orders are raised inside the project (Money → EVM & change orders) and only change the budget when approved.</>,
           ]} />
         </Section>
       )}
@@ -294,7 +294,7 @@ export default function QuickStartGuide() {
       {/* Cross-Module Integration */}
       <Section icon="hub" color="#455A64" title="Cross-Module Integration">
         <Steps items={[
-          <><b>Project tagging</b> — Fuel issues, fleet maintenance, contractor contracts, and purchase orders can be tagged to a project via an optional Project dropdown on their forms. Costs roll up to the project's Costs & EVM view.</>,
+          <><b>Project tagging</b> — Fuel issues, fleet maintenance, contractor contracts, and purchase orders can be tagged to a project via an optional Project dropdown on their forms. Costs roll up to the project's Money tab.</>,
           <><b>Linked documents</b> — Detail pages across Fleet, SHEQ, HR, Contractors, and Procurement show linked DocVault documents. Use the "Attach Document" button to link existing documents to any record.</>,
           <><b>Discuss button</b> — Key detail pages have a "Discuss" button that creates (or opens) a Connect chat thread linked to that record, so conversations stay attached to the asset, incident, or order they're about.</>,
           <><b>Notifications</b> — The notification engine fires across modules: fleet maintenance schedules notify fleet managers, SHEQ incidents notify safety officers, contractor document expiry alerts procurement, and inventory low-stock alerts storekeepers.</>,

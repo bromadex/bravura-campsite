@@ -682,6 +682,13 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   **Round 3 (3–7 Oct):** PJDetail tab Timeline (PJTimeline embedded) + "Save as template" button; PJList "From template" (TemplatePicker.jsx →
   pj_project_from_template), templates hidden from the list. Old project screens (list, detail, areas, documents, transmittals, costs, changes)
   wrapped in `pjFramed` = FinShell module Projects with new `bare` prop (new look, their own headers kept).
+  **Round 4 (0264, 7 Oct, user: "restyle, regroup, move…"):** `pj_costs` (GL expense lines by project_id grouped by account range + approved
+  labour, committed open POs, per-phase budget/labour/open tasks), `pj_phase_close` (stage gate; OPEN_TASKS:n unless forced with a reason; leftover
+  budget), `pj_change_order_decide` (approve applies cost_impact to budget / schedule days to target_end_date ONCE, before/after on the CO + activity),
+  `pj_risks` / `pj_risk_add` (sheq_risk_register.project_id), `pj_area_rollup` (by task area_code), pg_cron `project-reminders` 05:20 UTC →
+  `pj_update_reminders` (Friday check-in to assignees, PM after 7 d without project_updates). PJDetail tabs grouped Overview · Work · Plan · Money ·
+  Risks · Team (sub-pills); new PJMoney.jsx / PJRisks.jsx / PJAreaRollup.jsx. Old project pages import THEME from `pages/projects/pjTheme.js`
+  (FIN palette, projects colour = maroon). CO status can no longer be set to approved by editing — only via Approve.
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

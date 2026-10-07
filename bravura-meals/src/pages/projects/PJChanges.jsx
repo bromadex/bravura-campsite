@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { THEME, MODULE_COLORS } from './pjTheme'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
@@ -40,8 +40,8 @@ export default function PJChanges({ setPage }) {
     async function fetch() {
       setLoading(true)
       const [pRes, coRes] = await Promise.all([
-        supabase.from('projects').select('id, name, project_number').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
-        supabase.from('project_change_orders').select('*, project:projects!inner(id, name, project_number, site_id), requester:profiles!project_change_orders_requested_by_fkey(full_name)').eq('project.site_id', currentSiteId).eq('is_archived', false).order('created_at', { ascending: false }),
+        supabase.from('projects').select('id, name, project_number:project_code').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
+        supabase.from('project_change_orders').select('*, project:projects!inner(id, name, project_number:project_code, site_id), requester:profiles!project_change_orders_requested_by_fkey(full_name)').eq('project.site_id', currentSiteId).eq('is_archived', false).order('created_at', { ascending: false }),
       ])
       setProjects(pRes.data || [])
       setOrders(coRes.data || [])

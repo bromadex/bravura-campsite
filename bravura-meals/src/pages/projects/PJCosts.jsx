@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { THEME, MODULE_COLORS } from './pjTheme'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'
@@ -32,8 +32,8 @@ export default function PJCosts({ setPage }) {
     async function fetch() {
       setLoading(true)
       const [pRes, ciRes] = await Promise.all([
-        supabase.from('projects').select('id, name, project_number, budget').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
-        supabase.from('project_cost_items').select('*, project:projects!inner(id, name, project_number, site_id)').eq('project.site_id', currentSiteId).eq('is_archived', false).order('cbs_code'),
+        supabase.from('projects').select('id, name, project_number:project_code, budget').eq('site_id', currentSiteId).eq('is_archived', false).order('name'),
+        supabase.from('project_cost_items').select('*, project:projects!inner(id, name, project_number:project_code, site_id)').eq('project.site_id', currentSiteId).eq('is_archived', false).order('cbs_code'),
       ])
       setProjects(pRes.data || [])
       setItems(ciRes.data || [])

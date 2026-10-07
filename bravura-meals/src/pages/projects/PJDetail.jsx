@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { THEME, MODULE_COLORS } from './pjTheme'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { useAuth } from '../../auth/AuthContext'
@@ -9,6 +9,9 @@ import { KpiCard, DashCard, DonutGauge, ProgressRow, SectionTitle } from '../../
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription'
 import TaskDrawer from '../../components/TaskDrawer'
 import PJTimeline from './PJTimeline'
+import PJMoney, { closePhase } from './PJMoney'
+import PJRisks from './PJRisks'
+import PJAreaRollup from './PJAreaRollup'
 import { STATUS, daysSince, taskRef } from './pjShared'
 
 const color = MODULE_COLORS.projects
@@ -248,6 +251,15 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
     if (error) { showToast(error.message, 'red'); return }
     showToast('Cost item archived', 'green')
     fetchCostData()
+  }
+
+  async function decideCo(co, approve) {
+    const note = window.prompt(approve ? `Approve ${co.change_order_number}? This adds ${fmtMoney(co.cost_impact)} to the budget and ${co.schedule_impact_days || 0} day(s) to the end date. Note (optional):` : `Reason for rejecting ${co.change_order_number}:`, '')
+    if (note === null) return
+    const { error } = await supabase.rpc('pj_change_order_decide', { p_id: co.id, p_approve: approve, p_note: note || null })
+    if (error) { showToast(error.message, 'red'); return }
+    showToast(approve ? 'Approved — budget and end date updated' : 'Rejected')
+    fetchCostData(); fetchAll()
   }
 
   async function saveChangeOrder() {
@@ -895,18 +907,16 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
 
   const LABEL_COLORS = ['#E53935', '#FB8C00', '#43A047', '#1E88E5', '#8E24AA', '#00897B', '#6D4C41', '#546E7A', '#D81B60', '#F4511E']
 
-  const TABS = [
-    { id: 'overview', label: 'Overview', icon: 'dashboard' },
-    { id: 'areas', label: 'Areas', icon: 'location_city' },
-    { id: 'phases', label: 'Phases', icon: 'timeline' },
-    { id: 'team', label: 'Team', icon: 'group' },
-    { id: 'labels', label: 'Labels', icon: 'label' },
-    { id: 'board', label: 'Board', icon: 'view_kanban' },
-    { id: 'timeline', label: 'Timeline', icon: 'view_timeline' },
-    { id: 'schedule', label: 'Schedule', icon: 'event_note' },
-    { id: 'costs', label: 'Costs & EVM', icon: 'payments' },
-    { id: 'activity', label: 'Activity', icon: 'forum' },
+  // Grouped tabs (#76): Work · Plan · Money · Risks · Team — the old flat row of ten tabs regrouped.
+  const TAB_GROUPS = [
+    { id: 'overview', label: 'Overview', tabs: [{ id: 'overview', label: 'Overview' }] },
+    { id: 'work', label: 'Work', tabs: [{ id: 'board', label: 'Board' }, { id: 'timeline', label: 'Timeline' }, { id: 'areas', label: 'Areas' }] },
+    { id: 'plan', label: 'Plan', tabs: [{ id: 'phases', label: 'Phases' }, { id: 'schedule', label: 'Schedule & baselines' }] },
+    { id: 'money', label: 'Money', tabs: [{ id: 'money', label: 'Costs' }, { id: 'costs', label: 'EVM & change orders' }] },
+    { id: 'risks', label: 'Risks', tabs: [{ id: 'risks', label: 'Risks' }] },
+    { id: 'people', label: 'Team', tabs: [{ id: 'team', label: 'Team' }, { id: 'labels', label: 'Labels' }, { id: 'activity', label: 'Activity' }] },
   ]
+  const activeGroup = TAB_GROUPS.find(g => g.tabs.some(t => t.id === tab)) || TAB_GROUPS[0]
 
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
@@ -972,22 +982,32 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => !t.disabled && setTab(t.id)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: '5px',
-            padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
-            background: tab === t.id ? color : THEME.surfaceVar,
-            color: tab === t.id ? '#fff' : t.disabled ? THEME.textLow : THEME.textMed,
-            border: 'none', cursor: t.disabled ? 'default' : 'pointer', fontFamily: 'inherit',
-            opacity: t.disabled ? 0.5 : 1,
-          }}>
-            <span className="material-symbols-rounded" style={{ fontSize: '16px' }}>{t.icon}</span>
-            {t.label}
-            {t.disabled && <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', background: THEME.outlineVar, color: THEME.textLow }}>Soon</span>}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: '2px', borderBottom: `1px solid ${THEME.outlineVar}`, marginBottom: activeGroup.tabs.length > 1 ? '10px' : '20px', overflowX: 'auto' }}>
+        {TAB_GROUPS.map(g => {
+          const on = g.id === activeGroup.id
+          return (
+            <button key={g.id} onClick={() => setTab(g.tabs[0].id)} style={{
+              padding: '10px 16px', fontSize: '14px', fontWeight: on ? 600 : 500, background: 'none', border: 'none',
+              borderBottom: `2px solid ${on ? color : 'transparent'}`, marginBottom: '-1px',
+              color: on ? THEME.text : THEME.textMed, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+            }}>{g.label}</button>
+          )
+        })}
       </div>
+      {activeGroup.tabs.length > 1 && (
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          {activeGroup.tabs.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600,
+              background: tab === t.id ? THEME.text : '#fff', color: tab === t.id ? '#fff' : THEME.textMed,
+              border: `1px solid ${tab === t.id ? THEME.text : THEME.outline}`, cursor: 'pointer', fontFamily: 'inherit',
+            }}>{t.label}</button>
+          ))}
+        </div>
+      )}
+
+      {tab === 'money' && <PJMoney projectId={projectId} onChanged={fetchAll} />}
+      {tab === 'risks' && <PJRisks projectId={projectId} />}
 
       {/* ── OVERVIEW TAB ───────────────────────────────────────────── */}
       {tab === 'overview' && (() => {
@@ -1107,8 +1127,14 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                           </div>
                         </div>
                       </div>
-                      <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: psc.bg, color: psc.text, whiteSpace: 'nowrap' }}>{psc.label}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {can('projects.edit') && !ph.gate_closed_at && (
+                          <button onClick={async e => { e.stopPropagation(); if (await closePhase(ph)) fetchAll() }} style={{ padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, background: '#fff', color, border: `1px solid ${THEME.outline}`, cursor: 'pointer', fontFamily: 'inherit' }}>Close phase</button>
+                        )}
+                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: psc.bg, color: psc.text, whiteSpace: 'nowrap' }}>{psc.label}</span>
+                      </div>
                     </div>
+                    {ph.gate_closed_at && <div style={{ marginTop: '6px', fontSize: '11px', color: THEME.textMed }}>Stage gate closed {String(ph.gate_closed_at).slice(0, 10)} · leftover {fmtMoney(ph.leftover_budget)}{ph.gate_note ? ` · ${ph.gate_note}` : ''}</div>}
                   </DashCard>
                 )
               })}
@@ -1503,6 +1529,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
       {/* ── AREAS TAB ────────────────────────────────────────────── */}
       {tab === 'areas' && (
         <div>
+          <PJAreaRollup projectId={projectId} />
           {can('projects.edit') && (
             <div style={{ marginBottom: '14px' }}>
               <button onClick={openAddArea} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: `1px dashed ${THEME.outline}`, background: 'transparent', color, cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'inherit' }}>
@@ -2588,8 +2615,16 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                               {co.requested_date && <span>{co.requested_date}</span>}
                             </div>
                           </div>
-                          <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: sc.bg, color: sc.text, whiteSpace: 'nowrap' }}>{co.status.replace(/_/g, ' ')}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            {can('projects.approve') && ['draft', 'submitted', 'under_review'].includes(co.status) && (<>
+                              <button onClick={e => { e.stopPropagation(); decideCo(co, true) }} style={{ padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: color, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Approve</button>
+                              <button onClick={e => { e.stopPropagation(); decideCo(co, false) }} style={{ padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: '#fff', color: THEME.text, border: `1px solid ${THEME.outline}`, cursor: 'pointer', fontFamily: 'inherit' }}>Reject</button>
+                            </>)}
+                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: sc.bg, color: sc.text, whiteSpace: 'nowrap' }}>{co.status.replace(/_/g, ' ')}</span>
+                          </div>
                         </div>
+                        {co.applied_at && <div style={{ marginTop: '6px', fontSize: '11px', color: THEME.textMed }}>Applied: budget {fmtMoney(co.budget_before)} → {fmtMoney(co.budget_after)}{co.end_before !== co.end_after ? ` · end ${co.end_before || '—'} → ${co.end_after}` : ''}{co.decision_note ? ` · ${co.decision_note}` : ''}</div>}
+                        {co.status === 'rejected' && co.decision_note && <div style={{ marginTop: '6px', fontSize: '11px', color: THEME.error }}>Rejected: {co.decision_note}</div>}
                       </DashCard>
                     )
                   })}
@@ -2605,7 +2640,7 @@ export default function PJDetail({ projectId, setPage, initialTab, initialTaskId
                       <div style={fieldWrap}><label style={lbl}>CO Number *</label><input style={{ ...inp, textTransform: 'uppercase' }} value={coForm.change_order_number} onChange={e => setCoForm(f => ({ ...f, change_order_number: e.target.value }))} /></div>
                       <div style={fieldWrap}><label style={lbl}>Status</label>
                         <select style={inp} value={coForm.status} onChange={e => setCoForm(f => ({ ...f, status: e.target.value }))}>
-                          {['draft', 'submitted', 'under_review', 'approved', 'rejected', 'implemented'].map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+                          {(['approved','rejected','implemented'].includes(coForm.status) ? [coForm.status] : ['draft', 'submitted', 'under_review']).map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
                         </select>
                       </div>
                     </div>

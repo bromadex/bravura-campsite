@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { THEME, MODULE_COLORS } from '../../utils/permissions'
+import { THEME, MODULE_COLORS } from './pjTheme'
 import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { supabase } from '../../supabaseClient'

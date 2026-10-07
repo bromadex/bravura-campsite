@@ -696,7 +696,8 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   Material hex colours in old project pages remapped to FIN; QuickNav removed from project pages.
   **Round 6 (7 Oct):** Timeline menu was opening Time (`startsWith('pj_time')` matched pj_timeline) — fixed. MODULE_COLORS.projects = maroon,
   module label "Projects". Department Workspaces module (DW, pages/dept, dept_projects/dept_tasks — 0 rows) merged into Projects: tile hidden,
-  every dept route redirects to /projects/pj_dashboard, pages deleted.
+  every dept route redirects to /projects/pj_dashboard, pages deleted. Home: ONE "Projects" top-level tile (after Fleet); the "Projects & Planning"
+  group (Project Register · Departments · Bravura Schedule) removed. All projects has a Department filter + Department field on the project form.
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

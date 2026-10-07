@@ -21,6 +21,8 @@ const TOP_LEVEL_MODULES = [
   { id: 'inventory', label: 'Stores', icon: 'inventory_2', color: MODULE_COLORS.inventory, access: moduleAccess.inventory },
   { id: 'fuel', label: 'Fuel Management', icon: 'local_gas_station', color: MODULE_COLORS.fuel, access: moduleAccess.fuel },
   { id: 'fleet', label: 'Fleet', icon: 'local_shipping', color: MODULE_COLORS.fleet, access: moduleAccess.fleet },
+  // One Projects tile (#76): register, departments' work, schedule (Timeline), time and documents all live inside it.
+  { id: 'projects', label: 'Projects', icon: 'engineering', color: MODULE_COLORS.projects, access: moduleAccess.projects },
   { id: 'concrete', label: 'Batch Plant', icon: 'factory', color: MODULE_COLORS.concrete, access: moduleAccess.concrete },
 ]
 
@@ -34,17 +36,6 @@ const MODULE_GROUPS = [
     children: [
       { id: 'campsite',  label: 'Campsite',     icon: 'holiday_village', color: MODULE_COLORS.campsite, access: moduleAccess.campsite },
       { id: 'meals',     label: 'Meals',         icon: 'restaurant',      color: MODULE_COLORS.meals,    access: moduleAccess.meals },
-    ],
-  },
-  {
-    id: 'projects',
-    label: 'Projects & Planning',
-    icon: 'account_tree',
-    color: MODULE_COLORS.projects,
-    children: [
-      { id: 'projects',   label: 'Project Register',   icon: 'engineering',      color: MODULE_COLORS.projects, access: moduleAccess.projects },
-      { id: 'dept',        label: 'Departments',        icon: 'domain',           color: MODULE_COLORS.dept,     access: moduleAccess.dept },
-      { id: 'projects',   label: 'Bravura Schedule',   icon: 'calendar_month',   color: MODULE_COLORS.projects, access: moduleAccess.projects, deepPage: 'pj_tasks' },
     ],
   },
   {

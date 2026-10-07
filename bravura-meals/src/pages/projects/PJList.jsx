@@ -26,7 +26,7 @@ const COVER_COLORS = ['#1B5E20', '#0D47A1', '#4A148C', '#BF360C', '#006064', '#3
 const EMPTY_FORM = {
   name: '', description: '', project_type: 'other', status: 'planning',
   priority: 'medium', start_date: '', target_end_date: '', budget: '',
-  client: '', location: '', cover_color: '#1B5E20', notes: '',
+  client: '', location: '', cover_color: '#1B5E20', notes: '', department_id: '',
 }
 
 function fmtMoney(n) {
@@ -45,6 +45,12 @@ export default function PJList({ setPage, openNew = 0 }) {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterType, setFilterType] = useState('')
+  const [filterDept, setFilterDept] = useState('')
+  const [depts, setDepts] = useState([])
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase.from('departments').select('id, name').eq('site_id', currentSiteId).eq('is_archived', false).order('name').then(({ data }) => setDepts(data || []))
+  }, [currentSiteId])
   const [viewMode, setViewMode] = useState('list')
   const [modalOpen, setModalOpen] = useState(false)
   const [editId, setEditId] = useState(null)
@@ -94,6 +100,7 @@ export default function PJList({ setPage, openNew = 0 }) {
     let list = projects
     if (filterStatus) list = list.filter(p => p.status === filterStatus)
     if (filterType) list = list.filter(p => p.project_type === filterType)
+    if (filterDept) list = list.filter(p => p.department_id === filterDept)
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(p =>
@@ -104,7 +111,7 @@ export default function PJList({ setPage, openNew = 0 }) {
       )
     }
     return list
-  }, [projects, filterStatus, filterType, search])
+  }, [projects, filterStatus, filterType, filterDept, search])
 
   async function generateCode() {
     const { data } = await supabase.from('projects').select('project_code').eq('site_id', currentSiteId).like('project_code', 'PJ-%').order('project_code', { ascending: false }).limit(1)
@@ -145,6 +152,7 @@ export default function PJList({ setPage, openNew = 0 }) {
         target_end_date: form.target_end_date || null,
         budget: form.budget ? parseFloat(form.budget) : null,
         client: form.client || null,
+        department_id: form.department_id || null,
         location: form.location || null,
         cover_color: form.cover_color,
         notes: form.notes || null,
@@ -260,6 +268,10 @@ export default function PJList({ setPage, openNew = 0 }) {
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inp, maxWidth: '150px' }}>
           <option value="">All Status</option>
           {STATUSES.map(s => <option key={s} value={s}>{STATUS_COLORS[s]?.label || s}</option>)}
+        </select>
+        <select value={filterDept} onChange={e => setFilterDept(e.target.value)} style={{ ...inp, maxWidth: '200px' }}>
+          <option value="">All departments</option>
+          {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
         <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ ...inp, maxWidth: '160px' }}>
           <option value="">All Types</option>
@@ -482,6 +494,13 @@ export default function PJList({ setPage, openNew = 0 }) {
                 <div style={fieldWrap}>
                   <label style={lbl}>Target End Date</label>
                   <input style={inp} type="date" value={form.target_end_date} onChange={e => set('target_end_date', e.target.value)} />
+                </div>
+                <div style={fieldWrap}>
+                  <label style={lbl}>Department</label>
+                  <select style={inp} value={form.department_id || ''} onChange={e => set('department_id', e.target.value)}>
+                    <option value="">— none (site project)</option>
+                    {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
                 </div>
                 <div style={fieldWrap}>
                   <label style={lbl}>Client</label>

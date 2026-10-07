@@ -88,7 +88,7 @@ export const MODULE_COLORS = {
   contractors: '#0D7377',  // deep teal    – external workforce/contracts
   inventory:   '#B45309',  // amber-brown  – warehouses/stock
   finance:     '#1565C0',  // blue         – finance/accounting
-  projects:    '#1B5E20',  // deep green   – project management
+  projects:    '#982329',  // maroon (finance look) – projects
   concrete:    '#EF6C00',  // deep orange  – concrete/batch plant
   sheq:        '#D32F2F',  // red          – safety/health/environment/quality
   dept:        '#37474F',  // blue-grey    – department workspaces
@@ -120,7 +120,7 @@ export const moduleAccess = {
   fleet:        r => !!r,
   workforce:    r => !!r,
   contractors:  (role, can) => can ? can('contractors.view') : false,
-  dept:         (role, can) => can ? can('dept.view') : false,
+  dept:         () => false,  // merged into Projects (#76)
   campsite:     r => !!r,
   meals:        (role, can) => can ? can('meals.view') : false,
   concrete:     (role, can) => can ? can('concrete.view') : false,

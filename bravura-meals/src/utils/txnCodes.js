@@ -146,7 +146,7 @@ export const TXN_CODES = [
   { code: 'PJ01', path: '/projects/pj_dashboard', label: 'Projects (portfolio)',  module: 'projects' },
   { code: 'PJ02', path: '/projects/pj_projects',  label: 'All projects',       module: 'projects' },
   { code: 'PJ03', path: '/projects/pj_detail',    label: 'Project Detail',     module: 'projects' },
-  { code: 'PJ04', path: '/projects/pj_tasks',     label: 'My Tasks',           module: 'projects' },
+  { code: 'PJ04', path: '/projects/pj_tasks',     label: 'My workspace',       module: 'projects' },
   { code: 'PJ05', path: '/projects/pj_timeline',  label: 'Project Timeline',   module: 'projects' },
   { code: 'PJ06', path: '/projects/pj_areas',      label: 'Area Codes',         module: 'projects' },
   { code: 'PJ07', path: '/projects/pj_documents',  label: 'Project documents',  module: 'projects' },

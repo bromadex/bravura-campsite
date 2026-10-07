@@ -225,20 +225,6 @@ const PJAreas     = lazy(() => import('./pages/projects/PJAreas'))
 const PJDocsHub   = lazy(() => import('./pages/projects/PJDocsHub'))
 
 // ── Department Workspaces ────────────────────────────────────────────────────
-const DeptDashboard       = lazy(() => import('./pages/dept/DeptDashboard'))
-const DeptProjects        = lazy(() => import('./pages/dept/DeptProjects'))
-const DeptProjectBoard    = lazy(() => import('./pages/dept/DeptProjectBoard'))
-const DeptProjectGrid     = lazy(() => import('./pages/dept/DeptProjectGrid'))
-const DeptProjectCalendar = lazy(() => import('./pages/dept/DeptProjectCalendar'))
-const DeptProjectCharts   = lazy(() => import('./pages/dept/DeptProjectCharts'))
-const DeptSettings        = lazy(() => import('./pages/dept/DeptSettings'))
-const DeptDocuments       = lazy(() => import('./pages/dept/DeptDocuments'))
-const DeptTeam            = lazy(() => import('./pages/dept/DeptTeam'))
-const DeptCostTracker     = lazy(() => import('./pages/dept/DeptCostTracker'))
-const DeptApprovals       = lazy(() => import('./pages/dept/DeptApprovals'))
-const DeptImport          = lazy(() => import('./pages/dept/DeptImport'))
-const DeptNotifications   = lazy(() => import('./pages/dept/DeptNotifications'))
-const DeptTemplates       = lazy(() => import('./pages/dept/DeptTemplates'))
 
 // ── Batch Plant Operations ───────────────────────────────────────────────────
 const ConcreteDashboard      = lazy(() => import('./pages/concrete/ConcreteDashboard'))
@@ -356,7 +342,7 @@ const MODULE_META = {
   contractors: { label: 'Contract & Contractor Management', icon: 'handshake', navFn: contractorsNav },
   inventory:   { label: 'Stores',                 icon: 'inventory_2',      navFn: inventoryNav    },
   procurement: { label: 'Procurement',           icon: 'storefront',       navFn: procurementNav  },
-  projects:    { label: 'Project Management',    icon: 'engineering',      navFn: projectsNav     },
+  projects:    { label: 'Projects',    icon: 'engineering',      navFn: projectsNav     },
   concrete:    { label: 'Batch Plant Operations', icon: 'factory',          navFn: concreteNav     },
   sheq:        { label: 'SHEQ',                  icon: 'health_and_safety', navFn: sheqNav        },
   dept:        { label: 'Department Workspaces', icon: 'domain',           navFn: deptNav         },
@@ -664,7 +650,7 @@ function getProjectsPage(page, can, setPage) {
     return pjFramed(<PJDetail setPage={setPage} projectId={projectId} initialTab={initialTab || undefined} initialTaskId={initialTaskId || undefined} />)
   }
   if (page && page.startsWith('pj_workspace')) return <MyWorkspace key={page} setPage={setPage} openId={page.split(':')[1]} />
-  if (page && page.startsWith('pj_time')) return <PJTime key={page} setPage={setPage} initialTab={page.split(':')[1]} />
+  if (page === 'pj_time' || page?.startsWith('pj_time:')) return <PJTime key={page} setPage={setPage} initialTab={page.split(':')[1]} />
   switch (page) {
     // One Projects home (#76): Portfolio · All projects · Money (old list, Costs & EVM and Change Orders pages merged in).
     case 'pj_dashboard': return <PJHome key="portfolio" setPage={setPage} />
@@ -680,37 +666,9 @@ function getProjectsPage(page, can, setPage) {
   }
 }
 
-function getDeptPage(page, can, setPage) {
-  if (!can('dept.view')) return null
-  if (page && page.startsWith('dept_board:')) {
-    const projectId = page.replace('dept_board:', '')
-    return <DeptProjectBoard setPage={setPage} projectId={projectId} />
-  }
-  if (page && page.startsWith('dept_grid:')) {
-    const projectId = page.replace('dept_grid:', '')
-    return <DeptProjectGrid setPage={setPage} projectId={projectId} />
-  }
-  if (page && page.startsWith('dept_calendar:')) {
-    const projectId = page.replace('dept_calendar:', '')
-    return <DeptProjectCalendar setPage={setPage} projectId={projectId} />
-  }
-  if (page && page.startsWith('dept_charts:')) {
-    const projectId = page.replace('dept_charts:', '')
-    return <DeptProjectCharts setPage={setPage} projectId={projectId} />
-  }
-  switch (page) {
-    case 'dept_dashboard': return <DeptDashboard setPage={setPage} />
-    case 'dept_projects':  return <DeptProjects setPage={setPage} />
-    case 'dept_documents': return <DeptDocuments setPage={setPage} />
-    case 'dept_team':      return <DeptTeam setPage={setPage} />
-    case 'dept_costs':         return <DeptCostTracker setPage={setPage} />
-    case 'dept_approvals':     return <DeptApprovals setPage={setPage} />
-    case 'dept_import':        return can('dept.create') ? <DeptImport setPage={setPage} /> : null
-    case 'dept_notifications': return <DeptNotifications setPage={setPage} />
-    case 'dept_templates':     return <DeptTemplates setPage={setPage} />
-    case 'dept_settings':      return can('dept.edit') ? <DeptSettings setPage={setPage} /> : null
-    default:                   return <DeptDashboard setPage={setPage} />
-  }
+function getDeptPage() {
+  // Department Workspaces merged into Projects (#76): a department's work is a project with a department (no data was ever in dept_*).
+  return <Navigate to="/projects/pj_dashboard" replace />
 }
 
 function getFinancePage(page, can, setPage) {

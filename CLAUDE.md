@@ -698,6 +698,11 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   module label "Projects". Department Workspaces module (DW, pages/dept, dept_projects/dept_tasks — 0 rows) merged into Projects: tile hidden,
   every dept route redirects to /projects/pj_dashboard, pages deleted. Home: ONE "Projects" top-level tile (after Fleet); the "Projects & Planning"
   group (Project Register · Departments · Bravura Schedule) removed. All projects has a Department filter + Department field on the project form.
+  **Drawings (0266, 0267, 8 Oct):** 0266 applied the 1 Oct 2026 civils status sheet to Kamativi Civil Works (54 tasks). 0267: latest set of every
+  drawing zip in Confidence's Drive "Kamativi Civil Designs" (no TSF batches / Drawings Book / renders) → 558 files in docshare-files/<KAM>/drawings/,
+  ds_documents category Drawings in each task's DocShare folder + ds_document_links to every task of that area code (49 tasks), project_documents
+  register rows (file_url = storage path; PJDocuments "Open" signs it). `_pj_import_drawings(jsonb)` (service role only); edge fn drawings-import
+  retired (returns 410). project_documents.status is varchar(20) — 'issued_for_construction' can't be stored.
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

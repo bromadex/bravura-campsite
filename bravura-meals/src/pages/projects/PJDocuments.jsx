@@ -112,6 +112,15 @@ export default function PJDocuments({ setPage }) {
     setMembers(data || [])
   }
 
+  // Files from the drawings import (0267) live in the private DocShare bucket; open with a short-lived signed link.
+  async function openFile(d) {
+    if (!d.file_url) return
+    if (/^https?:/.test(d.file_url)) { window.open(d.file_url, '_blank', 'noopener'); return }
+    const { data, error } = await supabase.storage.from('docshare-files').createSignedUrl(d.file_url, 3600)
+    if (error) { showToast(error.message, 'error'); return }
+    window.open(data.signedUrl, '_blank', 'noopener')
+  }
+
   async function fetchDocDetail(doc) {
     setDetailDoc(doc)
     setDetailTab('overview')
@@ -430,7 +439,7 @@ export default function PJDocuments({ setPage }) {
                 const s = STATUS_MAP[d.status] || STATUS_MAP.draft
                 return (
                   <tr key={d.id} style={{ borderBottom: `1px solid ${THEME.outlineVar}`, cursor: 'pointer' }} onClick={() => fetchDocDetail(d)}>
-                    <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: '12px', color: color, fontWeight: 700 }}>{d.doc_number}</td>
+                    <td style={{ padding: '8px 10px', fontSize: '12px', color: color, fontWeight: 700 }}>{d.doc_number}</td>
                     <td style={{ padding: '8px 10px', color: THEME.text, maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</td>
                     <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '12px', textTransform: 'capitalize' }}>{d.doc_type.replace('_', ' ')}</td>
                     <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '12px' }}>{d.discipline || '—'}</td>
@@ -444,6 +453,11 @@ export default function PJDocuments({ setPage }) {
                     <td style={{ padding: '8px 10px', color: THEME.textMed, fontSize: '12px', whiteSpace: 'nowrap' }}>{new Date(d.created_at).toLocaleDateString()}</td>
                     <td style={{ padding: '8px 10px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
+                        {d.file_url && (
+                          <Button size="sm" onClick={e => { e.stopPropagation(); openFile(d) }} style={{ fontSize: '11px' }} title="Open the file">
+                            Open
+                          </Button>
+                        )}
                         {can('projects.edit') && (
                           <Button size="sm" onClick={e => { e.stopPropagation(); openEdit(d) }} style={{ fontSize: '11px' }}>
                             <Icon name="edit" size={14} />
@@ -474,8 +488,9 @@ export default function PJDocuments({ setPage }) {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
-                <div style={{ fontSize: '11px', fontFamily: 'monospace', color, fontWeight: 700, marginBottom: '4px' }}>{detailDoc.doc_number} · Rev {detailDoc.revision}</div>
+                <div style={{ fontSize: '11px', color, fontWeight: 700, marginBottom: '4px' }}>{detailDoc.doc_number} · Rev {detailDoc.revision}</div>
                 <div style={{ fontSize: '18px', fontWeight: 700, color: THEME.text, marginBottom: '6px' }}>{detailDoc.title}</div>
+                {detailDoc.file_url && <div style={{ marginBottom: '8px' }}><Button size="sm" variant="filled" onClick={() => openFile(detailDoc)}>Open file</Button></div>}
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {(() => { const s = STATUS_MAP[detailDoc.status] || STATUS_MAP.draft; return <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: s.bg, color: s.text }}>{s.label}</span> })()}
                   <span style={{ fontSize: '11px', color: THEME.textMed, textTransform: 'capitalize' }}>{detailDoc.doc_type?.replace('_', ' ')}</span>

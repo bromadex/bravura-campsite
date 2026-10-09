@@ -703,7 +703,9 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   ds_documents category Drawings in each task's DocShare folder + ds_document_links to every task of that area code (49 tasks), project_documents
   register rows (file_url = storage path; PJDocuments "Open" signs it). `_pj_import_drawings(jsonb)` (service role only); edge fn drawings-import
   retired (returns 410). 0268: project_documents.status widened to varchar(40); the 519 drawings are issued_for_construction
-  (30 transmittals + 9 reports stay approved). Task leads (Eng. Osas / Joshua / Confidence) still have no logins — assign when they do.
+  (30 transmittals + 9 reports stay approved). Task leads still have no logins — assign when they do: Eng. Joshua = Abbey I Joshua
+  (BRA0285, user 9 Oct) → AC-34, 46A/46B, 52, 54 + generator/substation/ablution builds; Eng. Confidence = Confidence Fedo (BRA190) → AC-50, 53;
+  Eng. Osas (not in HR yet) → AC-4, 25, 47, 49 + plant building superstructure.
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

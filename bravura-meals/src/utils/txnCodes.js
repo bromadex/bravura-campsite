@@ -141,6 +141,7 @@ export const TXN_CODES = [
   { code: 'CL11', path: '/contractors/cl_settings',             label: 'CL Settings',           module: 'contractors' },
   { code: 'CL12', path: '/contractors/cl_casual_payroll',      label: 'Casual Payroll',        module: 'contractors' },
   { code: 'CL13', path: '/contractors/cl_equipment_usage',    label: 'Equipment Usage',       module: 'contractors' },
+  { code: 'CL14', path: '/contractors/cl_vehicle_usage',      label: 'Vehicle usage (hired vehicles, km / hours)', module: 'contractors' },
 
   // ── Projects (PJ) ─────────────────────────────────────────────────────────
   { code: 'PJ01', path: '/projects/pj_dashboard', label: 'Projects (portfolio)',  module: 'projects' },

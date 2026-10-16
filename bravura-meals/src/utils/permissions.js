@@ -304,6 +304,7 @@ export function contractorsNav(role, can) {
     { id: 'cl_timesheets',           label: 'Timesheets',          section: 'Operations',   icon: 'schedule' },
     { id: 'cl_hired_vehicles',       label: 'Hired Vehicles',      section: 'Operations',   icon: 'local_shipping' },
     { id: 'cl_hired_equipment',      label: 'Hired Equipment',     section: 'Operations',   icon: 'construction' },
+    { id: 'cl_vehicle_usage',        label: 'Vehicle Usage',       section: 'Operations',   icon: 'local_shipping' },
     { id: 'cl_cost_dashboard',       label: 'Cost Dashboard',      section: 'Costs',        icon: 'payments' },
     { id: 'cl_reports',              label: 'Reports',             section: 'Reports',      icon: 'bar_chart' },
     { id: 'cl_settings',             label: 'Settings',            section: 'Admin',        icon: 'settings' },

@@ -4,6 +4,7 @@ import { usePermissions } from '../../contexts/PermissionsContext'
 import { useSite } from '../../contexts/SiteContext'
 import { showToast } from '../../components/ui'
 import Denied from '../../components/Denied'
+import ExpectedBills from './ExpectedBills'
 import { useAskContext } from '../../components/AskBravura'
 import { exportCsv } from '../../utils/csv'
 import { FIN, finCard, finBtn, finBtn2, finInput, money, useFinanceFonts } from '../../utils/financeTheme'
@@ -96,7 +97,7 @@ export default function PaySuppliers({ setPage, initialTab = 'to_pay', focusBill
     return { owed: sum(open), overdue: sum(open.filter(b => b.due_date && b.due_date < t)), week: sum(open.filter(b => b.due_date && b.due_date >= t && b.due_date <= in7)), mismatch: groups.mismatch.length }
   }, [bills, groups])
 
-  const list = ['runs', 'statements'].includes(tab) ? [] : groups[tab] || []
+  const list = ['runs', 'statements', 'expected'].includes(tab) ? [] : groups[tab] || []
   const pickedBills = bills.filter(b => picked.has(b.id))
   const pickedTotal = pickedBills.reduce((s, b) => s + Number(b.total_amount || 0), 0)
   const pickedImtt = pickedBills.reduce((s, b) => s + imttOn(b.total_amount), 0)
@@ -142,7 +143,7 @@ export default function PaySuppliers({ setPage, initialTab = 'to_pay', focusBill
   const tabs = [
     ['to_pay', 'To pay', groups.to_pay.length, FIN.ink], ['overdue', 'Overdue', groups.overdue.length, FIN.bad],
     ['mismatch', "Doesn't match", groups.mismatch.length, FIN.ochreText], ['awaiting', 'Awaiting approval', groups.awaiting.length, FIN.ink],
-    ['in_run', 'In a payment run', groups.in_run.length, FIN.ink], ['paid', 'Paid', null, FIN.ink], ['runs', 'Payment runs', runs.filter(r => ['draft', 'approved'].includes(r.status)).length, FIN.blue], ['statements', 'Supplier statements', null, FIN.ink],
+    ['in_run', 'In a payment run', groups.in_run.length, FIN.ink], ['paid', 'Paid', null, FIN.ink], ['runs', 'Payment runs', runs.filter(r => ['draft', 'approved'].includes(r.status)).length, FIN.blue], ['statements', 'Supplier statements', null, FIN.ink], ['expected', 'Expected bills', null, FIN.ink],
     ['bills', 'Record & approve bills', null, FIN.blue], ['hq', 'Head office & sites', null, FIN.ink],
   ]
   const Kpi = ({ label, value, sub, color }) => (
@@ -191,7 +192,8 @@ export default function PaySuppliers({ setPage, initialTab = 'to_pay', focusBill
       {tab === 'bills' && <Suspense fallback={<div style={{ ...finCard, color: FIN.faint }}>Loading…</div>}><ProcInvoices setPage={setPage} focusId={focusBill} /></Suspense>}
       {tab === 'hq' && <HeadOffice />}
 
-      {!['runs', 'statements', 'bills', 'hq'].includes(tab) && (
+      {tab === 'expected' && <ExpectedBills siteId={currentSiteId} />}
+      {!['runs', 'statements', 'bills', 'hq', 'expected'].includes(tab) && (
         <section style={{ ...finCard, padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 760 }}>

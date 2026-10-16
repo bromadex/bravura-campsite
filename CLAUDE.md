@@ -706,6 +706,13 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (30 transmittals + 9 reports stay approved). Task leads still have no logins — assign when they do: Eng. Joshua = Abbey I Joshua
   (BRA0285, user 9 Oct) → AC-34, 46A/46B, 52, 54 + generator/substation/ablution builds; Eng. Confidence = Confidence Fedo (BRA190) → AC-50, 53;
   Eng. Osas (not in HR yet) → AC-4, 25, 47, 49 + plant building superstructure.
+- **14–16 Oct (0269, 0270):** `vehicle_usage_log` (km_start/km_end → generated km, hours; approve → `trg_vehicle_usage_gl` posts hired_plant_usage at
+  km rate › hourly › daily via `_vehicle_usage_amount`; bill_accrual_links + ap_unbilled_accruals accept vehicle_usage_log) → CL14 `cl_vehicle_usage`
+  CLVehicleUsage.jsx. `expected_bills` + `expected_bills_status(site)` + pg_cron `expected-bills` 05:35 UTC → `expected_bills_notify` (finance.edit) →
+  Pay Suppliers tab "Expected bills" (ExpectedBills.jsx). 0270: `fuel_update_dip_snapshot` = latest NON-archived dip by date+time, AFTER INSERT OR UPDATE
+  (an archived 14 Oct 48 L dip had left Main Tank at 48 L); FuelContext.tankBalance uses fuel_tank_position.book_level. Fleet Assignments: operator /
+  second person pickers (fuel_operators + employees). The Supabase MCP hung on DROP POLICY/TRIGGER IF EXISTS — use CREATE OR REPLACE TRIGGER instead.
+  All 4 hired vehicles (National Cranes, returned) have no rates.
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

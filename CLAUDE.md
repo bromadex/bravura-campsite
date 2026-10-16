@@ -717,6 +717,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   `fuel-meter-required-eve` 31 Oct). Date comes from `_fleet_setting_date` (default 1 Nov 2026; no fleet_settings rows exist). Daily dip reminder
   (user: "wendy usually forgets"): `fuel_tanks.dip_reminder_users` (Main Tank = Wendy) + `fuel_dip_reminders(escalate)`; cron 08:00 UTC to them,
   14:00 UTC again + fuel.approve holders, only if no non-archived dip today (Africa/Harare date). No Main Tank dip 11–16 Oct.
+- **0273 (16 Oct, user):** batch issue needs opening + closing dip on dipstick tanks. `rpc_bulk_fuel_issuance_v2(..., p_dip_open_mm, p_dip_close_mm)`
+  (DIPS_REQUIRED unless level_tracking_method 'issuance'); `_fuel_mm_to_litres(tank, mm)` = same interpolation as DipReadings; one fuel_dip_readings
+  row (start→end) in the same transaction; issues issued_at = closing dip − 1 min. Old 6-arg rpc_bulk_fuel_issuance now wraps v2 (refuses dipstick
+  tanks without dips). FuelIssuance bulk form: Dipstick panel with mm → L preview and "by dip vs keyed in" difference; docket shows the dips.
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

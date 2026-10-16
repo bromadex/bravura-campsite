@@ -334,6 +334,27 @@ export default function FuelIssuance({ setPage }) {
   const [bulkTankId, setBulkTankId] = useState('')
   const [bulkAuth, setBulkAuth] = useState('')
   const [bulkReason, setBulkReason] = useState('')
+  // Opening + closing dip for a batch (0273): required on dipstick tanks — the server refuses the batch without them.
+  const [bulkDipOpen, setBulkDipOpen] = useState('')
+  const [bulkDipClose, setBulkDipClose] = useState('')
+  const [bulkCal, setBulkCal] = useState([])
+  useEffect(() => {
+    setBulkCal([])
+    if (!bulkTankId) return
+    supabase.from('tank_calibrations').select('dip_mm, level_litres').eq('tank_id', bulkTankId).eq('is_archived', false)
+      .then(({ data }) => setBulkCal((data || []).map(r => ({ mm: Number(r.dip_mm), l: Number(r.level_litres) })).sort((a, b) => a.mm - b.mm)))
+  }, [bulkTankId])
+  const mmToLitres = mm => {
+    if (mm === '' || mm == null || !bulkCal.length) return null
+    const v = Number(mm)
+    if (v <= bulkCal[0].mm) return bulkCal[0].l
+    if (v >= bulkCal[bulkCal.length - 1].mm) return bulkCal[bulkCal.length - 1].l
+    for (let i = 0; i < bulkCal.length - 1; i++) {
+      const lo = bulkCal[i], hi = bulkCal[i + 1]
+      if (v >= lo.mm && v <= hi.mm) return hi.mm === lo.mm ? lo.l : lo.l + (v - lo.mm) / (hi.mm - lo.mm) * (hi.l - lo.l)
+    }
+    return null
+  }
   const [bulkSaving, setBulkSaving] = useState(false)
   const [bulkResults, setBulkResults] = useState(null)
   const gridRef = useRef(null)
@@ -779,7 +800,13 @@ export default function FuelIssuance({ setPage }) {
 
     const tank = tanks.find(t => t.id === bulkTankId)
     const totalLitres = valid.reduce((s, r) => s + Number(r.litres), 0)
-    if (tank && totalLitres > Number(tank.current_level_litres)) {
+    const needsDips = tank && tank.level_tracking_method !== 'issuance'
+    if (needsDips) {
+      if (bulkDipOpen === '' || bulkDipClose === '') { showToast('Enter the opening dip (before issuing) and the closing dip (after issuing)', 'red'); return }
+      if (Number(bulkDipClose) > Number(bulkDipOpen)) { showToast('The closing dip is higher than the opening dip — check the readings', 'red'); return }
+      const openL = mmToLitres(bulkDipOpen)
+      if (openL != null && totalLitres > openL) { showToast(`Total ${totalLitres.toFixed(1)} L is more than the opening dip (${openL.toFixed(0)} L)`, 'red'); return }
+    } else if (tank && totalLitres > Number(tank.current_level_litres)) {
       showToast(`Total ${totalLitres.toFixed(1)} L exceeds tank level (${Number(tank.current_level_litres).toFixed(1)} L)`, 'red'); return
     }
 
@@ -798,13 +825,15 @@ export default function FuelIssuance({ setPage }) {
         hours_reading:    isEquipmentLike(r.asset_type) && r.reading ? Number(r.reading) : null,
       }))
 
-      const { data, error } = await supabase.rpc('rpc_bulk_fuel_issuance', {
+      const { data, error } = await supabase.rpc('rpc_bulk_fuel_issuance_v2', {
         p_site_id:       currentSiteId,
         p_tank_id:       bulkTankId,
         p_batch_id:      batchId,
         p_authorised_by: bulkAuth.trim(),
         p_reason:        bulkReason.trim(),
         p_rows:          rpcRows,
+        p_dip_open_mm:   needsDips ? Number(bulkDipOpen) : null,
+        p_dip_close_mm:  needsDips ? Number(bulkDipClose) : null,
       })
 
       if (error) throw error
@@ -820,11 +849,12 @@ export default function FuelIssuance({ setPage }) {
         rows:        (data.rows || []).map((row, i) => ({ ...row, purpose: (valid[i]?.purpose || '').trim() })),
         tankName:    tank?.name || '—',
         tankLevelAfter: data.tank_level_after,
+        dip:         data.dip ? { ...data.dip, open_mm: bulkDipOpen, close_mm: bulkDipClose } : null,
       })
       showToast(`${data.row_count} issuance${data.row_count > 1 ? 's' : ''} recorded atomically`, 'green')
     } catch (err) {
       // Fallback: if RPC doesn't exist yet, do sequential inserts
-      if (err.message?.includes('rpc_bulk_fuel_issuance') || err.code === '42883') {
+      if (!needsDips && (err.message?.includes('rpc_bulk_fuel_issuance') || err.code === '42883')) {
         const results = []
         try {
           for (const r of valid) {
@@ -867,7 +897,7 @@ export default function FuelIssuance({ setPage }) {
           showToast(fallbackErr.message || 'Failed during bulk issuance', 'red')
         }
       } else {
-        showToast(err.message || 'Failed during bulk issuance', 'red')
+        showToast((err.message || 'Failed during bulk issuance').replace(/^DIPS_REQUIRED:\s*/, ''), 'red')
       }
     } finally {
       setBulkSaving(false)
@@ -911,6 +941,9 @@ export default function FuelIssuance({ setPage }) {
                 ['Reason', bulkReason],
                 ['Total', `${Number(br.totalLitres).toFixed(1)} L across ${br.rowCount} vehicle${br.rowCount > 1 ? 's' : ''}`],
                 br.batchId && ['Batch Ref', br.batchId.slice(0, 8).toUpperCase()],
+                br.dip && ['Opening dip', `${br.dip.open_mm} mm = ${Number(br.dip.open_litres).toFixed(0)} L`],
+                br.dip && ['Closing dip', `${br.dip.close_mm} mm = ${Number(br.dip.close_litres).toFixed(0)} L`],
+                br.dip && ['Dips vs issued', `${Number(br.dip.dip_used).toFixed(0)} L by dip vs ${Number(br.dip.issued).toFixed(0)} L issued (${Number(br.dip.difference) >= 0 ? '+' : ''}${Number(br.dip.difference).toFixed(0)} L)`],
               ].filter(Boolean).map(([k, v]) => (
                 <tr key={k}><td style={{ padding: '2px 0', fontWeight: 'bold', width: '35%' }}>{k}:</td><td>{v}</td></tr>
               ))}
@@ -1024,7 +1057,7 @@ export default function FuelIssuance({ setPage }) {
             padding: '10px 24px', borderRadius: '6px', border: `1px solid ${THEME.outline}`,
             background: 'transparent', color: THEME.textMed, fontSize: '14px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
           }}>View History</button>
-          <button onClick={() => { setBulkResults(null); setBulkRows(Array.from({ length: 5 }, () => makeBulkRow())); setBulkAuth(''); setBulkReason('') }} style={{
+          <button onClick={() => { setBulkResults(null); setBulkRows(Array.from({ length: 5 }, () => makeBulkRow())); setBulkAuth(''); setBulkReason(''); setBulkDipOpen(''); setBulkDipClose('') }} style={{
             padding: '10px 24px', borderRadius: '6px', border: 'none',
             background: FUEL_CLR, color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', gap: '6px',
@@ -1118,6 +1151,35 @@ export default function FuelIssuance({ setPage }) {
               <input type="text" value={bulkReason} onChange={e => setBulkReason(e.target.value)} placeholder="e.g. Morning diesel run" style={inp()} />
             </FieldWrap>
           </div>
+
+          {bulkTank && bulkTank.level_tracking_method !== 'issuance' && (() => {
+            const oL = mmToLitres(bulkDipOpen), cL = mmToLitres(bulkDipClose)
+            const used = oL != null && cL != null ? oL - cL : null
+            const diff = used != null ? used - bulkTotal : null
+            return (
+              <div style={{ marginBottom: '20px', padding: '14px 16px', borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, background: THEME.surface }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '10px' }}>Dipstick — required for this tank</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', alignItems: 'end' }}>
+                  <FieldWrap label="Opening dip (mm) — before issuing" required>
+                    <input type="number" min="0" step="1" value={bulkDipOpen} onChange={e => setBulkDipOpen(e.target.value)} style={inp()} placeholder="e.g. 1800" />
+                    <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '4px' }}>{oL != null ? `= ${oL.toFixed(0)} L` : bulkCal.length ? '' : 'No calibration table for this tank'}</div>
+                  </FieldWrap>
+                  <FieldWrap label="Closing dip (mm) — after issuing" required>
+                    <input type="number" min="0" step="1" value={bulkDipClose} onChange={e => setBulkDipClose(e.target.value)} style={inp()} placeholder="e.g. 1760" />
+                    <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '4px' }}>{cL != null ? `= ${cL.toFixed(0)} L` : ''}</div>
+                  </FieldWrap>
+                  <div style={{ fontSize: '13px', color: THEME.textMed, paddingBottom: '18px' }}>
+                    {used == null ? 'Dip before you start and again when you finish.' : <>
+                      By dip <b style={{ color: THEME.text }}>{used.toFixed(0)} L</b> went out · keyed in <b style={{ color: THEME.text }}>{bulkTotal.toFixed(0)} L</b>
+                      <div style={{ color: Math.abs(diff) > Number(bulkTank.dip_tolerance_litres || 120) ? THEME.error : THEME.success, fontWeight: 600 }}>
+                        Difference {diff >= 0 ? '+' : ''}{diff.toFixed(0)} L{Math.abs(diff) > Number(bulkTank.dip_tolerance_litres || 120) ? ' — check the fills or the dips' : ''}
+                      </div>
+                    </>}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Tank level bar */}
           {bulkTank && (

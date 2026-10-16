@@ -148,6 +148,15 @@ export default function FuelPump() {
       <h2 style={{ margin: '4px 0 2px', fontSize: 22, color: THEME.text }}>Issue fuel</h2>
       <div style={{ fontSize: 13, color: THEME.textMed }}>At the pump. Works without signal.</div>
 
+      {lists?.meter_required_from && !meterNeeded && (() => {
+        const days = Math.ceil((new Date(lists.meter_required_from + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000)
+        return days <= 30 && (
+          <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: '#FFF6E8', border: '1px solid #EBCB97', fontSize: 13, color: '#9A5B00' }}>
+            From <b>{new Date(lists.meter_required_from + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</b> ({days} day{days === 1 ? '' : 's'}) every fill needs the odometer or hour-meter reading. Start writing it down now.
+          </div>
+        )
+      })()}
+
       {(!online || queue.length > 0) && (
         <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: THEME.surfaceVar, fontSize: 13, color: THEME.text }}>
           {!online ? 'No signal. ' : ''}{queue.length ? `${queue.length} fill(s) on this phone waiting to send.` : 'Fills will be saved on this phone.'}

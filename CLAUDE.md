@@ -713,6 +713,10 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (an archived 14 Oct 48 L dip had left Main Tank at 48 L); FuelContext.tankBalance uses fuel_tank_position.book_level. Fleet Assignments: operator /
   second person pickers (fuel_operators + employees). The Supabase MCP hung on DROP POLICY/TRIGGER IF EXISTS — use CREATE OR REPLACE TRIGGER instead.
   All 4 hired vehicles (National Cranes, returned) have no rates.
+- **16 Oct (0271, 0272):** meter-required countdown on Issue fuel + `fuel_meter_required_notice()` (fuel.create holders, sent 16 Oct, cron
+  `fuel-meter-required-eve` 31 Oct). Date comes from `_fleet_setting_date` (default 1 Nov 2026; no fleet_settings rows exist). Daily dip reminder
+  (user: "wendy usually forgets"): `fuel_tanks.dip_reminder_users` (Main Tank = Wendy) + `fuel_dip_reminders(escalate)`; cron 08:00 UTC to them,
+  14:00 UTC again + fuel.approve holders, only if no non-archived dip today (Africa/Harare date). No Main Tank dip 11–16 Oct.
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

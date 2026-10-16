@@ -29,6 +29,7 @@ export function FuelProvider({ children }) {
   const [dipReadings,  setDipReadings]  = useState([])
   const [profiles,     setProfiles]     = useState([])
   const [loading,      setLoading]      = useState(true)
+  const [bookLevels,   setBookLevels]   = useState({})   // tank_id -> book level now (last dip ± moves since), from fuel_tank_position
   const [txnDateFrom,  setTxnDateFrom]  = useState(defaultFrom)
   const [txnDateTo,    setTxnDateTo]    = useState(defaultTo)
 
@@ -187,8 +188,19 @@ export function FuelProvider({ children }) {
 
   // ── Computed helpers ──────────────────────────────────────────────────────────
 
-  // Authoritative tank balance from the DB (updated by trigger after each transaction)
+  // Book level per tank = the same figure as the strip on Fuel Tanks (last dip + deliveries − issues since; drums: running total).
+  // current_level_litres alone only holds the last dip for dipstick tanks, so the tank pictures showed stale levels (user, 16 Oct).
+  useEffect(() => {
+    if (!currentSiteId) return
+    let live = true
+    supabase.rpc('fuel_tank_position', { p_site_id: currentSiteId }).then(({ data }) => {
+      if (live && data) setBookLevels(Object.fromEntries(data.map(r => [r.tank_id, Number(r.book_level)])))
+    })
+    return () => { live = false }
+  }, [currentSiteId, tanks, transactions])
+
   function tankBalance(tankId) {
+    if (bookLevels[tankId] != null && !Number.isNaN(bookLevels[tankId])) return bookLevels[tankId]
     const tank = tanks.find(t => t.id === tankId)
     return tank ? Number(tank.current_level_litres) : 0
   }
@@ -614,7 +626,7 @@ export function FuelProvider({ children }) {
     addTransaction, updateTransaction, softDeleteTransaction,
     addDipReading, updateDipReading, deleteDipReading, deleteDelivery,
     refresh: fetchAll,
-  }), [fuelTypes, tanks, pumps, vehicles, equipment, fleetAssets, operators, employees, departments, transactions, dipReadings, profiles, loading])
+  }), [fuelTypes, tanks, pumps, vehicles, equipment, fleetAssets, operators, employees, departments, transactions, dipReadings, profiles, loading, bookLevels])
 
   return (
     <FuelContext.Provider value={value}>

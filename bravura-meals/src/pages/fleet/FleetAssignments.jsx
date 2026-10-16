@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { THEME, MODULE_COLORS } from '../../utils/permissions'
 import { useFleet } from '../../contexts/FleetContext'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -44,6 +44,17 @@ export default function FleetAssignments({ setPage }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // Drivers / operators by name (were typed UUID boxes). A machine can have two people: add a second assignment
+  // for the other shift (day + night) or put the operator and a supervisor on one assignment.
+  const [people, setPeople] = useState([])
+  useEffect(() => {
+    if (!currentSiteId) return
+    supabase.from('fuel_operators').select('id, is_active, employees(name, employee_number)').eq('site_id', currentSiteId)
+      .then(({ data }) => setPeople((data || []).filter(o => o.employees).map(o => ({ id: o.id, active: o.is_active,
+        name: o.employees.name + (o.employees.employee_number ? ` (${o.employees.employee_number})` : '') }))
+        .sort((x, y) => x.name.localeCompare(y.name))))
+  }, [currentSiteId])
+  const personName = id => people.find(p => p.id === id)?.name
 
   const filtered = useMemo(() => {
     let list = assignments || []
@@ -291,6 +302,11 @@ export default function FleetAssignments({ setPage }) {
                     <div style={{ fontSize: '12px', color: THEME.textMed, marginTop: '2px' }}>
                       {asset?.description || ''}
                     </div>
+                    {(a.operator_id || a.supervisor_id) && (
+                      <div style={{ fontSize: '12px', color: THEME.text, marginTop: '4px' }}>
+                        {[personName(a.operator_id), personName(a.supervisor_id)].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                     <span style={{
@@ -395,12 +411,18 @@ export default function FleetAssignments({ setPage }) {
                   <input style={inp} value={form.project} onChange={e => set('project', e.target.value)} />
                 </div>
                 <div style={fieldWrap}>
-                  <label style={lbl}>Operator ID</label>
-                  <input style={inp} value={form.operator_id} onChange={e => set('operator_id', e.target.value)} placeholder="UUID" />
+                  <label style={lbl}>Operator / driver</label>
+                  <select style={inp} value={form.operator_id} onChange={e => set('operator_id', e.target.value)}>
+                    <option value="">— none —</option>
+                    {people.filter(p => p.active || p.id === form.operator_id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
                 </div>
                 <div style={fieldWrap}>
-                  <label style={lbl}>Supervisor ID</label>
-                  <input style={inp} value={form.supervisor_id} onChange={e => set('supervisor_id', e.target.value)} placeholder="UUID" />
+                  <label style={lbl}>Second person / supervisor</label>
+                  <select style={inp} value={form.supervisor_id} onChange={e => set('supervisor_id', e.target.value)}>
+                    <option value="">— none —</option>
+                    {people.filter(p => p.active || p.id === form.supervisor_id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
                 </div>
                 <div style={fieldWrap}>
                   <label style={lbl}>Start Date</label>

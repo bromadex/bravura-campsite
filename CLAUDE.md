@@ -721,6 +721,8 @@ Five AI systems reviewed ConnectPage.jsx. Findings consolidated into three tiers
   (DIPS_REQUIRED unless level_tracking_method 'issuance'); `_fuel_mm_to_litres(tank, mm)` = same interpolation as DipReadings; one fuel_dip_readings
   row (start→end) in the same transaction; issues issued_at = closing dip − 1 min. Old 6-arg rpc_bulk_fuel_issuance now wraps v2 (refuses dipstick
   tanks without dips). FuelIssuance bulk form: Dipstick panel with mm → L preview and "by dip vs keyed in" difference; docket shows the dips.
+- **0274 (16 Oct, user):** single fills (FU21 → fuel_pump_issue) — first fill of the day from a dipstick tank needs `opening_dip_mm`
+  ('OPENING_DIP:' error otherwise); `_fuel_pump_opening_dip(tank, at, mm)` saves the dip 1 min before the fill. Back-dated fills (imports) skip it.
 - App name is "Bravura Desk" (user 29 Sep; login, tab title, manifest, Quick Start — no meals text); tab title + manifest renamed (user 28 Sep).
 - UI: app-wide TopBar lives in `components/ModuleLayout.jsx` (clickable path 🏠 / Module / Page — user 28 Sep, replaces module eyebrow + big title; Ctrl K search
   firing `open-command-palette`, live clock capsule); SiteSwitcher is a pill.

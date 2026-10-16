@@ -15,14 +15,14 @@ const QKEY = 'fuel_pump_queue'
 const readQ = () => { try { return JSON.parse(localStorage.getItem(QKEY) || '[]') } catch { return [] } }
 const writeQ = q => { try { localStorage.setItem(QKEY, JSON.stringify(q)) } catch { /* storage unavailable */ } }
 const uid = () => (crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`)
-const REASON_FIELD = { LICENCE: 'licence_note', SECOND_FILL: 'second_fill_reason', ALLOWANCE: 'allowance_note' }
-const REASON_ASK = { LICENCE: 'Why may this driver take fuel?', SECOND_FILL: 'Why a second fill so soon?', ALLOWANCE: 'Why go over the allowance?' }
+const REASON_FIELD = { LICENCE: 'licence_note', SECOND_FILL: 'second_fill_reason', ALLOWANCE: 'allowance_note', OPENING_DIP: 'opening_dip_mm' }
+const REASON_ASK = { LICENCE: 'Why may this driver take fuel?', SECOND_FILL: 'Why a second fill so soon?', ALLOWANCE: 'Why go over the allowance?', OPENING_DIP: 'Opening dip in mm (dip the tank before this fill):' }
 
 const big = { width: '100%', boxSizing: 'border-box', padding: '14px 12px', fontSize: 17, borderRadius: 10, border: `1px solid ${THEME.outline}`, background: THEME.surface, color: THEME.text, fontFamily: 'inherit' }
 const label = { display: 'block', fontSize: 13, fontWeight: 600, color: THEME.textMed, margin: '14px 0 6px' }
 
 const blank = tank => ({ tank_id: tank || '', pump_id: '', fleet_asset_id: '', operator_id: '', litres: '', odometer_km: '', hours_reading: '',
-  meter_broken: false, meter_note: '', meter_start: '', meter_end: '', signed_by_name: '', notes: '' })
+  meter_broken: false, meter_note: '', meter_start: '', meter_end: '', signed_by_name: '', notes: '', opening_dip_mm: '' })
 
 export default function FuelPump() {
   const { can } = usePermissions()
@@ -38,6 +38,7 @@ export default function FuelPump() {
   const [queue, setQueue] = useState(readQ())
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
   const [check, setCheck] = useState(null)
+  const [dip, setDip] = useState(null)   // { needed, cal } — first fill of the day from a dipstick tank needs the opening dip (0274)
 
   // lists: fresh when online, cached for offline
   useEffect(() => {
@@ -53,7 +54,7 @@ export default function FuelPump() {
   const send = useCallback(async item => {
     const { data, error } = await supabase.rpc('fuel_pump_issue', { p: item })
     if (error) {
-      const code = (error.message.match(/^(LICENCE|SECOND_FILL|ALLOWANCE):/) || [])[1]
+      const code = (error.message.match(/^(LICENCE|SECOND_FILL|ALLOWANCE|OPENING_DIP):/) || [])[1]
       return { ok: false, code, message: error.message.replace(/ — give a reason to go ahead$/, ''), network: /fetch|network|Failed to/i.test(error.message) }
     }
     return { ok: true, data }
@@ -95,6 +96,28 @@ export default function FuelPump() {
     return () => clearTimeout(t)
   }, [online, siteId, form.fleet_asset_id, form.operator_id, form.litres])
 
+  useEffect(() => {
+    setDip(null)
+    if (!online || !form.tank_id) return
+    const day = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Harare' })
+    Promise.all([
+      supabase.from('fuel_tanks').select('level_tracking_method').eq('id', form.tank_id).eq('site_id', siteId).maybeSingle(),
+      supabase.from('fuel_dip_readings').select('id').eq('tank_id', form.tank_id).eq('site_id', siteId).eq('reading_date', day).eq('is_archived', false).limit(1),
+      supabase.from('tank_calibrations').select('dip_mm, level_litres').eq('tank_id', form.tank_id).eq('is_archived', false).order('dip_mm'),
+    ]).then(([t, d, c]) => {
+      if (t.data?.level_tracking_method === 'issuance') return setDip({ needed: false })
+      setDip({ needed: !(d.data || []).length, cal: c.data || [] })
+    })
+  }, [online, siteId, form.tank_id, msg])
+  const dipLitres = useMemo(() => {
+    const mm = Number(form.opening_dip_mm), c = dip?.cal || []
+    if (form.opening_dip_mm === '' || !c.length) return null
+    const lo = [...c].reverse().find(x => x.dip_mm <= mm), hi = c.find(x => x.dip_mm >= mm)
+    if (!lo) return c[0].level_litres
+    if (!hi) return c[c.length - 1].level_litres
+    return hi.dip_mm === lo.dip_mm ? lo.level_litres : lo.level_litres + (mm - lo.dip_mm) / (hi.dip_mm - lo.dip_mm) * (hi.level_litres - lo.level_litres)
+  }, [form.opening_dip_mm, dip])
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const submit = async (extra = {}) => {
@@ -102,6 +125,7 @@ export default function FuelPump() {
     if (!form.tank_id) return setMsg({ bad: true, text: 'Choose the tank or bowser' })
     if (!form.fleet_asset_id) return setMsg({ bad: true, text: 'Choose the machine' })
     if (!(Number(form.litres) > 0)) return setMsg({ bad: true, text: 'Enter the litres' })
+    if (dip?.needed && form.opening_dip_mm === '' && !extra.opening_dip_mm) return setMsg({ bad: true, text: 'First fill today — enter the opening dip (mm) before filling' })
     if (meterNeeded && !form.meter_broken && !form.odometer_km && !form.hours_reading) return setMsg({ bad: true, text: `Enter the ${isVehicle ? 'km' : 'hours'} reading, or tick "Meter broken"` })
     if (form.meter_broken && !form.meter_note.trim()) return setMsg({ bad: true, text: 'Say what is wrong with the meter' })
     if (!form.signed_by_name.trim()) return setMsg({ bad: true, text: 'The driver must type their name to sign' })
@@ -163,7 +187,7 @@ export default function FuelPump() {
           {online && queue.some(x => !x._needs) && <button onClick={flush} style={{ marginLeft: 8, border: 'none', background: 'none', color: COLOR, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit' }}>Send now</button>}
           {queue.filter(x => x._needs).map(x => (
             <div key={x.client_ref} style={{ marginTop: 6, color: THEME.error }}>
-              {x.litres} L — {x._message} <button onClick={() => fixQueued(x)} style={{ border: 'none', background: 'none', color: COLOR, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit' }}>Give reason</button>
+              {x.litres} L — {x._message} <button onClick={() => fixQueued(x)} style={{ border: 'none', background: 'none', color: COLOR, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit' }}>{x._needs === 'OPENING_DIP' ? 'Enter dip' : 'Give reason'}</button>
             </div>
           ))}
         </div>
@@ -176,6 +200,14 @@ export default function FuelPump() {
       <select id="p-tank" value={form.tank_id} onChange={e => set('tank_id', e.target.value)} style={big}>
         <option value="">Choose…</option>{(lists?.tanks || []).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
       </select>
+
+      {dip?.needed && <>
+        <label style={label} htmlFor="p-dip">Opening dip (mm) — first fill from this tank today</label>
+        <input id="p-dip" type="number" inputMode="decimal" min="0" value={form.opening_dip_mm} onFocus={() => setOpenList(null)}
+          onChange={e => set('opening_dip_mm', e.target.value)} style={big} />
+        <div style={{ fontSize: 12, color: THEME.textMed, marginTop: 4 }}>
+          {dipLitres != null ? `≈ ${Math.round(dipLitres).toLocaleString()} L in the tank. ` : ''}Dip the tank before you pump. Later fills today don't need it.</div>
+      </>}
 
       <label style={label} htmlFor="p-machine">Machine</label>
       <input id="p-machine" placeholder="Tap to choose, or type fleet no. / registration" value={machine ? machine.label : search}

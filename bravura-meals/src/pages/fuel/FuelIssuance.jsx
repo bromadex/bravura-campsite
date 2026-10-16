@@ -1152,13 +1152,13 @@ export default function FuelIssuance({ setPage }) {
             </FieldWrap>
           </div>
 
-          {(!bulkTank || bulkTank.level_tracking_method !== 'issuance') && (() => {
+          {bulkTank && bulkTank.level_tracking_method !== 'issuance' && (() => {
             const oL = mmToLitres(bulkDipOpen), cL = mmToLitres(bulkDipClose)
             const used = oL != null && cL != null ? oL - cL : null
             const diff = used != null ? used - bulkTotal : null
             return (
               <div style={{ marginBottom: '20px', padding: '14px 16px', borderRadius: '12px', border: `1px solid ${THEME.outlineVar}`, background: THEME.surface }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '10px' }}>{bulkTank ? 'Dipstick — required for this tank' : 'Dipstick — opening and closing dip (needed for the main tank; choose the tank above)'}</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: THEME.text, marginBottom: '10px' }}>Dipstick — required for this tank</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', alignItems: 'end' }}>
                   <FieldWrap label="Opening dip (mm) — before issuing" required>
                     <input type="number" min="0" step="1" value={bulkDipOpen} onChange={e => setBulkDipOpen(e.target.value)} style={inp()} placeholder="e.g. 1800" />

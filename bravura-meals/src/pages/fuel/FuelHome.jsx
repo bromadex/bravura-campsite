@@ -9,6 +9,7 @@ import { showToast } from '../../components/ui'
 import { friendlyError } from '../../utils/friendlyError'
 import { useAskContext } from '../../components/AskBravura'
 import { exportCsv } from '../../utils/csv'
+import FuelTankVisual from '../../components/FuelTankVisual'
 
 // FU01 — Fuel dashboard (issue #73, F5) in the finance look, from fuel_home(site): what needs attention, tanks with days of
 // cover and reorder point, month figures, 30-day trend, top users with L/h against expected, and the month's charge-out
@@ -107,24 +108,34 @@ export default function FuelHome({ setPage }) {
 
         <div style={finCard}>
           <h3 style={h3}>Tanks</h3>
-          <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={th}>Tank</th><th style={thr}>Level</th><th style={th}>Full</th><th style={thr}>Use / day</th><th style={thr}>Days of cover</th>
-              <th style={thr}>Dip gaps 30 d</th><th style={th}>Reorder</th></tr></thead>
-            <tbody>{(d.tanks || []).map(t => (
-              <tr key={t.tank_id}>
-                <td style={td}>{t.tank}<div style={{ fontSize: 11, color: FIN.faint }}>{t.method === 'dipstick' ? `dipped ${t.last_dip_date || '—'}` : 'running total'}</div></td>
-                <td style={tdr}>{L(t.book_level)}<div style={{ fontSize: 11, color: FIN.faint }}>of {L(t.capacity)}</div></td>
-                <td style={{ ...td, minWidth: 120 }}>
-                  <div style={{ height: 8, background: FIN.lineSoft, borderRadius: 4 }}><div style={{ width: `${Math.min(100, n(t.pct_full))}%`, height: '100%', borderRadius: 4, background: t.reorder ? FIN.bad : FIN.blue }} /></div>
-                  <div style={{ fontSize: 11, color: FIN.faint }}>{n(t.pct_full)}%</div></td>
-                <td style={tdr}>{L(t.use_per_day)}</td>
-                <td style={{ ...tdr, color: t.reorder ? FIN.bad : FIN.ink, fontWeight: t.reorder ? 700 : 400 }}>{t.days_cover ?? '—'}</td>
-                <td style={{ ...tdr, color: Math.abs(n(t.gap_30d)) > n(t.tolerance) ? FIN.bad : FIN.ink }}>{t.gap_30d == null ? '—' : `${n(t.gap_30d) > 0 ? '+' : ''}${L(t.gap_30d)}`}</td>
-                <td style={td}>{t.reorder ? <span style={{ color: FIN.bad }}>Order about {L(t.order_litres)}</span> : <span style={{ color: FIN.faint }}>below {d.reorder_days} days</span>}
-                  {t.reorder && can('procurement.create') && <button onClick={() => setPage('proc_orders')} style={{ ...finBtn2, marginLeft: 8, padding: '4px 10px', fontSize: 12 }}>Order</button>}</td>
-              </tr>
-            ))}</tbody>
-          </table></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: 12 }}>
+            {(d.tanks || []).map(t => {
+              const gapBad = Math.abs(n(t.gap_30d)) > n(t.tolerance)
+              const stat = (k, v, tone) => (
+                <div><div style={{ fontSize: 11, color: FIN.faint, textTransform: 'uppercase', letterSpacing: '.04em' }}>{k}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: tone || FIN.ink, fontVariantNumeric: 'tabular-nums' }}>{v}</div></div>)
+              return (
+                <div key={t.tank_id} style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', padding: 14, border: `1px solid ${t.reorder ? FIN.bad : FIN.line}`, borderRadius: 10 }}>
+                  <div style={{ flex: '0 0 auto', textAlign: 'center' }}>
+                    <FuelTankVisual percentage={Math.min(100, n(t.pct_full))} capacity={n(t.capacity)} currentLevel={n(t.book_level)}
+                      fuelName="Diesel" isLow={!!t.reorder} width={170} height={96} showLabel={false} />
+                    <div style={{ fontSize: 12, color: t.reorder ? FIN.bad : FIN.muted, marginTop: 2 }}>{n(t.pct_full)}% full</div>
+                  </div>
+                  <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                    <div style={{ fontFamily: FIN.serif, fontSize: 17, fontWeight: 600 }}>{t.tank}</div>
+                    <div style={{ fontSize: 11, color: FIN.faint, marginBottom: 8 }}>{t.method === 'dipstick' ? `dipped ${t.last_dip_date || '—'}` : 'running total'}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 14px' }}>
+                      {stat('Level', <>{L(t.book_level)} <span style={{ fontSize: 11, color: FIN.faint, fontWeight: 400 }}>of {L(t.capacity)}</span></>)}
+                      {stat('Use / day', L(t.use_per_day))}
+                      {stat('Days of cover', t.days_cover ?? '—', t.reorder ? FIN.bad : null)}
+                      {stat('Dip gaps 30 d', t.gap_30d == null ? '—' : `${n(t.gap_30d) > 0 ? '+' : ''}${L(t.gap_30d)}`, gapBad ? FIN.bad : null)}
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 12 }}>{t.reorder ? <span style={{ color: FIN.bad, fontWeight: 600 }}>Order about {L(t.order_litres)}</span> : <span style={{ color: FIN.faint }}>Reorder below {d.reorder_days} days of cover</span>}
+                      {t.reorder && can('procurement.create') && <button onClick={() => setPage('proc_orders')} style={{ ...finBtn2, marginLeft: 8, padding: '4px 10px', fontSize: 12 }}>Order</button>}</div>
+                  </div>
+                </div>)
+            })}
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 12 }}>
